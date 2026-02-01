@@ -1,12 +1,16 @@
 package api
 
 import (
+	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/smtp"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type smtpConfig struct {
@@ -16,6 +20,16 @@ type smtpConfig struct {
 	password string
 	from     string
 	fromName string
+}
+
+type brevoEmailPayload struct {
+	Sender struct {
+		Name  string `json:"name,omitempty"`
+		Email string `json:"email"`
+	} `json:"sender"`
+	To      []map[string]string `json:"to"`
+	Subject string              `json:"subject"`
+	Text    string              `json:"textContent"`
 }
 
 func loadSMTPConfig() (smtpConfig, error) {
@@ -40,7 +54,63 @@ func loadSMTPConfig() (smtpConfig, error) {
 	return cfg, nil
 }
 
+func loadBrevoConfig() (smtpConfig, string, error) {
+	apiKey := strings.TrimSpace(os.Getenv("BREVO_API_KEY"))
+	if apiKey == "" {
+		return smtpConfig{}, "", fmt.Errorf("missing BREVO_API_KEY")
+	}
+	cfg, err := loadSMTPConfig()
+	if err != nil {
+		return smtpConfig{}, "", err
+	}
+	return cfg, apiKey, nil
+}
+
+func sendBrevoEmail(toEmail, subject, body string) error {
+	cfg, apiKey, err := loadBrevoConfig()
+	if err != nil {
+		return err
+	}
+	var payload brevoEmailPayload
+	payload.Sender.Email = cfg.from
+	if cfg.fromName != "" {
+		payload.Sender.Name = cfg.fromName
+	}
+	payload.To = []map[string]string{{"email": toEmail}}
+	payload.Subject = subject
+	payload.Text = body
+
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, "https://api.brevo.com/v3/smtp/email", bytes.NewReader(raw))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("accept", "application/json")
+	req.Header.Set("content-type", "application/json")
+	req.Header.Set("api-key", apiKey)
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("brevo api error: status %d", resp.StatusCode)
+	}
+	return nil
+}
+
 func sendSMTPEmail(toEmail, subject, body string) error {
+	if strings.TrimSpace(os.Getenv("BREVO_API_KEY")) != "" {
+		if err := sendBrevoEmail(toEmail, subject, body); err == nil {
+			return nil
+		}
+	}
 	cfg, err := loadSMTPConfig()
 	if err != nil {
 		return err

@@ -242,6 +242,27 @@
             return isNegative ? `-${result}` : result;
         }
 
+        function formatDateDDMMYYYY(dateString) {
+            const date = new Date(dateString);
+            if (Number.isNaN(date.getTime())) return '-';
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        }
+
+        function computeRunningBalances(expenses) {
+            const sortedAsc = expenses.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+            const totalsByCurrency = {};
+            const balanceById = {};
+            sortedAsc.forEach(exp => {
+                const currency = (exp.currency || currentCurrency).toLowerCase();
+                totalsByCurrency[currency] = (totalsByCurrency[currency] || 0) + exp.amount;
+                balanceById[exp.id] = { amount: totalsByCurrency[currency], currency };
+            });
+            return balanceById;
+        }
+
         function createTable(expenses) {
             if (!expenses || expenses.length === 0) {
                 const message = document.getElementById('showAllToggle').checked ? 
@@ -249,19 +270,19 @@
                                 'No expenses recorded for this month';
                 return `<div class="no-data">${message}</div>`;
             }
-            const hasTags = expenses.some(exp => exp.tags && exp.tags.length > 0);
+            const runningBalances = computeRunningBalances(expenses);
             return `
                 <table class="expense-table">
                     <thead>
                         <tr>
-                            <th>Name</th>
-                            <th>Category</th>
-                            <th>Moneda</th>
+                            <th>Nombre</th>
+                            <th>Categoria</th>
+                            <th>Valor</th>
+                            <th>Balance</th>
                             <th>Metodo</th>
                             <th>Tarjeta</th>
-                            ${hasTags ? '<th class="tags-column">Tags</th>' : ''}
-                            <th>Amount</th>
-                            <th class="date-header">Date</th>
+                            <th>Moneda</th>
+                            <th class="date-header">Fecha</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -270,12 +291,12 @@
                             <tr>
                                 <td>${highlightText(expense.name, searchQuery)}</td>
                                 <td><span class="editable" data-edit="category" data-id="${expense.id}">${highlightText(expense.category, searchQuery)}</span></td>
-                                <td>${(expense.currency || currentCurrency).toUpperCase()}</td>
+                                <td class="amount"><span class="editable" data-edit="amount" data-id="${expense.id}">${formatCurrencyWithCurrency(expense.amount, expense.currency || currentCurrency)}</span></td>
+                                <td class="amount">${runningBalances[expense.id] ? formatCurrencyWithCurrency(runningBalances[expense.id].amount, runningBalances[expense.id].currency) : '-'}</td>
                                 <td>${expense.source ? escapeHTML(expense.source) : '-'}</td>
                                 <td>${expense.source === 'TARJETA' ? escapeHTML(expense.card || '-') : '-'}</td>
-                                ${hasTags ? `<td class="tags-column">${(expense.tags || []).map(escapeHTML).join(', ')}</td>` : ''}
-                                <td class="amount"><span class="editable" data-edit="amount" data-id="${expense.id}">${formatCurrencyWithCurrency(expense.amount, expense.currency || currentCurrency)}</span></td>
-                                <td class="date-column">${formatDateFromUTC(expense.date)}</td>
+                                <td>${(expense.currency || currentCurrency).toUpperCase()}</td>
+                                <td class="date-column">${formatDateDDMMYYYY(expense.date)}</td>
                                 <td>
                                     <button class="edit-button" onclick="editExpenseByIndex(${index})">
                                         <i class="fa-solid fa-pen-to-square"></i>

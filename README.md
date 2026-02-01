@@ -44,6 +44,16 @@ Si falta alguna, la app no inicia.
 - Build: `go build -o expenseowl ./cmd/expenseowl`
 - Start: `./expenseowl`
 
+## Email (SMTP)
+Variables para envio de emails (reset y verificacion):
+- `SMTP_HOST`
+- `SMTP_PORT` (587/2525 o 465)
+- `SMTP_USER`
+- `SMTP_PASS`
+- `SMTP_FROM`
+- `SMTP_FROM_NAME` (opcional)
+- `APP_BASE_URL` (ej: `https://tu-app.onrender.com`) para armar links de verificacion
+
 ## Backup / Migracion
 - Exportar CSV desde Configuracion.
 - Importar CSV para restaurar o migrar.

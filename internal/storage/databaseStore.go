@@ -50,6 +50,16 @@ const (
 		used_at TIMESTAMPTZ
 	);`
 
+	createEmailVerificationsTableSQL = `
+	CREATE TABLE IF NOT EXISTS email_verifications (
+		id VARCHAR(36) PRIMARY KEY,
+		user_id VARCHAR(36) NOT NULL,
+		token_hash TEXT NOT NULL,
+		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		expires_at TIMESTAMPTZ NOT NULL,
+		verified_at TIMESTAMPTZ
+	);`
+
 	createUserConfigTableSQL = `
 	CREATE TABLE IF NOT EXISTS user_config (
 		user_id VARCHAR(36) PRIMARY KEY,
@@ -139,6 +149,7 @@ func createTables(db *sql.DB) error {
 		createUsersTableSQL,
 		createSessionsTableSQL,
 		createPasswordResetsTableSQL,
+		createEmailVerificationsTableSQL,
 		createUserConfigTableSQL,
 		createExpensesTableSQL,
 		createRecurringExpensesTableSQL,
@@ -183,6 +194,12 @@ func createTables(db *sql.DB) error {
 	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS password_resets_user_idx ON password_resets (user_id, created_at DESC)`); err != nil {
 		return err
 	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS email_verifications_user_idx ON email_verifications (user_id, created_at DESC)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS email_verifications_token_hash_idx ON email_verifications (token_hash)`); err != nil {
+		return err
+	}
 	if _, err := db.Exec(`UPDATE expenses SET flow = CASE WHEN amount >= 0 THEN 'income' ELSE 'expense' END WHERE flow IS NULL OR flow = ''`); err != nil {
 		return err
 	}
@@ -196,6 +213,9 @@ func createTables(db *sql.DB) error {
 		return err
 	}
 	if err := cleanupExpiredPasswordResets(db); err != nil {
+		return err
+	}
+	if err := cleanupExpiredEmailVerifications(db); err != nil {
 		return err
 	}
 	return nil
@@ -212,6 +232,7 @@ func ensureForeignKeys(db *sql.DB) error {
 	fks := []fk{
 		{name: "sessions_user_fk", table: "sessions", column: "user_id", refTable: "users", refColumn: "id"},
 		{name: "password_resets_user_fk", table: "password_resets", column: "user_id", refTable: "users", refColumn: "id"},
+		{name: "email_verifications_user_fk", table: "email_verifications", column: "user_id", refTable: "users", refColumn: "id"},
 		{name: "user_config_user_fk", table: "user_config", column: "user_id", refTable: "users", refColumn: "id"},
 		{name: "categories_user_fk", table: "categories", column: "user_id", refTable: "users", refColumn: "id"},
 		{name: "expenses_user_fk", table: "expenses", column: "user_id", refTable: "users", refColumn: "id"},
@@ -264,6 +285,11 @@ func cleanupExpiredSessions(db *sql.DB) error {
 
 func cleanupExpiredPasswordResets(db *sql.DB) error {
 	_, err := db.Exec(`DELETE FROM password_resets WHERE used_at IS NOT NULL OR expires_at < NOW()`)
+	return err
+}
+
+func cleanupExpiredEmailVerifications(db *sql.DB) error {
+	_, err := db.Exec(`DELETE FROM email_verifications WHERE verified_at IS NOT NULL OR expires_at < NOW()`)
 	return err
 }
 
@@ -449,12 +475,16 @@ func (s *databaseStore) Close() error {
 }
 
 func (s *databaseStore) CreateUser(email, passwordHash string) (User, error) {
+	return s.CreateUserWithStatus(email, passwordHash, "active")
+}
+
+func (s *databaseStore) CreateUserWithStatus(email, passwordHash, status string) (User, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	user := User{
 		ID:           uuid.New().String(),
 		Email:        email,
 		PasswordHash: passwordHash,
-		Status:       "active",
+		Status:       status,
 	}
 	query := `INSERT INTO users (id, email, password_hash, status) VALUES ($1, $2, $3, $4) RETURNING created_at`
 	if err := s.db.QueryRow(query, user.ID, user.Email, user.PasswordHash, user.Status).Scan(&user.CreatedAt); err != nil {
@@ -490,6 +520,11 @@ func (s *databaseStore) GetUserByID(id string) (User, error) {
 
 func (s *databaseStore) UpdateUserPassword(userID, passwordHash string) error {
 	_, err := s.db.Exec(`UPDATE users SET password_hash = $1 WHERE id = $2`, passwordHash, userID)
+	return err
+}
+
+func (s *databaseStore) UpdateUserStatus(userID, status string) error {
+	_, err := s.db.Exec(`UPDATE users SET status = $1 WHERE id = $2`, status, userID)
 	return err
 }
 
@@ -549,6 +584,46 @@ func (s *databaseStore) GetLatestPasswordReset(userID string) (PasswordReset, er
 
 func (s *databaseStore) MarkPasswordResetUsed(resetID string) error {
 	_, err := s.db.Exec(`UPDATE password_resets SET used_at = NOW() WHERE id = $1`, resetID)
+	return err
+}
+
+func (s *databaseStore) CreateEmailVerification(verification EmailVerification) error {
+	if verification.ID == "" {
+		verification.ID = uuid.New().String()
+	}
+	if verification.CreatedAt.IsZero() {
+		verification.CreatedAt = time.Now()
+	}
+	_, err := s.db.Exec(`DELETE FROM email_verifications WHERE user_id = $1 AND verified_at IS NULL`, verification.UserID)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(
+		`INSERT INTO email_verifications (id, user_id, token_hash, created_at, expires_at) VALUES ($1, $2, $3, $4, $5)`,
+		verification.ID,
+		verification.UserID,
+		verification.TokenHash,
+		verification.CreatedAt,
+		verification.ExpiresAt,
+	)
+	return err
+}
+
+func (s *databaseStore) GetEmailVerificationByTokenHash(tokenHash string) (EmailVerification, error) {
+	query := `SELECT id, user_id, token_hash, created_at, expires_at, verified_at FROM email_verifications WHERE token_hash = $1 ORDER BY created_at DESC LIMIT 1`
+	var verification EmailVerification
+	var verifiedAt sql.NullTime
+	if err := s.db.QueryRow(query, tokenHash).Scan(&verification.ID, &verification.UserID, &verification.TokenHash, &verification.CreatedAt, &verification.ExpiresAt, &verifiedAt); err != nil {
+		return EmailVerification{}, err
+	}
+	if verifiedAt.Valid {
+		verification.VerifiedAt = verifiedAt.Time
+	}
+	return verification, nil
+}
+
+func (s *databaseStore) MarkEmailVerificationUsed(verificationID string) error {
+	_, err := s.db.Exec(`UPDATE email_verifications SET verified_at = NOW() WHERE id = $1`, verificationID)
 	return err
 }
 

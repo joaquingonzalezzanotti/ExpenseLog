@@ -14,9 +14,11 @@ type Storage interface {
 
 	// Users
 	CreateUser(email, passwordHash string) (User, error)
+	CreateUserWithStatus(email, passwordHash, status string) (User, error)
 	GetUserByEmail(email string) (User, error)
 	GetUserByID(id string) (User, error)
 	UpdateUserPassword(userID, passwordHash string) error
+	UpdateUserStatus(userID, status string) error
 
 	// Sessions
 	CreateSession(session Session) error
@@ -27,6 +29,11 @@ type Storage interface {
 	CreatePasswordReset(reset PasswordReset) error
 	GetLatestPasswordReset(userID string) (PasswordReset, error)
 	MarkPasswordResetUsed(resetID string) error
+
+	// Email verification
+	CreateEmailVerification(verification EmailVerification) error
+	GetEmailVerificationByTokenHash(tokenHash string) (EmailVerification, error)
+	MarkEmailVerificationUsed(verificationID string) error
 
 	// User Config
 	GetConfig(userID string) (*Config, error)
@@ -85,6 +92,15 @@ type PasswordReset struct {
 	CodeHash  string    `json:"-"`
 	ExpiresAt time.Time `json:"expiresAt"`
 	CreatedAt time.Time `json:"createdAt"`
+}
+
+type EmailVerification struct {
+	ID         string    `json:"id"`
+	UserID     string    `json:"userId"`
+	TokenHash  string    `json:"-"`
+	ExpiresAt  time.Time `json:"expiresAt"`
+	CreatedAt  time.Time `json:"createdAt"`
+	VerifiedAt time.Time `json:"verifiedAt"`
 }
 
 type Session struct {

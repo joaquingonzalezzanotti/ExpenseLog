@@ -40,7 +40,7 @@ func loadSMTPConfig() (smtpConfig, error) {
 	return cfg, nil
 }
 
-func sendResetCodeEmail(toEmail, code string) error {
+func sendSMTPEmail(toEmail, subject, body string) error {
 	cfg, err := loadSMTPConfig()
 	if err != nil {
 		return err
@@ -49,8 +49,6 @@ func sendResetCodeEmail(toEmail, code string) error {
 	if cfg.fromName != "" {
 		fromHeader = fmt.Sprintf("%s <%s>", cfg.fromName, cfg.from)
 	}
-	subject := "ExpenseLog - Codigo de recuperacion"
-	body := fmt.Sprintf("Hola,\n\nTu codigo de recuperacion de ExpenseLog es: %s\n\nEste codigo expira en 15 minutos.\nSi no pediste este codigo, podes ignorar este mensaje.\n\nGracias,\nEquipo ExpenseLog\n", code)
 	msg := strings.Join([]string{
 		"From: " + fromHeader,
 		"To: " + toEmail,
@@ -96,4 +94,16 @@ func sendResetCodeEmail(toEmail, code string) error {
 	}
 
 	return smtp.SendMail(addr, auth, cfg.from, []string{toEmail}, []byte(msg))
+}
+
+func sendResetCodeEmail(toEmail, code string) error {
+	subject := "ExpenseLog - Codigo de recuperacion"
+	body := fmt.Sprintf("Hola,\n\nTu codigo de recuperacion de ExpenseLog es: %s\n\nEste codigo expira en 15 minutos.\nSi no pediste este codigo, podes ignorar este mensaje.\n\nGracias,\nEquipo ExpenseLog\n", code)
+	return sendSMTPEmail(toEmail, subject, body)
+}
+
+func sendVerificationEmail(toEmail, verifyURL string) error {
+	subject := "ExpenseLog - Verifica tu email"
+	body := fmt.Sprintf("Hola,\n\nPara verificar tu cuenta de ExpenseLog, hace click en este enlace:\n%s\n\nEste enlace expira en 24 horas.\nSi no pediste esta cuenta, podes ignorar este mensaje.\n\nGracias,\nEquipo ExpenseLog\n", verifyURL)
+	return sendSMTPEmail(toEmail, subject, body)
 }

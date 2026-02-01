@@ -20,8 +20,11 @@ const (
 	sessionRememberDuration = 7 * 24 * time.Hour
 	minPasswordLength       = 8
 	resetCodeTTL            = 15 * time.Minute
+	verificationTokenTTL    = 24 * time.Hour
 	maxLoginAttempts        = 3
 	loginBlockDuration      = 10 * time.Minute
+	userStatusActive        = "active"
+	userStatusPending       = "pending"
 )
 
 type contextKey string
@@ -111,7 +114,15 @@ func (h *Handler) AuthRegister(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Password must be at least 8 characters"})
 		return
 	}
-	if _, err := h.storage.GetUserByEmail(email); err == nil {
+	if existing, err := h.storage.GetUserByEmail(email); err == nil {
+		if strings.EqualFold(existing.Status, userStatusPending) {
+			if err := h.issueEmailVerification(existing, r); err != nil {
+				writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to send verification email"})
+				return
+			}
+			writeJSON(w, http.StatusOK, map[string]string{"status": "verification_sent"})
+			return
+		}
 		writeJSON(w, http.StatusConflict, ErrorResponse{Error: "Email already registered"})
 		return
 	} else if err != sql.ErrNoRows {
@@ -123,21 +134,16 @@ func (h *Handler) AuthRegister(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to hash password"})
 		return
 	}
-	user, err := h.storage.CreateUser(email, hash)
+	user, err := h.storage.CreateUserWithStatus(email, hash, userStatusPending)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to create user"})
 		return
 	}
-	if err := h.createSession(w, r, user.ID, payload.Remember); err != nil {
-		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to create session"})
+	if err := h.issueEmailVerification(user, r); err != nil {
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to send verification email"})
 		return
 	}
-	writeJSON(w, http.StatusCreated, authUserResponse{
-		ID:        user.ID,
-		Email:     user.Email,
-		Status:    user.Status,
-		CreatedAt: user.CreatedAt,
-	})
+	writeJSON(w, http.StatusCreated, map[string]string{"status": "verification_sent"})
 }
 
 func (h *Handler) AuthLogin(w http.ResponseWriter, r *http.Request) {
@@ -172,6 +178,10 @@ func (h *Handler) AuthLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	clearLoginAttempts(key)
+	if !strings.EqualFold(user.Status, userStatusActive) {
+		writeJSON(w, http.StatusForbidden, ErrorResponse{Error: "Email no verificado. Revisa tu correo."})
+		return
+	}
 	if err := h.createSession(w, r, user.ID, payload.Remember); err != nil {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to create session"})
 		return
@@ -208,6 +218,14 @@ func (h *Handler) AuthMe(w http.ResponseWriter, r *http.Request) {
 	user, err := h.storage.GetUserByID(userID)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to fetch user"})
+		return
+	}
+	if !strings.EqualFold(user.Status, userStatusActive) {
+		if cookie, err := r.Cookie(sessionCookieName); err == nil && cookie != nil && cookie.Value != "" {
+			_ = h.storage.DeleteSession(cookie.Value)
+		}
+		clearSessionCookie(w, r)
+		writeJSON(w, http.StatusForbidden, ErrorResponse{Error: "Email no verificado"})
 		return
 	}
 	writeJSON(w, http.StatusOK, authUserResponse{

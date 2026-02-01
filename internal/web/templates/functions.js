@@ -167,8 +167,9 @@ function setupAuthUI() {
                     showAuthOverlay(error.error || 'No se pudo registrar', 'error');
                     return;
                 }
-                hideAuthOverlay();
-                window.location.reload();
+                registerForm.reset();
+                showAuthOverlay('Te enviamos un email para verificar tu cuenta. Revisa tu correo.', 'success');
+                setAuthTab('login');
             } catch (error) {
                 console.error('Register failed:', error);
                 showAuthOverlay('No se pudo registrar', 'error');

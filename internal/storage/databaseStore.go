@@ -206,6 +206,9 @@ func createTables(db *sql.DB) error {
 	if _, err := db.Exec(`UPDATE recurring_expenses SET flow = CASE WHEN amount >= 0 THEN 'income' ELSE 'expense' END WHERE flow IS NULL OR flow = ''`); err != nil {
 		return err
 	}
+	if err := updateDefaultCategoriesToSpanish(db); err != nil {
+		return err
+	}
 	if err := ensureForeignKeys(db); err != nil {
 		return err
 	}
@@ -291,6 +294,41 @@ func cleanupExpiredPasswordResets(db *sql.DB) error {
 func cleanupExpiredEmailVerifications(db *sql.DB) error {
 	_, err := db.Exec(`DELETE FROM email_verifications WHERE verified_at IS NOT NULL OR expires_at < NOW()`)
 	return err
+}
+
+func updateDefaultCategoriesToSpanish(db *sql.DB) error {
+	type catMap struct {
+		from string
+		to   string
+	}
+	mappings := []catMap{
+		{from: "Food", to: "Comida"},
+		{from: "Groceries", to: "Supermercado"},
+		{from: "Travel", to: "Viajes"},
+		{from: "Rent", to: "Alquiler"},
+		{from: "Utilities", to: "Servicios"},
+		{from: "Entertainment", to: "Entretenimiento"},
+		{from: "Healthcare", to: "Salud"},
+		{from: "Shopping", to: "Compras"},
+		{from: "Miscellaneous", to: "Varios"},
+		{from: "Income", to: "Ingresos"},
+	}
+	for _, mapping := range mappings {
+		if _, err := db.Exec(
+			`UPDATE categories c
+			 SET name = $1
+			 WHERE name = $2
+			   AND NOT EXISTS (
+			       SELECT 1 FROM categories c2
+			       WHERE c2.user_id = c.user_id AND c2.name = $1
+			   )`,
+			mapping.to,
+			mapping.from,
+		); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 const defaultBootstrapEmail = "joaquingzzz79@gmail.com"

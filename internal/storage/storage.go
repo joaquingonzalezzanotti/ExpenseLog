@@ -161,7 +161,7 @@ type Expense struct {
 
 func (c *Config) SetBaseConfig() {
 	c.Categories = defaultCategories
-	c.Currency = "usd"
+	c.Currency = "ars"
 	c.StartDate = 1
 	// c.Tags = []string{}
 	c.RecurringExpenses = []RecurringExpense{}
@@ -309,16 +309,16 @@ func (e *RecurringExpense) Validate() error {
 
 // variables
 var defaultCategories = []string{
-	"Food",
-	"Groceries",
-	"Travel",
-	"Rent",
-	"Utilities",
-	"Entertainment",
-	"Healthcare",
-	"Shopping",
-	"Miscellaneous",
-	"Income",
+	"Comida",
+	"Supermercado",
+	"Viajes",
+	"Alquiler",
+	"Servicios",
+	"Entretenimiento",
+	"Salud",
+	"Compras",
+	"Varios",
+	"Ingresos",
 }
 
 var SupportedCurrencies = []string{

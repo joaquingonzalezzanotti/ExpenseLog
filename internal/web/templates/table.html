@@ -252,25 +252,33 @@
         }
 
         function computeRunningBalances(expenses) {
-            const sortedAsc = expenses.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+            const sortedAsc = expenses.slice().sort((a, b) => {
+                const aTime = new Date(a.date).getTime();
+                const bTime = new Date(b.date).getTime();
+                if (aTime !== bTime) return aTime - bTime;
+                return (a.id || '').localeCompare(b.id || '');
+            });
             const totalsByCurrency = {};
             const balanceById = {};
             sortedAsc.forEach(exp => {
                 const currency = (exp.currency || currentCurrency).toLowerCase();
-                totalsByCurrency[currency] = (totalsByCurrency[currency] || 0) + exp.amount;
-                balanceById[exp.id] = { amount: totalsByCurrency[currency], currency };
+                const source = (exp.source || '').toUpperCase();
+                if (source === '' || source === 'CA') {
+                    totalsByCurrency[currency] = (totalsByCurrency[currency] || 0) + exp.amount;
+                }
+                const running = totalsByCurrency[currency] || 0;
+                balanceById[exp.id] = { amount: running, currency };
             });
             return balanceById;
         }
 
-        function createTable(expenses) {
+        function createTable(expenses, runningBalances) {
             if (!expenses || expenses.length === 0) {
                 const message = document.getElementById('showAllToggle').checked ? 
                                 'No transactions found' : 
                                 'No expenses recorded for this month';
                 return `<div class="no-data">${message}</div>`;
             }
-            const runningBalances = computeRunningBalances(expenses);
             return `
                 <table class="expense-table">
                     <thead>
@@ -328,7 +336,8 @@
             }
             
             const tableContainer = document.getElementById('tableContainer');
-            tableContainer.innerHTML = createTable(expensesForTable);
+            const runningBalances = computeRunningBalances(allExpenses);
+            tableContainer.innerHTML = createTable(expensesForTable, runningBalances);
         }
 
         function editExpenseByIndex(index) {

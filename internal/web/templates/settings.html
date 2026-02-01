@@ -1083,6 +1083,7 @@ async function saveCategoriesList(nextCategories) {
                 createTagInput('tags-input', 'selected-tags', 'tags-dropdown', addFormSelectedTags);
                 fetch('/version').then(r => r.ok ? r.text() : 'dev').then(version => {
                     const link = document.getElementById('version-link');
+                    if (!link) return;
                     link.textContent = version;
                     if (version !== 'dev') link.href = `https://github.com/tanq16/expenseowl/releases/tag/${version}`;
                 }).catch(e => console.error('No se pudo obtener la version:', e));

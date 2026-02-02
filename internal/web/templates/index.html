@@ -83,7 +83,7 @@
                 <form id="expenseForm" class="expense-form">
                     <div class="form-group">
                         <label for="name">Nombre</label>
-                        <input type="text" id="name" value="-" required>
+                        <input type="text" id="name" placeholder="Ej. Supermercado" required>
                     </div>
                     
                     <div class="form-group">
@@ -154,18 +154,18 @@
         <div class="panel-filters">
             <div class="filter-group">
                 <span class="filter-label">Moneda</span>
-                <select id="filterCurrency">
+                <select id="filterCurrency" class="filter-select">
                     <option value="all">Todas</option>
                 </select>
             </div>
             <div class="filter-group">
                 <span class="filter-label">Categoria</span>
-                <select id="filterCategory">
+                <select id="filterCategory" class="filter-select">
                     <option value="all">Todas</option>
                 </select>
             </div>
-            <button id="clearFilters" class="nav-button">Limpiar</button>
-            <button id="toggleChart" class="nav-button" style="display: none;">Ver grafico</button>
+            <button id="clearFilters" class="nav-button button-secondary">Limpiar</button>
+            <button id="toggleChart" class="nav-button button-primary" style="display: none;">Ver grafico</button>
             <span id="baseCurrencyIndicator" class="panel-indicator"></span>
         </div>
 
@@ -425,15 +425,15 @@
                         <div class="cashflow-value ${baseCarryover >= 0 ? 'positive' : 'negative'}">${formatCurrencyWithCurrency(baseCarryover, baseCurrency)}</div>
                     </div>
                     <div class="cashflow-item income">
-                        <div class="cashflow-label">Ingresos (CA) ${baseCurrency.toUpperCase()}</div>
+                        <div class="cashflow-label">Ingresos ${baseCurrency.toUpperCase()}</div>
                         <div class="cashflow-value">${formatCurrencyWithCurrency(baseIncome, baseCurrency)}</div>
                     </div>
                     <div class="cashflow-item expenses">
-                        <div class="cashflow-label">Gastos (CA) ${baseCurrency.toUpperCase()}</div>
+                        <div class="cashflow-label">Gastos ${baseCurrency.toUpperCase()}</div>
                         <div class="cashflow-value">${formatCurrencyWithCurrency(baseExpense, baseCurrency)}</div>
                     </div>
                     <div class="cashflow-item balance">
-                        <div class="cashflow-label">Balance (CA) ${baseCurrency.toUpperCase()}</div>
+                        <div class="cashflow-label">Balance ${baseCurrency.toUpperCase()}</div>
                         <div class="cashflow-value ${balance >= 0 ? 'positive' : 'negative'}">${formatCurrencyWithCurrency(balance, baseCurrency)}</div>
                     </div>
                 `;
@@ -452,12 +452,12 @@
                 row.className = 'cashflow-row';
                 row.innerHTML = `
                     <div class="cashflow-item balance">
-                        <div class="cashflow-label">Balance (CA) ${cur.toUpperCase()}</div>
+                        <div class="cashflow-label">Balance ${cur.toUpperCase()}</div>
                         <div class="cashflow-value ${balance >=0 ? 'positive' : 'negative'}">${formatCurrencyWithCurrency(balance, cur)}</div>
                         <div class="cashflow-sub">
                             <span>Saldo inicial (CA): ${formatCurrencyWithCurrency(carry, cur)}</span>
-                            <span>Ingresos (CA): ${formatCurrencyWithCurrency(income, cur)}</span>
-                            <span>Gastos (CA): ${formatCurrencyWithCurrency(expense, cur)}</span>
+                            <span>Ingresos: ${formatCurrencyWithCurrency(income, cur)}</span>
+                            <span>Gastos: ${formatCurrencyWithCurrency(expense, cur)}</span>
                         </div>
                     </div>
                 `;

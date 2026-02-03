@@ -190,7 +190,7 @@
                         <option value="refund">Reintegro</option>
                     </select>
                 </div>
-                <button type="submit" class="nav-button">Agregar transaccin recurrente</button>
+                <button type="submit" class="nav-button">Agregar transaccion recurrente</button>
             </form>
             <div id="recurringExpenseMessage" class="form-message"></div>
             <h3 align="center" style="margin-top: 2rem;">Transacciones recurrentes existentes</h3>
@@ -201,7 +201,7 @@
 
     <div id="deleteRecurringModal" class="modal">
         <div class="modal-content">
-            <h3>Eliminar transaccin recurrente</h3>
+            <h3>Eliminar transaccion recurrente</h3>
             <p>Quers borrar todas las instancias o solo las futuras?</p>
             <div class="modal-buttons">
                 <button class="modal-button" onclick="closeRecurringDeleteModal()">Cancelar</button>
@@ -213,7 +213,7 @@
 
     <div id="editRecurringModal" class="modal">
         <div class="modal-content">
-            <h3>Editar transaccin recurrente</h3>
+            <h3>Editar transaccion recurrente</h3>
             <form id="editRecurringExpenseForm" class="expense-form recurring-expense-form">
                  <div class="form-group">
                     <label for="editRecurringName">Nombre</label>
@@ -876,12 +876,12 @@ async function saveCategoriesList(nextCategories) {
             if (!recurringExpenseToDelete) return;
             try {
                 const response = await fetch(`/recurring-expense/delete?id=${recurringExpenseToDelete}&removeAll=${removeAll}`, { method: 'DELETE' });
-                if (!response.ok) throw new Error('No se pudo eliminar la transaccin recurrente');
+                if (!response.ok) throw new Error('No se pudo eliminar la transaccion recurrente');
                 showMessage('recurringExpenseMessage', 'Transaccion recurrente eliminada con exito', true);
                 fetchAndRenderRecurringExpenses();
             } catch (error) {
-                console.error('Error al eliminar la transaccin recurrente:', error);
-                showMessage('recurringExpenseMessage', 'No se pudo eliminar la transaccin recurrente', false);
+                console.error('Error al eliminar la transaccion recurrente:', error);
+                showMessage('recurringExpenseMessage', 'No se pudo eliminar la transaccion recurrente', false);
             } finally {
                 closeRecurringDeleteModal();
             }
@@ -936,12 +936,12 @@ async function saveCategoriesList(nextCategories) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(updatedData)
                 });
-                if (!response.ok) throw new Error('No se pudo actualizar la transaccin recurrente');
+                if (!response.ok) throw new Error('No se pudo actualizar la transaccion recurrente');
                 showMessage('recurringExpenseMessage', 'Transaccion recurrente actualizada con exito', true);
                 fetchAndRenderRecurringExpenses();
             } catch(error) {
-                console.error('Error al actualizar la transaccin recurrente:', error);
-                showMessage('recurringExpenseMessage', 'No se pudo actualizar la transaccin recurrente', false);
+                console.error('Error al actualizar la transaccion recurrente:', error);
+                showMessage('recurringExpenseMessage', 'No se pudo actualizar la transaccion recurrente', false);
             } finally {
                 closeRecurringEditModal();
             }
@@ -1188,11 +1188,11 @@ async function saveCategoriesList(nextCategories) {
                     fetchAndRenderRecurringExpenses();
                 } else {
                     const error = await response.json();
-                    showMessage('recurringExpenseMessage', `Error: ${error.error || 'No se pudo agregar la transaccin recurrente'}`, false);
+                    showMessage('recurringExpenseMessage', `Error: ${error.error || 'No se pudo agregar la transaccion recurrente'}`, false);
                 }
             } catch (error) {
                 console.error('Error adding recurring expense:', error);
-                showMessage('recurringExpenseMessage', 'Error: No se pudo agregar la transaccin recurrente', false);
+                showMessage('recurringExpenseMessage', 'Error: No se pudo agregar la transaccion recurrente', false);
             }
         });
 
@@ -1207,3 +1207,4 @@ async function saveCategoriesList(nextCategories) {
     </script>
 </body>
 </html>
+

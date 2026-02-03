@@ -1312,6 +1312,61 @@ input:focus-visible {
     .expense-form {
         grid-template-columns: 1fr;
     }
+
+    .table-controls {
+        justify-content: stretch;
+    }
+
+    .quick-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+
+    .quick-action {
+        width: 100%;
+        min-height: 42px;
+        justify-content: center;
+        text-align: center;
+        padding: 0.5rem 0.65rem;
+    }
+
+    .quick-action[data-action="open-form"],
+    .quick-action[data-action="card-expense"] {
+        grid-column: 1 / -1;
+    }
+
+    .panel-filters {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.65rem;
+        align-items: stretch;
+    }
+
+    .panel-filters .filter-group {
+        width: 100%;
+        margin: 0;
+    }
+
+    .panel-filters .filter-select {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .panel-filters .button-secondary,
+    .panel-filters .button-primary {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+        margin: 0;
+    }
+
+    .panel-filters .panel-indicator {
+        grid-column: 1 / -1;
+        margin-left: 0;
+    }
 }
 
 .form-container {

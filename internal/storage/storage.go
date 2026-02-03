@@ -19,6 +19,8 @@ type Storage interface {
 	GetUserByID(id string) (User, error)
 	UpdateUserPassword(userID, passwordHash string) error
 	UpdateUserStatus(userID, status string) error
+	CreateOAuthIdentity(identity OAuthIdentity) error
+	GetOAuthIdentity(provider, providerUserID string) (OAuthIdentity, error)
 
 	// Sessions
 	CreateSession(session Session) error
@@ -110,6 +112,15 @@ type Session struct {
 	ExpiresAt time.Time `json:"expiresAt"`
 	IP        string    `json:"ip"`
 	UserAgent string    `json:"userAgent"`
+}
+
+type OAuthIdentity struct {
+	ID             string    `json:"id"`
+	UserID         string    `json:"userId"`
+	Provider       string    `json:"provider"`
+	ProviderUserID string    `json:"providerUserId"`
+	Email          string    `json:"email"`
+	CreatedAt      time.Time `json:"createdAt"`
 }
 
 type RecurringExpense struct {

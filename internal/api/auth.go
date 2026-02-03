@@ -172,6 +172,11 @@ func (h *Handler) AuthLogin(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to check user"})
 		return
 	}
+	if strings.TrimSpace(user.PasswordHash) == "" {
+		recordLoginFailure(key)
+		writeJSON(w, http.StatusUnauthorized, ErrorResponse{Error: "Invalid credentials"})
+		return
+	}
 	if err := storage.ComparePassword(user.PasswordHash, payload.Password); err != nil {
 		recordLoginFailure(key)
 		writeJSON(w, http.StatusUnauthorized, ErrorResponse{Error: "Invalid credentials"})

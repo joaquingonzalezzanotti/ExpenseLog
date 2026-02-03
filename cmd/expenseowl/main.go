@@ -66,6 +66,8 @@ func runServer(port int) {
 	http.HandleFunc("/auth/reset/request", handler.AuthResetRequest)
 	http.HandleFunc("/auth/reset/confirm", handler.AuthResetConfirm)
 	http.HandleFunc("/auth/verify", handler.AuthVerifyEmail)
+	http.HandleFunc("/auth/google", handler.AuthGoogleStart)
+	http.HandleFunc("/auth/google/callback", handler.AuthGoogleCallback)
 
 	// Config
 	http.HandleFunc("/config", handler.RequireAuth(handler.GetConfig))

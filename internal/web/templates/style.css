@@ -568,6 +568,41 @@ input:focus-visible {
     margin-bottom: 1rem;
 }
 
+.auth-google-button {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.65rem 0.8rem;
+    margin-bottom: 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #ffffff;
+    color: #111827;
+    text-decoration: none;
+    font-weight: 600;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.auth-google-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.auth-google-icon {
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    background: linear-gradient(135deg, #ea4335 0%, #fbbc05 35%, #34a853 70%, #4285f4 100%);
+    color: #ffffff;
+    font-size: 0.75rem;
+}
+
 .auth-tab {
     flex: 1;
     border: 1px solid var(--border);

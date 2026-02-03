@@ -18,6 +18,20 @@ function resolveFlow(exp) {
 
 let authChecked = false;
 let currentUser = null;
+let pendingAuthErrorMessage = null;
+
+function showAuthMessageFromURL() {
+    const overlay = document.getElementById('authOverlay');
+    if (!overlay) return;
+    const params = new URLSearchParams(window.location.search);
+    const authError = params.get('auth_error');
+    if (!authError) return;
+    pendingAuthErrorMessage = authError;
+    params.delete('auth_error');
+    const cleaned = params.toString();
+    const nextURL = cleaned ? `${window.location.pathname}?${cleaned}` : window.location.pathname;
+    window.history.replaceState({}, '', nextURL);
+}
 
 async function checkAuthStatus() {
     const overlay = document.getElementById('authOverlay');
@@ -35,7 +49,12 @@ async function checkAuthStatus() {
         if (res.status === 401) {
             currentUser = null;
             updateUserBadge(null);
-            showAuthOverlay();
+            if (pendingAuthErrorMessage) {
+                showAuthOverlay(pendingAuthErrorMessage, 'error');
+                pendingAuthErrorMessage = null;
+            } else {
+                showAuthOverlay();
+            }
             authChecked = true;
             return null;
         }
@@ -254,6 +273,7 @@ function setupAuthUI() {
 
 document.addEventListener('DOMContentLoaded', () => {
     setupAuthUI();
+    showAuthMessageFromURL();
     if (!authChecked) {
         checkAuthStatus();
     }

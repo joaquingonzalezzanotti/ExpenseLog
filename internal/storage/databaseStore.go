@@ -60,6 +60,16 @@ const (
 		verified_at TIMESTAMPTZ
 	);`
 
+	createOAuthIdentitiesTableSQL = `
+	CREATE TABLE IF NOT EXISTS oauth_identities (
+		id VARCHAR(36) PRIMARY KEY,
+		user_id VARCHAR(36) NOT NULL,
+		provider VARCHAR(50) NOT NULL,
+		provider_user_id TEXT NOT NULL,
+		email TEXT,
+		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+	);`
+
 	createUserConfigTableSQL = `
 	CREATE TABLE IF NOT EXISTS user_config (
 		user_id VARCHAR(36) PRIMARY KEY,
@@ -150,6 +160,7 @@ func createTables(db *sql.DB) error {
 		createSessionsTableSQL,
 		createPasswordResetsTableSQL,
 		createEmailVerificationsTableSQL,
+		createOAuthIdentitiesTableSQL,
 		createUserConfigTableSQL,
 		createExpensesTableSQL,
 		createRecurringExpensesTableSQL,
@@ -170,6 +181,7 @@ func createTables(db *sql.DB) error {
 		"ALTER TABLE recurring_expenses ADD COLUMN IF NOT EXISTS currency VARCHAR(3) NOT NULL DEFAULT 'usd'",
 		"ALTER TABLE recurring_expenses ADD COLUMN IF NOT EXISTS flow VARCHAR(20) NOT NULL DEFAULT 'expense'",
 		"ALTER TABLE categories ADD COLUMN IF NOT EXISTS user_id VARCHAR(36)",
+		"ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL",
 	}
 	for _, stmt := range alterStmts {
 		if _, err := db.Exec(stmt); err != nil {
@@ -198,6 +210,12 @@ func createTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS email_verifications_token_hash_idx ON email_verifications (token_hash)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS oauth_identities_provider_key ON oauth_identities (provider, provider_user_id)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS oauth_identities_user_idx ON oauth_identities (user_id)`); err != nil {
 		return err
 	}
 	if _, err := db.Exec(`UPDATE expenses SET flow = CASE WHEN amount >= 0 THEN 'income' ELSE 'expense' END WHERE flow IS NULL OR flow = ''`); err != nil {

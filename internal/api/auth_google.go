@@ -128,7 +128,7 @@ func (h *Handler) AuthGoogleCallback(w http.ResponseWriter, r *http.Request) {
 		redirectAuthError(w, r, "No pudimos crear la sesion")
 		return
 	}
-	http.Redirect(w, r, "/", http.StatusFound)
+	http.Redirect(w, r, "/app", http.StatusFound)
 }
 
 func (h *Handler) resolveGoogleUser(info googleUserInfoResponse) (storage.User, error) {
@@ -340,6 +340,6 @@ func googleOAuthErrorMessage(code string) string {
 }
 
 func redirectAuthError(w http.ResponseWriter, r *http.Request, message string) {
-	target := "/?auth_error=" + url.QueryEscape(strings.TrimSpace(message))
+	target := "/app?auth_error=" + url.QueryEscape(strings.TrimSpace(message))
 	http.Redirect(w, r, target, http.StatusFound)
 }

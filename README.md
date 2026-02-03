@@ -37,6 +37,8 @@ Si falta alguna, la app no inicia.
    go run ./cmd/expenseowl
    ```
 4) Abrir `http://localhost:8080`.
+   - Landing publica: `/`
+   - App autenticada: `/app`
 
 ## Deploy (Render/Railway)
 - Setear las mismas variables en el servicio.

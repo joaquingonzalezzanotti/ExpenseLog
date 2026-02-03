@@ -124,7 +124,7 @@ func writeVerificationPage(w http.ResponseWriter, status int, title, message str
   <div class="card">
     <h1>%s</h1>
     <p>%s</p>
-    <a href="/">Ir al login</a>
+    <a href="/app">Ir al login</a>
   </div>
 </body>
 </html>`, html.EscapeString(title), html.EscapeString(title), html.EscapeString(message))

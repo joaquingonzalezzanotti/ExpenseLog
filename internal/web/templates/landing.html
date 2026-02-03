@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ExpenseLog te ayuda a registrar gastos e ingresos en segundos. Organiza tus movimientos, visualiza balances y toma mejores decisiones.">
+    <meta name="keywords" content="control de gastos, finanzas personales, presupuesto, gastos, ingresos, ExpenseLog">
+    <meta property="og:title" content="ExpenseLog | Controla tus gastos en minutos">
+    <meta property="og:description" content="Registra gastos e ingresos, visualiza balances y mantén tus finanzas ordenadas.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="/pwa/icon-512.png">
+    <meta property="og:locale" content="es_AR">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ExpenseLog | Controla tus gastos en minutos">
+    <meta name="twitter:description" content="Registra gastos e ingresos, visualiza balances y mantén tus finanzas ordenadas.">
+    <meta name="twitter:image" content="/pwa/icon-512.png">
+    <meta name="theme-color" content="#081528">
+    <meta name="application-name" content="ExpenseLog">
+    <meta name="apple-mobile-web-app-title" content="ExpenseLog">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="manifest" href="/manifest.json">
+    <title>ExpenseLog | Controla tus gastos en minutos</title>
+    <style>
+        :root {
+            --bg: #081528;
+            --card: #101f3b;
+            --card-soft: #0d1a31;
+            --text: #f4f4f4;
+            --muted: #b3b3b3;
+            --accent: #69afde;
+            --accent-2: #2eab7d;
+            --border: #1a365d;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Manrope", "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 15% 10%, rgba(105, 175, 222, 0.2), transparent 35%),
+                radial-gradient(circle at 85% 18%, rgba(46, 171, 125, 0.16), transparent 35%),
+                var(--bg);
+        }
+
+        .wrap {
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 1rem 1rem 2rem;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.65rem;
+            text-decoration: none;
+            color: var(--text);
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .brand img {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+        }
+
+        .btn {
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 0.65rem 1.15rem;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            line-height: 1;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #0f2238;
+            border-color: var(--accent);
+        }
+
+        .btn-primary:hover {
+            filter: brightness(1.05);
+        }
+
+        .btn-secondary {
+            background: var(--card-soft);
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+        }
+
+        .hero {
+            background: linear-gradient(155deg, rgba(16, 31, 59, 0.95), rgba(13, 26, 49, 0.95));
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 2.2rem 1.2rem;
+            text-align: center;
+        }
+
+        .hero h1 {
+            margin: 0;
+            font-size: clamp(1.7rem, 4vw, 2.7rem);
+            line-height: 1.15;
+        }
+
+        .hero p {
+            margin: 0.8rem auto 0;
+            max-width: 700px;
+            color: var(--muted);
+            font-size: 1.02rem;
+        }
+
+        .hero-cta {
+            margin-top: 1.3rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.7rem;
+        }
+
+        .status {
+            margin: 1rem auto 0;
+            width: fit-content;
+            min-height: 1.5rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            color: #dbeafe;
+            background: rgba(105, 175, 222, 0.2);
+            border: 1px solid rgba(105, 175, 222, 0.45);
+            opacity: 0;
+            transform: translateY(-4px);
+            transition: all 0.2s ease;
+            pointer-events: none;
+        }
+
+        .status.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .grid {
+            margin-top: 1.1rem;
+            display: grid;
+            gap: 0.75rem;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .card {
+            background: var(--card-soft);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1rem;
+        }
+
+        .card h2 {
+            margin: 0 0 0.45rem 0;
+            font-size: 1.03rem;
+        }
+
+        .card p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .faq {
+            margin-top: 0.95rem;
+            background: var(--card-soft);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1rem;
+        }
+
+        .faq h2 {
+            margin: 0 0 0.6rem;
+            font-size: 1.1rem;
+        }
+
+        .faq details {
+            border-top: 1px solid var(--border);
+            padding: 0.65rem 0;
+        }
+
+        .faq details:first-of-type {
+            border-top: 0;
+            padding-top: 0.2rem;
+        }
+
+        .faq summary {
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .faq p {
+            color: var(--muted);
+            margin: 0.45rem 0 0;
+        }
+
+        footer {
+            margin-top: 1rem;
+            color: var(--muted);
+            text-align: center;
+            font-size: 0.86rem;
+        }
+
+        @media (max-width: 860px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <header class="topbar">
+            <a class="brand" href="/">
+                <img src="/pwa/icon-192.png" alt="ExpenseLog logo">
+                <span>ExpenseLog</span>
+            </a>
+            <a class="btn btn-secondary" href="/app">Iniciar sesion</a>
+        </header>
+
+        <main>
+            <section class="hero">
+                <h1>Controla tus gastos e ingresos sin esfuerzo</h1>
+                <p>ExpenseLog te ayuda a registrar movimientos, revisar balances y mantener tus finanzas personales claras en minutos.</p>
+                <div class="hero-cta">
+                    <a class="btn btn-primary" href="/app">Empezar gratis</a>
+                    <a class="btn btn-secondary" href="/app">Entrar</a>
+                </div>
+                <div id="sessionStatus" class="status" role="status" aria-live="polite"></div>
+            </section>
+
+            <section class="grid">
+                <article class="card">
+                    <h2>Registro rapido</h2>
+                    <p>Carga gastos e ingresos con categorias, etiquetas y metodo de pago.</p>
+                </article>
+                <article class="card">
+                    <h2>Visualizacion clara</h2>
+                    <p>Consulta balances por moneda y grafico de categorias en tiempo real.</p>
+                </article>
+                <article class="card">
+                    <h2>Acceso seguro</h2>
+                    <p>Inicia sesion por email o Google y continua donde te quedaste.</p>
+                </article>
+            </section>
+
+            <section class="faq">
+                <h2>Preguntas frecuentes</h2>
+                <details>
+                    <summary>¿Necesito instalar algo?</summary>
+                    <p>No. Puedes empezar desde el navegador y guardar la app en pantalla de inicio cuando quieras.</p>
+                </details>
+                <details>
+                    <summary>¿Puedo usar Google para entrar?</summary>
+                    <p>Si, ExpenseLog permite continuar con Google y vincula cuentas por email automaticamente.</p>
+                </details>
+                <details>
+                    <summary>¿La app funciona en movil?</summary>
+                    <p>Si, la experiencia esta optimizada para movil y escritorio.</p>
+                </details>
+            </section>
+        </main>
+
+        <footer>
+            © 2026 ExpenseLog · Hecho por JGZ
+        </footer>
+    </div>
+
+    <script>
+        (function () {
+            const statusEl = document.getElementById('sessionStatus');
+            if (!statusEl) return;
+
+            function showStatus(text) {
+                statusEl.textContent = text;
+                statusEl.classList.add('visible');
+            }
+
+            function hideStatus() {
+                statusEl.textContent = '';
+                statusEl.classList.remove('visible');
+            }
+
+            function timeoutSignal(ms) {
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), ms);
+                return { signal: controller.signal, clear: () => clearTimeout(timer) };
+            }
+
+            async function bootstrap() {
+                // Precalienta la instancia para reducir la espera del primer uso.
+                fetch('/version', { cache: 'no-store' }).catch(() => {});
+
+                const delayedStatus = setTimeout(() => showStatus('Estamos iniciando tu espacio...'), 250);
+                const guard = timeoutSignal(1500);
+
+                try {
+                    const res = await fetch('/auth/me', {
+                        method: 'GET',
+                        credentials: 'same-origin',
+                        cache: 'no-store',
+                        signal: guard.signal,
+                    });
+                    guard.clear();
+                    clearTimeout(delayedStatus);
+
+                    if (res.ok) {
+                        showStatus('Estamos iniciando tu espacio...');
+                        window.location.replace('/app');
+                        return;
+                    }
+                    hideStatus();
+                } catch (_) {
+                    guard.clear();
+                    clearTimeout(delayedStatus);
+                    hideStatus();
+                }
+            }
+
+            window.addEventListener('load', bootstrap);
+        })();
+    </script>
+</body>
+</html>

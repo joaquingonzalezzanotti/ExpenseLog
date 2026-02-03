@@ -38,6 +38,18 @@ func runServer(port int) {
 			return
 		}
 		w.Header().Set("Content-Type", "text/html")
+		if err := web.ServeTemplate(w, "landing.html"); err != nil {
+			log.Printf("HTTP ERROR: Failed to serve template: %v", err)
+			http.Error(w, "Failed to serve template", http.StatusInternalServerError)
+			return
+		}
+	})
+	http.HandleFunc("/app", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/app" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html")
 		if err := web.ServeTemplate(w, "index.html"); err != nil {
 			log.Printf("HTTP ERROR: Failed to serve template: %v", err)
 			http.Error(w, "Failed to serve template", http.StatusInternalServerError)

@@ -104,14 +104,25 @@ function hideAuthOverlay() {
     document.body.classList.remove('auth-locked');
 }
 
+function userInitialsFromEmail(email) {
+    const normalized = (email || '').trim().toLowerCase();
+    if (!normalized) return '';
+    const localPart = normalized.split('@')[0] || '';
+    const chars = localPart.replace(/[^a-z0-9]/g, '');
+    if (!chars) return '';
+    return chars.slice(0, 2).toUpperCase();
+}
+
 function updateUserBadge(user) {
     const badge = document.getElementById('userEmailBadge');
     if (!badge) return;
     if (user && user.email) {
-        badge.textContent = user.email;
+        badge.textContent = userInitialsFromEmail(user.email);
+        badge.setAttribute('aria-label', 'Usuario conectado');
         badge.style.display = 'inline-flex';
     } else {
         badge.textContent = '';
+        badge.removeAttribute('aria-label');
         badge.style.display = 'none';
     }
 }

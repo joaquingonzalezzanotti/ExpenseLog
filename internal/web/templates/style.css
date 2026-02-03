@@ -462,16 +462,19 @@ input:focus-visible {
 }
 
 .user-badge {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    padding: 0.3rem 0.75rem;
-    border-radius: 999px;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
     border: 1px solid var(--border);
     background-color: var(--bg-secondary);
-    max-width: 220px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    color: var(--text-secondary);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    flex-shrink: 0;
 }
 
 .view-button {
@@ -573,34 +576,42 @@ input:focus-visible {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.6rem;
-    padding: 0.65rem 0.8rem;
+    gap: 0.75rem;
+    padding: 0 12px;
+    height: 40px;
     margin-bottom: 1rem;
-    border-radius: 10px;
-    border: 1px solid var(--border);
+    border-radius: 9999px;
+    border: 1px solid #dadce0;
     background: #ffffff;
-    color: #111827;
+    color: #3c4043;
     text-decoration: none;
-    font-weight: 600;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    font-family: "Roboto", "Segoe UI", Arial, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .auth-google-button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    background: #f8f9fa;
+    box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3);
 }
 
-.auth-google-icon {
-    width: 1.2rem;
-    height: 1.2rem;
-    border-radius: 50%;
+.auth-google-button:active {
+    background: #f1f3f4;
+}
+
+.auth-google-logo {
+    width: 18px;
+    height: 18px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
-    background: linear-gradient(135deg, #ea4335 0%, #fbbc05 35%, #34a853 70%, #4285f4 100%);
-    color: #ffffff;
-    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.auth-google-logo svg {
+    width: 18px;
+    height: 18px;
 }
 
 .auth-tab {

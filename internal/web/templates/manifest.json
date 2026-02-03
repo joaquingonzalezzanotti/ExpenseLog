@@ -1,6 +1,6 @@
 {
-    "name": "ExpenseOwl",
-    "short_name": "ExpenseOwl",
+    "name": "ExpenseLog",
+    "short_name": "ExpenseLog",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#1a1a1a",

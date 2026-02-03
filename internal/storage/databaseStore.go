@@ -60,6 +60,16 @@ const (
 		verified_at TIMESTAMPTZ
 	);`
 
+	createOAuthIdentitiesTableSQL = `
+	CREATE TABLE IF NOT EXISTS oauth_identities (
+		id VARCHAR(36) PRIMARY KEY,
+		user_id VARCHAR(36) NOT NULL,
+		provider VARCHAR(50) NOT NULL,
+		provider_user_id TEXT NOT NULL,
+		email TEXT,
+		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+	);`
+
 	createUserConfigTableSQL = `
 	CREATE TABLE IF NOT EXISTS user_config (
 		user_id VARCHAR(36) PRIMARY KEY,
@@ -150,6 +160,7 @@ func createTables(db *sql.DB) error {
 		createSessionsTableSQL,
 		createPasswordResetsTableSQL,
 		createEmailVerificationsTableSQL,
+		createOAuthIdentitiesTableSQL,
 		createUserConfigTableSQL,
 		createExpensesTableSQL,
 		createRecurringExpensesTableSQL,
@@ -170,6 +181,7 @@ func createTables(db *sql.DB) error {
 		"ALTER TABLE recurring_expenses ADD COLUMN IF NOT EXISTS currency VARCHAR(3) NOT NULL DEFAULT 'usd'",
 		"ALTER TABLE recurring_expenses ADD COLUMN IF NOT EXISTS flow VARCHAR(20) NOT NULL DEFAULT 'expense'",
 		"ALTER TABLE categories ADD COLUMN IF NOT EXISTS user_id VARCHAR(36)",
+		"ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL",
 	}
 	for _, stmt := range alterStmts {
 		if _, err := db.Exec(stmt); err != nil {
@@ -198,6 +210,12 @@ func createTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS email_verifications_token_hash_idx ON email_verifications (token_hash)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS oauth_identities_provider_key ON oauth_identities (provider, provider_user_id)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS oauth_identities_user_idx ON oauth_identities (user_id)`); err != nil {
 		return err
 	}
 	if _, err := db.Exec(`UPDATE expenses SET flow = CASE WHEN amount >= 0 THEN 'income' ELSE 'expense' END WHERE flow IS NULL OR flow = ''`); err != nil {
@@ -236,6 +254,7 @@ func ensureForeignKeys(db *sql.DB) error {
 		{name: "sessions_user_fk", table: "sessions", column: "user_id", refTable: "users", refColumn: "id"},
 		{name: "password_resets_user_fk", table: "password_resets", column: "user_id", refTable: "users", refColumn: "id"},
 		{name: "email_verifications_user_fk", table: "email_verifications", column: "user_id", refTable: "users", refColumn: "id"},
+		{name: "oauth_identities_user_fk", table: "oauth_identities", column: "user_id", refTable: "users", refColumn: "id"},
 		{name: "user_config_user_fk", table: "user_config", column: "user_id", refTable: "users", refColumn: "id"},
 		{name: "categories_user_fk", table: "categories", column: "user_id", refTable: "users", refColumn: "id"},
 		{name: "expenses_user_fk", table: "expenses", column: "user_id", refTable: "users", refColumn: "id"},
@@ -525,7 +544,11 @@ func (s *databaseStore) CreateUserWithStatus(email, passwordHash, status string)
 		Status:       status,
 	}
 	query := `INSERT INTO users (id, email, password_hash, status) VALUES ($1, $2, $3, $4) RETURNING created_at`
-	if err := s.db.QueryRow(query, user.ID, user.Email, user.PasswordHash, user.Status).Scan(&user.CreatedAt); err != nil {
+	var passwordArg any = user.PasswordHash
+	if strings.TrimSpace(user.PasswordHash) == "" {
+		passwordArg = nil
+	}
+	if err := s.db.QueryRow(query, user.ID, user.Email, passwordArg, user.Status).Scan(&user.CreatedAt); err != nil {
 		return User{}, err
 	}
 	if err := ensureUserConfig(s.db, user.ID, nil); err != nil {
@@ -541,18 +564,22 @@ func (s *databaseStore) GetUserByEmail(email string) (User, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	query := `SELECT id, email, password_hash, status, created_at FROM users WHERE email = $1`
 	var user User
-	if err := s.db.QueryRow(query, email).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Status, &user.CreatedAt); err != nil {
+	var passwordHash sql.NullString
+	if err := s.db.QueryRow(query, email).Scan(&user.ID, &user.Email, &passwordHash, &user.Status, &user.CreatedAt); err != nil {
 		return User{}, err
 	}
+	user.PasswordHash = strings.TrimSpace(passwordHash.String)
 	return user, nil
 }
 
 func (s *databaseStore) GetUserByID(id string) (User, error) {
 	query := `SELECT id, email, password_hash, status, created_at FROM users WHERE id = $1`
 	var user User
-	if err := s.db.QueryRow(query, id).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Status, &user.CreatedAt); err != nil {
+	var passwordHash sql.NullString
+	if err := s.db.QueryRow(query, id).Scan(&user.ID, &user.Email, &passwordHash, &user.Status, &user.CreatedAt); err != nil {
 		return User{}, err
 	}
+	user.PasswordHash = strings.TrimSpace(passwordHash.String)
 	return user, nil
 }
 
@@ -564,6 +591,51 @@ func (s *databaseStore) UpdateUserPassword(userID, passwordHash string) error {
 func (s *databaseStore) UpdateUserStatus(userID, status string) error {
 	_, err := s.db.Exec(`UPDATE users SET status = $1 WHERE id = $2`, status, userID)
 	return err
+}
+
+func (s *databaseStore) CreateOAuthIdentity(identity OAuthIdentity) error {
+	identity.Provider = strings.ToLower(strings.TrimSpace(identity.Provider))
+	identity.ProviderUserID = strings.TrimSpace(identity.ProviderUserID)
+	identity.Email = strings.ToLower(strings.TrimSpace(identity.Email))
+	if identity.ID == "" {
+		identity.ID = uuid.New().String()
+	}
+	if identity.Provider == "" || identity.ProviderUserID == "" || identity.UserID == "" {
+		return fmt.Errorf("invalid oauth identity")
+	}
+	_, err := s.db.Exec(
+		`INSERT INTO oauth_identities (id, user_id, provider, provider_user_id, email) VALUES ($1, $2, $3, $4, $5)`,
+		identity.ID,
+		identity.UserID,
+		identity.Provider,
+		identity.ProviderUserID,
+		identity.Email,
+	)
+	return err
+}
+
+func (s *databaseStore) GetOAuthIdentity(provider, providerUserID string) (OAuthIdentity, error) {
+	provider = strings.ToLower(strings.TrimSpace(provider))
+	providerUserID = strings.TrimSpace(providerUserID)
+	var identity OAuthIdentity
+	err := s.db.QueryRow(
+		`SELECT id, user_id, provider, provider_user_id, COALESCE(email, ''), created_at
+		 FROM oauth_identities
+		 WHERE provider = $1 AND provider_user_id = $2`,
+		provider,
+		providerUserID,
+	).Scan(
+		&identity.ID,
+		&identity.UserID,
+		&identity.Provider,
+		&identity.ProviderUserID,
+		&identity.Email,
+		&identity.CreatedAt,
+	)
+	if err != nil {
+		return OAuthIdentity{}, err
+	}
+	return identity, nil
 }
 
 func (s *databaseStore) CreateSession(session Session) error {

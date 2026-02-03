@@ -54,6 +54,12 @@ Variables para envio de emails (reset y verificacion):
 - `SMTP_FROM_NAME` (opcional)
 - `APP_BASE_URL` (ej: `https://tu-app.onrender.com`) para armar links de verificacion
 
+## Login con Google (OAuth)
+Variables opcionales para habilitar "Continuar con Google":
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GOOGLE_REDIRECT_URL` (opcional; si falta, usa `{APP_BASE_URL o request-host}/auth/google/callback`)
+
 ## Backup / Migracion
 - Exportar CSV desde Configuracion.
 - Importar CSV para restaurar o migrar.

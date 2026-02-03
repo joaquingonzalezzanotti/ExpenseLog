@@ -462,16 +462,19 @@ input:focus-visible {
 }
 
 .user-badge {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    padding: 0.3rem 0.75rem;
-    border-radius: 999px;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
     border: 1px solid var(--border);
     background-color: var(--bg-secondary);
-    max-width: 220px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    color: var(--text-secondary);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    flex-shrink: 0;
 }
 
 .view-button {
@@ -566,6 +569,62 @@ input:focus-visible {
     display: flex;
     gap: 0.5rem;
     margin-bottom: 1rem;
+}
+
+.auth-google-button {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-sizing: border-box;
+    padding: 0 16px;
+    min-height: 42px;
+    margin-bottom: 1rem;
+    border-radius: 9999px;
+    border: 1px solid #dadce0;
+    background: #ffffff;
+    color: #3c4043;
+    text-decoration: none;
+    font-family: "Roboto", "Segoe UI", Arial, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    line-height: 1;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.auth-google-button:hover {
+    background: #f8f9fa;
+    box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3);
+}
+
+.auth-google-button:active {
+    background: #f1f3f4;
+}
+
+.auth-google-logo {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    left: 14px;
+    flex-shrink: 0;
+}
+
+.auth-google-logo svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+
+.auth-google-button > span:last-child {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    letter-spacing: 0.01em;
 }
 
 .auth-tab {

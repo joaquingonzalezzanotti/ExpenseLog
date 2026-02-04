@@ -57,6 +57,13 @@ body {
         radial-gradient(circle at 85% 15%, rgba(251, 191, 36, 0.1), transparent 40%);
 }
 
+body.auth-pending .container {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    user-select: none;
+}
+
 body.auth-locked .container {
     pointer-events: none;
     user-select: none;

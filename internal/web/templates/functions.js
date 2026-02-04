@@ -19,6 +19,14 @@ function resolveFlow(exp) {
 let authChecked = false;
 let currentUser = null;
 let pendingAuthErrorMessage = null;
+let authCheckPromise = null;
+
+function setAuthPending(pending) {
+    if (!document.body || !document.getElementById('authOverlay')) return;
+    document.body.classList.toggle('auth-pending', !!pending);
+}
+
+setAuthPending(true);
 
 function showAuthMessageFromURL() {
     const overlay = document.getElementById('authOverlay');
@@ -34,37 +42,53 @@ function showAuthMessageFromURL() {
 }
 
 async function checkAuthStatus() {
+    if (authCheckPromise) return authCheckPromise;
+
     const overlay = document.getElementById('authOverlay');
-    if (!overlay) return null;
-    try {
-        const res = await fetch('/auth/me');
-        if (res.ok) {
-            const user = await res.json();
-            currentUser = user;
-            updateUserBadge(user);
-            hideAuthOverlay();
-            authChecked = true;
-            return user;
-        }
-        if (res.status === 401) {
-            currentUser = null;
-            updateUserBadge(null);
-            if (pendingAuthErrorMessage) {
-                showAuthOverlay(pendingAuthErrorMessage, 'error');
-                pendingAuthErrorMessage = null;
-            } else {
-                showAuthOverlay();
-            }
-            authChecked = true;
-            return null;
-        }
-        showAuthOverlay('No se pudo validar la sesion', 'error');
-    } catch (error) {
-        console.error('Auth check failed:', error);
-        showAuthOverlay('No se pudo validar la sesion', 'error');
+    if (!overlay) {
+        setAuthPending(false);
+        return null;
     }
-    authChecked = true;
-    return null;
+
+    authCheckPromise = (async () => {
+        let user = null;
+        try {
+            const res = await fetch('/auth/me', { cache: 'no-store' });
+            if (res.ok) {
+                user = await res.json();
+                currentUser = user;
+                updateUserBadge(user);
+                hideAuthOverlay();
+                authChecked = true;
+                setAuthPending(false);
+                return user;
+            }
+            if (res.status === 401) {
+                currentUser = null;
+                updateUserBadge(null);
+                if (pendingAuthErrorMessage) {
+                    showAuthOverlay(pendingAuthErrorMessage, 'error');
+                    pendingAuthErrorMessage = null;
+                } else {
+                    showAuthOverlay();
+                }
+                authChecked = true;
+                setAuthPending(false);
+                return null;
+            }
+            showAuthOverlay('No se pudo validar la sesion', 'error');
+        } catch (error) {
+            console.error('Auth check failed:', error);
+            showAuthOverlay('No se pudo validar la sesion', 'error');
+        }
+        authChecked = true;
+        setAuthPending(false);
+        return null;
+    })().finally(() => {
+        authCheckPromise = null;
+    });
+
+    return authCheckPromise;
 }
 
 function guardAppInit(initFn) {
@@ -80,6 +104,7 @@ function guardAppInit(initFn) {
 function showAuthOverlay(message, type) {
     const overlay = document.getElementById('authOverlay');
     if (!overlay) return;
+    setAuthPending(false);
     overlay.classList.remove('hidden');
     overlay.setAttribute('aria-hidden', 'false');
     document.body.classList.add('auth-locked');

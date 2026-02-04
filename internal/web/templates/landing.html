@@ -17,6 +17,7 @@
     <meta name="theme-color" content="#081528">
     <meta name="application-name" content="ExpenseLog">
     <meta name="apple-mobile-web-app-title" content="ExpenseLog">
+    <meta name="expenselog-backend-origin" content="">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="manifest" href="/manifest.json">
     <title>ExpenseLog | Controla tus gastos en minutos</title>
@@ -139,6 +140,7 @@
             align-items: center;
             line-height: 1;
             transition: all 0.2s ease;
+            cursor: pointer;
         }
 
         .btn-primary {
@@ -324,6 +326,95 @@
             text-decoration: underline;
         }
 
+        .boot-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 60;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background:
+                linear-gradient(rgba(13, 26, 49, 0.9), rgba(13, 26, 49, 0.92)),
+                repeating-linear-gradient(0deg, transparent 0, transparent 51px, rgba(105, 175, 222, 0.08) 52px),
+                repeating-linear-gradient(90deg, transparent 0, transparent 51px, rgba(105, 175, 222, 0.08) 52px);
+        }
+
+        .boot-overlay.visible {
+            display: flex;
+        }
+
+        .boot-card {
+            width: 100%;
+            max-width: 520px;
+            border: 1px solid rgba(105, 175, 222, 0.42);
+            border-radius: 16px;
+            padding: 1.3rem;
+            background: rgba(8, 21, 40, 0.94);
+            box-shadow: 0 22px 44px rgba(0, 0, 0, 0.42);
+            text-align: center;
+        }
+
+        .boot-logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 0.7rem;
+            font-weight: 800;
+        }
+
+        .boot-logo img {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+        }
+
+        .boot-title {
+            margin: 0;
+            font-size: 1.18rem;
+        }
+
+        .boot-hint {
+            margin: 0.55rem 0 0;
+            color: #b4c7df;
+            font-size: 0.95rem;
+            min-height: 1.3rem;
+        }
+
+        .boot-progress {
+            margin-top: 1rem;
+            width: 100%;
+            height: 9px;
+            border-radius: 999px;
+            border: 1px solid rgba(105, 175, 222, 0.35);
+            background: rgba(105, 175, 222, 0.12);
+            overflow: hidden;
+        }
+
+        .boot-progress span {
+            display: block;
+            width: 36%;
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #69afde, #2eab7d);
+            animation: boot-loading 1.1s ease-in-out infinite alternate;
+        }
+
+        @keyframes boot-loading {
+            from { transform: translateX(-12%); }
+            to { transform: translateX(176%); }
+        }
+
+        .boot-retry {
+            margin-top: 0.95rem;
+            display: none;
+            width: 100%;
+        }
+
+        .boot-retry.visible {
+            display: inline-flex;
+        }
+
         @media (max-width: 860px) {
             .grid {
                 grid-template-columns: 1fr;
@@ -345,6 +436,10 @@
             .hero {
                 padding: 1.5rem 0.95rem;
             }
+
+            .boot-card {
+                padding: 1.1rem;
+            }
         }
     </style>
 </head>
@@ -355,7 +450,7 @@
                 <img src="/pwa/icon-192.png" alt="ExpenseLog logo">
                 <span>ExpenseLog</span>
             </a>
-            <a class="btn btn-secondary" href="/app">Iniciar sesion</a>
+            <a class="btn btn-secondary" data-open-app="true" href="/app">Iniciar sesion</a>
         </header>
 
         <main>
@@ -367,8 +462,8 @@
                 <h1>Controla tus gastos e ingresos sin esfuerzo</h1>
                 <p>ExpenseLog te ayuda a registrar movimientos, revisar balances y mantener tus finanzas personales claras en minutos.</p>
                 <div class="hero-cta">
-                    <a class="btn btn-primary" href="/app">Empezar gratis</a>
-                    <a class="btn btn-secondary" href="/app">Entrar</a>
+                    <a class="btn btn-primary" data-open-app="true" href="/app">Empezar gratis</a>
+                    <a class="btn btn-secondary" data-open-app="true" href="/app">Entrar</a>
                 </div>
                 <div id="sessionStatus" class="status" role="status" aria-live="polite"></div>
             </section>
@@ -412,58 +507,227 @@
         </footer>
     </div>
 
+    <div id="bootOverlay" class="boot-overlay" aria-hidden="true">
+        <div class="boot-card">
+            <div class="boot-logo">
+                <img src="/pwa/icon-192.png" alt="ExpenseLog">
+                <span>ExpenseLog</span>
+            </div>
+            <h2 class="boot-title">Estamos preparando todo para vos...</h2>
+            <p id="bootHint" class="boot-hint">Iniciando servidor</p>
+            <div class="boot-progress"><span></span></div>
+            <button id="bootRetry" class="btn btn-secondary boot-retry" type="button">Reintentar</button>
+        </div>
+    </div>
+
     <script>
         (function () {
             const statusEl = document.getElementById('sessionStatus');
-            if (!statusEl) return;
+            const overlayEl = document.getElementById('bootOverlay');
+            const bootHintEl = document.getElementById('bootHint');
+            const bootRetryBtn = document.getElementById('bootRetry');
+            const appTriggers = document.querySelectorAll('[data-open-app="true"]');
+
+            const backendMeta = document.querySelector('meta[name="expenselog-backend-origin"]');
+            const configuredBackendOrigin = (backendMeta && backendMeta.content ? backendMeta.content : '').trim();
+            const backendOrigin = (configuredBackendOrigin || window.location.origin).replace(/\/+$/, '');
+            const sameOriginBackend = backendOrigin === window.location.origin;
+            const appURL = sameOriginBackend ? '/app' : backendOrigin + '/app';
+            const versionURL = backendOrigin + '/version';
+            const authMeURL = backendOrigin + '/auth/me';
+
+            let backendReady = false;
+            let warmupStarted = false;
+            let waitingForAppOpen = false;
+            let pollingInterval = null;
+            let overlayStartAt = 0;
+            let authRedirectDone = false;
 
             function showStatus(text) {
+                if (!statusEl) return;
                 statusEl.textContent = text;
                 statusEl.classList.add('visible');
             }
 
             function hideStatus() {
+                if (!statusEl) return;
                 statusEl.textContent = '';
                 statusEl.classList.remove('visible');
             }
 
-            function timeoutSignal(ms) {
-                const controller = new AbortController();
-                const timer = setTimeout(() => controller.abort(), ms);
-                return { signal: controller.signal, clear: () => clearTimeout(timer) };
+            function showOverlay(hintText) {
+                if (!overlayEl) return;
+                overlayEl.classList.add('visible');
+                overlayEl.setAttribute('aria-hidden', 'false');
+                overlayStartAt = Date.now();
+                setOverlayHint(hintText || 'Iniciando servidor');
             }
 
-            async function bootstrap() {
-                // Precalienta la instancia para reducir la espera del primer uso.
-                fetch('/version', { cache: 'no-store' }).catch(() => {});
+            function hideOverlay() {
+                if (!overlayEl) return;
+                overlayEl.classList.remove('visible');
+                overlayEl.setAttribute('aria-hidden', 'true');
+                setRetryVisible(false);
+            }
 
-                const delayedStatus = setTimeout(() => showStatus('Estamos iniciando tu espacio...'), 250);
-                const guard = timeoutSignal(1500);
+            function setOverlayHint(text) {
+                if (!bootHintEl) return;
+                bootHintEl.textContent = text;
+            }
 
+            function setRetryVisible(visible) {
+                if (!bootRetryBtn) return;
+                bootRetryBtn.classList.toggle('visible', !!visible);
+            }
+
+            function withTimeout(ms) {
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), ms);
+                return {
+                    signal: controller.signal,
+                    clear: function () { clearTimeout(timer); }
+                };
+            }
+
+            async function pingBackend(timeoutMs) {
+                const guard = withTimeout(timeoutMs || 6000);
                 try {
-                    const res = await fetch('/auth/me', {
+                    const response = await fetch(versionURL, {
                         method: 'GET',
-                        credentials: 'same-origin',
                         cache: 'no-store',
+                        credentials: 'include',
                         signal: guard.signal,
                     });
-                    guard.clear();
-                    clearTimeout(delayedStatus);
-
-                    if (res.ok) {
-                        showStatus('Estamos iniciando tu espacio...');
-                        window.location.replace('/app');
-                        return;
-                    }
-                    hideStatus();
+                    return response.ok;
                 } catch (_) {
+                    return false;
+                } finally {
                     guard.clear();
-                    clearTimeout(delayedStatus);
-                    hideStatus();
                 }
             }
 
-            window.addEventListener('load', bootstrap);
+            async function checkAuthAndRedirectIfNeeded() {
+                if (authRedirectDone || !backendReady || waitingForAppOpen) {
+                    return;
+                }
+                authRedirectDone = true;
+                try {
+                    const guard = withTimeout(3000);
+                    const res = await fetch(authMeURL, {
+                        method: 'GET',
+                        cache: 'no-store',
+                        credentials: 'include',
+                        signal: guard.signal,
+                    });
+                    guard.clear();
+                    if (res.ok) {
+                        showStatus('Estamos iniciando tu espacio...');
+                        window.location.replace(appURL);
+                        return;
+                    }
+                } catch (_) {
+                    // silent
+                }
+                hideStatus();
+            }
+
+            async function pollBackendState() {
+                if (backendReady) {
+                    return;
+                }
+
+                const ready = await pingBackend(4500);
+                if (!ready) {
+                    if (waitingForAppOpen) {
+                        const elapsed = Date.now() - overlayStartAt;
+                        if (elapsed > 18000) {
+                            setOverlayHint('Todavia estamos preparando todo para vos...');
+                        }
+                        if (elapsed > 45000) {
+                            setRetryVisible(true);
+                        }
+                    }
+                    return;
+                }
+
+                backendReady = true;
+                showStatus('Servidor listo. Puedes entrar.');
+
+                if (pollingInterval) {
+                    clearInterval(pollingInterval);
+                    pollingInterval = null;
+                }
+
+                if (waitingForAppOpen) {
+                    setOverlayHint('Listo! Entrando a la app...');
+                    window.location.assign(appURL);
+                    return;
+                }
+
+                checkAuthAndRedirectIfNeeded();
+            }
+
+            function startWarmup() {
+                if (warmupStarted) {
+                    return;
+                }
+                warmupStarted = true;
+                showStatus('Activando servidor...');
+
+                // Primera senal para despertar Render apenas abre la landing.
+                fetch(versionURL, {
+                    method: 'GET',
+                    cache: 'no-store',
+                    credentials: 'include',
+                    mode: sameOriginBackend ? 'same-origin' : 'cors',
+                }).catch(function () {
+                    // silent
+                });
+
+                pollBackendState();
+                pollingInterval = setInterval(pollBackendState, 2000);
+            }
+
+            function requestOpenApp(event) {
+                if (event) {
+                    event.preventDefault();
+                }
+                waitingForAppOpen = true;
+                showOverlay('Estamos preparando todo para vos...');
+                setRetryVisible(false);
+                startWarmup();
+
+                if (backendReady) {
+                    window.location.assign(appURL);
+                }
+            }
+
+            appTriggers.forEach(function (el) {
+                el.addEventListener('click', requestOpenApp);
+            });
+
+            if (bootRetryBtn) {
+                bootRetryBtn.addEventListener('click', function () {
+                    setRetryVisible(false);
+                    setOverlayHint('Reintentando...');
+                    pollBackendState();
+                });
+            }
+
+            window.addEventListener('load', function () {
+                startWarmup();
+
+                // Si la landing fue abierta desde navegacion atras y la app ya esta lista,
+                // limpiamos estados de carga para evitar overlays viejos.
+                hideOverlay();
+                waitingForAppOpen = false;
+            });
+
+            window.addEventListener('pageshow', function () {
+                if (backendReady) {
+                    hideStatus();
+                }
+            });
         })();
     </script>
 </body>

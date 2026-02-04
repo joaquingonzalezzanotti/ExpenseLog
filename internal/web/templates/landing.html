@@ -463,7 +463,6 @@
                 <p>ExpenseLog te ayuda a registrar movimientos, revisar balances y mantener tus finanzas personales claras en minutos.</p>
                 <div class="hero-cta">
                     <a class="btn btn-primary" data-open-app="true" href="/app">Empezar gratis</a>
-                    <a class="btn btn-secondary" data-open-app="true" href="/app">Entrar</a>
                 </div>
                 <div id="sessionStatus" class="status" role="status" aria-live="polite"></div>
             </section>
@@ -578,6 +577,12 @@
             function setRetryVisible(visible) {
                 if (!bootRetryBtn) return;
                 bootRetryBtn.classList.toggle('visible', !!visible);
+            }
+
+            function resetOpenAppState() {
+                waitingForAppOpen = false;
+                hideOverlay();
+                setOverlayHint('Iniciando servidor');
             }
 
             function withTimeout(ms) {
@@ -719,14 +724,18 @@
 
                 // Si la landing fue abierta desde navegacion atras y la app ya esta lista,
                 // limpiamos estados de carga para evitar overlays viejos.
-                hideOverlay();
-                waitingForAppOpen = false;
+                resetOpenAppState();
             });
 
             window.addEventListener('pageshow', function () {
+                resetOpenAppState();
                 if (backendReady) {
                     hideStatus();
                 }
+            });
+
+            window.addEventListener('pagehide', function () {
+                resetOpenAppState();
             });
         })();
     </script>

@@ -1,79 +1,26 @@
-# ExpenseLog MVP
+# ExpenseLog
 
-ExpenseLog es un tracker de gastos personal, simple y rapido. Esta version es un MVP pensado para uso individual y despliegue estable con Postgres.
+ExpenseLog es una app web para llevar ingresos y gastos con foco en simplicidad y control.
 
-## Principios
-- Un solo usuario, sin login por ahora.
-- Multi-moneda por transaccion (ARS/USD/EUR) sin conversion automatica.
-- Graficos y tarjetas principales basadas en la moneda base configurada.
-- Persistencia confiable: Postgres obligatorio.
+## Usar la app
+- Acceso web: https://www.expenselog.com.ar
+- No requiere instalacion.
+- Compatible con mobile y escritorio.
 
-## Storage (Postgres only)
-El backend JSON fue deprecado. El codigo historico se guardo en `internal/deprecated` para rollback, pero no se usa en runtime.
-Las categorias ahora viven en una tabla dedicada (`categories`) con orden por posicion.
+## Primeros pasos
+1) Crea tu cuenta con email y confirma la verificacion. (O usa el acceso con tu cuenta de Google)
+2) Inicia sesion.
+3) Configura moneda base y categorias.
+4) Registra gastos, ingresos y recurrentes.
 
-Variables requeridas:
-- `STORAGE_TYPE=postgres`
-- `STORAGE_URL=host:port/dbname`
-- `STORAGE_USER=usuario`
-- `STORAGE_PASS=password`
-- `STORAGE_SSL=require`
+## Funciones principales
+- Multiusuario con datos aislados por cuenta.
+- Multi-moneda ARS/USD/EUR (sin conversion automatica).
+- Graficos y balances por moneda base.
+- Etiquetas y categorias personalizadas.
+- Importacion y exportacion CSV.
 
-Si falta alguna, la app no inicia.
-
-## Ejecutar local
-1) Instalar Go.
-2) Exportar variables:
-   - Windows (PowerShell):
-     ```
-     $env:STORAGE_TYPE="postgres"
-     $env:STORAGE_URL="host:5432/expenseowl"
-     $env:STORAGE_USER="user"
-     $env:STORAGE_PASS="pass"
-     $env:STORAGE_SSL="require"
-     ```
-3) Correr:
-   ```
-   go run ./cmd/expenseowl
-   ```
-4) Abrir `http://localhost:8080`.
-   - Landing publica: `/`
-   - App autenticada: `/app`
-
-## Deploy (Render/Railway)
-- Setear las mismas variables en el servicio.
-- Puerto: 8080.
-- Build: `go build -o expenseowl ./cmd/expenseowl`
-- Start: `./expenseowl`
-
-## Email (SMTP)
-Variables para envio de emails (reset y verificacion):
-- `SMTP_HOST`
-- `SMTP_PORT` (587/2525 o 465)
-- `SMTP_USER`
-- `SMTP_PASS`
-- `SMTP_FROM`
-- `SMTP_FROM_NAME` (opcional)
-- `APP_BASE_URL` (ej: `https://tu-app.onrender.com`) para armar links de verificacion
-
-## Login con Google (OAuth)
-Variables opcionales para habilitar "Continuar con Google":
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `GOOGLE_REDIRECT_URL` (opcional; si falta, usa `{APP_BASE_URL o request-host}/auth/google/callback`)
-
-## Backup / Migracion
-- Exportar CSV desde Configuracion.
-- Importar CSV para restaurar o migrar.
-
-## Datos basicos
-- Expense: name, category, amount, currency, date, tags, source (CA/EFECTIVO/TARJETA), card.
-
-## Tests
-Para el test de Postgres:
-- `TEST_DATABASE_URL=postgres://user:pass@host:5432/db?sslmode=require`
-- `go test ./internal/storage -run TestPostgresStoreCRUD`
-
-## Notas
-- JSON storage esta deprecado y no se usa en runtime.
-- Monedas soportadas: ARS, USD, EUR.
+## Cuenta y seguridad
+- Sesiones seguras con opcion de recordar sesion.
+- Recupero de contrasena por codigo.
+- Login con Google cuando esta disponible.

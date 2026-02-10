@@ -3,17 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="ExpenseLog te ayuda a registrar gastos e ingresos en segundos. Organiza tus movimientos, visualiza balances y toma mejores decisiones.">
+    <meta name="description" content="ExpenseLog te ayuda a llevar el control de gastos e ingresos en segundos. Organiza tus movimientos, visualiza balances y toma mejores decisiones.">
     <meta name="keywords" content="control de gastos, finanzas personales, presupuesto, gastos, ingresos, ExpenseLog">
+    <meta name="robots" content="index,follow">
+    <link rel="canonical" href="https://expenselog.com.ar/">
     <meta property="og:title" content="ExpenseLog | Controla tus gastos en minutos">
-    <meta property="og:description" content="Registra gastos e ingresos, visualiza balances y manten tus finanzas ordenadas.">
+    <meta property="og:description" content="Control de gastos e ingresos para ordenar tus finanzas personales.">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="/pwa/icon-512.png">
+    <meta property="og:url" content="https://expenselog.com.ar/">
+    <meta property="og:image" content="https://expenselog.com.ar/pwa/icon-512.png">
+    <meta property="og:site_name" content="ExpenseLog">
     <meta property="og:locale" content="es_AR">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="ExpenseLog | Controla tus gastos en minutos">
-    <meta name="twitter:description" content="Registra gastos e ingresos, visualiza balances y manten tus finanzas ordenadas.">
-    <meta name="twitter:image" content="/pwa/icon-512.png">
+    <meta name="twitter:description" content="Control de gastos e ingresos para ordenar tus finanzas personales.">
+    <meta name="twitter:image" content="https://expenselog.com.ar/pwa/icon-512.png">
     <meta name="theme-color" content="#081528">
     <meta name="application-name" content="ExpenseLog">
     <meta name="apple-mobile-web-app-title" content="ExpenseLog">
@@ -21,6 +25,24 @@
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="manifest" href="/manifest.json">
     <title>ExpenseLog | Controla tus gastos en minutos</title>
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "ExpenseLog",
+            "url": "https://expenselog.com.ar/",
+            "applicationCategory": "FinanceApplication",
+            "operatingSystem": "Web",
+            "description": "Control de gastos e ingresos para ordenar tus finanzas personales.",
+            "inLanguage": "es-AR",
+            "publisher": {
+                "@type": "Organization",
+                "name": "ExpenseLog",
+                "url": "https://expenselog.com.ar/",
+                "logo": "https://expenselog.com.ar/pwa/icon-512.png"
+            }
+        }
+    </script>
     <script>
         (function() {
             const theme = localStorage.getItem('theme') || 'system';
@@ -460,7 +482,7 @@
                     <span>ExpenseLog</span>
                 </div>
                 <h1>Controla tus gastos e ingresos sin esfuerzo</h1>
-                <p>ExpenseLog te ayuda a registrar movimientos, revisar balances y mantener tus finanzas personales claras en minutos.</p>
+                <p>ExpenseLog te ayuda a llevar el control de gastos e ingresos, registrar movimientos y revisar balances en minutos.</p>
                 <div class="hero-cta">
                     <a class="btn btn-primary" data-open-app="true" href="/app">Empezar gratis</a>
                 </div>

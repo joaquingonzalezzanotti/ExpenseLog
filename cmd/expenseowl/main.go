@@ -60,6 +60,8 @@ func runServer(port int) {
 	http.HandleFunc("/settings", handler.ServeSettingsPage)
 
 	// Static File Handlers
+	http.HandleFunc("/robots.txt", handler.ServeStaticFile)
+	http.HandleFunc("/sitemap.xml", handler.ServeStaticFile)
 	http.HandleFunc("/functions.js", handler.ServeStaticFile)
 	http.HandleFunc("/manifest.json", handler.ServeStaticFile)
 	http.HandleFunc("/sw.js", handler.ServeStaticFile)

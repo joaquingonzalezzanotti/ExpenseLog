@@ -1,0 +1,15 @@
+User-agent: *
+Disallow: /app
+Disallow: /table
+Disallow: /settings
+Disallow: /auth/
+Disallow: /config
+Disallow: /categories
+Disallow: /expense
+Disallow: /expenses
+Disallow: /recurring-expense
+Disallow: /recurring-expenses
+Disallow: /import
+Disallow: /export
+
+Sitemap: https://expenselog.com.ar/sitemap.xml

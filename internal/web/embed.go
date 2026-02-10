@@ -47,6 +47,10 @@ func ServeStatic(w http.ResponseWriter, staticPath string) error {
 		w.Header().Set("Content-Type", "image/x-icon")
 	case ".json":
 		w.Header().Set("Content-Type", "application/json")
+	case ".txt":
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	case ".xml":
+		w.Header().Set("Content-Type", "application/xml; charset=utf-8")
 	}
 	_, err = w.Write(staticContent)
 	return err

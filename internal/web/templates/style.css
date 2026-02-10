@@ -523,6 +523,8 @@ input:focus-visible {
     justify-content: center;
     padding: 1.5rem;
     z-index: 10000;
+    pointer-events: auto;
+    -webkit-backdrop-filter: blur(6px);
     backdrop-filter: blur(6px);
 }
 
@@ -538,6 +540,7 @@ input:focus-visible {
     border-radius: 16px;
     padding: 1.5rem;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+    pointer-events: auto;
 }
 
 .auth-header {
@@ -672,6 +675,17 @@ input:focus-visible {
     gap: 0.75rem;
     flex-wrap: wrap;
     align-items: center;
+}
+
+@supports (-webkit-touch-callout: none) {
+    .auth-overlay {
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+
+    body.auth-locked .container {
+        filter: none;
+    }
 }
 
 @keyframes tooltip-appear {

@@ -1,24 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap');
 
 :root {
-    /* Default theme: Dark mode */
-    --bg-primary: #081528;
-    --bg-secondary: #101f3b;
-    --text-primary: #f4f4f4;
-    --text-secondary: #b3b3b3;
-    --border: #1a365d;
-    --accent: #69afde;
-    --accent-soft: rgba(105, 175, 222, 0.18);
-    --success-soft: rgba(52, 211, 153, 0.14);
-}
-
-/* Light theme override */
-html[data-theme='light'] {
+    /* Default theme: Light mode */
     --bg-primary: #f2e5d7;
     --bg-secondary: #faecdd;
     --text-primary: #2e2e2e;
     --text-secondary: #3e3e3e;
     --border: #e6ddd4;
+    --accent: #69afde;
     --accent-soft: rgba(105, 175, 222, 0.2);
     --success-soft: rgba(52, 211, 153, 0.16);
 }
@@ -32,17 +21,6 @@ html[data-theme='dark'] {
     --border: #1a365d;
     --accent-soft: rgba(105, 175, 222, 0.18);
     --success-soft: rgba(52, 211, 153, 0.14);
-}
-
-/* System preference for light mode (when no theme is set) */
-@media (prefers-color-scheme: light) {
-    :root:not([data-theme]) {
-        --bg-primary: #f2e5d7;
-        --bg-secondary: #faecdd;
-        --text-primary: #2e2e2e;
-        --text-secondary: #3e3e3e;
-        --border: #e6ddd4;
-    }
 }
 
 body {
@@ -101,10 +79,10 @@ header {
     white-space: nowrap;
 }
 
-@media (prefers-color-scheme: light) {
-    #prevMonth, #nextMonth, #toggleExpenseFormBtn {
-        background-color: var(--bg-secondary);
-    }
+html[data-theme='light'] #prevMonth,
+html[data-theme='light'] #nextMonth,
+html[data-theme='light'] #toggleExpenseFormBtn {
+    background-color: var(--bg-secondary);
 }
 
 .nav-button, .view-button, .edit-button {

@@ -10,12 +10,9 @@
     <link rel="stylesheet" href="/style.css">
     <script>
         (function() {
-            const theme = localStorage.getItem('theme') || 'system';
-            if (theme === 'light') {
-                document.documentElement.setAttribute('data-theme', 'light');
-            } else if (theme === 'dark') {
-                document.documentElement.setAttribute('data-theme', 'dark');
-            }
+            const storedTheme = localStorage.getItem('theme');
+            const theme = storedTheme === 'dark' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', theme);
         })();
     </script>
     <title>Configuracion ExpenseLog</title>
@@ -101,7 +98,6 @@
                 <h2 align="center">Tema</h2>
                 <div class="theme-selector">
                     <select id="themeSelect">
-                        <option value="system">Usar sistema</option>
                         <option value="light">Claro</option>
                         <option value="dark">Oscuro</option>
                     </select>
@@ -1111,17 +1107,14 @@ async function saveCategoriesList(nextCategories) {
         
         // --- Theme Management ---
         const themeSelect = document.getElementById('themeSelect');
-        const currentTheme = localStorage.getItem('theme') || 'system';
+        const storedTheme = localStorage.getItem('theme');
+        const currentTheme = storedTheme === 'dark' ? 'dark' : 'light';
         themeSelect.value = currentTheme;
         function applyTheme(theme) {
-            if (theme === 'light') {
-                document.documentElement.setAttribute('data-theme', 'light');
-            } else if (theme === 'dark') {
-                document.documentElement.setAttribute('data-theme', 'dark');
-            } else {
-                document.documentElement.removeAttribute('data-theme');
-            }
+            const normalizedTheme = theme === 'dark' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', normalizedTheme);
         }
+        applyTheme(currentTheme);
         themeSelect.addEventListener('change', (e) => {
             const selectedTheme = e.target.value;
             localStorage.setItem('theme', selectedTheme);

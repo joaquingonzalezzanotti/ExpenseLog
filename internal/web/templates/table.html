@@ -10,12 +10,9 @@
     <link rel="stylesheet" href="/style.css">
     <script>
         (function() {
-            const theme = localStorage.getItem('theme') || 'system';
-            if (theme === 'light') {
-                document.documentElement.setAttribute('data-theme', 'light');
-            } else if (theme === 'dark') {
-                document.documentElement.setAttribute('data-theme', 'dark');
-            }
+            const storedTheme = localStorage.getItem('theme');
+            const theme = storedTheme === 'dark' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', theme);
         })();
     </script>
     <title>Tabla ExpenseLog</title>

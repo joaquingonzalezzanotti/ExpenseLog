@@ -45,35 +45,19 @@
     </script>
     <script>
         (function() {
-            const theme = localStorage.getItem('theme') || 'system';
-            if (theme === 'light') {
-                document.documentElement.setAttribute('data-theme', 'light');
-            } else if (theme === 'dark') {
-                document.documentElement.setAttribute('data-theme', 'dark');
-            }
+            const storedTheme = localStorage.getItem('theme');
+            const theme = storedTheme === 'dark' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', theme);
         })();
     </script>
     <style>
         :root {
-            --bg-primary: #081528;
-            --bg-secondary: #101f3b;
-            --bg-tertiary: #0d1a31;
-            --text-primary: #f4f4f4;
-            --text-secondary: #b3b3b3;
-            --accent: #69afde;
-            --border: #1a365d;
-            --accent-soft: rgba(105, 175, 222, 0.18);
-            --brand-shadow: rgba(0, 0, 0, 0.35);
-            --footer-bg: rgba(16, 31, 59, 0.84);
-            --footer-text: #b3b3b3;
-        }
-
-        html[data-theme='light'] {
             --bg-primary: #f2e5d7;
             --bg-secondary: #faecdd;
             --bg-tertiary: #f7e8d7;
             --text-primary: #2e2e2e;
             --text-secondary: #3e3e3e;
+            --accent: #69afde;
             --border: #e6ddd4;
             --accent-soft: rgba(105, 175, 222, 0.2);
             --brand-shadow: rgba(15, 23, 42, 0.12);
@@ -87,26 +71,12 @@
             --bg-tertiary: #0d1a31;
             --text-primary: #f4f4f4;
             --text-secondary: #b3b3b3;
+            --accent: #69afde;
             --border: #1a365d;
             --accent-soft: rgba(105, 175, 222, 0.18);
             --brand-shadow: rgba(0, 0, 0, 0.35);
             --footer-bg: rgba(16, 31, 59, 0.84);
             --footer-text: #b3b3b3;
-        }
-
-        @media (prefers-color-scheme: light) {
-            :root:not([data-theme]) {
-                --bg-primary: #f2e5d7;
-                --bg-secondary: #faecdd;
-                --bg-tertiary: #f7e8d7;
-                --text-primary: #2e2e2e;
-                --text-secondary: #3e3e3e;
-                --border: #e6ddd4;
-                --accent-soft: rgba(105, 175, 222, 0.2);
-                --brand-shadow: rgba(15, 23, 42, 0.12);
-                --footer-bg: rgba(250, 236, 221, 0.9);
-                --footer-text: #3e3e3e;
-            }
         }
 
         * {

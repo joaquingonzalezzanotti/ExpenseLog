@@ -446,6 +446,12 @@ input:focus-visible {
     align-items: center;
 }
 
+.nav-logo {
+    height: 56px;
+    width: auto;
+    display: block;
+}
+
 .user-badge {
     width: 2.5rem;
     height: 2.5rem;
@@ -1211,6 +1217,10 @@ input:focus-visible {
 
     .nav-bar {
         margin-bottom: 0.5rem;
+    }
+
+    .nav-logo {
+        height: 44px;
     }
     
     .nav-button {

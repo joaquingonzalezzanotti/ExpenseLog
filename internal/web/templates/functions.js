@@ -278,14 +278,14 @@ function setupAuthUI() {
                 });
                 if (!response.ok) {
                     const error = await response.json().catch(() => ({}));
-                    showAuthOverlay(error.error || 'No se pudo actualizar la contrase?a', 'error');
+                    showAuthOverlay(error.error || 'No se pudo actualizar la contraseña', 'error');
                     return;
                 }
-                showAuthOverlay('Contrase?a actualizada. Ya podes ingresar.', 'success');
+                showAuthOverlay('Contraseña actualizada. Ya podes ingresar.', 'success');
                 setAuthTab('login');
             } catch (error) {
                 console.error('Reset confirm failed:', error);
-                showAuthOverlay('No se pudo actualizar la contrase?a', 'error');
+                showAuthOverlay('No se pudo actualizar la contraseña', 'error');
             }
         });
     }

@@ -12,4 +12,4 @@ Disallow: /recurring-expenses
 Disallow: /import
 Disallow: /export
 
-Sitemap: https://expenselog.com.ar/sitemap.xml
+Sitemap: https://www.expenselog.com.ar/sitemap.xml

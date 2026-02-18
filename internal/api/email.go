@@ -29,7 +29,8 @@ type brevoEmailPayload struct {
 	} `json:"sender"`
 	To      []map[string]string `json:"to"`
 	Subject string              `json:"subject"`
-	Text    string              `json:"textContent"`
+	Text    string              `json:"textContent,omitempty"`
+	HTML    string              `json:"htmlContent,omitempty"`
 }
 
 func loadSMTPConfig() (smtpConfig, error) {
@@ -66,7 +67,7 @@ func loadBrevoConfig() (smtpConfig, string, error) {
 	return cfg, apiKey, nil
 }
 
-func sendBrevoEmail(toEmail, subject, body string) error {
+func sendBrevoEmail(toEmail, subject, textBody, htmlBody string) error {
 	cfg, apiKey, err := loadBrevoConfig()
 	if err != nil {
 		return err
@@ -78,7 +79,8 @@ func sendBrevoEmail(toEmail, subject, body string) error {
 	}
 	payload.To = []map[string]string{{"email": toEmail}}
 	payload.Subject = subject
-	payload.Text = body
+	payload.Text = textBody
+	payload.HTML = htmlBody
 
 	raw, err := json.Marshal(payload)
 	if err != nil {
@@ -105,9 +107,9 @@ func sendBrevoEmail(toEmail, subject, body string) error {
 	return nil
 }
 
-func sendSMTPEmail(toEmail, subject, body string) error {
+func sendSMTPEmail(toEmail, subject, textBody, htmlBody string) error {
 	if strings.TrimSpace(os.Getenv("BREVO_API_KEY")) != "" {
-		if err := sendBrevoEmail(toEmail, subject, body); err == nil {
+		if err := sendBrevoEmail(toEmail, subject, textBody, htmlBody); err == nil {
 			return nil
 		}
 	}
@@ -119,14 +121,25 @@ func sendSMTPEmail(toEmail, subject, body string) error {
 	if cfg.fromName != "" {
 		fromHeader = fmt.Sprintf("%s <%s>", cfg.fromName, cfg.from)
 	}
+	boundary := "expenselog-boundary-" + strconv.FormatInt(time.Now().UnixNano(), 10)
 	msg := strings.Join([]string{
 		"From: " + fromHeader,
 		"To: " + toEmail,
 		"Subject: " + subject,
 		"MIME-Version: 1.0",
+		"Content-Type: multipart/alternative; boundary=" + boundary,
+		"",
+		"--" + boundary,
 		"Content-Type: text/plain; charset=UTF-8",
 		"",
-		body,
+		textBody,
+		"",
+		"--" + boundary,
+		"Content-Type: text/html; charset=UTF-8",
+		"",
+		htmlBody,
+		"",
+		"--" + boundary + "--",
 	}, "\r\n")
 
 	addr := fmt.Sprintf("%s:%d", cfg.host, cfg.port)
@@ -167,13 +180,17 @@ func sendSMTPEmail(toEmail, subject, body string) error {
 }
 
 func sendResetCodeEmail(toEmail, code string) error {
-	subject := "ExpenseLog - Codigo de recuperacion"
-	body := fmt.Sprintf("Hola,\n\nTu codigo de recuperacion de ExpenseLog es: %s\n\nEste codigo expira en 15 minutos.\nSi no pediste este codigo, podes ignorar este mensaje.\n\nGracias,\nEquipo ExpenseLog\n", code)
-	return sendSMTPEmail(toEmail, subject, body)
+	email, err := buildResetCodeEmail(code)
+	if err != nil {
+		return err
+	}
+	return sendSMTPEmail(toEmail, email.Subject, email.Text, email.HTML)
 }
 
 func sendVerificationEmail(toEmail, verifyURL string) error {
-	subject := "ExpenseLog - Verifica tu email"
-	body := fmt.Sprintf("Hola,\n\nPara verificar tu cuenta de ExpenseLog, hace click en este enlace:\n%s\n\nEste enlace expira en 24 horas.\nSi no pediste esta cuenta, podes ignorar este mensaje.\n\nGracias,\nEquipo ExpenseLog\n", verifyURL)
-	return sendSMTPEmail(toEmail, subject, body)
+	email, err := buildVerificationEmail(verifyURL)
+	if err != nil {
+		return err
+	}
+	return sendSMTPEmail(toEmail, email.Subject, email.Text, email.HTML)
 }

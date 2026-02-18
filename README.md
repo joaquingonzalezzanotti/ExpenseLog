@@ -42,3 +42,19 @@ ExpenseLog es una app web para llevar ingresos y gastos con foco en simplicidad 
 - Sesiones seguras con opcion de recordar sesion.
 - Recupero de contrasena por codigo.
 - Login con Google cuando esta disponible.
+
+
+## Preview local de emails
+Para ver como quedan las plantillas de email en local, renderiza previews HTML/TXT con:
+
+```bash
+go run ./cmd/email-preview -out ./email-previews -base-url http://localhost:8080
+```
+
+Esto genera archivos por plantilla:
+- `verification.html/.txt/.subject.txt`
+- `reset_code.html/.txt/.subject.txt`
+- `welcome.html/.txt/.subject.txt`
+- `password_changed.html/.txt/.subject.txt`
+
+Luego puedes abrir los `.html` en el navegador para revisar diseño visual.

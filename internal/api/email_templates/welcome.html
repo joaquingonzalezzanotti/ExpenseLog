@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="es">
+  <body style="margin:0;padding:0;background:#f3f6fb;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">{{.Preheader}}</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3f6fb;padding:24px 12px;">
+      <tr><td align="center">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border-radius:16px;border:1px solid #dbe3ef;font-family:Arial,sans-serif;color:#1b2430;overflow:hidden;">
+          <tr><td style="padding:26px 28px;background:{{.Brand.AccentColor}};color:#fff;"><h1 style="margin:0;font-size:22px;">{{.Title}}</h1></td></tr>
+          <tr><td style="padding:24px 28px;"><p style="margin:0 0 16px;color:#4b5563;line-height:1.6;">{{.Message}}</p><a href="{{.CTAURL}}" style="display:inline-block;padding:12px 18px;background:{{.Brand.PrimaryColor}};border-radius:10px;color:#fff;text-decoration:none;font-weight:700;">{{.CTALabel}}</a></td></tr>
+          <tr><td style="padding:16px 28px 24px;border-top:1px solid #e5eaf2;font-size:12px;color:#7b8794;">© {{.Brand.CurrentYear}} {{.Brand.AppName}}</td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>

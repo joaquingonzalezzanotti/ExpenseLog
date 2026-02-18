@@ -329,7 +329,7 @@ func (h *Handler) AuthResetRequest(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to create reset code"})
 		return
 	}
-	if err := sendResetCodeEmail(email, code); err != nil {
+	if err := sendResetCodeEmail(email, code, baseURLFromRequest(r)); err != nil {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to send reset code"})
 		return
 	}
@@ -388,6 +388,8 @@ func (h *Handler) AuthResetConfirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = h.storage.MarkPasswordResetUsed(reset.ID)
+	// Best-effort notification to improve account security visibility.
+	_ = sendPasswordChangedEmail(email, baseURLFromRequest(r))
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 

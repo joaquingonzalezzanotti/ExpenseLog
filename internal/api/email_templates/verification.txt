@@ -1,0 +1,11 @@
+Verifica tu cuenta en {{ .Brand.AppName }}
+
+Gracias por registrarte.
+
+Activa tu cuenta desde este enlace:
+{{ .VerifyURL }}
+
+{{ .ExpiryText }}
+Si no creaste esta cuenta, puedes ignorar este correo.
+
+Soporte: {{ .Brand.SupportEmail }}

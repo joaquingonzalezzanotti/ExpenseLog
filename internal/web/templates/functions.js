@@ -29,6 +29,8 @@ let notificationCenterBound = false;
 let notificationCenterTimer = null;
 let latestNotificationPayload = null;
 let currentVisibleNotificationItems = [];
+let notificationCenterDisabled = false;
+let notificationCenterFetchWarned = false;
 
 function setAuthPending(pending) {
     if (!document.body || !document.getElementById('authOverlay')) return;
@@ -349,6 +351,7 @@ function renderNotificationCenter(payload) {
     currentVisibleNotificationItems = visibleItems;
     const topItems = visibleItems.slice(0, 3);
     const hasCritical = visibleItems.some((item) => item?.severity === 'critical');
+    const totalCount = visibleItems.length;
     const seenKeys = readSeenNotificationKeys();
     const unseenCount = visibleItems.filter((item) => !seenKeys.has(buildNotificationKey(item))).length;
 
@@ -357,8 +360,8 @@ function renderNotificationCenter(payload) {
     }
     dom.button.classList.toggle('has-alert', hasCritical);
 
-    if (!hasCritical && unseenCount > 0) {
-        dom.badge.textContent = String(unseenCount);
+    if (!hasCritical && totalCount > 0 && unseenCount > 0) {
+        dom.badge.textContent = String(Math.min(unseenCount, 99));
         dom.badge.hidden = false;
     } else {
         dom.badge.textContent = '0';
@@ -445,14 +448,29 @@ function bindNotificationCenter() {
 
 async function refreshNotificationCenter() {
     const dom = getNotificationCenterDOM();
-    if (!dom.button || !currentUser) return;
+    if (!dom.button || !currentUser || notificationCenterDisabled) return;
     try {
         const response = await fetch(`/alerts/liquidity?currency=${NOTIFICATION_FETCH_CURRENCY}&days=${NOTIFICATION_FETCH_DAYS}`, { cache: 'no-store' });
+        if (response.status === 404) {
+            notificationCenterDisabled = true;
+            if (notificationCenterTimer) {
+                window.clearInterval(notificationCenterTimer);
+                notificationCenterTimer = null;
+            }
+            latestNotificationPayload = { alerts: [] };
+            renderNotificationCenter(latestNotificationPayload);
+            if (dom.slot) dom.slot.style.display = 'none';
+            return;
+        }
         if (!response.ok) throw new Error(`status ${response.status}`);
         latestNotificationPayload = await response.json();
+        notificationCenterFetchWarned = false;
         renderNotificationCenter(latestNotificationPayload);
     } catch (error) {
-        console.error('No se pudo refrescar el centro de notificaciones:', error);
+        if (!notificationCenterFetchWarned) {
+            console.warn('No se pudo refrescar el centro de notificaciones:', error);
+            notificationCenterFetchWarned = true;
+        }
         latestNotificationPayload = { alerts: [] };
         renderNotificationCenter(latestNotificationPayload);
     }
@@ -460,7 +478,7 @@ async function refreshNotificationCenter() {
 
 function ensureNotificationCenter() {
     const dom = getNotificationCenterDOM();
-    if (!dom.button) return;
+    if (!dom.button || notificationCenterDisabled) return;
     if (dom.slot) {
         dom.slot.style.display = 'inline-flex';
     }

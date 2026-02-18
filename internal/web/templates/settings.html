@@ -49,30 +49,30 @@
         </header>
 
         <section class="form-container settings-section settings-profile">
-            <h2>Perfil</h2>
+            <div class="settings-detail-header settings-profile-header">
+                <h2>Perfil</h2>
+                <button id="settingsLogoutBtn" class="nav-button button-secondary settings-logout-btn" type="button">Cerrar sesion</button>
+            </div>
             <div class="settings-profile-row">
                 <div id="settingsProfileAvatar" class="settings-profile-avatar">EL</div>
                 <div class="settings-profile-meta">
-                    <div id="settingsProfileName" class="settings-profile-name">Usuario</div>
+                    <div class="settings-profile-name-row">
+                        <div id="settingsProfileName" class="settings-profile-name">Usuario</div>
+                        <button id="settingsEditNameBtn" class="settings-name-edit-btn" type="button" aria-label="Editar nombre" title="Editar nombre">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                    </div>
                     <div id="settingsProfileEmail" class="settings-profile-email">-</div>
                 </div>
-                <button id="settingsLogoutBtn" class="nav-button button-secondary settings-logout-btn" type="button">Cerrar sesion</button>
             </div>
-            <div class="settings-profile-edit">
-                <label for="settingsProfileNameInput">Nombre</label>
-                <div class="settings-profile-edit-row">
-                    <input type="text" id="settingsProfileNameInput" maxlength="80" placeholder="Tu nombre">
-                    <button id="saveProfileNameBtn" class="nav-button button-primary" type="button">Guardar nombre</button>
-                </div>
-                <div id="profileMessage" class="form-message"></div>
-            </div>
+            <div id="profileMessage" class="form-message"></div>
         </section>
 
         <section class="form-container settings-section">
             <h2>Preferencias</h2>
             <div class="settings-preferences-grid">
                 <div class="settings-preference-item">
-                    <label for="currencySelect">Moneda</label>
+                    <label for="currencySelect">Moneda Principal</label>
                     <div class="settings-preference-control">
                         <select id="currencySelect">
                             <option value="ars">ARS ($)</option>
@@ -80,7 +80,7 @@
                             <option value="eur">EUR (EUR)</option>
                         </select>
                     </div>
-                    <p class="settings-helper-text">Esta moneda define la referencia principal de Caja de Ahorro (CA), balance y calculos por defecto.</p>
+                    <!-- Esta moneda define la referencia principal de Caja de Ahorro (CA), balance y calculos por defecto. -->
                     <div id="currencyMessage" class="form-message"></div>
                 </div>
                 <div class="settings-preference-item">
@@ -113,7 +113,9 @@
         <section id="categoriesSection" class="form-container settings-section settings-detail-section" hidden>
             <div class="settings-detail-header">
                 <h2>Categorias</h2>
-                <button class="nav-button button-secondary settings-close-btn" type="button" data-settings-close="categoriesSection">Ocultar</button>
+                <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="categoriesSection" aria-label="Cerrar categorias" title="Cerrar categorias">
+                    <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
+                </button>
             </div>
             <div id="categories-manager">
                 <div class="categories-header">
@@ -145,7 +147,9 @@
         <section id="recurringSection" class="form-container settings-section settings-detail-section" hidden>
             <div class="settings-detail-header">
                 <h2>Transacciones recurrentes</h2>
-                <button class="nav-button button-secondary settings-close-btn" type="button" data-settings-close="recurringSection">Ocultar</button>
+                <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="recurringSection" aria-label="Cerrar transacciones recurrentes" title="Cerrar transacciones recurrentes">
+                    <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
+                </button>
             </div>
             <h3 class="settings-subtitle">Transacciones recurrentes existentes</h3>
             <div id="recurring-expenses-list" class="recurring-table-box"></div>
@@ -378,8 +382,7 @@
         const settingsProfileName = document.getElementById('settingsProfileName');
         const settingsProfileEmail = document.getElementById('settingsProfileEmail');
         const settingsProfileAvatar = document.getElementById('settingsProfileAvatar');
-        const settingsProfileNameInput = document.getElementById('settingsProfileNameInput');
-        const saveProfileNameBtn = document.getElementById('saveProfileNameBtn');
+        const settingsEditNameBtn = document.getElementById('settingsEditNameBtn');
         const recurringFormWrap = document.getElementById('recurringFormWrap');
         const toggleRecurringCreateBtn = document.getElementById('toggleRecurringCreateBtn');
 
@@ -447,12 +450,10 @@
             if (settingsProfileName) settingsProfileName.textContent = name || 'Usuario';
             if (settingsProfileEmail) settingsProfileEmail.textContent = email || '-';
             if (settingsProfileAvatar) settingsProfileAvatar.textContent = userInitials(email, name);
-            if (settingsProfileNameInput) settingsProfileNameInput.value = name || '';
         }
 
-        async function saveProfileName() {
-            if (!settingsProfileNameInput) return;
-            const nextName = settingsProfileNameInput.value.trim();
+        async function saveProfileName(nextNameRaw) {
+            const nextName = (nextNameRaw || '').trim();
             if (!nextName) {
                 showMessage('profileMessage', 'Ingresa un nombre valido.', false);
                 return;
@@ -478,6 +479,13 @@
                 console.error('Error actualizando nombre de perfil:', error);
                 showMessage('profileMessage', 'No se pudo actualizar el nombre.', false);
             }
+        }
+
+        function requestAndSaveProfileName() {
+            const currentName = settingsProfileName ? settingsProfileName.textContent.trim() : '';
+            const nextName = window.prompt('Editar nombre', currentName || '');
+            if (nextName === null) return;
+            saveProfileName(nextName);
         }
 
         function invalidateSharedConfigCache() {
@@ -1182,13 +1190,7 @@ async function saveCategoriesList(nextCategories) {
             }
             window.location.reload();
         });
-        saveProfileNameBtn?.addEventListener('click', saveProfileName);
-        settingsProfileNameInput?.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                saveProfileName();
-            }
-        });
+        settingsEditNameBtn?.addEventListener('click', requestAndSaveProfileName);
         document.getElementById('addCategory').addEventListener('click', addCategory);
         document.getElementById('categorySearch').addEventListener('input', (e) => {
             categoryFilter = e.target.value.trim().toLowerCase();

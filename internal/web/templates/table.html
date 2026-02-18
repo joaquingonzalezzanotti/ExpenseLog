@@ -270,6 +270,8 @@
         const sourceSelect = document.getElementById('sourceSelect');
         const cardGroup = document.getElementById('cardGroup');
         const movementTypeSelect = document.getElementById('movementType');
+        const tableExpenseForm = document.getElementById('expenseForm');
+        const tableExpenseSubmitButton = tableExpenseForm ? tableExpenseForm.querySelector('button[type="submit"]') : null;
         let categories = [];
         let searchQuery = '';
         let filterCurrency = 'all';
@@ -301,6 +303,8 @@
             if (toggleTableExpenseFormBtn) {
                 toggleTableExpenseFormBtn.textContent = 'Agregar gasto';
                 toggleTableExpenseFormBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+                const hideToggle = isMobileTableView() && expanded;
+                toggleTableExpenseFormBtn.style.display = hideToggle ? 'none' : '';
             }
         }
 
@@ -321,6 +325,19 @@
                 const hasFilters = filterCurrency !== 'all' || filterSource !== 'all';
                 clearTableFiltersBtn.style.display = hasFilters ? 'inline-flex' : 'none';
             }
+        }
+
+        function getTableCreateSubmitLabel(movementType) {
+            if (movementType === 'income') return 'Agregar ingreso';
+            if (movementType === 'refund') return 'Agregar reintegro';
+            return 'Agregar gasto';
+        }
+
+        function syncTableSubmitButtonLabel() {
+            if (!tableExpenseSubmitButton || !tableExpenseForm) return;
+            if (tableExpenseForm.dataset.editId) return;
+            const movementType = movementTypeSelect ? movementTypeSelect.value : 'expense';
+            tableExpenseSubmitButton.textContent = getTableCreateSubmitLabel(movementType);
         }
 
         function isFuturePeriodSelected() {
@@ -904,12 +921,11 @@
             document.getElementById('selected-tags').innerHTML = '';
             selectedTags.clear();
             delete form.dataset.editId;
-            const submitButton = form.querySelector('button[type="submit"]');
-            if (submitButton) submitButton.textContent = 'Agregar gasto';
             populateFormCurrency();
             sourceSelect.value = 'CA';
             if (movementTypeSelect) movementTypeSelect.value = 'expense';
             toggleCardInput();
+            syncTableSubmitButtonLabel();
             const today = new Date();
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -986,6 +1002,10 @@
 
         sourceSelect.addEventListener('change', toggleCardInput);
         toggleCardInput();
+        if (movementTypeSelect) {
+            movementTypeSelect.addEventListener('change', syncTableSubmitButtonLabel);
+        }
+        syncTableSubmitButtonLabel();
 
         document.getElementById('tableSearch').addEventListener('input', (e) => {
             searchQuery = e.target.value.trim();

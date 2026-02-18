@@ -131,6 +131,8 @@ header {
     text-align: center;
     font-weight: 700;
     color: var(--text-secondary);
+    font-size: clamp(1rem, 1.4vw, 1.18rem);
+    line-height: 1.28;
 }
 
 .nav-button, .edit-button {
@@ -517,6 +519,17 @@ html[data-theme='light'] #nextMonth {
     border-color: var(--accent);
     color: var(--accent-contrast);
     font-weight: 700;
+}
+
+#toggleExpenseFormBtn {
+    font-size: 1.04rem;
+    letter-spacing: 0.01em;
+}
+
+.home-filters #toggleChart {
+    font-size: 0.9rem;
+    min-height: 38px;
+    padding: 0.42rem 0.95rem;
 }
 
 .recent-movements {
@@ -1629,6 +1642,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 .category-actions {
     display: flex;
     gap: 0.25rem;
+    align-items: center;
 }
 
 .category-edit-input {
@@ -1640,11 +1654,12 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     color: var(--text-primary);
 }
 
-.category-item .delete-button {
-    padding: 0.25rem;
-    height: 1.5rem;
-    width: 1.5rem;
-    display: flex;
+.category-item .delete-button,
+.category-item .edit-button {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
 }
@@ -1818,6 +1833,10 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     gap: 0.85rem;
 }
 
+.settings-profile-header h2 {
+    margin: 0;
+}
+
 .settings-profile-avatar {
     width: 46px;
     height: 46px;
@@ -1839,6 +1858,30 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 .settings-profile-name {
     font-weight: 700;
     color: var(--text-primary);
+}
+
+.settings-profile-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.settings-name-edit-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 9999px;
+    border: 1px solid var(--border);
+    background: var(--bg-primary);
+    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.settings-name-edit-btn:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
 }
 
 .settings-profile-email {
@@ -1960,6 +2003,28 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     justify-content: space-between;
     gap: 0.75rem;
     margin-bottom: 0.8rem;
+}
+
+.settings-close-icon-btn {
+    width: 34px;
+    height: 34px;
+    min-height: 34px;
+    padding: 0;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+}
+
+.settings-close-icon-btn i {
+    font-size: 0.9rem;
+}
+
+.settings-close-icon-btn:hover {
+    color: var(--accent);
+    border-color: rgba(37, 99, 235, 0.28);
+    background-color: var(--accent-soft);
 }
 
 .settings-detail-section[hidden] {
@@ -2155,7 +2220,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     }
 
     .home-greeting {
-        font-size: 0.92rem;
+        font-size: clamp(1.06rem, 4.3vw, 1.22rem);
         margin-bottom: 0.55rem;
     }
 
@@ -2307,15 +2372,16 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     }
 
     .settings-logout-btn {
-        width: 100%;
+        width: auto;
         justify-content: center;
+        padding: 0.4rem 0.85rem;
     }
 
     .settings-detail-header {
         flex-wrap: wrap;
     }
 
-    .settings-close-btn {
+    .settings-close-btn:not(.settings-close-icon-btn) {
         width: 100%;
         justify-content: center;
     }
@@ -2422,6 +2488,10 @@ html[data-theme='dark'] .expense-table td.amount-balance {
         grid-column: 1 / -1;
     }
 
+    #toggleExpenseFormBtn {
+        font-size: 1.08rem;
+    }
+
     .cashflow-row.base-currency {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2510,6 +2580,8 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
     .home-filters #toggleChart {
         grid-column: 1 / -1;
+        font-size: 0.88rem;
+        min-height: 36px;
     }
 
     .home-filters.has-clear #toggleChart,
@@ -2608,6 +2680,37 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     }
 
     .current-month {
+        min-width: 0;
+    }
+}
+
+@media (max-width: 415px) {
+    #toggleExpenseFormBtn {
+        font-size: 1.1rem;
+    }
+
+    .home-greeting {
+        font-size: 1.12rem;
+    }
+
+    .home-filters {
+        grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+        gap: 0.5rem;
+    }
+
+    .home-filters .filter-group {
+        padding: 0.22rem 0.32rem 0.22rem 0.48rem;
+        gap: 0.3rem;
+    }
+
+    .home-filters .filter-label {
+        font-size: 0.7rem;
+    }
+
+    .home-filters #filterCurrency,
+    .home-filters #filterSource {
+        padding: 0.22rem 0.5rem;
+        font-size: 0.84rem;
         min-width: 0;
     }
 }

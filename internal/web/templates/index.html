@@ -276,6 +276,9 @@
         let filterSource = 'all';
         let categories = [];
         let chartExpanded = false;
+        const expenseForm = document.getElementById('expenseForm');
+        const expenseSubmitButton = expenseForm ? expenseForm.querySelector('button[type="submit"]') : null;
+        const movementTypeGroup = movementTypeSelect ? movementTypeSelect.closest('.form-group') : null;
         const LIQUIDITY_RULES = Object.freeze({
             currency: 'ars',
             windowDays: 7,
@@ -377,7 +380,7 @@
                 return;
             }
             greetingEl.style.display = 'block';
-            greetingEl.textContent = `${getGreetingPrefix()}, ${name}`;
+            greetingEl.textContent = `${getGreetingPrefix()}, ${name} 👋`;
         }
 
         function formatCurrencyWithCurrency(amount, currencyCode) {
@@ -1132,7 +1135,19 @@
                 <option value="EFECTIVO">Efectivo</option>
                 <option value="TARJETA">Tarjeta</option>
             `;
+            updateCompactHomeFilterLabels();
             updateHomeFilterControls();
+        }
+
+        function updateCompactHomeFilterLabels() {
+            const currencySelect = document.getElementById('filterCurrency');
+            const sourceFilterSelect = document.getElementById('filterSource');
+            if (!currencySelect || !sourceFilterSelect) return;
+            const compact = window.innerWidth <= 415;
+            const currencyAll = currencySelect.querySelector('option[value="all"]');
+            if (currencyAll) {
+                currencyAll.textContent = compact ? 'Tod.' : 'Todas';
+            }
         }
         function getFilteredMonthExpenses(periodExpenses) {
             const monthExpenses = Array.isArray(periodExpenses) ? periodExpenses : getVisiblePeriodExpenses(allExpenses);
@@ -1160,6 +1175,23 @@
         function setExpenseFormVisible(visible) {
             const formContainer = document.getElementById('addExpenseContainer');
             formContainer.style.display = visible ? 'block' : 'none';
+            const openFormButton = document.getElementById('toggleExpenseFormBtn');
+            if (openFormButton) {
+                openFormButton.style.display = visible ? 'none' : '';
+                openFormButton.setAttribute('aria-expanded', visible ? 'true' : 'false');
+            }
+        }
+
+        function getCreateSubmitLabelByMovementType(movementType) {
+            if (movementType === 'income') return 'Agregar ingreso';
+            if (movementType === 'refund') return 'Agregar reintegro';
+            return 'Agregar gasto';
+        }
+
+        function syncExpenseSubmitButtonLabel() {
+            if (!expenseSubmitButton) return;
+            const movementType = movementTypeSelect ? movementTypeSelect.value : 'expense';
+            expenseSubmitButton.textContent = getCreateSubmitLabelByMovementType(movementType);
         }
 
         document.getElementById('expenseForm').addEventListener('submit', async (e) => {
@@ -1233,6 +1265,9 @@
 
         sourceSelect.addEventListener('change', toggleCardInput);
         toggleCardInput();
+        if (movementTypeSelect) {
+            movementTypeSelect.addEventListener('change', syncExpenseSubmitButtonLabel);
+        }
 
         document.getElementById('filterCurrency').addEventListener('change', (e) => {
             filterCurrency = e.target.value;
@@ -1292,6 +1327,7 @@
                         if (movementTypeSelect) movementTypeSelect.value = 'expense';
                         sourceSelect.value = 'CA';
                         toggleCardInput();
+                        syncExpenseSubmitButtonLabel();
                     }
                     setExpenseFormVisible(true);
                     document.getElementById('name').focus();
@@ -1305,8 +1341,12 @@
                     if (movementTypeSelect) movementTypeSelect.value = 'expense';
                     sourceSelect.value = 'TARJETA';
                 }
+                if (movementTypeGroup) {
+                    movementTypeGroup.style.display = '';
+                }
                 toggleCardInput();
-                document.getElementById('amount').focus();
+                syncExpenseSubmitButtonLabel();
+                formContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
         });
 
@@ -1318,6 +1358,7 @@
             sourceSelect.value = 'CA';
             if (movementTypeSelect) movementTypeSelect.value = 'expense';
             toggleCardInput();
+            syncExpenseSubmitButtonLabel();
             const today = new Date();
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -1326,7 +1367,12 @@
             setExpenseFormVisible(false);
         });
 
+        window.addEventListener('resize', () => {
+            updateCompactHomeFilterLabels();
+        });
+
         setExpenseFormVisible(false);
+        syncExpenseSubmitButtonLabel();
     </script>
 </body>
 </html>

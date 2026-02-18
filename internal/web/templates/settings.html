@@ -106,27 +106,9 @@
             </div>
             <div class="form-container half-width">
                 <h2 align="center">Importar/Exportar datos</h2>
-                <div class="export-buttons">
-                    <div class="export-options">
-                        <a href="/export/csv" id="csv-export-file" class="nav-button" download="expenses.csv">Exportar a CSV</a>
-                    </div>
-                    <div class="import-option">
-                        <label for="csv-import-file" class="nav-button">Importar desde CSV</label>
-                        <input type="file" id="csv-import-file" accept=".csv" style="display: none;">
-                    </div>
-                    <div class="import-option">
-                        <label for="csv-import-file-old" class="nav-button">Importar desde ExpenseLog v3.20-</label>
-                        <input type="file" id="csv-import-file-old" accept=".csv" style="display: none;">
-                    </div>
-                </div>
-                <div id="importMessage" class="form-message"></div>
-                <div id="importSummary" class="import-summary" style="display: none;">
-                    <h3>Resumen de importacion</h3>
-                    <p>Total procesado: <span id="summary-processed"></span></p>
-                    <p>Importados: <span id="summary-imported"></span></p>
-                    <p>Omitidos: <span id="summary-skipped"></span></p>
-                    <p>Nuevas categorias: <span id="summary-new-categories"></span></p>
-                </div>
+                <p class="section-hint" style="text-align: center; margin: 0;">
+                    La importacion/exportacion CSV esta deshabilitada temporalmente.
+                </p>
             </div>
         </div>
         
@@ -624,7 +606,6 @@ async function saveCategoriesList(nextCategories) {
         return false;
     }
     
-    console.log('[SAVE] Sending categories to server:', nextCategories);
     
     try {
         const response = await fetch('/categories/edit', {
@@ -633,7 +614,6 @@ async function saveCategoriesList(nextCategories) {
             body: JSON.stringify(nextCategories)
         });
         if (response.ok) {
-            console.log('[SAVE] Categories saved successfully');
             showMessage('categoriesMessage', 'Categorias guardadas con exito', true);
             return true;
         }
@@ -946,93 +926,6 @@ async function saveCategoriesList(nextCategories) {
             }
         }
 
-        // --- Import/Export ---
-        async function handleCsvImport(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const formData = new FormData();
-            formData.append('file', file);
-            const messageDiv = document.getElementById('importMessage');
-            const summaryDiv = document.getElementById('importSummary');
-
-            messageDiv.textContent = 'Importando... puede demorar con archivos grandes.';
-            messageDiv.className = 'form-message';
-            summaryDiv.style.display = 'none';
-
-            try {
-                const response = await fetch('/import/csv', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    messageDiv.textContent = 'Importacion completada';
-                    messageDiv.className = 'form-message success';
-                    summaryDiv.style.display = 'block';
-                    document.getElementById('summary-processed').textContent = result.total_processed;
-                    document.getElementById('summary-imported').textContent = result.imported;
-                    document.getElementById('summary-skipped').textContent = result.skipped;
-                    document.getElementById('summary-new-categories').textContent = (result.new_categories || []).join(', ') || 'None';
-                    
-                    await initialize();
-                } else {
-                    messageDiv.textContent = `Error: ${result.error || 'No se pudo importar el CSV'}`;
-                    messageDiv.className = 'form-message error';
-                }
-            } catch (error) {
-                console.error('Error importing CSV:', error);
-                messageDiv.textContent = 'Error: ocurri un problema inesperado durante la importacion.';
-                messageDiv.className = 'form-message error';
-            } finally {
-                event.target.value = '';
-            }
-        }
-
-        async function handleCsvImportOld(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const formData = new FormData();
-            formData.append('file', file);
-            const messageDiv = document.getElementById('importMessage');
-            const summaryDiv = document.getElementById('importSummary');
-
-            messageDiv.textContent = 'Importando... puede demorar con archivos grandes.';
-            messageDiv.className = 'form-message';
-            summaryDiv.style.display = 'none';
-
-            try {
-                const response = await fetch('/import/csvold', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    messageDiv.textContent = 'Importacion completada';
-                    messageDiv.className = 'form-message success';
-                    summaryDiv.style.display = 'block';
-                    document.getElementById('summary-processed').textContent = result.total_processed;
-                    document.getElementById('summary-imported').textContent = result.imported;
-                    document.getElementById('summary-skipped').textContent = result.skipped;
-                    document.getElementById('summary-new-categories').textContent = (result.new_categories || []).join(', ') || 'None';
-                    
-                    await initialize();
-                } else {
-                    messageDiv.textContent = `Error: ${result.error || 'No se pudo importar el CSV'}`;
-                    messageDiv.className = 'form-message error';
-                }
-            } catch (error) {
-                console.error('Error importing CSV (legacy):', error);
-                messageDiv.textContent = 'Error: ocurri un problema inesperado durante la importacion.';
-                messageDiv.className = 'form-message error';
-            } finally {
-                event.target.value = '';
-            }
-        }
-
         // --- Initialization ---
         async function initialize() {
             try {
@@ -1051,24 +944,16 @@ async function saveCategoriesList(nextCategories) {
                 const config = await configResponse.json();
                 if (categoriesResponse.ok) {
                     categories = await categoriesResponse.json();
-                    console.log('Categories from /categories endpoint:', categories);
                 }
 
-                console.log('Categories after fetch:', categories);
-                console.log('Config categories:', config.categories);
-
                 if (!categories || categories.length === 0) {
-                    console.warn('No categories from endpoint, using config fallback');
                     const fallback = [...(config.categories || [])];
                     if (fallback.length > 0) {
-                        console.log('Using fallback categories:', fallback);
                         categories = fallback;
                     } else {
                         categories = [];
                     }
                 }
-
-                console.log('Final categories list:', categories);
                 categoriesLoading = false;
                 saveCachedCategories(categories);
                 renderCategories();
@@ -1145,8 +1030,6 @@ async function saveCategoriesList(nextCategories) {
         });
         document.getElementById('saveCurrency').addEventListener('click', saveCurrency);
         document.getElementById('saveStartDate').addEventListener('click', saveStartDate);
-        document.getElementById('csv-import-file').addEventListener('change', handleCsvImport);
-        document.getElementById('csv-import-file-old').addEventListener('change', handleCsvImportOld);
         document.getElementById('newCategory').addEventListener('keypress', e => e.key === 'Enter' && addCategory());
 
         document.getElementById('recurringExpenseForm').addEventListener('submit', async (e) => {

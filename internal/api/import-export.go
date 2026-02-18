@@ -13,6 +13,10 @@ import (
 	"github.com/tanq16/expenseowl/internal/storage"
 )
 
+func (h *Handler) CSVFeatureDisabled(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusGone, ErrorResponse{Error: "Importacion/exportacion CSV deshabilitada temporalmente"})
+}
+
 // exports all expenses to CSV
 func (h *Handler) ExportCSV(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {

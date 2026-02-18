@@ -177,10 +177,14 @@
             </div>
             <button id="clearFilters" class="nav-button button-secondary">Limpiar</button>
             <button id="toggleChart" class="nav-button button-primary" style="display: none;">Ver grafico</button>
-            <span id="baseCurrencyIndicator" class="panel-indicator"></span>
         </div>
 
         <div id="emptyStateBanner" class="empty-state" style="display: none;"></div>
+
+        <div id="recentMovements" class="recent-movements" style="display: none;">
+            <h3>Ultimos 3 movimientos</h3>
+            <div id="recentList" class="recent-list"></div>
+        </div>
 
         <div class="chart-container">
             <div id="noDataMessage" class="empty-state" style="display: none;">
@@ -191,11 +195,6 @@
             </div>
             <div class="legend-box" id="customLegend">
             </div>
-        </div>
-
-        <div id="recentMovements" class="recent-movements" style="display: none;">
-            <h3>Ultimos 3 movimientos</h3>
-            <div id="recentList" class="recent-list"></div>
         </div>
 
         <div id="cashflow-section" class="cashflow-container"></div>
@@ -843,7 +842,6 @@
                 updateMonthDisplay();
                 updateChartAndLegend();
                 setupTagInput();
-                updateIndicator();
                 await refreshLiquidityAlert();
             } catch (error) {
                 console.error('No se pudo inicializar el panel:', error);
@@ -964,12 +962,6 @@
                 <option value="TARJETA">Tarjeta</option>
             `;
         }
-
-        function updateIndicator() {
-            const indicator = document.getElementById('baseCurrencyIndicator');
-            indicator.textContent = `Moneda base: ${baseCurrency.toUpperCase()} · El grafico muestra solo gastos en ${baseCurrency.toUpperCase()}`;
-        }
-
         function getFilteredMonthExpenses(periodExpenses) {
             const monthExpenses = Array.isArray(periodExpenses) ? periodExpenses : getVisiblePeriodExpenses(allExpenses);
             return monthExpenses.filter(exp => {

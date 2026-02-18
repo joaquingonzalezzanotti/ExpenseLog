@@ -114,9 +114,9 @@ func runServer(port int) {
 	http.HandleFunc("/alerts/liquidity", handler.RequireAuth(handler.GetLiquidityAlerts))
 
 	// Import/Export
-	http.HandleFunc("/export/csv", handler.RequireAuth(handler.ExportCSV))
-	http.HandleFunc("/import/csv", handler.RequireAuth(handler.ImportCSV))
-	http.HandleFunc("/import/csvold", handler.RequireAuth(handler.ImportOldCSV))
+	http.HandleFunc("/export/csv", handler.RequireAuth(handler.CSVFeatureDisabled))
+	http.HandleFunc("/import/csv", handler.RequireAuth(handler.CSVFeatureDisabled))
+	http.HandleFunc("/import/csvold", handler.RequireAuth(handler.CSVFeatureDisabled))
 
 	log.Println("Starting server on port", port, "...")
 	if err := http.ListenAndServe(fmt.Sprint(":", port), nil); err != nil {

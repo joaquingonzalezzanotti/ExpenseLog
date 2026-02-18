@@ -23,20 +23,21 @@
     --cash-expense-bg: rgba(220, 38, 38, 0.14);
     --cash-balance-bg: rgba(217, 119, 6, 0.16);
     --cash-refund-bg: rgba(37, 99, 235, 0.14);
+    --cash-carryover-bg: rgba(20, 184, 166, 0.14);
     --cash-card-border: rgba(27, 36, 48, 0.08);
     --cash-label: #3b4b63;
 }
 
 /* Dark theme override */
 html[data-theme='dark'] {
-    --bg-primary: #121a2b;
-    --bg-secondary: #1a2438;
+    --bg-primary: #1b2436;
+    --bg-secondary: #25324a;
     --text-primary: #e8eef8;
-    --text-secondary: #b6c4d8;
-    --border: #334867;
-    --accent: #7ab4ff;
+    --text-secondary: #c3d0e2;
+    --border: #48607f;
+    --accent: #8abaff;
     --accent-contrast: #06203a;
-    --accent-soft: rgba(122, 180, 255, 0.22);
+    --accent-soft: rgba(138, 186, 255, 0.24);
     --success: #22c55e;
     --success-soft: rgba(34, 197, 94, 0.2);
     --warning: #f59e0b;
@@ -48,8 +49,9 @@ html[data-theme='dark'] {
     --table-row-alt: rgba(148, 163, 184, 0.12);
     --cash-income-bg: rgba(34, 197, 94, 0.25);
     --cash-expense-bg: rgba(239, 68, 68, 0.23);
-    --cash-balance-bg: rgba(245, 158, 11, 0.25);
+    --cash-balance-bg: rgba(245, 158, 11, 0.3);
     --cash-refund-bg: rgba(122, 180, 255, 0.23);
+    --cash-carryover-bg: rgba(20, 184, 166, 0.24);
     --cash-card-border: rgba(148, 163, 184, 0.24);
     --cash-label: #d4deec;
 }
@@ -549,6 +551,24 @@ html[data-theme='light'] #toggleExpenseFormBtn {
     padding: 0.45rem 1rem;
 }
 
+.mobile-only {
+    display: none;
+}
+
+.mobile-table-pager {
+    margin-top: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.mobile-table-pager-info {
+    color: var(--text-secondary);
+    font-size: 0.84rem;
+}
+
 .editable {
     cursor: pointer;
     border-radius: 4px;
@@ -565,6 +585,23 @@ html[data-theme='light'] #toggleExpenseFormBtn {
 .expense-name-text {
     font-weight: 700;
     color: var(--text-primary);
+}
+
+.expense-meta-mobile {
+    display: none;
+    margin-top: 0.25rem;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    line-height: 1.25;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.expense-meta-mobile span {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 9999px;
+    padding: 0.08rem 0.42rem;
 }
 
 .recurring-badge {
@@ -1032,6 +1069,11 @@ html[data-theme='dark'] #tableContainer {
 .expense-table td.amount-balance {
     color: var(--text-secondary);
     font-weight: 600;
+    opacity: 0.9;
+}
+
+html[data-theme='dark'] .expense-table td.amount-balance {
+    opacity: 1;
 }
 
 .expense-table tr:last-child td {
@@ -1357,6 +1399,10 @@ html[data-theme='dark'] #tableContainer {
     background-color: var(--cash-refund-bg);
 }
 
+.cashflow-item.carryover {
+    background-color: var(--cash-carryover-bg);
+}
+
 .cashflow-label {
     font-size: 0.9rem;
     color: var(--cash-label);
@@ -1568,11 +1614,23 @@ html[data-theme='dark'] #tableContainer {
     }
 
     .nav-bar {
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.35rem;
+        gap: 0.45rem;
+        flex-wrap: wrap;
     }
 
     .nav-logo {
-        height: 44px;
+        height: 40px;
+    }
+
+    .view-button {
+        padding: 0.4rem 0.72rem;
+    }
+
+    .user-badge {
+        width: 2.15rem;
+        height: 2.15rem;
+        font-size: 0.72rem;
     }
     
     .nav-button {
@@ -1598,11 +1656,11 @@ html[data-theme='dark'] #tableContainer {
     }
 
     #tableContainer {
-        overflow-x: auto;
+        overflow-x: hidden;
     }
 
     .expense-table {
-        min-width: 640px;
+        min-width: 0;
     }
 
     .container {
@@ -1662,6 +1720,39 @@ html[data-theme='dark'] #tableContainer {
 
     .table-controls {
         justify-content: stretch;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .table-controls label,
+    .table-controls .nav-button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .mobile-only {
+        display: inline-flex;
+    }
+
+    #tableExpenseFormContainer[data-expanded="false"] {
+        display: none;
+    }
+
+    .expense-table th.secondary-col,
+    .expense-table td.secondary-col {
+        display: none;
+    }
+
+    .expense-meta-mobile {
+        display: flex;
+    }
+
+    .expense-table td.actions-col,
+    .expense-table th.actions-col {
+        width: 80px;
+        min-width: 80px;
+        text-align: center;
+        white-space: nowrap;
     }
 
     .quick-actions {
@@ -1685,6 +1776,24 @@ html[data-theme='dark'] #tableContainer {
         grid-column: 1 / -1;
     }
 
+    .search-bar {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.45rem;
+        align-items: center;
+    }
+
+    .search-bar input {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .search-bar .nav-button {
+        grid-column: 1 / -1;
+        width: 100%;
+        justify-content: center;
+    }
+
     .panel-filters {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1695,6 +1804,7 @@ html[data-theme='dark'] #tableContainer {
     .panel-filters .filter-group {
         width: 100%;
         margin: 0;
+        min-width: 0;
     }
 
     .panel-filters .filter-select {
@@ -1705,6 +1815,7 @@ html[data-theme='dark'] #tableContainer {
     .panel-filters .button-secondary,
     .panel-filters .button-primary {
         width: 100%;
+        min-height: 42px;
         justify-content: center;
         text-align: center;
         margin: 0;
@@ -1722,6 +1833,37 @@ html[data-theme='dark'] #tableContainer {
 
     .liquidity-alert-panel {
         width: min(320px, calc(100vw - 1.5rem));
+    }
+
+    .liquidity-alert-toggle {
+        width: 40px;
+        height: 40px;
+    }
+
+    .mobile-table-pager {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .mobile-table-pager .nav-button {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 520px) {
+    .panel-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .panel-filters .filter-group {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.4rem;
+    }
+
+    .current-month {
+        min-width: 0;
     }
 }
 

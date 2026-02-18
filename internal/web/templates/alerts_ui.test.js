@@ -41,3 +41,37 @@ test("summarizeAlerts prioriza panel critico cuando existe una critica", () => {
     assert.equal(summary.panelSeverity, "critical");
 });
 
+test("buildPanelModel integra reglas + visibilidad + severidad del panel", () => {
+    const payload = {
+        currency: "ars",
+        windowDays: 7,
+        criticalDays: 4,
+        reappearDays: 1,
+        alerts: [
+            { recurringId: "rec-1", dueDate: "2026-03-10", kind: "preview_7d", daysUntil: 5, severity: "info" },
+            { recurringId: "rec-2", dueDate: "2026-03-08", kind: "risk_4d", daysUntil: 3, severity: "critical" },
+        ],
+    };
+    const model = AlertUI.buildPanelModel(payload, {}, { currency: "ars" });
+    assert.equal(model.widgetVisible, true);
+    assert.equal(model.summary.total, 2);
+    assert.equal(model.summary.criticalCount, 1);
+    assert.equal(model.title, "Riesgo de saldo");
+    assert.equal(model.rules.windowDays, 7);
+    assert.equal(model.rules.criticalDays, 4);
+    assert.equal(model.rules.reappearDays, 1);
+});
+
+test("buildPanelModel refleja ciclo borrar y reaparicion 24h", () => {
+    const alertEarly = { recurringId: "rec-1", dueDate: "2026-03-10", kind: "preview_7d", daysUntil: 5, severity: "info" };
+    const dismissMap = {
+        [AlertUI.buildLiquidityAlertKey(alertEarly)]: { dismissedAt: Date.now(), daysUntil: 5 },
+    };
+    const hidden = AlertUI.buildPanelModel({ alerts: [alertEarly], reappearDays: 1 }, dismissMap, {});
+    assert.equal(hidden.widgetVisible, false);
+
+    const alertNear = { ...alertEarly, daysUntil: 1 };
+    const reappeared = AlertUI.buildPanelModel({ alerts: [alertNear], reappearDays: 1 }, dismissMap, {});
+    assert.equal(reappeared.widgetVisible, true);
+    assert.equal(reappeared.summary.total, 1);
+});

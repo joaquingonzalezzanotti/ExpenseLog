@@ -154,7 +154,7 @@
             <div id="recentList" class="recent-list"></div>
         </div>
 
-        <div class="panel-filters">
+        <div class="panel-filters home-filters">
             <div class="filter-group">
                 <span class="filter-label">Moneda</span>
                 <select id="filterCurrency" class="filter-select">
@@ -449,13 +449,24 @@
 
         function renderLiquidityAlerts(data) {
             if (!liquidityAlertWidget) return;
+            const dismissMap = readLiquidityDismissMap();
             const rules = getLiquidityRules(data);
             rules.criticalDays = Number(data?.criticalDays || 4);
-            const incomingAlerts = Array.isArray(data?.alerts) ? data.alerts : [];
-            const dismissMap = readLiquidityDismissMap();
-            const alerts = (alertUI && typeof alertUI.filterVisibleAlerts === 'function')
-                ? alertUI.filterVisibleAlerts(incomingAlerts, dismissMap, rules.reappearDays)
-                : incomingAlerts.filter(item => !shouldHideDismissedAlert(item, dismissMap, rules.reappearDays));
+
+            const panelModel = (alertUI && typeof alertUI.buildPanelModel === 'function')
+                ? alertUI.buildPanelModel(data, dismissMap, rules)
+                : null;
+            const alerts = panelModel ? panelModel.alerts : ((Array.isArray(data?.alerts) ? data.alerts : []).filter(item => !shouldHideDismissedAlert(item, dismissMap, rules.reappearDays)));
+            const summary = panelModel ? panelModel.summary : ((alertUI && typeof alertUI.summarizeAlerts === 'function')
+                ? alertUI.summarizeAlerts(alerts)
+                : {
+                    total: alerts.length,
+                    criticalCount: alerts.filter(item => item.severity === 'critical').length,
+                    infoCount: alerts.filter(item => item.severity !== 'critical').length,
+                    panelSeverity: alerts.some(item => item.severity === 'critical') ? 'critical' : 'info',
+                });
+            const hasCritical = panelModel ? (panelModel.summary.panelSeverity === 'critical') : (summary.panelSeverity === 'critical');
+
             if (alerts.length === 0) {
                 liquidityAlertWidget.style.display = 'none';
                 liquidityAlertWidget.dataset.severity = 'none';
@@ -463,25 +474,19 @@
                 return;
             }
 
-            const summary = (alertUI && typeof alertUI.summarizeAlerts === 'function')
-                ? alertUI.summarizeAlerts(alerts)
-                : {
-                    total: alerts.length,
-                    criticalCount: alerts.filter(item => item.severity === 'critical').length,
-                    infoCount: alerts.filter(item => item.severity !== 'critical').length,
-                    panelSeverity: alerts.some(item => item.severity === 'critical') ? 'critical' : 'info',
-                };
             const criticalCount = summary.criticalCount;
             const infoCount = summary.infoCount;
-            const hasCritical = summary.panelSeverity === 'critical';
             liquidityAlertWidget.style.display = 'block';
             liquidityAlertWidget.dataset.severity = hasCritical ? 'critical' : 'info';
             liquidityAlertCount.textContent = String(alerts.length);
             if (liquidityAlertTitle) {
-                liquidityAlertTitle.textContent = hasCritical ? 'Riesgo de saldo' : 'Notificaciones de saldo';
+                liquidityAlertTitle.textContent = panelModel ? panelModel.title : (hasCritical ? 'Riesgo de saldo' : 'Notificaciones de saldo');
             }
             if (liquidityAlertIcon) {
-                liquidityAlertIcon.className = hasCritical ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-bell';
+                const iconClass = panelModel
+                    ? (panelModel.icon === 'warning' ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-bell')
+                    : (hasCritical ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-bell');
+                liquidityAlertIcon.className = iconClass;
             }
             const balanceNow = Number(data?.balanceNow || 0);
             const windowDays = Number(data?.windowDays || rules.windowDays);
@@ -657,7 +662,7 @@
             noDataMessage.style.display = 'none';
             emptyStateBanner.style.display = 'none';
             renderRecentMovements(monthExpenses);
-            filtersRow.style.display = hasBaseExpenses ? 'flex' : 'none';
+            filtersRow.style.display = hasBaseExpenses ? '' : 'none';
             toggleChart.style.display = hasBaseExpenses ? 'inline-flex' : 'none';
             toggleChart.textContent = chartExpanded ? 'Ocultar grafico' : 'Ver grafico';
             updateHomeFilterControls(hasBaseExpenses);
@@ -892,10 +897,14 @@
 
         function updateHomeFilterControls(hasBaseExpenses = true) {
             const clearBtn = document.getElementById('clearFilters');
+            const filtersRow = document.querySelector('.home-filters');
             if (!clearBtn) return;
             const hasFilters = filterCurrency !== 'all' || filterSource !== 'all';
             clearBtn.style.display = (hasBaseExpenses && hasFilters) ? 'inline-flex' : 'none';
             clearBtn.disabled = !hasFilters;
+            if (filtersRow) {
+                filtersRow.classList.toggle('has-clear', hasBaseExpenses && hasFilters);
+            }
         }
 
         function toggleCategory(category) {

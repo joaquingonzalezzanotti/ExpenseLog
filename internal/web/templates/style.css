@@ -27,6 +27,9 @@
     --cash-carryover-bg: rgba(20, 184, 166, 0.14);
     --cash-card-border: rgba(27, 36, 48, 0.08);
     --cash-label: #3b4b63;
+    --radius-pill: 9999px;
+    --radius-card: 14px;
+    --control-min-height: 42px;
 }
 
 /* Dark theme override */
@@ -115,13 +118,12 @@ header {
 }
 
 html[data-theme='light'] #prevMonth,
-html[data-theme='light'] #nextMonth,
-html[data-theme='light'] #toggleExpenseFormBtn {
+html[data-theme='light'] #nextMonth {
     background-color: var(--bg-secondary);
 }
 
 .nav-button, .view-button, .edit-button {
-    border-radius: 9999px;
+    border-radius: var(--radius-pill);
     padding: 0.5rem 1.25rem;
     font-weight: 500;
     transition: all 0.2s ease;
@@ -170,7 +172,7 @@ html[data-theme='light'] #toggleExpenseFormBtn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 9999px;
+    border-radius: var(--radius-pill);
     padding: 0.14rem 0.65rem;
     font-size: 0.72rem;
     font-weight: 700;
@@ -211,6 +213,8 @@ html[data-theme='light'] #toggleExpenseFormBtn {
     border: 1px solid var(--border);
     border-radius: 14px;
     padding: 0.75rem;
+    box-sizing: border-box;
+    max-width: 100%;
 }
 
 .panel-filters .filter-group {
@@ -221,6 +225,8 @@ html[data-theme='light'] #toggleExpenseFormBtn {
     border: 1px solid var(--border);
     border-radius: 9999px;
     padding: 0.35rem 0.45rem 0.35rem 0.75rem;
+    box-sizing: border-box;
+    max-width: 100%;
 }
 
 .panel-filters .filter-label {
@@ -231,11 +237,13 @@ html[data-theme='light'] #toggleExpenseFormBtn {
 
 .panel-filters .filter-select {
     border: 1px solid var(--border);
-    border-radius: 9999px;
+    border-radius: var(--radius-pill);
     background-color: var(--bg-primary);
     color: var(--text-primary);
     padding: 0.35rem 0.75rem;
     min-width: 112px;
+    box-sizing: border-box;
+    max-width: 100%;
 }
 
 .panel-filters .filter-select:focus {
@@ -553,6 +561,8 @@ html[data-theme='light'] #toggleExpenseFormBtn {
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 0.4rem 0.5rem;
+    box-sizing: border-box;
+    max-width: 100%;
 }
 
 .search-icon {
@@ -574,6 +584,8 @@ html[data-theme='light'] #toggleExpenseFormBtn {
     background-color: var(--bg-primary);
     color: var(--text-primary);
     padding: 0.45rem 0.85rem;
+    box-sizing: border-box;
+    max-width: 100%;
 }
 
 .search-bar .nav-button {
@@ -629,7 +641,7 @@ html[data-theme='light'] #toggleExpenseFormBtn {
 .expense-meta-mobile span {
     background-color: var(--bg-primary);
     border: 1px solid var(--border);
-    border-radius: 9999px;
+    border-radius: var(--radius-pill);
     padding: 0.08rem 0.42rem;
 }
 
@@ -650,7 +662,7 @@ html[data-theme='light'] #toggleExpenseFormBtn {
 .row-menu-toggle {
     width: 30px;
     height: 30px;
-    border-radius: 9999px;
+    border-radius: var(--radius-pill);
     border: 1px solid var(--border);
     background-color: var(--bg-primary);
     color: var(--text-secondary);
@@ -1570,9 +1582,150 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     gap: 1rem;
 }
 
+.settings-section {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.settings-section h2 {
+    margin: 0 0 0.9rem 0;
+    font-size: 1.15rem;
+}
+
+.settings-section .nav-button {
+    min-height: var(--control-min-height);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.92rem;
+}
+
+.settings-profile-row {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.settings-profile-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid var(--border);
+}
+
+.settings-profile-meta {
+    flex: 1;
+    min-width: 0;
+}
+
+.settings-profile-name {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.settings-profile-email {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    word-break: break-word;
+}
+
+.settings-logout-btn {
+    border-color: rgba(220, 38, 38, 0.45);
+    color: var(--danger);
+}
+
+.settings-logout-btn:hover {
+    background-color: var(--danger-soft);
+    border-color: rgba(220, 38, 38, 0.7);
+    color: var(--danger);
+}
+
+.settings-preferences-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+.settings-preference-item label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+    color: var(--text-secondary);
+}
+
+.settings-preference-control {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.settings-preference-control select {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.settings-nav-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.settings-nav-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    text-align: left;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    padding: 0.72rem 0.9rem;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+.settings-nav-item i {
+    color: var(--text-secondary);
+}
+
+.settings-nav-item:hover {
+    border-color: var(--accent);
+}
+
+.settings-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.8rem;
+}
+
+.settings-detail-section[hidden] {
+    display: none !important;
+}
+
+.settings-subtitle {
+    margin-top: 1.25rem;
+    margin-bottom: 0.55rem;
+    font-size: 1rem;
+}
+
 .settings-toggle-btn {
     margin: 0 auto 0.75rem auto;
-    min-height: 40px;
+    min-height: var(--control-min-height);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1586,7 +1739,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 .recurring-table-box {
     margin-top: 0.75rem;
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: var(--radius-card);
     background-color: var(--bg-secondary);
     overflow-x: auto;
     box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
@@ -1734,7 +1887,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     }
 
     .month-navigation {
-        gap: 0.2rem;
+        gap: 0.6rem;
         margin-bottom: 0.75rem;
     }
 
@@ -1864,9 +2017,32 @@ html[data-theme='dark'] .expense-table td.amount-balance {
         justify-content: center;
     }
 
-    #categories-manager[data-mobile-expanded="false"],
-    #recurringFormWrap[data-mobile-expanded="false"] {
-        display: none;
+    .settings-profile-row {
+        flex-wrap: wrap;
+    }
+
+    .settings-logout-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .settings-preference-control {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .settings-preference-control .nav-button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .settings-detail-header {
+        flex-wrap: wrap;
+    }
+
+    .settings-close-btn {
+        width: 100%;
+        justify-content: center;
     }
 
     .expense-form {
@@ -1883,6 +2059,27 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     .table-controls .nav-button {
         width: 100%;
         justify-content: center;
+    }
+
+    .table-controls #toggleTableExpenseFormBtn,
+    .table-controls label[for="showAllToggle"] {
+        width: auto;
+        flex: 1 1 calc(50% - 0.25rem);
+        min-width: 0;
+    }
+
+    .table-controls label[for="showAllToggle"] {
+        justify-content: center;
+        gap: 0.35rem;
+        padding: 0.45rem 0.55rem;
+        font-size: 0.88rem;
+        line-height: 1.2;
+        text-align: center;
+    }
+
+    .table-controls #showAllToggle {
+        margin: 0;
+        flex-shrink: 0;
     }
 
     .mobile-only {
@@ -1958,11 +2155,17 @@ html[data-theme='dark'] .expense-table td.amount-balance {
         grid-template-columns: auto 1fr;
         gap: 0.45rem;
         align-items: center;
+        width: 100%;
+        max-width: 100%;
     }
 
     .search-bar input {
         min-width: 0;
         width: 100%;
+    }
+
+    .search-bar > * {
+        min-width: 0;
     }
 
     .search-bar .nav-button {
@@ -1976,6 +2179,8 @@ html[data-theme='dark'] .expense-table td.amount-balance {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 0.65rem;
         align-items: stretch;
+        width: 100%;
+        max-width: 100%;
     }
 
     .panel-filters .filter-group {
@@ -1991,6 +2196,10 @@ html[data-theme='dark'] .expense-table td.amount-balance {
         width: 100%;
         padding: 0.28rem 0.55rem;
         font-size: 0.9rem;
+    }
+
+    .panel-filters > * {
+        min-width: 0;
     }
 
     .panel-filters .filter-label {
@@ -2010,6 +2219,19 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     .panel-filters .panel-indicator {
         grid-column: 1 / -1;
         margin-left: 0;
+    }
+
+    .home-filters {
+        overflow: hidden;
+    }
+
+    .home-filters #toggleChart {
+        grid-column: 1 / -1;
+    }
+
+    .home-filters.has-clear #toggleChart,
+    .home-filters.has-clear #clearFilters {
+        grid-column: auto;
     }
 
     .recurring-table-box .expense-table {
@@ -2081,6 +2303,30 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
     .panel-filters {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .home-filters #toggleChart {
+        grid-column: 1 / -1;
+    }
+
+    .home-filters.has-clear #toggleChart,
+    .home-filters.has-clear #clearFilters {
+        grid-column: auto;
+    }
+
+    .table-controls {
+        gap: 0.4rem;
+    }
+
+    .table-controls #toggleTableExpenseFormBtn {
+        flex: 1 1 54%;
+    }
+
+    .table-controls label[for="showAllToggle"] {
+        flex: 1 1 46%;
+        padding: 0.4rem 0.42rem;
+        gap: 0.28rem;
+        font-size: 0.8rem;
     }
 
     .current-month {
@@ -2187,6 +2433,8 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     justify-content: center;
     align-items: center;
     margin-bottom: 1rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .table-controls label {
@@ -2199,6 +2447,8 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     border-radius: 8px;
     background-color: var(--bg-secondary);
     transition: background-color 0.2s;
+    box-sizing: border-box;
+    max-width: 100%;
 }
 
 .table-controls label:hover {

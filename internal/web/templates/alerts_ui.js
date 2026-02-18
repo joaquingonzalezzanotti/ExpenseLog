@@ -55,11 +55,44 @@
         };
     }
 
+    function resolveRules(data, rules) {
+        const incoming = data && typeof data === "object" ? data : {};
+        const base = rules && typeof rules === "object" ? rules : {};
+        const reappearDays = Number(incoming.reappearDays ?? base.reappearDays ?? 1);
+        const windowDays = Number(incoming.windowDays ?? base.windowDays ?? 7);
+        const criticalDays = Number(incoming.criticalDays ?? base.criticalDays ?? 4);
+        const currency = String(incoming.currency || base.currency || "ars").toLowerCase();
+        return {
+            reappearDays: Number.isFinite(reappearDays) ? reappearDays : 1,
+            windowDays: Number.isFinite(windowDays) ? windowDays : 7,
+            criticalDays: Number.isFinite(criticalDays) ? criticalDays : 4,
+            currency: currency,
+        };
+    }
+
+    function buildPanelModel(data, dismissMap, rules) {
+        const payload = data && typeof data === "object" ? data : {};
+        const effectiveRules = resolveRules(payload, rules);
+        const incomingAlerts = Array.isArray(payload.alerts) ? payload.alerts : [];
+        const visibleAlerts = filterVisibleAlerts(incomingAlerts, dismissMap, effectiveRules.reappearDays);
+        const summary = summarizeAlerts(visibleAlerts);
+        const hasCritical = summary.panelSeverity === "critical";
+        return {
+            rules: effectiveRules,
+            alerts: visibleAlerts,
+            summary: summary,
+            widgetVisible: visibleAlerts.length > 0,
+            title: hasCritical ? "Riesgo de saldo" : "Notificaciones de saldo",
+            icon: hasCritical ? "warning" : "info",
+        };
+    }
+
     return {
         buildLiquidityAlertKey: buildLiquidityAlertKey,
         shouldHideDismissedAlert: shouldHideDismissedAlert,
         filterVisibleAlerts: filterVisibleAlerts,
         summarizeAlerts: summarizeAlerts,
+        resolveRules: resolveRules,
+        buildPanelModel: buildPanelModel,
     };
 });
-

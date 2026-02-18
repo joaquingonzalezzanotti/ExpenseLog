@@ -24,7 +24,6 @@
                 <a href="/app">
                     <img src="/pwa/icon-192.png" alt="ExpenseLog Logo" class="nav-logo">
                 </a>
-                <span id="userEmailBadge" class="user-badge"></span>
                 <a href="/app" class="view-button" data-tooltip="Panel">
                     <i class="fa-solid fa-chart-pie"></i>
                 </a>
@@ -40,12 +39,66 @@
             </div>
         </header>
 
-            <div class="form-container">
-            <h2 align="center">Categorias</h2>
-            <button id="toggleCategoriesBtn" class="nav-button button-primary mobile-only settings-toggle-btn" type="button" aria-expanded="false">
-                Ver categorias
-            </button>
-            <div id="categories-manager" data-mobile-expanded="false">
+        <section class="form-container settings-section settings-profile">
+            <h2>Perfil</h2>
+            <div class="settings-profile-row">
+                <div id="settingsProfileAvatar" class="settings-profile-avatar">EL</div>
+                <div class="settings-profile-meta">
+                    <div id="settingsProfileName" class="settings-profile-name">Usuario</div>
+                    <div id="settingsProfileEmail" class="settings-profile-email">-</div>
+                </div>
+                <button id="settingsLogoutBtn" class="nav-button button-secondary settings-logout-btn" type="button">Cerrar sesion</button>
+            </div>
+        </section>
+
+        <section class="form-container settings-section">
+            <h2>Preferencias</h2>
+            <div class="settings-preferences-grid">
+                <div class="settings-preference-item">
+                    <label for="currencySelect">Moneda</label>
+                    <div class="settings-preference-control">
+                        <select id="currencySelect">
+                            <option value="ars">ARS ($)</option>
+                            <option value="usd">USD ($)</option>
+                            <option value="eur">EUR (EUR)</option>
+                        </select>
+                        <button id="saveCurrency" class="nav-button" type="button">Guardar</button>
+                    </div>
+                    <div id="currencyMessage" class="form-message"></div>
+                </div>
+                <div class="settings-preference-item">
+                    <label for="themeSelect">Tema</label>
+                    <div class="settings-preference-control">
+                        <select id="themeSelect">
+                            <option value="light">Claro</option>
+                            <option value="dark">Oscuro</option>
+                        </select>
+                    </div>
+                    <div id="themeMessage" class="form-message"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="form-container settings-section">
+            <h2>Gestion</h2>
+            <div class="settings-nav-list">
+                <button class="settings-nav-item" id="openCategoriesSection" type="button" data-settings-section="categoriesSection" aria-expanded="false">
+                    <span>Categorias</span>
+                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
+                <button class="settings-nav-item" id="openRecurringSection" type="button" data-settings-section="recurringSection" aria-expanded="false">
+                    <span>Transacciones recurrentes</span>
+                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
+            </div>
+        </section>
+
+        <section id="categoriesSection" class="form-container settings-section settings-detail-section" hidden>
+            <div class="settings-detail-header">
+                <h2>Categorias</h2>
+                <button class="nav-button button-secondary settings-close-btn" type="button" data-settings-close="categoriesSection">Ocultar</button>
+            </div>
+            <div id="categories-manager">
                 <div class="categories-header">
                     <div>
                         <p class="section-hint">Agregar, editar o eliminar categorias. Los cambios se guardan automaticamente.</p>
@@ -66,55 +119,18 @@
                 </div>
                 <div class="category-input-container">
                     <input type="text" id="newCategory" placeholder="Agregar categoria">
-                    <button id="addCategory" class="nav-button">Agregar</button>
+                    <button id="addCategory" class="nav-button" type="button">Agregar</button>
                 </div>
                 <div id="categoriesMessage" class="form-message"></div>
             </div>
-        </div>
+        </section>
 
-        <div class="settings-container compact-pair">
-            <div class="form-container half-width">
-                <h2 align="center">Moneda</h2>
-                <div class="currency-selector">
-                    <select id="currencySelect">
-                        <option value="ars">ARS ($)</option>
-                        <option value="usd">USD ($)</option>
-                        <option value="eur">EUR (€)</option>
-                    </select>
-                    <button id="saveCurrency" class="nav-button">Guardar</button>
-                </div>
-                <div id="currencyMessage" class="form-message"></div>
+        <section id="recurringSection" class="form-container settings-section settings-detail-section" hidden>
+            <div class="settings-detail-header">
+                <h2>Transacciones recurrentes</h2>
+                <button class="nav-button button-secondary settings-close-btn" type="button" data-settings-close="recurringSection">Ocultar</button>
             </div>
-            
-            <div class="form-container half-width">
-                <h2 align="center">Dia de inicio</h2>
-                <div class="start-date-manager">
-                    <input type="number" id="startDate" min="1" max="31" placeholder="1">
-                    <button id="saveStartDate" class="nav-button">Guardar</button>
-                </div>
-                <div id="startDateMessage" class="form-message"></div>
-            </div>
-        </div>
-
-        <div class="settings-container">
-            <div class="form-container half-width">
-                <h2 align="center">Tema</h2>
-                <div class="theme-selector">
-                    <select id="themeSelect">
-                        <option value="light">Claro</option>
-                        <option value="dark">Oscuro</option>
-                    </select>
-                </div>
-                <div id="themeMessage" class="form-message"></div>
-            </div>
-        </div>
-        
-        <div class="form-container">
-            <h2 align="center">Transacciones recurrentes</h2>
-            <button id="toggleRecurringFormBtn" class="nav-button button-primary mobile-only settings-toggle-btn" type="button" aria-expanded="false">
-                Agregar transaccion recurrente
-            </button>
-            <div id="recurringFormWrap" data-mobile-expanded="false">
+            <div id="recurringFormWrap">
                 <form id="recurringExpenseForm" class="expense-form recurring-expense-form">
                     <div class="form-group">
                         <label for="recurringName">Nombre</label>
@@ -173,10 +189,10 @@
                 </form>
                 <div id="recurringExpenseMessage" class="form-message"></div>
             </div>
-            <h3 align="center" style="margin-top: 2rem;">Transacciones recurrentes existentes</h3>
-            <div id="recurring-expenses-list" class="recurring-table-box">
-            </div>
-        </div>
+            <h3 class="settings-subtitle">Transacciones recurrentes existentes</h3>
+            <div id="recurring-expenses-list" class="recurring-table-box"></div>
+        </section>
+
     </div>
 
     <div id="deleteRecurringModal" class="modal">
@@ -335,69 +351,66 @@
         let addFormSelectedTags = new Set();
         let editFormSelectedTags = new Set();
         let currentCurrency = "usd";
-        let currentStartDate = 1;
         let recurringExpenses = [];
         let recurringExpenseToDelete = null;
         let recurringExpenseToEdit = null;
-        const SETTINGS_MOBILE_BREAKPOINT = 768;
-        const SETTINGS_CATEGORIES_TOGGLE_KEY = 'expenselog_settings_categories_expanded';
-        const SETTINGS_RECURRING_FORM_TOGGLE_KEY = 'expenselog_settings_recurring_form_expanded';
-        const categoriesManager = document.getElementById('categories-manager');
-        const toggleCategoriesBtn = document.getElementById('toggleCategoriesBtn');
-        const recurringFormWrap = document.getElementById('recurringFormWrap');
-        const toggleRecurringFormBtn = document.getElementById('toggleRecurringFormBtn');
+        const settingsSectionButtons = Array.from(document.querySelectorAll('[data-settings-section]'));
+        const settingsCloseButtons = Array.from(document.querySelectorAll('[data-settings-close]'));
+        const settingsProfileName = document.getElementById('settingsProfileName');
+        const settingsProfileEmail = document.getElementById('settingsProfileEmail');
+        const settingsProfileAvatar = document.getElementById('settingsProfileAvatar');
 
-        function isSettingsMobileView() {
-            return window.innerWidth <= SETTINGS_MOBILE_BREAKPOINT;
+        function setSettingsSection(sectionId, expanded) {
+            const section = document.getElementById(sectionId);
+            if (!section) return;
+            section.hidden = !expanded;
+            settingsSectionButtons.forEach((btn) => {
+                const isCurrent = btn.dataset.settingsSection === sectionId;
+                btn.setAttribute('aria-expanded', isCurrent && expanded ? 'true' : 'false');
+            });
         }
 
-        function readSessionToggle(key, fallback = false) {
-            try {
-                const raw = sessionStorage.getItem(key);
-                if (raw === null) return fallback;
-                return raw === 'true';
-            } catch {
-                return fallback;
+        function showOnlySettingsSection(sectionId) {
+            const targets = ['categoriesSection', 'recurringSection'];
+            targets.forEach((id) => setSettingsSection(id, id === sectionId));
+            const targetNode = document.getElementById(sectionId);
+            if (targetNode) {
+                targetNode.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }
 
-        function writeSessionToggle(key, value) {
-            try {
-                sessionStorage.setItem(key, value ? 'true' : 'false');
-            } catch {
-                // no-op
-            }
+        function hideSettingsSection(sectionId) {
+            setSettingsSection(sectionId, false);
         }
 
-        function setCategoriesExpanded(expanded) {
-            if (!categoriesManager) return;
-            categoriesManager.dataset.mobileExpanded = expanded ? 'true' : 'false';
-            categoriesManager.style.display = (!isSettingsMobileView() || expanded) ? 'block' : 'none';
-            if (toggleCategoriesBtn) {
-                toggleCategoriesBtn.textContent = expanded ? 'Ocultar categorias' : 'Ver categorias';
-                toggleCategoriesBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-            }
+        function userDisplayNameFromEmail(email) {
+            const localPart = (email || '').split('@')[0] || '';
+            const cleaned = localPart.replace(/[._-]+/g, ' ').trim();
+            if (!cleaned) return 'Usuario';
+            return cleaned
+                .split(' ')
+                .filter(Boolean)
+                .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+                .join(' ');
         }
 
-        function setRecurringFormExpanded(expanded) {
-            if (!recurringFormWrap) return;
-            recurringFormWrap.dataset.mobileExpanded = expanded ? 'true' : 'false';
-            recurringFormWrap.style.display = (!isSettingsMobileView() || expanded) ? 'block' : 'none';
-            if (toggleRecurringFormBtn) {
-                toggleRecurringFormBtn.textContent = expanded ? 'Ocultar formulario' : 'Agregar transaccion recurrente';
-                toggleRecurringFormBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        function userInitials(email, name) {
+            const fromName = (name || '').trim();
+            if (fromName) {
+                const parts = fromName.split(' ').filter(Boolean);
+                const initials = parts.slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join('');
+                if (initials) return initials;
             }
+            const local = (email || '').split('@')[0] || '';
+            return local.replace(/[^a-zA-Z0-9]/g, '').slice(0, 2).toUpperCase() || 'EL';
         }
 
-        function updateSettingsSectionsByViewport() {
-            const categoriesExpanded = isSettingsMobileView()
-                ? readSessionToggle(SETTINGS_CATEGORIES_TOGGLE_KEY, false)
-                : true;
-            const recurringExpanded = isSettingsMobileView()
-                ? readSessionToggle(SETTINGS_RECURRING_FORM_TOGGLE_KEY, false)
-                : true;
-            setCategoriesExpanded(categoriesExpanded);
-            setRecurringFormExpanded(recurringExpanded);
+        function applySettingsProfile(user) {
+            const email = (user && user.email) ? user.email : '';
+            const name = (user && (user.name || user.displayName)) ? (user.name || user.displayName) : userDisplayNameFromEmail(email);
+            if (settingsProfileName) settingsProfileName.textContent = name || 'Usuario';
+            if (settingsProfileEmail) settingsProfileEmail.textContent = email || '-';
+            if (settingsProfileAvatar) settingsProfileAvatar.textContent = userInitials(email, name);
         }
 
         function formatIntervalLabel(interval) {
@@ -782,7 +795,7 @@ async function saveCategoriesList(nextCategories) {
             return { renderSelected };
         }
 
-        // --- Currency & Start Date ---
+        // --- Preferences ---
         function populateCurrencySelect() {
             const select = document.getElementById('currencySelect');
             const currencies = [
@@ -815,25 +828,6 @@ async function saveCategoriesList(nextCategories) {
             }
         }
 
-        function populateStartDateInput() {
-            document.getElementById("startDate").value = currentStartDate;
-        }
-
-        async function saveStartDate() {
-            const startDateValue = document.getElementById("startDate").value;
-            try {
-                const response = await fetch('/startdate/edit', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(parseInt(startDateValue, 10))
-                });
-                showMessage('startDateMessage', response.ok ? 'Dia de inicio guardado con exito' : 'No se pudo guardar el dia de inicio', response.ok);
-            } catch (error) {
-                console.error('Error guardando el dia de inicio:', error);
-                showMessage('startDateMessage', 'Error guardando el dia de inicio', false);
-            }
-        }
-        
         async function fetchAndRenderRecurringExpenses() {
             try {
                 const response = await fetch('/recurring-expenses');
@@ -994,7 +988,6 @@ async function saveCategoriesList(nextCategories) {
         // --- Initialization ---
         async function initialize() {
             try {
-                updateSettingsSectionsByViewport();
                 categoriesLoading = true;
                 const cached = loadCachedCategories();
                 if (cached && cached.length > 0) {
@@ -1034,14 +1027,26 @@ async function saveCategoriesList(nextCategories) {
                 recurringExpenses = await recurringExpensesResponse.json() || [];
 
                 currentCurrency = config.currency;
-                currentStartDate = config.startDate;
                 allTags.clear();
                 (expenses || []).forEach(exp => (exp.tags || []).forEach(tag => allTags.add(tag)));
                 (recurringExpenses || []).forEach(exp => (exp.tags || []).forEach(tag => allTags.add(tag)));
 
                 populateCurrencySelect();
-                populateStartDateInput();
                 renderRecurringExpenses(recurringExpenses);
+                hideSettingsSection('categoriesSection');
+                hideSettingsSection('recurringSection');
+
+                try {
+                    const authResponse = await fetch('/auth/me', { cache: 'no-store' });
+                    if (authResponse.ok) {
+                        const user = await authResponse.json();
+                        applySettingsProfile(user);
+                    } else {
+                        applySettingsProfile(null);
+                    }
+                } catch {
+                    applySettingsProfile(null);
+                }
 
                 createTagInput('tags-input', 'selected-tags', 'tags-dropdown', addFormSelectedTags);
                 fetch('/version').then(r => r.ok ? r.text() : 'dev').then(version => {
@@ -1076,24 +1081,22 @@ async function saveCategoriesList(nextCategories) {
             showMessage('themeMessage', 'Tema actualizado correctamente.', true);
         });
 
-        updateSettingsSectionsByViewport();
-
         // --- Event Listeners ---
-        if (toggleCategoriesBtn) {
-            toggleCategoriesBtn.addEventListener('click', () => {
-                const next = !(categoriesManager?.dataset?.mobileExpanded === 'true');
-                writeSessionToggle(SETTINGS_CATEGORIES_TOGGLE_KEY, next);
-                setCategoriesExpanded(next);
+        settingsSectionButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const sectionId = button.dataset.settingsSection;
+                if (sectionId) showOnlySettingsSection(sectionId);
             });
-        }
-        if (toggleRecurringFormBtn) {
-            toggleRecurringFormBtn.addEventListener('click', () => {
-                const next = !(recurringFormWrap?.dataset?.mobileExpanded === 'true');
-                writeSessionToggle(SETTINGS_RECURRING_FORM_TOGGLE_KEY, next);
-                setRecurringFormExpanded(next);
+        });
+        settingsCloseButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const sectionId = button.dataset.settingsClose;
+                if (sectionId) hideSettingsSection(sectionId);
             });
-        }
-        window.addEventListener('resize', updateSettingsSectionsByViewport);
+        });
+        document.getElementById('settingsLogoutBtn')?.addEventListener('click', () => {
+            document.getElementById('logoutButton')?.click();
+        });
         document.getElementById('addCategory').addEventListener('click', addCategory);
         document.getElementById('categorySearch').addEventListener('input', (e) => {
             categoryFilter = e.target.value.trim().toLowerCase();
@@ -1112,7 +1115,6 @@ async function saveCategoriesList(nextCategories) {
             }
         });
         document.getElementById('saveCurrency').addEventListener('click', saveCurrency);
-        document.getElementById('saveStartDate').addEventListener('click', saveStartDate);
         document.getElementById('newCategory').addEventListener('keypress', e => e.key === 'Enter' && addCategory());
 
         document.getElementById('recurringExpenseForm').addEventListener('submit', async (e) => {
@@ -1147,10 +1149,6 @@ async function saveCategoriesList(nextCategories) {
                     document.getElementById('recurringExpenseForm').reset();
                     document.getElementById('selected-tags').innerHTML = '';
                     addFormSelectedTags.clear();
-                    if (isSettingsMobileView()) {
-                        writeSessionToggle(SETTINGS_RECURRING_FORM_TOGGLE_KEY, false);
-                        setRecurringFormExpanded(false);
-                    }
                     fetchAndRenderRecurringExpenses();
                 } else {
                     const error = await response.json();

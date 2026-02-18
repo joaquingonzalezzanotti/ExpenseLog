@@ -53,7 +53,7 @@
             </label>
         </div>
 
-        <div id="tableExpenseFormContainer" class="form-container" data-expanded="false" style="display: none;">
+        <div id="tableExpenseFormContainer" class="form-container" data-expanded="false">
             <form id="expenseForm" class="expense-form">
                 <div class="form-group">
                     <label for="name">Nombre</label>
@@ -123,7 +123,7 @@
                     </select>
                 </div>
 
-                <button type="submit" class="nav-button">Agregar gasto</button>
+                <button type="submit" class="nav-button button-primary">Agregar gasto</button>
             </form>
             <div id="formMessage" class="form-message"></div>
         </div>
@@ -263,7 +263,6 @@
         let filterCurrency = 'all';
         let filterSource = 'all';
         const MOBILE_TABLE_BREAKPOINT = 768;
-        const NARROW_MOBILE_BREAKPOINT = 415;
         const MOBILE_TABLE_LIMIT = 10;
         let showAllMobileRows = false;
 
@@ -277,10 +276,6 @@
 
         function isMobileTableView() {
             return window.innerWidth <= MOBILE_TABLE_BREAKPOINT;
-        }
-
-        function isNarrowMobileView() {
-            return window.innerWidth <= NARROW_MOBILE_BREAKPOINT;
         }
 
         function setTableFormExpanded(expanded) {
@@ -316,11 +311,12 @@
             const behavior = currencyBehaviors[currencyCode] || currencyBehaviors[currentCurrency] || {symbol:"$",useComma:false,useDecimals:true,useSpace:false,right:false};
             const isNegative = amount < 0;
             const absAmount = Math.abs(amount);
+            const displayAmount = compact ? Math.trunc(absAmount) : absAmount;
             const options = {
                 minimumFractionDigits: compact ? 0 : (behavior.useDecimals ? 2 : 0),
                 maximumFractionDigits: compact ? 0 : (behavior.useDecimals ? 2 : 0),
             };
-            const formatted = new Intl.NumberFormat(behavior.useComma ? "de-DE" : "en-US", options).format(absAmount);
+            const formatted = new Intl.NumberFormat(behavior.useComma ? "de-DE" : "en-US", options).format(displayAmount);
             const result = behavior.right ? `${formatted}${behavior.useSpace ? " " : ""}${behavior.symbol}` : `${behavior.symbol}${behavior.useSpace ? " " : ""}${formatted}`;
             return isNegative ? `-${result}` : result;
         }
@@ -362,7 +358,7 @@
                                 'No hay gastos cargados para este mes';
                 return `<div class="no-data">${message}</div>`;
             }
-            const compactAmounts = isNarrowMobileView();
+            const compactAmounts = isMobileTableView();
             return `
                 <table class="expense-table">
                     <thead>
@@ -392,7 +388,24 @@
                                         <span>${(expense.currency || currentCurrency).toUpperCase()}</span>
                                         <span>${formatDateDDMMYYYY(expense.date)}</span>
                                     </div>
-                                    <div class="expense-mobile-actions">
+                                </td>
+                                <td class="secondary-col"><span class="editable" data-edit="category" data-id="${expense.id}">${highlightText(expense.category, searchQuery)}</span></td>
+                                <td class="amount amount-value"><span class="editable" data-edit="amount" data-id="${expense.id}">${formatCurrencyWithCurrency(expense.amount, expense.currency || currentCurrency, compactAmounts)}</span></td>
+                                <td class="amount amount-balance">${runningBalances[expense.id] ? formatCurrencyWithCurrency(runningBalances[expense.id].amount, runningBalances[expense.id].currency, compactAmounts) : '-'}</td>
+                                <td class="secondary-col">${expense.source ? escapeHTML(expense.source) : '-'}</td>
+                                <td class="secondary-col">${expense.source === 'TARJETA' ? escapeHTML(expense.card || '-') : '-'}</td>
+                                <td class="secondary-col">${(expense.currency || currentCurrency).toUpperCase()}</td>
+                                <td class="date-column secondary-col">${formatDateDDMMYYYY(expense.date)}</td>
+                                <td class="actions-col">
+                                    <div class="row-actions-desktop">
+                                        <button class="edit-button" onclick="editExpenseByIndex(${index})">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button>
+                                        <button class="delete-button" onclick="handleDeleteClick(event, '${expense.id}')">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </div>
+                                    <div class="row-actions-mobile">
                                         <button type="button" class="row-menu-toggle" data-row-menu-toggle aria-label="Acciones del movimiento" aria-expanded="false">
                                             <i class="fa-solid fa-ellipsis-vertical"></i>
                                         </button>
@@ -405,21 +418,6 @@
                                             </button>
                                         </div>
                                     </div>
-                                </td>
-                                <td class="secondary-col"><span class="editable" data-edit="category" data-id="${expense.id}">${highlightText(expense.category, searchQuery)}</span></td>
-                                <td class="amount amount-value"><span class="editable" data-edit="amount" data-id="${expense.id}">${formatCurrencyWithCurrency(expense.amount, expense.currency || currentCurrency, compactAmounts)}</span></td>
-                                <td class="amount amount-balance">${runningBalances[expense.id] ? formatCurrencyWithCurrency(runningBalances[expense.id].amount, runningBalances[expense.id].currency, compactAmounts) : '-'}</td>
-                                <td class="secondary-col">${expense.source ? escapeHTML(expense.source) : '-'}</td>
-                                <td class="secondary-col">${expense.source === 'TARJETA' ? escapeHTML(expense.card || '-') : '-'}</td>
-                                <td class="secondary-col">${(expense.currency || currentCurrency).toUpperCase()}</td>
-                                <td class="date-column secondary-col">${formatDateDDMMYYYY(expense.date)}</td>
-                                <td class="actions-col">
-                                    <button class="edit-button" onclick="editExpenseByIndex(${index})">
-                                        <i class="fa-solid fa-pen-to-square"></i>
-                                    </button>
-                                    <button class="delete-button" onclick="handleDeleteClick(event, '${expense.id}')">
-                                        <i class="fa-solid fa-trash-can"></i>
-                                    </button>
                                 </td>
                             </tr>
                         `).join('')}
@@ -533,7 +531,7 @@
         }
 
         function closeAllRowMenus(exceptContainer = null) {
-            document.querySelectorAll('.expense-mobile-actions.open').forEach(container => {
+            document.querySelectorAll('.row-actions-mobile.open').forEach(container => {
                 if (exceptContainer && container === exceptContainer) return;
                 container.classList.remove('open');
                 const toggle = container.querySelector('[data-row-menu-toggle]');
@@ -939,7 +937,7 @@
         document.getElementById('tableContainer').addEventListener('click', (e) => {
             const rowMenuToggle = e.target.closest('[data-row-menu-toggle]');
             if (rowMenuToggle) {
-                const container = rowMenuToggle.closest('.expense-mobile-actions');
+                const container = rowMenuToggle.closest('.row-actions-mobile');
                 if (!container) return;
                 const wasOpen = container.classList.contains('open');
                 closeAllRowMenus(container);

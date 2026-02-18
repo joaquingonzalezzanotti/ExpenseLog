@@ -42,7 +42,10 @@
 
             <div class="form-container">
             <h2 align="center">Categorias</h2>
-            <div id="categories-manager">
+            <button id="toggleCategoriesBtn" class="nav-button button-secondary mobile-only settings-toggle-btn" type="button" aria-expanded="false">
+                Ver categorias
+            </button>
+            <div id="categories-manager" data-mobile-expanded="false">
                 <div class="categories-header">
                     <div>
                         <p class="section-hint">Agregar, editar o eliminar categorias. Los cambios se guardan automaticamente.</p>
@@ -114,65 +117,70 @@
         
         <div class="form-container">
             <h2 align="center">Transacciones recurrentes</h2>
-            <form id="recurringExpenseForm" class="expense-form recurring-expense-form">
-                <div class="form-group">
-                    <label for="recurringName">Nombre</label>
-                    <input type="text" id="recurringName" required>
-                </div>
-                <div class="form-group">
-                    <label for="recurringAmount">Monto</label>
-                    <input type="number" id="recurringAmount" step="0.01" min="0.01" max="9000000000000000" required>
-                </div>
-                <div class="form-group">
-                    <label for="recurringCategory">Categoria</label>
-                    <select id="recurringCategory" required></select>
-                </div>
-                <div class="form-group">
-                    <label for="tags-input">Etiquetas</label>
-                    <div class="tags-input-container">
-                        <div id="selected-tags" class="selected-tags"></div>
-                        <input type="text" id="tags-input" placeholder="(opcional)">
+            <button id="toggleRecurringFormBtn" class="nav-button button-secondary mobile-only settings-toggle-btn" type="button" aria-expanded="false">
+                Agregar transaccion recurrente
+            </button>
+            <div id="recurringFormWrap" data-mobile-expanded="false">
+                <form id="recurringExpenseForm" class="expense-form recurring-expense-form">
+                    <div class="form-group">
+                        <label for="recurringName">Nombre</label>
+                        <input type="text" id="recurringName" required>
                     </div>
-                    <div id="tags-dropdown" class="tags-dropdown"></div>
-                </div>
-                <div class="form-group">
-                    <label for="recurringInterval">Intervalo</label>
-                    <select id="recurringInterval" required>
-                        <option value="daily">Diario</option>
-                        <option value="weekly">Semanal</option>
-                        <option value="monthly">Mensual</option>
-                        <option value="yearly">Anual</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="recurringStartDate">Fecha de inicio</label>
-                    <input type="date" id="recurringStartDate" required>
-                    <script>
-                        const today = new Date();
-                        const year = today.getFullYear();
-                        const month = String(today.getMonth() + 1).padStart(2, '0');
-                        const day = String(today.getDate()).padStart(2, '0');
-                        const formattedDate = `${year}-${month}-${day}`;
-                        document.getElementById('recurringStartDate').value = formattedDate;
-                    </script>
-                </div>
-                <div class="form-group">
-                    <label for="recurringOccurrences">Ocurrencias</label>
-                    <input type="number" id="recurringOccurrences" min="2" value="2" required>
-                </div>
-                <div class="form-group">
-                    <label for="recurringFlow">Tipo</label>
-                    <select id="recurringFlow">
-                        <option value="expense">Gasto</option>
-                        <option value="income">Ingreso</option>
-                        <option value="refund">Reintegro</option>
-                    </select>
-                </div>
-                <button type="submit" class="nav-button">Agregar transaccion recurrente</button>
-            </form>
-            <div id="recurringExpenseMessage" class="form-message"></div>
+                    <div class="form-group">
+                        <label for="recurringAmount">Monto</label>
+                        <input type="number" id="recurringAmount" step="0.01" min="0.01" max="9000000000000000" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="recurringCategory">Categoria</label>
+                        <select id="recurringCategory" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="tags-input">Etiquetas</label>
+                        <div class="tags-input-container">
+                            <div id="selected-tags" class="selected-tags"></div>
+                            <input type="text" id="tags-input" placeholder="(opcional)">
+                        </div>
+                        <div id="tags-dropdown" class="tags-dropdown"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="recurringInterval">Intervalo</label>
+                        <select id="recurringInterval" required>
+                            <option value="daily">Diario</option>
+                            <option value="weekly">Semanal</option>
+                            <option value="monthly">Mensual</option>
+                            <option value="yearly">Anual</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="recurringStartDate">Fecha de inicio</label>
+                        <input type="date" id="recurringStartDate" required>
+                        <script>
+                            const today = new Date();
+                            const year = today.getFullYear();
+                            const month = String(today.getMonth() + 1).padStart(2, '0');
+                            const day = String(today.getDate()).padStart(2, '0');
+                            const formattedDate = `${year}-${month}-${day}`;
+                            document.getElementById('recurringStartDate').value = formattedDate;
+                        </script>
+                    </div>
+                    <div class="form-group">
+                        <label for="recurringOccurrences">Ocurrencias</label>
+                        <input type="number" id="recurringOccurrences" min="2" value="2" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="recurringFlow">Tipo</label>
+                        <select id="recurringFlow">
+                            <option value="expense">Gasto</option>
+                            <option value="income">Ingreso</option>
+                            <option value="refund">Reintegro</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="nav-button">Agregar transaccion recurrente</button>
+                </form>
+                <div id="recurringExpenseMessage" class="form-message"></div>
+            </div>
             <h3 align="center" style="margin-top: 2rem;">Transacciones recurrentes existentes</h3>
-            <div id="recurring-expenses-list">
+            <div id="recurring-expenses-list" class="recurring-table-box">
             </div>
         </div>
     </div>
@@ -337,6 +345,76 @@
         let recurringExpenses = [];
         let recurringExpenseToDelete = null;
         let recurringExpenseToEdit = null;
+        const SETTINGS_MOBILE_BREAKPOINT = 768;
+        const SETTINGS_CATEGORIES_TOGGLE_KEY = 'expenselog_settings_categories_expanded';
+        const SETTINGS_RECURRING_FORM_TOGGLE_KEY = 'expenselog_settings_recurring_form_expanded';
+        const categoriesManager = document.getElementById('categories-manager');
+        const toggleCategoriesBtn = document.getElementById('toggleCategoriesBtn');
+        const recurringFormWrap = document.getElementById('recurringFormWrap');
+        const toggleRecurringFormBtn = document.getElementById('toggleRecurringFormBtn');
+
+        function isSettingsMobileView() {
+            return window.innerWidth <= SETTINGS_MOBILE_BREAKPOINT;
+        }
+
+        function readSessionToggle(key, fallback = false) {
+            try {
+                const raw = sessionStorage.getItem(key);
+                if (raw === null) return fallback;
+                return raw === 'true';
+            } catch {
+                return fallback;
+            }
+        }
+
+        function writeSessionToggle(key, value) {
+            try {
+                sessionStorage.setItem(key, value ? 'true' : 'false');
+            } catch {
+                // no-op
+            }
+        }
+
+        function setCategoriesExpanded(expanded) {
+            if (!categoriesManager) return;
+            categoriesManager.dataset.mobileExpanded = expanded ? 'true' : 'false';
+            categoriesManager.style.display = (!isSettingsMobileView() || expanded) ? 'block' : 'none';
+            if (toggleCategoriesBtn) {
+                toggleCategoriesBtn.textContent = expanded ? 'Ocultar categorias' : 'Ver categorias';
+                toggleCategoriesBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            }
+        }
+
+        function setRecurringFormExpanded(expanded) {
+            if (!recurringFormWrap) return;
+            recurringFormWrap.dataset.mobileExpanded = expanded ? 'true' : 'false';
+            recurringFormWrap.style.display = (!isSettingsMobileView() || expanded) ? 'block' : 'none';
+            if (toggleRecurringFormBtn) {
+                toggleRecurringFormBtn.textContent = expanded ? 'Ocultar formulario' : 'Agregar transaccion recurrente';
+                toggleRecurringFormBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            }
+        }
+
+        function updateSettingsSectionsByViewport() {
+            const categoriesExpanded = isSettingsMobileView()
+                ? readSessionToggle(SETTINGS_CATEGORIES_TOGGLE_KEY, false)
+                : true;
+            const recurringExpanded = isSettingsMobileView()
+                ? readSessionToggle(SETTINGS_RECURRING_FORM_TOGGLE_KEY, false)
+                : true;
+            setCategoriesExpanded(categoriesExpanded);
+            setRecurringFormExpanded(recurringExpanded);
+        }
+
+        function formatIntervalLabel(interval) {
+            switch ((interval || '').toLowerCase()) {
+                case 'daily': return 'Diario';
+                case 'weekly': return 'Semanal';
+                case 'monthly': return 'Mensual';
+                case 'yearly': return 'Anual';
+                default: return interval || '-';
+            }
+        }
 
         function showMessage(elementId, message, isSuccess) {
             const messageDiv = document.getElementById(elementId);
@@ -686,7 +764,7 @@ async function saveCategoriesList(nextCategories) {
 
                 if (value && ![...allTags].map(t => t.toLowerCase()).includes(value)) {
                     const newItem = document.createElement('div');
-                    newItem.textContent = `+ Create "${input.value.trim()}"`;
+                    newItem.textContent = `+ Agregar "${input.value.trim()}"`;
                     newItem.className = 'new-tag';
                     newItem.onclick = () => addTag(input.value.trim());
                     dropdown.appendChild(newItem);
@@ -792,7 +870,7 @@ async function saveCategoriesList(nextCategories) {
                 let occurrencesCount = 0;
                 while (nextDate < today) {
                     occurrencesCount++;
-                    if (occurrencesCount >= r.occurrences) return 'Finished';
+                    if (occurrencesCount >= r.occurrences) return 'Finalizada';
                     switch(r.interval) {
                         case 'daily': nextDate.setDate(nextDate.getDate() + 1); break;
                         case 'weekly': nextDate.setDate(nextDate.getDate() + 7); break;
@@ -817,21 +895,21 @@ async function saveCategoriesList(nextCategories) {
         function renderRecurringExpenses(recurring) {
             const list = document.getElementById('recurring-expenses-list');
             if (!recurring || recurring.length === 0) {
-                list.innerHTML = '<p>No recurring expenses found.</p>';
+                list.innerHTML = '<div class="no-data">No hay transacciones recurrentes.</div>';
                 return;
             }
             list.innerHTML = `
                 <table class="expense-table">
-                    <thead><tr><th>Nombre</th><th>Monto</th><th>Categoria</th><th>Intervalo</th><th>Prxima ocurrencia</th><th></th></tr></thead>
+                    <thead><tr><th>Nombre</th><th>Monto</th><th class="recurring-col-secondary">Categoria</th><th class="recurring-col-secondary">Intervalo</th><th>Proxima ocurrencia</th><th class="actions-col"></th></tr></thead>
                     <tbody>
                         ${recurring.map(r => `
                             <tr>
                                 <td>${r.name}</td>
                                 <td>${formatCurrency(r.amount)}</td>
-                                <td>${r.category}</td>
-                                <td>${r.interval.charAt(0).toUpperCase() + r.interval.slice(1)}</td>
+                                <td class="recurring-col-secondary">${r.category}</td>
+                                <td class="recurring-col-secondary">${formatIntervalLabel(r.interval)}</td>
                                 <td>${findNextOccurrence(r)}</td>
-                                <td>
+                                <td class="actions-col">
                                     <button class="edit-button" onclick="showRecurringEditModal('${r.id}')"><i class="fa-solid fa-pen-to-square"></i></button>
                                     <button class="delete-button" onclick="showRecurringDeleteModal('${r.id}')"><i class="fa-solid fa-trash-can"></i></button>
                                 </td>
@@ -929,6 +1007,7 @@ async function saveCategoriesList(nextCategories) {
         // --- Initialization ---
         async function initialize() {
             try {
+                updateSettingsSectionsByViewport();
                 categoriesLoading = true;
                 const cached = loadCachedCategories();
                 if (cached && cached.length > 0) {
@@ -1010,7 +1089,24 @@ async function saveCategoriesList(nextCategories) {
             showMessage('themeMessage', 'Tema actualizado correctamente.', true);
         });
 
+        updateSettingsSectionsByViewport();
+
         // --- Event Listeners ---
+        if (toggleCategoriesBtn) {
+            toggleCategoriesBtn.addEventListener('click', () => {
+                const next = !(categoriesManager?.dataset?.mobileExpanded === 'true');
+                writeSessionToggle(SETTINGS_CATEGORIES_TOGGLE_KEY, next);
+                setCategoriesExpanded(next);
+            });
+        }
+        if (toggleRecurringFormBtn) {
+            toggleRecurringFormBtn.addEventListener('click', () => {
+                const next = !(recurringFormWrap?.dataset?.mobileExpanded === 'true');
+                writeSessionToggle(SETTINGS_RECURRING_FORM_TOGGLE_KEY, next);
+                setRecurringFormExpanded(next);
+            });
+        }
+        window.addEventListener('resize', updateSettingsSectionsByViewport);
         document.getElementById('addCategory').addEventListener('click', addCategory);
         document.getElementById('categorySearch').addEventListener('input', (e) => {
             categoryFilter = e.target.value.trim().toLowerCase();
@@ -1064,6 +1160,10 @@ async function saveCategoriesList(nextCategories) {
                     document.getElementById('recurringExpenseForm').reset();
                     document.getElementById('selected-tags').innerHTML = '';
                     addFormSelectedTags.clear();
+                    if (isSettingsMobileView()) {
+                        writeSessionToggle(SETTINGS_RECURRING_FORM_TOGGLE_KEY, false);
+                        setRecurringFormExpanded(false);
+                    }
                     fetchAndRenderRecurringExpenses();
                 } else {
                     const error = await response.json();

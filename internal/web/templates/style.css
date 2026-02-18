@@ -164,6 +164,19 @@ html[data-theme='light'] #toggleExpenseFormBtn {
     text-align: center;
 }
 
+.period-mode-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    padding: 0.14rem 0.65rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--warning);
+    background-color: var(--warning-soft);
+    border: 1px solid rgba(217, 119, 6, 0.45);
+}
+
 .chart-container {
     display: flex;
     gap: 1rem;
@@ -455,6 +468,13 @@ html[data-theme='light'] #toggleExpenseFormBtn {
     border-color: var(--accent);
 }
 
+.quick-action[data-action="open-form"] {
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-contrast);
+    font-weight: 700;
+}
+
 .recent-movements {
     background-color: var(--bg-secondary);
     border-radius: 8px;
@@ -604,10 +624,17 @@ html[data-theme='light'] #toggleExpenseFormBtn {
     padding: 0.08rem 0.42rem;
 }
 
-.expense-mobile-actions {
+.row-actions-desktop {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.2rem;
+}
+
+.row-actions-mobile {
     display: none;
     position: relative;
-    margin-top: 0.3rem;
+    align-items: center;
     justify-content: flex-end;
 }
 
@@ -638,7 +665,7 @@ html[data-theme='light'] #toggleExpenseFormBtn {
     z-index: 4;
 }
 
-.expense-mobile-actions.open .row-menu {
+.row-actions-mobile.open .row-menu {
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
@@ -1533,6 +1560,25 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     display: flex;
     gap: 1rem;
 }
+
+.settings-toggle-btn {
+    margin: 0 auto 0.75rem auto;
+    min-height: 40px;
+}
+
+.recurring-table-box {
+    margin-top: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background-color: var(--bg-secondary);
+    overflow-x: auto;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.recurring-table-box .expense-table {
+    min-width: 680px;
+}
+
 .form-container.half-width {
     flex: 1;
 }
@@ -1706,6 +1752,11 @@ html[data-theme='dark'] .expense-table td.amount-balance {
         min-width: 150px;
     }
 
+    .period-mode-badge {
+        font-size: 0.66rem;
+        padding: 0.12rem 0.5rem;
+    }
+
     .date-column,
     .date-header,
     .tags-column {
@@ -1776,6 +1827,16 @@ html[data-theme='dark'] .expense-table td.amount-balance {
         flex-direction: column;
     }
 
+    .settings-toggle-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    #categories-manager[data-mobile-expanded="false"],
+    #recurringFormWrap[data-mobile-expanded="false"] {
+        display: none;
+    }
+
     .expense-form {
         grid-template-columns: 1fr;
     }
@@ -1811,10 +1872,22 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
     .expense-table td.actions-col,
     .expense-table th.actions-col {
-        width: 80px;
-        min-width: 80px;
-        text-align: center;
+        width: 52px;
+        min-width: 52px;
+        text-align: right;
+        padding-left: 0.2rem;
+        padding-right: 0.35rem;
         white-space: nowrap;
+    }
+
+    .row-actions-desktop {
+        display: none;
+    }
+
+    .row-actions-mobile {
+        display: inline-flex;
+        width: 100%;
+        justify-content: flex-end;
     }
 
     .quick-actions {
@@ -1888,6 +1961,15 @@ html[data-theme='dark'] .expense-table td.amount-balance {
         margin-left: 0;
     }
 
+    .recurring-table-box .expense-table {
+        min-width: 560px;
+    }
+
+    .recurring-table-box th.recurring-col-secondary,
+    .recurring-table-box td.recurring-col-secondary {
+        display: none;
+    }
+
     .liquidity-alert {
         top: 0.75rem;
         right: 0.75rem;
@@ -1929,17 +2011,6 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     }
 }
 
-@media (max-width: 415px) {
-    .expense-table th.actions-col,
-    .expense-table td.actions-col {
-        display: none;
-    }
-
-    .expense-mobile-actions {
-        display: flex;
-    }
-}
-
 .form-container {
     background-color: var(--bg-secondary);
     border-radius: 8px;
@@ -1952,6 +2023,12 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 1rem;
     align-items: end;
+}
+
+#tableExpenseFormContainer .expense-form > button[type="submit"] {
+    grid-column: 1 / -1;
+    justify-self: center;
+    min-width: 170px;
 }
 
 .recurring-expense-form {

@@ -41,7 +41,7 @@
                         <span id="notificationCenterBadge" class="notification-badge" hidden></span>
                     </button>
                     <div id="notificationCenterPanel" class="notification-panel" hidden>
-                        <div class="notification-panel-title">Notificaciones</div>
+                        <div class="notification-panel-title">Notificaciones 🔔</div>
                         <div id="notificationCenterList" class="notification-list"></div>
                     </div>
                 </div>
@@ -50,7 +50,7 @@
 
         <section class="form-container settings-section settings-profile">
             <div class="settings-detail-header settings-profile-header">
-                <h2>Perfil</h2>
+                <h2>Perfil 👤</h2>
                 <button id="settingsLogoutBtn" class="settings-logout-btn" type="button" aria-label="Cerrar sesion" title="Cerrar sesion">
                     <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
                 </button>
@@ -71,7 +71,7 @@
         </section>
 
         <section class="form-container settings-section">
-            <h2>Preferencias</h2>
+            <h2>Preferencias ⚙️</h2>
             <div class="settings-preferences-grid">
                 <div class="settings-preference-item">
                     <label for="currencySelect">Moneda Principal</label>
@@ -99,14 +99,14 @@
         </section>
 
         <section class="form-container settings-section">
-            <h2>Gestion</h2>
+            <h2>Gestion 🛠️</h2>
             <div class="settings-nav-list">
                 <button class="settings-nav-item" id="openCategoriesSection" type="button" data-settings-section="categoriesSection" aria-expanded="false">
-                    <span>Categorias</span>
+                    <span>🏷️ Categorias</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
                 <button class="settings-nav-item" id="openRecurringSection" type="button" data-settings-section="recurringSection" aria-expanded="false">
-                    <span>Transacciones recurrentes</span>
+                    <span>🔁 Transacciones recurrentes</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
             </div>
@@ -114,7 +114,7 @@
 
         <section id="categoriesSection" class="form-container settings-section settings-detail-section" hidden>
             <div class="settings-detail-header">
-                <h2>Categorias</h2>
+                <h2>🏷️ Categorias</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="categoriesSection" aria-label="Cerrar categorias" title="Cerrar categorias">
                     <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
                 </button>
@@ -136,11 +136,11 @@
                 </div>
                 <div id="categories-list" class="categories-list"></div>
                 <div id="categories-empty" class="empty-state" style="display: none;">
-                    No hay categorias guardadas. Agrega la primera.
+                    📭 No hay categorias guardadas. Agrega la primera.
                 </div>
                 <div class="category-input-container">
                     <input type="text" id="newCategory" placeholder="Agregar categoria">
-                    <button id="addCategory" class="nav-button" type="button">Agregar</button>
+                    <button id="addCategory" class="nav-button" type="button">➕ Agregar</button>
                 </div>
                 <div id="categoriesMessage" class="form-message"></div>
             </div>
@@ -148,14 +148,14 @@
 
         <section id="recurringSection" class="form-container settings-section settings-detail-section" hidden>
             <div class="settings-detail-header">
-                <h2>Transacciones recurrentes</h2>
+                <h2>🔁 Transacciones recurrentes</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="recurringSection" aria-label="Cerrar transacciones recurrentes" title="Cerrar transacciones recurrentes">
                     <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
                 </button>
             </div>
-            <h3 class="settings-subtitle">Transacciones recurrentes existentes</h3>
+            <h3 class="settings-subtitle">📋 Transacciones recurrentes existentes</h3>
             <div id="recurring-expenses-list" class="recurring-table-box"></div>
-            <button id="toggleRecurringCreateBtn" class="nav-button button-primary settings-recurring-toggle" type="button" aria-expanded="false">Agregar transaccion recurrente</button>
+            <button id="toggleRecurringCreateBtn" class="nav-button button-primary settings-recurring-toggle" type="button" aria-expanded="false">➕ Agregar transaccion recurrente</button>
             <div id="recurringFormWrap" hidden>
                 <form id="recurringExpenseForm" class="expense-form recurring-expense-form">
                     <div class="form-group">
@@ -419,7 +419,7 @@
             if (!recurringFormWrap) return;
             recurringFormWrap.hidden = !visible;
             if (toggleRecurringCreateBtn) {
-                toggleRecurringCreateBtn.textContent = visible ? 'Ocultar formulario' : 'Agregar transaccion recurrente';
+                toggleRecurringCreateBtn.textContent = visible ? '🫣 Ocultar formulario' : '➕ Agregar transaccion recurrente';
                 toggleRecurringCreateBtn.setAttribute('aria-expanded', visible ? 'true' : 'false');
             }
         }

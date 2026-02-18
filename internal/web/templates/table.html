@@ -41,7 +41,7 @@
                         <span id="notificationCenterBadge" class="notification-badge" hidden></span>
                     </button>
                     <div id="notificationCenterPanel" class="notification-panel" hidden>
-                        <div class="notification-panel-title">Notificaciones</div>
+                        <div class="notification-panel-title">Notificaciones 🔔</div>
                         <div id="notificationCenterList" class="notification-list"></div>
                     </div>
                 </div>
@@ -56,7 +56,7 @@
         </div>
         
         <div class="table-controls">
-            <button id="toggleTableExpenseFormBtn" class="nav-button button-primary mobile-only" type="button">Agregar gasto</button>
+            <button id="toggleTableExpenseFormBtn" class="nav-button button-primary mobile-only" type="button">➕ Agregar gasto</button>
         </div>
 
         <div id="tableExpenseFormContainer" class="form-container" data-expanded="false">
@@ -131,7 +131,7 @@
 
                 <div class="form-actions">
                     <button type="button" id="cancelTableExpenseFormBtn" class="nav-button button-secondary">Cancelar</button>
-                    <button type="submit" class="nav-button button-primary">Agregar gasto</button>
+                    <button type="submit" class="nav-button button-primary">➕ Agregar gasto</button>
                 </div>
             </form>
             <div id="formMessage" class="form-message"></div>
@@ -163,11 +163,11 @@
         </div>
         <div id="mobileTablePager" class="mobile-table-pager" style="display: none;">
             <span id="mobileTablePagerInfo" class="mobile-table-pager-info"></span>
-            <button id="toggleMobileRows" class="nav-button button-secondary" type="button">Mostrar todos</button>
+            <button id="toggleMobileRows" class="nav-button button-secondary" type="button">📄 Mostrar todos</button>
         </div>
         <div class="table-footer-controls">
             <label for="showAllToggle">
-                <input type="checkbox" id="showAllToggle" class="styled-checkbox"> Mostrar todas las transacciones
+                <input type="checkbox" id="showAllToggle" class="styled-checkbox"> 🗂️ Mostrar todas las transacciones
             </label>
         </div>
     </div>
@@ -303,7 +303,7 @@
             const shouldShow = !isMobileTableView() || expanded;
             tableFormContainer.style.display = shouldShow ? 'block' : 'none';
             if (toggleTableExpenseFormBtn) {
-                toggleTableExpenseFormBtn.textContent = 'Agregar gasto';
+                toggleTableExpenseFormBtn.textContent = '➕ Agregar gasto';
                 toggleTableExpenseFormBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
                 const hideToggle = isMobileTableView() && expanded;
                 toggleTableExpenseFormBtn.style.display = hideToggle ? 'none' : '';
@@ -330,9 +330,9 @@
         }
 
         function getTableCreateSubmitLabel(movementType) {
-            if (movementType === 'income') return 'Agregar ingreso';
-            if (movementType === 'refund') return 'Agregar reintegro';
-            return 'Agregar gasto';
+            if (movementType === 'income') return '💰 Agregar ingreso';
+            if (movementType === 'refund') return '↩️ Agregar reintegro';
+            return '➕ Agregar gasto';
         }
 
         function syncTableSubmitButtonLabel() {
@@ -402,8 +402,8 @@
         function createTable(expenses, runningBalances) {
             if (!expenses || expenses.length === 0) {
                 const message = document.getElementById('showAllToggle').checked ? 
-                                'No hay transacciones para mostrar' : 
-                                'No hay gastos cargados para este mes';
+                                '📭 No hay transacciones para mostrar' : 
+                                '📭 No hay gastos cargados para este mes';
                 return `<div class="no-data">${message}</div>`;
             }
             const compactAmounts = isMobileTableView();
@@ -428,7 +428,7 @@
                                 <td>
                                     <div class="expense-name-cell">
                                         <span class="expense-name-text">${highlightText(expense.name, searchQuery)}</span>
-                                        ${expense.recurringID ? '<span class="recurring-badge">Recurrente</span>' : ''}
+                                        ${expense.recurringID ? '<span class="recurring-badge">🔁 Recurrente</span>' : ''}
                                     </div>
                                     <div class="expense-meta-mobile">
                                         <span>${highlightText(expense.category, searchQuery)}</span>
@@ -518,7 +518,7 @@
             mobileTablePager.style.display = shouldShowPager ? 'flex' : 'none';
             if (!shouldShowPager) return;
             mobileTablePagerInfo.textContent = `Mostrando ${visible} de ${total} movimientos`;
-            toggleMobileRowsBtn.textContent = showAllMobileRows ? 'Mostrar menos' : 'Mostrar todos';
+            toggleMobileRowsBtn.textContent = showAllMobileRows ? '📄 Mostrar menos' : '📄 Mostrar todos';
         }
 
         function editExpenseByIndex(index) {

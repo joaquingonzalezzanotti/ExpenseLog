@@ -369,7 +369,7 @@ function renderNotificationCenter(payload) {
     }
 
     if (topItems.length === 0) {
-        dom.list.innerHTML = '<div class="notification-empty">Sin notificaciones pendientes.</div>';
+        dom.list.innerHTML = '<div class="notification-empty">🔕 Sin notificaciones pendientes.</div>';
         return;
     }
 

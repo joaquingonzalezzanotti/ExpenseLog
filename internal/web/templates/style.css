@@ -19,27 +19,39 @@
     --bg-blob-1: rgba(37, 99, 235, 0.14);
     --bg-blob-2: rgba(217, 119, 6, 0.08);
     --table-row-alt: rgba(37, 99, 235, 0.035);
+    --cash-income-bg: rgba(22, 163, 74, 0.16);
+    --cash-expense-bg: rgba(220, 38, 38, 0.14);
+    --cash-balance-bg: rgba(217, 119, 6, 0.16);
+    --cash-refund-bg: rgba(37, 99, 235, 0.14);
+    --cash-card-border: rgba(27, 36, 48, 0.08);
+    --cash-label: #3b4b63;
 }
 
 /* Dark theme override */
 html[data-theme='dark'] {
-    --bg-primary: #0b1220;
-    --bg-secondary: #121c2e;
-    --text-primary: #e6edf6;
-    --text-secondary: #9baac0;
-    --border: #253247;
-    --accent: #60a5fa;
+    --bg-primary: #121a2b;
+    --bg-secondary: #1a2438;
+    --text-primary: #e8eef8;
+    --text-secondary: #b6c4d8;
+    --border: #334867;
+    --accent: #7ab4ff;
     --accent-contrast: #06203a;
-    --accent-soft: rgba(96, 165, 250, 0.2);
+    --accent-soft: rgba(122, 180, 255, 0.22);
     --success: #22c55e;
-    --success-soft: rgba(34, 197, 94, 0.14);
+    --success-soft: rgba(34, 197, 94, 0.2);
     --warning: #f59e0b;
-    --warning-soft: rgba(245, 158, 11, 0.16);
+    --warning-soft: rgba(245, 158, 11, 0.22);
     --danger: #ef4444;
-    --danger-soft: rgba(239, 68, 68, 0.14);
-    --bg-blob-1: rgba(96, 165, 250, 0.1);
-    --bg-blob-2: rgba(245, 158, 11, 0.08);
-    --table-row-alt: rgba(148, 163, 184, 0.08);
+    --danger-soft: rgba(239, 68, 68, 0.2);
+    --bg-blob-1: rgba(122, 180, 255, 0.18);
+    --bg-blob-2: rgba(245, 158, 11, 0.11);
+    --table-row-alt: rgba(148, 163, 184, 0.12);
+    --cash-income-bg: rgba(34, 197, 94, 0.25);
+    --cash-expense-bg: rgba(239, 68, 68, 0.23);
+    --cash-balance-bg: rgba(245, 158, 11, 0.25);
+    --cash-refund-bg: rgba(122, 180, 255, 0.23);
+    --cash-card-border: rgba(148, 163, 184, 0.24);
+    --cash-label: #d4deec;
 }
 
 body {
@@ -468,6 +480,11 @@ html[data-theme='light'] #toggleExpenseFormBtn {
     flex-wrap: wrap;
 }
 
+.expense-name-text {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
 .recurring-badge {
     display: inline-flex;
     align-items: center;
@@ -676,18 +693,18 @@ input:focus-visible {
 
 .auth-panel {
     width: 100%;
-    max-width: 420px;
+    max-width: 430px;
     background: var(--bg-secondary);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1.5rem;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+    border-radius: 18px;
+    padding: 1.4rem 1.35rem;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.34);
     pointer-events: auto;
 }
 
 .auth-header {
     text-align: center;
-    margin-bottom: 1rem;
+    margin-bottom: 0.85rem;
 }
 
 .auth-header h2 {
@@ -704,7 +721,11 @@ input:focus-visible {
 .auth-tabs {
     display: flex;
     gap: 0.5rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0.8rem;
+    padding: 0.25rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg-primary);
 }
 
 .auth-google-button {
@@ -716,7 +737,7 @@ input:focus-visible {
     box-sizing: border-box;
     padding: 0 16px;
     min-height: 42px;
-    margin-bottom: 1rem;
+    margin-bottom: 0.85rem;
     border-radius: 9999px;
     border: 1px solid #dadce0;
     background: #ffffff;
@@ -765,10 +786,10 @@ input:focus-visible {
 
 .auth-tab {
     flex: 1;
-    border: 1px solid var(--border);
-    background: var(--bg-primary);
+    border: 1px solid transparent;
+    background: transparent;
     color: var(--text-secondary);
-    padding: 0.45rem 0.75rem;
+    padding: 0.42rem 0.75rem;
     border-radius: 999px;
     cursor: pointer;
     font-weight: 600;
@@ -787,6 +808,32 @@ input:focus-visible {
 
 .auth-form.active {
     display: grid;
+}
+
+.auth-panel .form-group label {
+    align-self: flex-start;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.auth-panel .form-group input {
+    min-height: 42px;
+    border-radius: 10px;
+    background-color: var(--bg-primary);
+}
+
+.auth-panel .nav-button {
+    width: 100%;
+    justify-content: center;
+    background: var(--accent);
+    color: var(--accent-contrast);
+    border-color: var(--accent);
+    font-weight: 700;
+}
+
+.auth-panel .nav-button:hover {
+    filter: brightness(1.05);
+    box-shadow: 0 6px 16px var(--accent-soft);
 }
 
 .auth-remember {
@@ -892,7 +939,16 @@ html[data-theme='dark'] #tableContainer {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     text-align: right;
     white-space: nowrap;
+    font-weight: 600;
+}
+
+.expense-table td.amount-value {
     color: var(--text-primary);
+    font-weight: 700;
+}
+
+.expense-table td.amount-balance {
+    color: var(--text-secondary);
     font-weight: 600;
 }
 
@@ -1199,28 +1255,31 @@ html[data-theme='dark'] #tableContainer {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    border: 1px solid var(--cash-card-border);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .cashflow-item.income {
-    background-color: var(--success-soft);
+    background-color: var(--cash-income-bg);
 }
 
 .cashflow-item.expenses {
-    background-color: var(--danger-soft);
+    background-color: var(--cash-expense-bg);
 }
 
 .cashflow-item.balance {
-    background-color: var(--warning-soft);
+    background-color: var(--cash-balance-bg);
 }
 
 .cashflow-item.refund {
-    background-color: var(--accent-soft);
+    background-color: var(--cash-refund-bg);
 }
 
 .cashflow-label {
     font-size: 0.9rem;
-    color: var(--text-secondary);
+    color: var(--cash-label);
     margin-bottom: 0.5rem;
+    font-weight: 600;
 }
 
 .cashflow-value {

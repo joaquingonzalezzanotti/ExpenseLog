@@ -21,38 +21,45 @@
     <div class="container">
         <header>
             <div class="nav-bar">
-                <a href="/app">
+                <a href="/app" class="nav-logo-link">
                     <img src="/pwa/icon-192.png" alt="ExpenseLog Logo" class="nav-logo">
                 </a>
-                <span id="userEmailBadge" class="user-badge"></span>
-                <a href="/app" class="view-button" data-tooltip="Panel">
-                    <i class="fa-solid fa-chart-pie"></i>
-                </a>
-                <a href="/table" class="view-button active" data-tooltip="Tabla">
-                    <i class="fa-solid fa-table"></i>
-                </a>
-                <a href="/settings" class="view-button" data-tooltip="Configuracion">
-                    <i class="fa-solid fa-gear"></i>
-                </a>
-                <button id="logoutButton" class="view-button" data-tooltip="Salir" type="button">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                </button>
+                <nav class="nav-center-tabs" aria-label="Secciones">
+                    <a href="/app" class="view-button" data-tooltip="Panel">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </a>
+                    <a href="/table" class="view-button active" data-tooltip="Tabla">
+                        <i class="fa-solid fa-table"></i>
+                    </a>
+                    <a href="/settings" class="view-button" data-tooltip="Configuracion">
+                        <i class="fa-solid fa-gear"></i>
+                    </a>
+                </nav>
+                <div class="nav-right-slot">
+                    <button id="notificationCenterButton" class="view-button notification-trigger" data-tooltip="Notificaciones" type="button" aria-label="Notificaciones" aria-expanded="false">
+                        <i class="fa-regular fa-bell"></i>
+                        <span id="notificationCenterBadge" class="notification-badge" hidden></span>
+                    </button>
+                    <div id="notificationCenterPanel" class="notification-panel" hidden>
+                        <div class="notification-panel-title">Notificaciones</div>
+                        <div id="notificationCenterList" class="notification-list"></div>
+                    </div>
+                </div>
             </div>
         </header>
 
         <div class="month-navigation">
-            <button id="prevMonth" class="nav-button"><i class="fa-solid fa-arrow-left"></i></button>
+            <button id="prevMonth" class="nav-button"><span class="month-nav-arrow" aria-hidden="true">&#8592;</span></button>
             <div class="current-month" id="currentMonth"></div>
-            <button id="nextMonth" class="nav-button"><i class="fa-solid fa-arrow-right"></i></button>
+            <span id="periodModeBadge" class="period-mode-badge" style="display: none;">Proyeccion</span>
+            <button id="nextMonth" class="nav-button"><span class="month-nav-arrow" aria-hidden="true">&#8594;</span></button>
         </div>
         
         <div class="table-controls">
-            <label for="showAllToggle">
-                <input type="checkbox" id="showAllToggle" class="styled-checkbox"> Mostrar todas las transacciones
-            </label>
+            <button id="toggleTableExpenseFormBtn" class="nav-button button-primary mobile-only" type="button">Agregar gasto</button>
         </div>
 
-        <div class="form-container">
+        <div id="tableExpenseFormContainer" class="form-container" data-expanded="false">
             <form id="expenseForm" class="expense-form">
                 <div class="form-group">
                     <label for="name">Nombre</label>
@@ -122,7 +129,10 @@
                     </select>
                 </div>
 
-                <button type="submit" class="nav-button">Agregar gasto</button>
+                <div class="form-actions">
+                    <button type="button" id="cancelTableExpenseFormBtn" class="nav-button button-secondary">Cancelar</button>
+                    <button type="submit" class="nav-button button-primary">Agregar gasto</button>
+                </div>
             </form>
             <div id="formMessage" class="form-message"></div>
         </div>
@@ -150,6 +160,15 @@
         </div>
 
         <div id="tableContainer">
+        </div>
+        <div id="mobileTablePager" class="mobile-table-pager" style="display: none;">
+            <span id="mobileTablePagerInfo" class="mobile-table-pager-info"></span>
+            <button id="toggleMobileRows" class="nav-button button-secondary" type="button">Mostrar todos</button>
+        </div>
+        <div class="table-footer-controls">
+            <label for="showAllToggle">
+                <input type="checkbox" id="showAllToggle" class="styled-checkbox"> Mostrar todas las transacciones
+            </label>
         </div>
     </div>
     <div id="toastContainer" class="toast-container"></div>
@@ -253,20 +272,99 @@
         const sourceSelect = document.getElementById('sourceSelect');
         const cardGroup = document.getElementById('cardGroup');
         const movementTypeSelect = document.getElementById('movementType');
+        const tableExpenseForm = document.getElementById('expenseForm');
+        const tableExpenseSubmitButton = tableExpenseForm ? tableExpenseForm.querySelector('button[type="submit"]') : null;
         let categories = [];
         let searchQuery = '';
         let filterCurrency = 'all';
         let filterSource = 'all';
+        const MOBILE_TABLE_BREAKPOINT = 768;
+        const MOBILE_TABLE_LIMIT = 10;
+        let showAllMobileRows = false;
+        const CONFIG_CACHE_KEY = 'expenselog_config_cache_v1';
+        const CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
 
-        function formatCurrencyWithCurrency(amount, currencyCode) {
+        const tableFormContainer = document.getElementById('tableExpenseFormContainer');
+        const toggleTableExpenseFormBtn = document.getElementById('toggleTableExpenseFormBtn');
+        const mobileTablePager = document.getElementById('mobileTablePager');
+        const mobileTablePagerInfo = document.getElementById('mobileTablePagerInfo');
+        const toggleMobileRowsBtn = document.getElementById('toggleMobileRows');
+        const clearSearchBtn = document.getElementById('clearSearch');
+        const clearTableFiltersBtn = document.getElementById('clearTableFilters');
+        const cancelTableExpenseFormBtn = document.getElementById('cancelTableExpenseFormBtn');
+
+        function isMobileTableView() {
+            return window.innerWidth <= MOBILE_TABLE_BREAKPOINT;
+        }
+
+        function setTableFormExpanded(expanded) {
+            if (!tableFormContainer) return;
+            tableFormContainer.dataset.expanded = expanded ? 'true' : 'false';
+            const shouldShow = !isMobileTableView() || expanded;
+            tableFormContainer.style.display = shouldShow ? 'block' : 'none';
+            if (toggleTableExpenseFormBtn) {
+                toggleTableExpenseFormBtn.textContent = 'Agregar gasto';
+                toggleTableExpenseFormBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+                const hideToggle = isMobileTableView() && expanded;
+                toggleTableExpenseFormBtn.style.display = hideToggle ? 'none' : '';
+            }
+        }
+
+        function updateTableFormVisibilityOnViewport() {
+            const expanded = tableFormContainer?.dataset.expanded === 'true';
+            if (isMobileTableView()) {
+                setTableFormExpanded(expanded);
+                return;
+            }
+            setTableFormExpanded(true);
+        }
+
+        function updateClearButtonsVisibility() {
+            if (clearSearchBtn) {
+                clearSearchBtn.style.display = searchQuery ? 'inline-flex' : 'none';
+            }
+            if (clearTableFiltersBtn) {
+                const hasFilters = filterCurrency !== 'all' || filterSource !== 'all';
+                clearTableFiltersBtn.style.display = hasFilters ? 'inline-flex' : 'none';
+            }
+        }
+
+        function getTableCreateSubmitLabel(movementType) {
+            if (movementType === 'income') return 'Agregar ingreso';
+            if (movementType === 'refund') return 'Agregar reintegro';
+            return 'Agregar gasto';
+        }
+
+        function syncTableSubmitButtonLabel() {
+            if (!tableExpenseSubmitButton || !tableExpenseForm) return;
+            if (tableExpenseForm.dataset.editId) return;
+            const movementType = movementTypeSelect ? movementTypeSelect.value : 'expense';
+            tableExpenseSubmitButton.textContent = getTableCreateSubmitLabel(movementType);
+        }
+
+        function isFuturePeriodSelected() {
+            const selectedMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            const now = new Date();
+            const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            return selectedMonth > currentMonthStart;
+        }
+
+        function updatePeriodModeBadge() {
+            const badge = document.getElementById('periodModeBadge');
+            if (!badge) return;
+            badge.style.display = isFuturePeriodSelected() ? 'inline-flex' : 'none';
+        }
+
+        function formatCurrencyWithCurrency(amount, currencyCode, compact = false) {
             const behavior = currencyBehaviors[currencyCode] || currencyBehaviors[currentCurrency] || {symbol:"$",useComma:false,useDecimals:true,useSpace:false,right:false};
             const isNegative = amount < 0;
             const absAmount = Math.abs(amount);
+            const displayAmount = compact ? Math.trunc(absAmount) : absAmount;
             const options = {
-                minimumFractionDigits: behavior.useDecimals ? 2 : 0,
-                maximumFractionDigits: behavior.useDecimals ? 2 : 0,
+                minimumFractionDigits: compact ? 0 : (behavior.useDecimals ? 2 : 0),
+                maximumFractionDigits: compact ? 0 : (behavior.useDecimals ? 2 : 0),
             };
-            const formatted = new Intl.NumberFormat(behavior.useComma ? "de-DE" : "en-US", options).format(absAmount);
+            const formatted = new Intl.NumberFormat(behavior.useComma ? "de-DE" : "en-US", options).format(displayAmount);
             const result = behavior.right ? `${formatted}${behavior.useSpace ? " " : ""}${behavior.symbol}` : `${behavior.symbol}${behavior.useSpace ? " " : ""}${formatted}`;
             return isNegative ? `-${result}` : result;
         }
@@ -304,23 +402,24 @@
         function createTable(expenses, runningBalances) {
             if (!expenses || expenses.length === 0) {
                 const message = document.getElementById('showAllToggle').checked ? 
-                                'No transactions found' : 
-                                'No expenses recorded for this month';
+                                'No hay transacciones para mostrar' : 
+                                'No hay gastos cargados para este mes';
                 return `<div class="no-data">${message}</div>`;
             }
+            const compactAmounts = isMobileTableView();
             return `
                 <table class="expense-table">
                     <thead>
                         <tr>
-                            <th>Nombre</th>
-                            <th>Categoria</th>
-                            <th>Valor</th>
-                            <th>Balance</th>
-                            <th>Metodo</th>
-                            <th>Tarjeta</th>
-                            <th>Moneda</th>
-                            <th class="date-header">Fecha</th>
-                            <th></th>
+                            <th class="col-left">Nombre</th>
+                            <th class="secondary-col col-left">Categoria</th>
+                            <th class="col-right">Valor</th>
+                            <th class="col-right">Balance</th>
+                            <th class="secondary-col col-center">Metodo</th>
+                            <th class="secondary-col col-center">Tarjeta</th>
+                            <th class="secondary-col col-center">Moneda</th>
+                            <th class="date-header secondary-col col-center">Fecha</th>
+                            <th class="actions-col col-center"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -331,21 +430,42 @@
                                         <span class="expense-name-text">${highlightText(expense.name, searchQuery)}</span>
                                         ${expense.recurringID ? '<span class="recurring-badge">Recurrente</span>' : ''}
                                     </div>
+                                    <div class="expense-meta-mobile">
+                                        <span>${highlightText(expense.category, searchQuery)}</span>
+                                        <span>${expense.source ? escapeHTML(expense.source) : 'CA'}</span>
+                                        <span>${(expense.currency || currentCurrency).toUpperCase()}</span>
+                                        <span>${formatDateDDMMYYYY(expense.date)}</span>
+                                    </div>
                                 </td>
-                                <td><span class="editable" data-edit="category" data-id="${expense.id}">${highlightText(expense.category, searchQuery)}</span></td>
-                                <td class="amount amount-value"><span class="editable" data-edit="amount" data-id="${expense.id}">${formatCurrencyWithCurrency(expense.amount, expense.currency || currentCurrency)}</span></td>
-                                <td class="amount amount-balance">${runningBalances[expense.id] ? formatCurrencyWithCurrency(runningBalances[expense.id].amount, runningBalances[expense.id].currency) : '-'}</td>
-                                <td>${expense.source ? escapeHTML(expense.source) : '-'}</td>
-                                <td>${expense.source === 'TARJETA' ? escapeHTML(expense.card || '-') : '-'}</td>
-                                <td>${(expense.currency || currentCurrency).toUpperCase()}</td>
-                                <td class="date-column">${formatDateDDMMYYYY(expense.date)}</td>
-                                <td>
-                                    <button class="edit-button" onclick="editExpenseByIndex(${index})">
-                                        <i class="fa-solid fa-pen-to-square"></i>
-                                    </button>
-                                    <button class="delete-button" onclick="handleDeleteClick(event, '${expense.id}')">
-                                        <i class="fa-solid fa-trash-can"></i>
-                                    </button>
+                                <td class="secondary-col col-left"><span class="editable" data-edit="category" data-id="${expense.id}">${highlightText(expense.category, searchQuery)}</span></td>
+                                <td class="amount amount-value col-right"><span class="editable" data-edit="amount" data-id="${expense.id}">${formatCurrencyWithCurrency(expense.amount, expense.currency || currentCurrency, compactAmounts)}</span></td>
+                                <td class="amount amount-balance col-right">${runningBalances[expense.id] ? formatCurrencyWithCurrency(runningBalances[expense.id].amount, runningBalances[expense.id].currency, compactAmounts) : '-'}</td>
+                                <td class="secondary-col col-center">${expense.source ? escapeHTML(expense.source) : '-'}</td>
+                                <td class="secondary-col col-center">${expense.source === 'TARJETA' ? escapeHTML(expense.card || '-') : '-'}</td>
+                                <td class="secondary-col col-center">${(expense.currency || currentCurrency).toUpperCase()}</td>
+                                <td class="date-column secondary-col col-center">${formatDateDDMMYYYY(expense.date)}</td>
+                                <td class="actions-col col-center">
+                                    <div class="row-actions-desktop">
+                                        <button class="edit-button" onclick="editExpenseByIndex(${index})">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button>
+                                        <button class="delete-button" onclick="handleDeleteClick(event, '${expense.id}')">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </div>
+                                    <div class="row-actions-mobile">
+                                        <button type="button" class="row-menu-toggle" data-row-menu-toggle aria-label="Acciones del movimiento" aria-expanded="false">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                        <div class="row-menu" role="menu">
+                                            <button type="button" class="row-menu-item" data-row-action="edit" data-row-index="${index}">
+                                                <i class="fa-solid fa-pen-to-square"></i> Editar
+                                            </button>
+                                            <button type="button" class="row-menu-item danger" data-row-action="delete" data-row-id="${expense.id}">
+                                                <i class="fa-solid fa-trash-can"></i> Borrar
+                                            </button>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                         `).join('')}
@@ -378,10 +498,27 @@
                     return haystack.includes(searchQuery.toLowerCase());
                 });
             }
+
+            const mobileView = isMobileTableView();
+            const totalFiltered = expensesForTable.length;
+            const limitedExpenses = (mobileView && !showAllMobileRows)
+                ? expensesForTable.slice(0, MOBILE_TABLE_LIMIT)
+                : expensesForTable;
             
             const tableContainer = document.getElementById('tableContainer');
             const runningBalances = computeRunningBalances(allExpenses);
-            tableContainer.innerHTML = createTable(expensesForTable, runningBalances);
+            tableContainer.innerHTML = createTable(limitedExpenses, runningBalances);
+            updateMobilePager(totalFiltered, limitedExpenses.length, mobileView);
+            updateClearButtonsVisibility();
+        }
+
+        function updateMobilePager(total, visible, mobileView) {
+            if (!mobileTablePager || !toggleMobileRowsBtn || !mobileTablePagerInfo) return;
+            const shouldShowPager = mobileView && total > MOBILE_TABLE_LIMIT;
+            mobileTablePager.style.display = shouldShowPager ? 'flex' : 'none';
+            if (!shouldShowPager) return;
+            mobileTablePagerInfo.textContent = `Mostrando ${visible} de ${total} movimientos`;
+            toggleMobileRowsBtn.textContent = showAllMobileRows ? 'Mostrar menos' : 'Mostrar todos';
         }
 
         function editExpenseByIndex(index) {
@@ -436,8 +573,20 @@
             form.dataset.editId = id;
             const submitButton = form.querySelector('button[type="submit"]');
             submitButton.textContent = "Actualizar gasto";
+            setTableFormExpanded(true);
             
             form.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function closeAllRowMenus(exceptContainer = null) {
+            document.querySelectorAll('.row-actions-mobile.open').forEach(container => {
+                if (exceptContainer && container === exceptContainer) return;
+                container.classList.remove('open');
+                const toggle = container.querySelector('[data-row-menu-toggle]');
+                if (toggle) {
+                    toggle.setAttribute('aria-expanded', 'false');
+                }
+            });
         }
 
         function setupTagInput() {
@@ -533,6 +682,50 @@
             sourceFilterSelect.value = ['all', 'CA', 'EFECTIVO', 'TARJETA'].includes(filterSource) ? filterSource : 'all';
         }
 
+        function readConfigCache() {
+            try {
+                const raw = localStorage.getItem(CONFIG_CACHE_KEY);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') return null;
+                if (!parsed.config || typeof parsed.config !== 'object') return null;
+                return parsed;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function writeConfigCache(config) {
+            try {
+                localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify({
+                    cachedAt: Date.now(),
+                    config,
+                }));
+            } catch (error) {
+                // ignore cache write failures
+            }
+        }
+
+        function isConfigCacheFresh(entry) {
+            if (!entry || typeof entry.cachedAt !== 'number') return false;
+            return (Date.now() - entry.cachedAt) < CONFIG_CACHE_TTL_MS;
+        }
+
+        function applyTableConfig(config) {
+            const categorySelect = document.getElementById('category');
+            categories = Array.isArray(config?.categories) ? config.categories : [];
+            categorySelect.innerHTML = categories.map(cat =>
+                `<option value="${cat}">${cat}</option>`
+            ).join('');
+            currentCurrency = (config?.currency || 'ars').toLowerCase();
+            if (!supportedCurrencies.includes(currentCurrency)) {
+                currentCurrency = 'ars';
+            }
+            startDate = Number(config?.startDate) || 1;
+            populateFormCurrency();
+            populateTableFilters();
+        }
+
         function toggleCardInput() {
             if (sourceSelect.value === 'TARJETA') {
                 cardGroup.style.display = 'block';
@@ -563,6 +756,7 @@
                 source: exp.source || 'CA',
                 card: exp.card || '',
                 flow: exp.flow || resolveFlow(exp),
+                recurringID: exp.recurringID || '',
                 ...updatedFields,
             };
             try {
@@ -586,21 +780,25 @@
 
         async function initialize() {
             try {
-                const configResponse = await fetch('/config');
-                if (!configResponse.ok) throw new Error('No se pudo obtener la configuracion');
-                const config = await configResponse.json();
-                const categorySelect = document.getElementById('category');
-                categories = config.categories || [];
-                categorySelect.innerHTML = categories.map(cat => 
-                    `<option value="${cat}">${cat}</option>`
-                ).join('');
-                currentCurrency = (config.currency || 'ars').toLowerCase();
-                if (!supportedCurrencies.includes(currentCurrency)) {
-                    currentCurrency = 'ars';
+                showAllMobileRows = false;
+                updateTableFormVisibilityOnViewport();
+                const cachedConfigEntry = readConfigCache();
+                const cachedConfig = cachedConfigEntry?.config || null;
+                if (cachedConfig) {
+                    applyTableConfig(cachedConfig);
                 }
-                populateFormCurrency();
-                populateTableFilters();
-                startDate = config.startDate;
+
+                if (!cachedConfig || !isConfigCacheFresh(cachedConfigEntry)) {
+                    try {
+                        const configResponse = await fetch('/config');
+                        if (!configResponse.ok) throw new Error('No se pudo obtener la configuracion');
+                        const config = await configResponse.json();
+                        applyTableConfig(config);
+                        writeConfigCache(config);
+                    } catch (configError) {
+                        if (!cachedConfig) throw configError;
+                    }
+                }
                 
                 const response = await fetch('/expenses');
                 if (!response.ok) throw new Error('No se pudieron obtener los datos');
@@ -622,6 +820,7 @@
                 });
 
                 updateMonthDisplay();
+                updatePeriodModeBadge();
                 updateTable();
                 setupTagInput();
             } catch (error) {
@@ -631,17 +830,47 @@
             }
         }
 
-        document.getElementById('showAllToggle').addEventListener('change', updateTable);
+        document.getElementById('showAllToggle').addEventListener('change', () => {
+            showAllMobileRows = false;
+            updateTable();
+        });
+
+        if (toggleTableExpenseFormBtn) {
+            toggleTableExpenseFormBtn.addEventListener('click', () => {
+                setTableFormExpanded(true);
+                document.getElementById('name')?.focus();
+            });
+        }
+
+        if (toggleMobileRowsBtn) {
+            toggleMobileRowsBtn.addEventListener('click', () => {
+                showAllMobileRows = !showAllMobileRows;
+                updateTable();
+            });
+        }
+
+        window.addEventListener('resize', () => {
+            if (!isMobileTableView()) {
+                showAllMobileRows = false;
+            }
+            closeAllRowMenus();
+            updateTableFormVisibilityOnViewport();
+            updateTable();
+        });
 
         document.getElementById('prevMonth').addEventListener('click', () => {
             currentDate.setMonth(currentDate.getMonth() - 1);
             updateMonthDisplay();
+            updatePeriodModeBadge();
+            showAllMobileRows = false;
             updateTable();
         });
 
         document.getElementById('nextMonth').addEventListener('click', () => {
             currentDate.setMonth(currentDate.getMonth() + 1);
             updateMonthDisplay();
+            updatePeriodModeBadge();
+            showAllMobileRows = false;
             updateTable();
         });
 
@@ -689,6 +918,27 @@
             }
         });
 
+        function resetTableExpenseForm({ closeOnMobile = false } = {}) {
+            const form = document.getElementById('expenseForm');
+            form.reset();
+            document.getElementById('selected-tags').innerHTML = '';
+            selectedTags.clear();
+            delete form.dataset.editId;
+            populateFormCurrency();
+            sourceSelect.value = 'CA';
+            if (movementTypeSelect) movementTypeSelect.value = 'expense';
+            toggleCardInput();
+            syncTableSubmitButtonLabel();
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            document.getElementById('date').value = `${year}-${month}-${day}`;
+            if (closeOnMobile && isMobileTableView()) {
+                setTableFormExpanded(false);
+            }
+        }
+
         document.getElementById('expenseForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const form = e.target;
@@ -701,6 +951,7 @@
                 amount = Math.abs(amount);
             }
             const sourceValue = sourceSelect.value || 'CA';
+            const editingExpense = editId ? expensesForTable.find(exp => exp.id === editId) : null;
             if (sourceValue === 'TARJETA' && !document.getElementById('cardInput').value.trim()) {
                 document.getElementById('cardError').textContent = 'Especifica la tarjeta';
                 return;
@@ -716,6 +967,7 @@
                 source: sourceValue,
                 card: sourceValue === 'TARJETA' ? document.getElementById('cardInput').value : '',
                 flow: movementType,
+                recurringID: editingExpense?.recurringID || '',
             };
             try {
                 const url = editId ? `/expense/edit?id=${editId}` : '/expense';
@@ -729,21 +981,8 @@
                     messageDiv.textContent = '';
                     messageDiv.className = 'form-message';
                     showToast(editId ? 'Gasto actualizado con exito' : 'Gasto agregado con exito', 'success');
-                    form.reset();
-                    document.getElementById('selected-tags').innerHTML = '';
-                    selectedTags.clear();
-                    delete form.dataset.editId;
-                    form.querySelector('button[type="submit"]').textContent = 'Agregar gasto';
-                    populateFormCurrency();
-                    sourceSelect.value = 'CA';
-                    if (movementTypeSelect) movementTypeSelect.value = 'expense';
-                    toggleCardInput();
                     await initialize();
-                    const today = new Date();
-                    const year = today.getFullYear();
-                    const month = String(today.getMonth() + 1).padStart(2, '0');
-                    const day = String(today.getDate()).padStart(2, '0');
-                    document.getElementById('date').value = `${year}-${month}-${day}`;
+                    resetTableExpenseForm({ closeOnMobile: true });
                 } else {
                     const error = await response.json();
                     messageDiv.textContent = '';
@@ -755,6 +994,9 @@
                 showToast('No se pudo guardar el gasto', 'error');
             }
         });
+        cancelTableExpenseFormBtn?.addEventListener('click', () => {
+            resetTableExpenseForm({ closeOnMobile: true });
+        });
         document.addEventListener('DOMContentLoaded', guardAppInit(initialize));
 
         document.getElementById('name').addEventListener('click', (e) => {
@@ -765,25 +1007,33 @@
 
         sourceSelect.addEventListener('change', toggleCardInput);
         toggleCardInput();
+        if (movementTypeSelect) {
+            movementTypeSelect.addEventListener('change', syncTableSubmitButtonLabel);
+        }
+        syncTableSubmitButtonLabel();
 
         document.getElementById('tableSearch').addEventListener('input', (e) => {
             searchQuery = e.target.value.trim();
+            showAllMobileRows = false;
             updateTable();
         });
 
         document.getElementById('clearSearch').addEventListener('click', () => {
             searchQuery = '';
             document.getElementById('tableSearch').value = '';
+            showAllMobileRows = false;
             updateTable();
         });
 
         document.getElementById('tableFilterCurrency').addEventListener('change', (e) => {
             filterCurrency = e.target.value;
+            showAllMobileRows = false;
             updateTable();
         });
 
         document.getElementById('tableFilterSource').addEventListener('change', (e) => {
             filterSource = e.target.value;
+            showAllMobileRows = false;
             updateTable();
         });
 
@@ -792,12 +1042,50 @@
             filterSource = 'all';
             document.getElementById('tableFilterCurrency').value = 'all';
             document.getElementById('tableFilterSource').value = 'all';
+            showAllMobileRows = false;
             updateTable();
         });
 
         document.getElementById('tableContainer').addEventListener('click', (e) => {
+            const rowMenuToggle = e.target.closest('[data-row-menu-toggle]');
+            if (rowMenuToggle) {
+                const container = rowMenuToggle.closest('.row-actions-mobile');
+                if (!container) return;
+                const wasOpen = container.classList.contains('open');
+                closeAllRowMenus(container);
+                if (wasOpen) {
+                    container.classList.remove('open');
+                    rowMenuToggle.setAttribute('aria-expanded', 'false');
+                } else {
+                    container.classList.add('open');
+                    rowMenuToggle.setAttribute('aria-expanded', 'true');
+                }
+                e.stopPropagation();
+                return;
+            }
+
+            const rowAction = e.target.closest('[data-row-action]');
+            if (rowAction) {
+                const action = rowAction.dataset.rowAction;
+                if (action === 'edit') {
+                    const index = Number(rowAction.dataset.rowIndex);
+                    if (!Number.isNaN(index)) {
+                        editExpenseByIndex(index);
+                    }
+                } else if (action === 'delete') {
+                    const expenseId = rowAction.dataset.rowId;
+                    if (expenseId) {
+                        showDeleteModal(expenseId);
+                    }
+                }
+                closeAllRowMenus();
+                e.stopPropagation();
+                return;
+            }
+
             const target = e.target.closest('.editable');
             if (!target) return;
+            closeAllRowMenus();
             const field = target.dataset.edit;
             const expenseId = target.dataset.id;
             const exp = expensesForTable.find(item => item.id === expenseId);
@@ -844,6 +1132,10 @@
                     await updateExpenseInline(expenseId, { category: value });
                 });
             }
+        });
+
+        document.addEventListener('click', () => {
+            closeAllRowMenus();
         });
         
         window.editExpenseByIndex = editExpenseByIndex;

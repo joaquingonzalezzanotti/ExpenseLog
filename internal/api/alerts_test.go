@@ -54,6 +54,9 @@ func TestComputeLiquidityAlerts_CaseSevenDays_Info(t *testing.T) {
 	if resp.AlertCount != 1 {
 		t.Fatalf("expected 1 alert, got %d", resp.AlertCount)
 	}
+	if resp.WindowDays != 7 || resp.CriticalDays != 4 || resp.ReappearDays != 1 {
+		t.Fatalf("unexpected rules in response: window=%d critical=%d reappear=%d", resp.WindowDays, resp.CriticalDays, resp.ReappearDays)
+	}
 	item := resp.Alerts[0]
 	if item.Severity != "info" || item.Kind != "preview_7d" {
 		t.Fatalf("expected info/preview_7d, got %s/%s", item.Severity, item.Kind)
@@ -165,5 +168,57 @@ func TestComputeLiquidityAlerts_TimezoneDateShift_NoFalseOneDayEarlier(t *testin
 	}
 	if resp.Alerts[0].DaysUntil != 2 {
 		t.Fatalf("expected daysUntil 2 for due date 20/02 from 18/02, got %d", resp.Alerts[0].DaysUntil)
+	}
+}
+
+func TestComputeLiquidityAlerts_CaseYesterdayDue_InformativeOnly(t *testing.T) {
+	now := time.Date(2026, time.March, 11, 9, 0, 0, 0, time.Local)
+	expenses := []storage.Expense{
+		mkExpense("Saldo previo", 10000, dateUTC(2026, time.March, 9), ""),
+		mkExpense("Servicio", -12000, dateUTC(2026, time.March, 10), "rec-yesterday"),
+	}
+
+	resp := computeLiquidityAlerts(expenses, "ars", 7, now)
+	if resp.AlertCount != 1 {
+		t.Fatalf("expected 1 due alert for yesterday, got %d", resp.AlertCount)
+	}
+	item := resp.Alerts[0]
+	if item.Kind != "due" || item.Severity != "info" {
+		t.Fatalf("expected due/info, got %s/%s", item.Kind, item.Severity)
+	}
+	if item.DaysUntil != -1 {
+		t.Fatalf("expected daysUntil -1 for yesterday due, got %d", item.DaysUntil)
+	}
+}
+
+func TestComputeLiquidityAlerts_CaseTwoDaysAgoDue_NoRecentDueAlert(t *testing.T) {
+	now := time.Date(2026, time.March, 12, 9, 0, 0, 0, time.Local)
+	expenses := []storage.Expense{
+		mkExpense("Saldo previo", 10000, dateUTC(2026, time.March, 9), ""),
+		mkExpense("Servicio", -12000, dateUTC(2026, time.March, 10), "rec-2days-ago"),
+	}
+
+	resp := computeLiquidityAlerts(expenses, "ars", 7, now)
+	if resp.AlertCount != 0 {
+		t.Fatalf("expected 0 due alerts for item older than recent window, got %d", resp.AlertCount)
+	}
+}
+
+func TestComputeLiquidityAlerts_TimezoneOffsetStoredDate_UsesUTCCalendarDay(t *testing.T) {
+	// 2026-02-20 00:30 at UTC+14 becomes 2026-02-19 UTC.
+	// This test documents the current rule: recurring due day is derived from UTC calendar day.
+	pacificKiritimati := time.FixedZone("UTC+14", 14*60*60)
+	now := time.Date(2026, time.February, 18, 9, 0, 0, 0, time.Local)
+	expenses := []storage.Expense{
+		mkExpense("Saldo previo", 50000, dateUTC(2026, time.February, 17), ""),
+		mkExpense("Offset Rec", -10000, time.Date(2026, time.February, 20, 0, 30, 0, 0, pacificKiritimati), "rec-offset"),
+	}
+
+	resp := computeLiquidityAlerts(expenses, "ars", 7, now)
+	if resp.AlertCount != 1 {
+		t.Fatalf("expected 1 alert, got %d", resp.AlertCount)
+	}
+	if resp.Alerts[0].DaysUntil != 1 {
+		t.Fatalf("expected daysUntil 1 when UTC day shifts to 19/02, got %d", resp.Alerts[0].DaysUntil)
 	}
 }

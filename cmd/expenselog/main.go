@@ -63,6 +63,7 @@ func runServer(port int) {
 	http.HandleFunc("/robots.txt", handler.ServeStaticFile)
 	http.HandleFunc("/sitemap.xml", handler.ServeStaticFile)
 	http.HandleFunc("/functions.js", handler.ServeStaticFile)
+	http.HandleFunc("/alerts_ui.js", handler.ServeStaticFile)
 	http.HandleFunc("/manifest.json", handler.ServeStaticFile)
 	http.HandleFunc("/sw.js", handler.ServeStaticFile)
 	http.HandleFunc("/pwa/", handler.ServeStaticFile)
@@ -77,6 +78,7 @@ func runServer(port int) {
 	http.HandleFunc("/auth/login", handler.AuthLogin)
 	http.HandleFunc("/auth/logout", handler.AuthLogout)
 	http.HandleFunc("/auth/me", handler.RequireAuth(handler.AuthMe))
+	http.HandleFunc("/auth/profile", handler.RequireAuth(handler.AuthUpdateProfile))
 	http.HandleFunc("/auth/reset/request", handler.AuthResetRequest)
 	http.HandleFunc("/auth/reset/confirm", handler.AuthResetConfirm)
 	http.HandleFunc("/auth/verify", handler.AuthVerifyEmail)
@@ -114,9 +116,9 @@ func runServer(port int) {
 	http.HandleFunc("/alerts/liquidity", handler.RequireAuth(handler.GetLiquidityAlerts))
 
 	// Import/Export
-	http.HandleFunc("/export/csv", handler.RequireAuth(handler.ExportCSV))
-	http.HandleFunc("/import/csv", handler.RequireAuth(handler.ImportCSV))
-	http.HandleFunc("/import/csvold", handler.RequireAuth(handler.ImportOldCSV))
+	http.HandleFunc("/export/csv", handler.RequireAuth(handler.CSVFeatureDisabled))
+	http.HandleFunc("/import/csv", handler.RequireAuth(handler.CSVFeatureDisabled))
+	http.HandleFunc("/import/csvold", handler.RequireAuth(handler.CSVFeatureDisabled))
 
 	log.Println("Starting server on port", port, "...")
 	if err := http.ListenAndServe(fmt.Sprint(":", port), nil); err != nil {

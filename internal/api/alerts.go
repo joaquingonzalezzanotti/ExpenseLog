@@ -29,6 +29,8 @@ type liquidityAlertItem struct {
 type liquidityAlertsResponse struct {
 	Currency         string               `json:"currency"`
 	WindowDays       int                  `json:"windowDays"`
+	CriticalDays     int                  `json:"criticalDays"`
+	ReappearDays     int                  `json:"reappearDays"`
 	BalanceNow       float64              `json:"balanceNow"`
 	ProjectedBalance float64              `json:"projectedBalance"`
 	AlertCount       int                  `json:"alertCount"`
@@ -44,6 +46,14 @@ type recurringProjection struct {
 	DueDate  time.Time
 	Amount   float64
 }
+
+const (
+	liquidityDefaultCurrency    = "ars"
+	liquidityDefaultWindowDays  = 7
+	liquidityCriticalWindowDays = 4
+	liquidityRecentDueDays      = 1
+	liquidityMaxWindowDays      = 30
+)
 
 func isCashAccountSource(source string) bool {
 	normalized := strings.ToUpper(strings.TrimSpace(source))
@@ -69,10 +79,9 @@ func daysUntilDate(now, due time.Time) int {
 }
 
 func computeLiquidityAlerts(expenses []storage.Expense, currency string, days int, now time.Time) liquidityAlertsResponse {
-	criticalDays := 4
 	todayStart := localDayStart(now)
 	horizonDay := todayStart.AddDate(0, 0, days)
-	recentCutoffDay := todayStart.AddDate(0, 0, -1)
+	recentCutoffDay := todayStart.AddDate(0, 0, -liquidityRecentDueDays)
 
 	balance := 0.0
 	for _, exp := range expenses {
@@ -219,7 +228,7 @@ func computeLiquidityAlerts(expenses []storage.Expense, currency string, days in
 		}
 		severity := "info"
 		kind := "preview_7d"
-		if daysUntil <= criticalDays {
+		if daysUntil <= liquidityCriticalWindowDays {
 			kind = "monitor_4d"
 			if projectedBalance < 0 {
 				severity = "critical"
@@ -263,6 +272,8 @@ func computeLiquidityAlerts(expenses []storage.Expense, currency string, days in
 	return liquidityAlertsResponse{
 		Currency:         currency,
 		WindowDays:       days,
+		CriticalDays:     liquidityCriticalWindowDays,
+		ReappearDays:     liquidityRecentDueDays,
 		BalanceNow:       balance,
 		ProjectedBalance: projectedBalance,
 		AlertCount:       len(alerts),
@@ -283,12 +294,12 @@ func (h *Handler) GetLiquidityAlerts(w http.ResponseWriter, r *http.Request) {
 	}
 	currency := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("currency")))
 	if currency == "" {
-		currency = "ars"
+		currency = liquidityDefaultCurrency
 	}
-	days := 7
+	days := liquidityDefaultWindowDays
 	if q := strings.TrimSpace(r.URL.Query().Get("days")); q != "" {
 		parsed, err := strconv.Atoi(q)
-		if err != nil || parsed < 0 || parsed > 30 {
+		if err != nil || parsed < 0 || parsed > liquidityMaxWindowDays {
 			writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid days value"})
 			return
 		}

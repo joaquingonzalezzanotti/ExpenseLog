@@ -17,31 +17,108 @@
     </script>
     <title>Configuracion ExpenseLog</title>
 </head>
-<body class="auth-pending">
+<body class="auth-pending settings-page">
     <div class="container">
         <header>
             <div class="nav-bar">
-                <a href="/app">
+                <a href="/app" class="nav-logo-link">
                     <img src="/pwa/icon-192.png" alt="ExpenseLog Logo" class="nav-logo">
                 </a>
-                <span id="userEmailBadge" class="user-badge"></span>
-                <a href="/app" class="view-button" data-tooltip="Panel">
-                    <i class="fa-solid fa-chart-pie"></i>
-                </a>
-                <a href="/table" class="view-button" data-tooltip="Tabla">
-                    <i class="fa-solid fa-table"></i>
-                </a>
-                <a href="/settings" class="view-button active" data-tooltip="Configuracion">
-                    <i class="fa-solid fa-gear"></i>
-                </a>
-                <button id="logoutButton" class="view-button" data-tooltip="Salir" type="button">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                </button>
+                <nav class="nav-center-tabs" aria-label="Secciones">
+                    <a href="/app" class="view-button" data-tooltip="Panel">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </a>
+                    <a href="/table" class="view-button" data-tooltip="Tabla">
+                        <i class="fa-solid fa-table"></i>
+                    </a>
+                    <a href="/settings" class="view-button active" data-tooltip="Configuracion">
+                        <i class="fa-solid fa-gear"></i>
+                    </a>
+                </nav>
+                <div class="nav-right-slot">
+                    <button id="notificationCenterButton" class="view-button notification-trigger" data-tooltip="Notificaciones" type="button" aria-label="Notificaciones" aria-expanded="false">
+                        <i class="fa-regular fa-bell"></i>
+                        <span id="notificationCenterBadge" class="notification-badge" hidden></span>
+                    </button>
+                    <div id="notificationCenterPanel" class="notification-panel" hidden>
+                        <div class="notification-panel-title">Notificaciones</div>
+                        <div id="notificationCenterList" class="notification-list"></div>
+                    </div>
+                </div>
             </div>
         </header>
 
-            <div class="form-container">
-            <h2 align="center">Categorias</h2>
+        <section class="form-container settings-section settings-profile">
+            <div class="settings-detail-header settings-profile-header">
+                <h2>Perfil</h2>
+                <button id="settingsLogoutBtn" class="settings-logout-btn" type="button" aria-label="Cerrar sesion" title="Cerrar sesion">
+                    <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="settings-profile-row">
+                <div id="settingsProfileAvatar" class="settings-profile-avatar">EL</div>
+                <div class="settings-profile-meta">
+                    <div class="settings-profile-name-row">
+                        <div id="settingsProfileName" class="settings-profile-name">Usuario</div>
+                        <button id="settingsEditNameBtn" class="settings-name-edit-btn" type="button" aria-label="Editar nombre" title="Editar nombre">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                    </div>
+                    <div id="settingsProfileEmail" class="settings-profile-email">-</div>
+                </div>
+            </div>
+            <div id="profileMessage" class="form-message"></div>
+        </section>
+
+        <section class="form-container settings-section">
+            <h2>Preferencias</h2>
+            <div class="settings-preferences-grid">
+                <div class="settings-preference-item">
+                    <label for="currencySelect">Moneda Principal</label>
+                    <div class="settings-preference-control">
+                        <select id="currencySelect">
+                            <option value="ars">ARS ($)</option>
+                            <option value="usd">USD ($)</option>
+                            <option value="eur">EUR (EUR)</option>
+                        </select>
+                    </div>
+                    <!-- Esta moneda define la referencia principal de Caja de Ahorro (CA), balance y calculos por defecto. -->
+                    <div id="currencyMessage" class="form-message"></div>
+                </div>
+                <div class="settings-preference-item">
+                    <label for="themeSelect">Tema</label>
+                    <div class="settings-preference-control">
+                        <select id="themeSelect">
+                            <option value="light">Claro</option>
+                            <option value="dark">Oscuro</option>
+                        </select>
+                    </div>
+                    <div id="themeMessage" class="form-message"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="form-container settings-section">
+            <h2>Gestion</h2>
+            <div class="settings-nav-list">
+                <button class="settings-nav-item" id="openCategoriesSection" type="button" data-settings-section="categoriesSection" aria-expanded="false">
+                    <span>Categorias</span>
+                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
+                <button class="settings-nav-item" id="openRecurringSection" type="button" data-settings-section="recurringSection" aria-expanded="false">
+                    <span>Transacciones recurrentes</span>
+                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
+            </div>
+        </section>
+
+        <section id="categoriesSection" class="form-container settings-section settings-detail-section" hidden>
+            <div class="settings-detail-header">
+                <h2>Categorias</h2>
+                <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="categoriesSection" aria-label="Cerrar categorias" title="Cerrar categorias">
+                    <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
+                </button>
+            </div>
             <div id="categories-manager">
                 <div class="categories-header">
                     <div>
@@ -63,136 +140,83 @@
                 </div>
                 <div class="category-input-container">
                     <input type="text" id="newCategory" placeholder="Agregar categoria">
-                    <button id="addCategory" class="nav-button">Agregar</button>
+                    <button id="addCategory" class="nav-button" type="button">Agregar</button>
                 </div>
                 <div id="categoriesMessage" class="form-message"></div>
             </div>
-        </div>
+        </section>
 
-        <div class="settings-container">
-            <div class="form-container half-width">
-                <h2 align="center">Moneda</h2>
-                <div class="currency-selector">
-                    <select id="currencySelect">
-                        <option value="ars">ARS ($)</option>
-                        <option value="usd">USD ($)</option>
-                        <option value="eur">EUR (€)</option>
-                    </select>
-                    <button id="saveCurrency" class="nav-button">Guardar</button>
-                </div>
-                <div id="currencyMessage" class="form-message"></div>
+        <section id="recurringSection" class="form-container settings-section settings-detail-section" hidden>
+            <div class="settings-detail-header">
+                <h2>Transacciones recurrentes</h2>
+                <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="recurringSection" aria-label="Cerrar transacciones recurrentes" title="Cerrar transacciones recurrentes">
+                    <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
+                </button>
             </div>
-            
-            <div class="form-container half-width">
-                <h2 align="center">Dia de inicio</h2>
-                <div class="start-date-manager">
-                    <input type="number" id="startDate" min="1" max="31" placeholder="1">
-                    <button id="saveStartDate" class="nav-button">Guardar</button>
-                </div>
-                <div id="startDateMessage" class="form-message"></div>
+            <h3 class="settings-subtitle">Transacciones recurrentes existentes</h3>
+            <div id="recurring-expenses-list" class="recurring-table-box"></div>
+            <button id="toggleRecurringCreateBtn" class="nav-button button-primary settings-recurring-toggle" type="button" aria-expanded="false">Agregar transaccion recurrente</button>
+            <div id="recurringFormWrap" hidden>
+                <form id="recurringExpenseForm" class="expense-form recurring-expense-form">
+                    <div class="form-group">
+                        <label for="recurringName">Nombre</label>
+                        <input type="text" id="recurringName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="recurringAmount">Monto</label>
+                        <input type="number" id="recurringAmount" step="0.01" min="0.01" max="9000000000000000" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="recurringCategory">Categoria</label>
+                        <select id="recurringCategory" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="tags-input">Etiquetas</label>
+                        <div class="tags-input-container">
+                            <div id="selected-tags" class="selected-tags"></div>
+                            <input type="text" id="tags-input" placeholder="(opcional)">
+                        </div>
+                        <div id="tags-dropdown" class="tags-dropdown"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="recurringInterval">Intervalo</label>
+                        <select id="recurringInterval" required>
+                            <option value="daily">Diario</option>
+                            <option value="weekly">Semanal</option>
+                            <option value="monthly">Mensual</option>
+                            <option value="yearly">Anual</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="recurringStartDate">Fecha de inicio</label>
+                        <input type="date" id="recurringStartDate" required>
+                        <script>
+                            const today = new Date();
+                            const year = today.getFullYear();
+                            const month = String(today.getMonth() + 1).padStart(2, '0');
+                            const day = String(today.getDate()).padStart(2, '0');
+                            const formattedDate = `${year}-${month}-${day}`;
+                            document.getElementById('recurringStartDate').value = formattedDate;
+                        </script>
+                    </div>
+                    <div class="form-group">
+                        <label for="recurringOccurrences">Ocurrencias</label>
+                        <input type="number" id="recurringOccurrences" min="2" value="2" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="recurringFlow">Tipo</label>
+                        <select id="recurringFlow">
+                            <option value="expense">Gasto</option>
+                            <option value="income">Ingreso</option>
+                            <option value="refund">Reintegro</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="nav-button">Agregar transaccion recurrente</button>
+                </form>
+                <div id="recurringExpenseMessage" class="form-message"></div>
             </div>
-        </div>
+        </section>
 
-        <div class="settings-container">
-            <div class="form-container half-width">
-                <h2 align="center">Tema</h2>
-                <div class="theme-selector">
-                    <select id="themeSelect">
-                        <option value="light">Claro</option>
-                        <option value="dark">Oscuro</option>
-                    </select>
-                </div>
-                <div id="themeMessage" class="form-message"></div>
-            </div>
-            <div class="form-container half-width">
-                <h2 align="center">Importar/Exportar datos</h2>
-                <div class="export-buttons">
-                    <div class="export-options">
-                        <a href="/export/csv" id="csv-export-file" class="nav-button" download="expenses.csv">Exportar a CSV</a>
-                    </div>
-                    <div class="import-option">
-                        <label for="csv-import-file" class="nav-button">Importar desde CSV</label>
-                        <input type="file" id="csv-import-file" accept=".csv" style="display: none;">
-                    </div>
-                    <div class="import-option">
-                        <label for="csv-import-file-old" class="nav-button">Importar desde ExpenseLog v3.20-</label>
-                        <input type="file" id="csv-import-file-old" accept=".csv" style="display: none;">
-                    </div>
-                </div>
-                <div id="importMessage" class="form-message"></div>
-                <div id="importSummary" class="import-summary" style="display: none;">
-                    <h3>Resumen de importacion</h3>
-                    <p>Total procesado: <span id="summary-processed"></span></p>
-                    <p>Importados: <span id="summary-imported"></span></p>
-                    <p>Omitidos: <span id="summary-skipped"></span></p>
-                    <p>Nuevas categorias: <span id="summary-new-categories"></span></p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="form-container">
-            <h2 align="center">Transacciones recurrentes</h2>
-            <form id="recurringExpenseForm" class="expense-form recurring-expense-form">
-                <div class="form-group">
-                    <label for="recurringName">Nombre</label>
-                    <input type="text" id="recurringName" required>
-                </div>
-                <div class="form-group">
-                    <label for="recurringAmount">Monto</label>
-                    <input type="number" id="recurringAmount" step="0.01" min="0.01" max="9000000000000000" required>
-                </div>
-                <div class="form-group">
-                    <label for="recurringCategory">Categoria</label>
-                    <select id="recurringCategory" required></select>
-                </div>
-                <div class="form-group">
-                    <label for="tags-input">Etiquetas</label>
-                    <div class="tags-input-container">
-                        <div id="selected-tags" class="selected-tags"></div>
-                        <input type="text" id="tags-input" placeholder="(opcional)">
-                    </div>
-                    <div id="tags-dropdown" class="tags-dropdown"></div>
-                </div>
-                <div class="form-group">
-                    <label for="recurringInterval">Intervalo</label>
-                    <select id="recurringInterval" required>
-                        <option value="daily">Diario</option>
-                        <option value="weekly">Semanal</option>
-                        <option value="monthly">Mensual</option>
-                        <option value="yearly">Anual</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="recurringStartDate">Fecha de inicio</label>
-                    <input type="date" id="recurringStartDate" required>
-                    <script>
-                        const today = new Date();
-                        const year = today.getFullYear();
-                        const month = String(today.getMonth() + 1).padStart(2, '0');
-                        const day = String(today.getDate()).padStart(2, '0');
-                        const formattedDate = `${year}-${month}-${day}`;
-                        document.getElementById('recurringStartDate').value = formattedDate;
-                    </script>
-                </div>
-                <div class="form-group">
-                    <label for="recurringOccurrences">Ocurrencias</label>
-                    <input type="number" id="recurringOccurrences" min="2" value="2" required>
-                </div>
-                <div class="form-group">
-                    <label for="recurringFlow">Tipo</label>
-                    <select id="recurringFlow">
-                        <option value="expense">Gasto</option>
-                        <option value="income">Ingreso</option>
-                        <option value="refund">Reintegro</option>
-                    </select>
-                </div>
-                <button type="submit" class="nav-button">Agregar transaccion recurrente</button>
-            </form>
-            <div id="recurringExpenseMessage" class="form-message"></div>
-            <h3 align="center" style="margin-top: 2rem;">Transacciones recurrentes existentes</h3>
-            <div id="recurring-expenses-list">
-            </div>
-        </div>
     </div>
 
     <div id="deleteRecurringModal" class="modal">
@@ -351,10 +375,138 @@
         let addFormSelectedTags = new Set();
         let editFormSelectedTags = new Set();
         let currentCurrency = "usd";
-        let currentStartDate = 1;
         let recurringExpenses = [];
         let recurringExpenseToDelete = null;
         let recurringExpenseToEdit = null;
+        const SHARED_CONFIG_CACHE_KEY = 'expenselog_config_cache_v1';
+        const settingsSectionButtons = Array.from(document.querySelectorAll('[data-settings-section]'));
+        const settingsCloseButtons = Array.from(document.querySelectorAll('[data-settings-close]'));
+        const settingsProfileName = document.getElementById('settingsProfileName');
+        const settingsProfileEmail = document.getElementById('settingsProfileEmail');
+        const settingsProfileAvatar = document.getElementById('settingsProfileAvatar');
+        const settingsEditNameBtn = document.getElementById('settingsEditNameBtn');
+        const recurringFormWrap = document.getElementById('recurringFormWrap');
+        const toggleRecurringCreateBtn = document.getElementById('toggleRecurringCreateBtn');
+
+        function setSettingsSection(sectionId, expanded) {
+            const section = document.getElementById(sectionId);
+            if (!section) return;
+            section.hidden = !expanded;
+            settingsSectionButtons.forEach((btn) => {
+                const isCurrent = btn.dataset.settingsSection === sectionId;
+                btn.setAttribute('aria-expanded', isCurrent && expanded ? 'true' : 'false');
+            });
+        }
+
+        function showOnlySettingsSection(sectionId) {
+            const targets = ['categoriesSection', 'recurringSection'];
+            targets.forEach((id) => setSettingsSection(id, id === sectionId));
+            setRecurringComposerVisible(false);
+            const targetNode = document.getElementById(sectionId);
+            if (targetNode) {
+                targetNode.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function hideSettingsSection(sectionId) {
+            setSettingsSection(sectionId, false);
+            if (sectionId === 'recurringSection') {
+                setRecurringComposerVisible(false);
+            }
+        }
+
+        function setRecurringComposerVisible(visible) {
+            if (!recurringFormWrap) return;
+            recurringFormWrap.hidden = !visible;
+            if (toggleRecurringCreateBtn) {
+                toggleRecurringCreateBtn.textContent = visible ? 'Ocultar formulario' : 'Agregar transaccion recurrente';
+                toggleRecurringCreateBtn.setAttribute('aria-expanded', visible ? 'true' : 'false');
+            }
+        }
+
+        function userDisplayNameFromEmail(email) {
+            const localPart = (email || '').split('@')[0] || '';
+            const cleaned = localPart.replace(/[._-]+/g, ' ').trim();
+            if (!cleaned) return 'Usuario';
+            return cleaned
+                .split(' ')
+                .filter(Boolean)
+                .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+                .join(' ');
+        }
+
+        function userInitials(email, name) {
+            const fromName = (name || '').trim();
+            if (fromName) {
+                const parts = fromName.split(' ').filter(Boolean);
+                const initials = parts.slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join('');
+                if (initials) return initials;
+            }
+            const local = (email || '').split('@')[0] || '';
+            return local.replace(/[^a-zA-Z0-9]/g, '').slice(0, 2).toUpperCase() || 'EL';
+        }
+
+        function applySettingsProfile(user) {
+            const email = (user && user.email) ? user.email : '';
+            const name = (user && (user.name || user.displayName)) ? (user.name || user.displayName) : userDisplayNameFromEmail(email);
+            if (settingsProfileName) settingsProfileName.textContent = name || 'Usuario';
+            if (settingsProfileEmail) settingsProfileEmail.textContent = email || '-';
+            if (settingsProfileAvatar) settingsProfileAvatar.textContent = userInitials(email, name);
+        }
+
+        async function saveProfileName(nextNameRaw) {
+            const nextName = (nextNameRaw || '').trim();
+            if (!nextName) {
+                showMessage('profileMessage', 'Ingresa un nombre valido.', false);
+                return;
+            }
+            try {
+                const response = await fetch('/auth/profile', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: nextName }),
+                });
+                if (!response.ok) {
+                    const payload = await response.json().catch(() => ({}));
+                    showMessage('profileMessage', payload.error || 'No se pudo actualizar el nombre.', false);
+                    return;
+                }
+                const user = await response.json();
+                applySettingsProfile(user);
+                if (typeof updateUserBadge === 'function') {
+                    updateUserBadge(user);
+                }
+                showMessage('profileMessage', 'Nombre actualizado correctamente.', true);
+            } catch (error) {
+                console.error('Error actualizando nombre de perfil:', error);
+                showMessage('profileMessage', 'No se pudo actualizar el nombre.', false);
+            }
+        }
+
+        function requestAndSaveProfileName() {
+            const currentName = settingsProfileName ? settingsProfileName.textContent.trim() : '';
+            const nextName = window.prompt('Editar nombre', currentName || '');
+            if (nextName === null) return;
+            saveProfileName(nextName);
+        }
+
+        function invalidateSharedConfigCache() {
+            try {
+                localStorage.removeItem(SHARED_CONFIG_CACHE_KEY);
+            } catch (error) {
+                console.warn('No se pudo invalidar cache de configuracion:', error);
+            }
+        }
+
+        function formatIntervalLabel(interval) {
+            switch ((interval || '').toLowerCase()) {
+                case 'daily': return 'Diario';
+                case 'weekly': return 'Semanal';
+                case 'monthly': return 'Mensual';
+                case 'yearly': return 'Anual';
+                default: return interval || '-';
+            }
+        }
 
         function showMessage(elementId, message, isSuccess) {
             const messageDiv = document.getElementById(elementId);
@@ -492,7 +644,6 @@ async function addCategoryOnServer(category) {
         const error = await response.json().catch(() => ({}));
         showMessage('categoriesMessage', `No se pudo agregar la categoria: ${error.error || 'Error desconocido'}`, false);
     } catch (error) {
-        console.error('Error agregando categoria:', error);
         showMessage('categoriesMessage', 'Error agregando categoria', false);
     }
     return null;
@@ -511,7 +662,6 @@ async function deleteCategoryOnServer(category) {
         const error = await response.json().catch(() => ({}));
         showMessage('categoriesMessage', `No se pudo eliminar la categoria: ${error.error || 'Error desconocido'}`, false);
     } catch (error) {
-        console.error('Error eliminando categoria:', error);
         showMessage('categoriesMessage', 'Error eliminando categoria', false);
     }
     return null;
@@ -530,7 +680,6 @@ async function renameCategoryOnServer(fromCategory, toCategory) {
         const error = await response.json().catch(() => ({}));
         showMessage('categoriesMessage', `No se pudo editar la categoria: ${error.error || 'Error desconocido'}`, false);
     } catch (error) {
-        console.error('Error editando categoria:', error);
         showMessage('categoriesMessage', 'Error editando categoria', false);
     }
     return null;
@@ -611,7 +760,6 @@ async function saveEditCategory(index, value) {
 async function saveCategoriesList(nextCategories) {
     // Safety check: ensure we're never sending an empty array
     if (!nextCategories || nextCategories.length === 0) {
-        console.error('[SAVE] Attempting to save empty categories array!');
         showMessage('categoriesMessage', 'Error: No se pueden eliminar todas las categorias. Se requiere al menos una.', false);
         return false;
     }
@@ -619,12 +767,10 @@ async function saveCategoriesList(nextCategories) {
     // Additional validation: ensure no empty category names
     const hasEmpty = nextCategories.some(cat => !cat || typeof cat !== 'string' || cat.trim() === '');
     if (hasEmpty) {
-        console.error('[SAVE] Categories array contains empty values:', nextCategories);
         showMessage('categoriesMessage', 'Error: Hay categorias vacias que no se pueden guardar.', false);
         return false;
     }
     
-    console.log('[SAVE] Sending categories to server:', nextCategories);
     
     try {
         const response = await fetch('/categories/edit', {
@@ -633,16 +779,13 @@ async function saveCategoriesList(nextCategories) {
             body: JSON.stringify(nextCategories)
         });
         if (response.ok) {
-            console.log('[SAVE] Categories saved successfully');
             showMessage('categoriesMessage', 'Categorias guardadas con exito', true);
             return true;
         }
         const error = await response.json();
-        console.error('[SAVE] Server returned error:', error);
         showMessage('categoriesMessage', `No se pudieron guardar las categorias: ${error.error}`, false);
         return false;
     } catch (error) {
-        console.error('[SAVE] Error guardando categorias:', error);
         showMessage('categoriesMessage', 'Error guardando categorias', false);
         return false;
     }
@@ -706,7 +849,7 @@ async function saveCategoriesList(nextCategories) {
 
                 if (value && ![...allTags].map(t => t.toLowerCase()).includes(value)) {
                     const newItem = document.createElement('div');
-                    newItem.textContent = `+ Create "${input.value.trim()}"`;
+                    newItem.textContent = `+ Agregar "${input.value.trim()}"`;
                     newItem.className = 'new-tag';
                     newItem.onclick = () => addTag(input.value.trim());
                     dropdown.appendChild(newItem);
@@ -737,21 +880,25 @@ async function saveCategoriesList(nextCategories) {
             return { renderSelected };
         }
 
-        // --- Currency & Start Date ---
+        // --- Preferences ---
         function populateCurrencySelect() {
             const select = document.getElementById('currencySelect');
             const currencies = [
                 { code: 'ars', label: 'ARS ($)' },
                 { code: 'usd', label: 'USD ($)' },
-                { code: 'eur', label: 'EUR (€)' },
+                { code: 'eur', label: 'EUR (EUR)' },
             ];
-            select.innerHTML = currencies.map(({code, label}) => 
+            select.innerHTML = currencies.map(({code, label}) =>
                 `<option value="${code}" ${code === currentCurrency ? 'selected' : ''}>${label}</option>`
             ).join('');
         }
-        
+
         async function saveCurrency() {
             const currencyCode = document.getElementById('currencySelect').value;
+            if (currencyCode === currentCurrency) {
+                showMessage('currencyMessage', 'Esta moneda ya esta configurada como principal.', true);
+                return;
+            }
             try {
                 const response = await fetch('/currency/edit', {
                     method: 'PUT',
@@ -759,8 +906,9 @@ async function saveCategoriesList(nextCategories) {
                     body: JSON.stringify(currencyCode)
                 });
                 if (response.ok) {
-                    showMessage('currencyMessage', 'Moneda guardada con exito', true);
+                    showMessage('currencyMessage', 'Moneda principal actualizada. Se usara como referencia para Caja de Ahorro (CA), balance y vistas por defecto.', true);
                     currentCurrency = currencyCode;
+                    invalidateSharedConfigCache();
                 } else {
                     showMessage('currencyMessage', 'No se pudo guardar la moneda', false);
                 }
@@ -770,25 +918,6 @@ async function saveCategoriesList(nextCategories) {
             }
         }
 
-        function populateStartDateInput() {
-            document.getElementById("startDate").value = currentStartDate;
-        }
-
-        async function saveStartDate() {
-            const startDateValue = document.getElementById("startDate").value;
-            try {
-                const response = await fetch('/startdate/edit', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(parseInt(startDateValue, 10))
-                });
-                showMessage('startDateMessage', response.ok ? 'Dia de inicio guardado con exito' : 'No se pudo guardar el dia de inicio', response.ok);
-            } catch (error) {
-                console.error('Error guardando el dia de inicio:', error);
-                showMessage('startDateMessage', 'Error guardando el dia de inicio', false);
-            }
-        }
-        
         async function fetchAndRenderRecurringExpenses() {
             try {
                 const response = await fetch('/recurring-expenses');
@@ -812,7 +941,7 @@ async function saveCategoriesList(nextCategories) {
                 let occurrencesCount = 0;
                 while (nextDate < today) {
                     occurrencesCount++;
-                    if (occurrencesCount >= r.occurrences) return 'Finished';
+                    if (occurrencesCount >= r.occurrences) return 'Finalizada';
                     switch(r.interval) {
                         case 'daily': nextDate.setDate(nextDate.getDate() + 1); break;
                         case 'weekly': nextDate.setDate(nextDate.getDate() + 7); break;
@@ -837,21 +966,21 @@ async function saveCategoriesList(nextCategories) {
         function renderRecurringExpenses(recurring) {
             const list = document.getElementById('recurring-expenses-list');
             if (!recurring || recurring.length === 0) {
-                list.innerHTML = '<p>No recurring expenses found.</p>';
+                list.innerHTML = '<div class="no-data">No hay transacciones recurrentes.</div>';
                 return;
             }
             list.innerHTML = `
                 <table class="expense-table">
-                    <thead><tr><th>Nombre</th><th>Monto</th><th>Categoria</th><th>Intervalo</th><th>Prxima ocurrencia</th><th></th></tr></thead>
+                    <thead><tr><th class="col-left">Nombre</th><th class="col-right">Monto</th><th class="recurring-col-secondary col-left">Categoria</th><th class="recurring-col-secondary col-center">Intervalo</th><th class="col-center">Proxima ocurrencia</th><th class="actions-col col-center"></th></tr></thead>
                     <tbody>
                         ${recurring.map(r => `
                             <tr>
-                                <td>${r.name}</td>
-                                <td>${formatCurrency(r.amount)}</td>
-                                <td>${r.category}</td>
-                                <td>${r.interval.charAt(0).toUpperCase() + r.interval.slice(1)}</td>
-                                <td>${findNextOccurrence(r)}</td>
-                                <td>
+                                <td class="col-left">${r.name}</td>
+                                <td class="col-right">${formatCurrency(r.amount)}</td>
+                                <td class="recurring-col-secondary col-left">${r.category}</td>
+                                <td class="recurring-col-secondary col-center">${formatIntervalLabel(r.interval)}</td>
+                                <td class="col-center">${findNextOccurrence(r)}</td>
+                                <td class="actions-col col-center">
                                     <button class="edit-button" onclick="showRecurringEditModal('${r.id}')"><i class="fa-solid fa-pen-to-square"></i></button>
                                     <button class="delete-button" onclick="showRecurringDeleteModal('${r.id}')"><i class="fa-solid fa-trash-can"></i></button>
                                 </td>
@@ -946,93 +1075,6 @@ async function saveCategoriesList(nextCategories) {
             }
         }
 
-        // --- Import/Export ---
-        async function handleCsvImport(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const formData = new FormData();
-            formData.append('file', file);
-            const messageDiv = document.getElementById('importMessage');
-            const summaryDiv = document.getElementById('importSummary');
-
-            messageDiv.textContent = 'Importando... puede demorar con archivos grandes.';
-            messageDiv.className = 'form-message';
-            summaryDiv.style.display = 'none';
-
-            try {
-                const response = await fetch('/import/csv', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    messageDiv.textContent = 'Importacion completada';
-                    messageDiv.className = 'form-message success';
-                    summaryDiv.style.display = 'block';
-                    document.getElementById('summary-processed').textContent = result.total_processed;
-                    document.getElementById('summary-imported').textContent = result.imported;
-                    document.getElementById('summary-skipped').textContent = result.skipped;
-                    document.getElementById('summary-new-categories').textContent = (result.new_categories || []).join(', ') || 'None';
-                    
-                    await initialize();
-                } else {
-                    messageDiv.textContent = `Error: ${result.error || 'No se pudo importar el CSV'}`;
-                    messageDiv.className = 'form-message error';
-                }
-            } catch (error) {
-                console.error('Error importing CSV:', error);
-                messageDiv.textContent = 'Error: ocurri un problema inesperado durante la importacion.';
-                messageDiv.className = 'form-message error';
-            } finally {
-                event.target.value = '';
-            }
-        }
-
-        async function handleCsvImportOld(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const formData = new FormData();
-            formData.append('file', file);
-            const messageDiv = document.getElementById('importMessage');
-            const summaryDiv = document.getElementById('importSummary');
-
-            messageDiv.textContent = 'Importando... puede demorar con archivos grandes.';
-            messageDiv.className = 'form-message';
-            summaryDiv.style.display = 'none';
-
-            try {
-                const response = await fetch('/import/csvold', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    messageDiv.textContent = 'Importacion completada';
-                    messageDiv.className = 'form-message success';
-                    summaryDiv.style.display = 'block';
-                    document.getElementById('summary-processed').textContent = result.total_processed;
-                    document.getElementById('summary-imported').textContent = result.imported;
-                    document.getElementById('summary-skipped').textContent = result.skipped;
-                    document.getElementById('summary-new-categories').textContent = (result.new_categories || []).join(', ') || 'None';
-                    
-                    await initialize();
-                } else {
-                    messageDiv.textContent = `Error: ${result.error || 'No se pudo importar el CSV'}`;
-                    messageDiv.className = 'form-message error';
-                }
-            } catch (error) {
-                console.error('Error importing CSV (legacy):', error);
-                messageDiv.textContent = 'Error: ocurri un problema inesperado durante la importacion.';
-                messageDiv.className = 'form-message error';
-            } finally {
-                event.target.value = '';
-            }
-        }
-
         // --- Initialization ---
         async function initialize() {
             try {
@@ -1051,24 +1093,16 @@ async function saveCategoriesList(nextCategories) {
                 const config = await configResponse.json();
                 if (categoriesResponse.ok) {
                     categories = await categoriesResponse.json();
-                    console.log('Categories from /categories endpoint:', categories);
                 }
 
-                console.log('Categories after fetch:', categories);
-                console.log('Config categories:', config.categories);
-
                 if (!categories || categories.length === 0) {
-                    console.warn('No categories from endpoint, using config fallback');
                     const fallback = [...(config.categories || [])];
                     if (fallback.length > 0) {
-                        console.log('Using fallback categories:', fallback);
                         categories = fallback;
                     } else {
                         categories = [];
                     }
                 }
-
-                console.log('Final categories list:', categories);
                 categoriesLoading = false;
                 saveCachedCategories(categories);
                 renderCategories();
@@ -1082,15 +1116,28 @@ async function saveCategoriesList(nextCategories) {
                 if (!recurringExpensesResponse.ok) throw new Error('No se pudieron obtener las transacciones recurrentes');
                 recurringExpenses = await recurringExpensesResponse.json() || [];
 
-                currentCurrency = config.currency;
-                currentStartDate = config.startDate;
+                currentCurrency = (config.currency || 'ars').toLowerCase();
                 allTags.clear();
                 (expenses || []).forEach(exp => (exp.tags || []).forEach(tag => allTags.add(tag)));
                 (recurringExpenses || []).forEach(exp => (exp.tags || []).forEach(tag => allTags.add(tag)));
 
                 populateCurrencySelect();
-                populateStartDateInput();
                 renderRecurringExpenses(recurringExpenses);
+                hideSettingsSection('categoriesSection');
+                hideSettingsSection('recurringSection');
+                setRecurringComposerVisible(false);
+
+                try {
+                    const authResponse = await fetch('/auth/me', { cache: 'no-store' });
+                    if (authResponse.ok) {
+                        const user = await authResponse.json();
+                        applySettingsProfile(user);
+                    } else {
+                        applySettingsProfile(null);
+                    }
+                } catch {
+                    applySettingsProfile(null);
+                }
 
                 createTagInput('tags-input', 'selected-tags', 'tags-dropdown', addFormSelectedTags);
                 fetch('/version').then(r => r.ok ? r.text() : 'dev').then(version => {
@@ -1126,6 +1173,26 @@ async function saveCategoriesList(nextCategories) {
         });
 
         // --- Event Listeners ---
+        settingsSectionButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const sectionId = button.dataset.settingsSection;
+                if (sectionId) showOnlySettingsSection(sectionId);
+            });
+        });
+        settingsCloseButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const sectionId = button.dataset.settingsClose;
+                if (sectionId) hideSettingsSection(sectionId);
+            });
+        });
+        document.getElementById('settingsLogoutBtn')?.addEventListener('click', () => {
+            if (typeof window.expenseLogLogout === 'function') {
+                window.expenseLogLogout();
+                return;
+            }
+            window.location.reload();
+        });
+        settingsEditNameBtn?.addEventListener('click', requestAndSaveProfileName);
         document.getElementById('addCategory').addEventListener('click', addCategory);
         document.getElementById('categorySearch').addEventListener('input', (e) => {
             categoryFilter = e.target.value.trim().toLowerCase();
@@ -1143,10 +1210,10 @@ async function saveCategoriesList(nextCategories) {
                 if (input) saveEditCategory(index, input.value);
             }
         });
-        document.getElementById('saveCurrency').addEventListener('click', saveCurrency);
-        document.getElementById('saveStartDate').addEventListener('click', saveStartDate);
-        document.getElementById('csv-import-file').addEventListener('change', handleCsvImport);
-        document.getElementById('csv-import-file-old').addEventListener('change', handleCsvImportOld);
+        document.getElementById('currencySelect').addEventListener('change', saveCurrency);
+        toggleRecurringCreateBtn?.addEventListener('click', () => {
+            setRecurringComposerVisible(recurringFormWrap?.hidden === true);
+        });
         document.getElementById('newCategory').addEventListener('keypress', e => e.key === 'Enter' && addCategory());
 
         document.getElementById('recurringExpenseForm').addEventListener('submit', async (e) => {
@@ -1181,6 +1248,7 @@ async function saveCategoriesList(nextCategories) {
                     document.getElementById('recurringExpenseForm').reset();
                     document.getElementById('selected-tags').innerHTML = '';
                     addFormSelectedTags.clear();
+                    setRecurringComposerVisible(false);
                     fetchAndRenderRecurringExpenses();
                 } else {
                     const error = await response.json();
@@ -1203,4 +1271,5 @@ async function saveCategoriesList(nextCategories) {
     </script>
 </body>
 </html>
+
 

@@ -443,6 +443,18 @@ func (h *Handler) EditExpense(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid request body"})
 		return
 	}
+	// Preserve recurring linkage for generated instances even if UI does not send recurringID.
+	existingExpense, err := h.storage.GetExpense(userID, id)
+	if err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "not found") {
+			writeJSON(w, http.StatusNotFound, ErrorResponse{Error: "Expense not found"})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to load existing expense"})
+		log.Printf("API ERROR: Failed to load expense before edit: %v\n", err)
+		return
+	}
+	expense.RecurringID = existingExpense.RecurringID
 	if err := expense.Validate(); err != nil {
 		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 		return

@@ -32,58 +32,50 @@
     <script src="/chart.min.js"></script>
 </head>
 <body>
-    <div id="liquidityAlertWidget" class="liquidity-alert" style="display: none;">
-        <button id="liquidityAlertToggle" class="liquidity-alert-toggle" type="button" aria-label="Alertas de liquidez">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-            <span id="liquidityAlertCount" class="liquidity-alert-count">0</span>
-        </button>
-        <div id="liquidityAlertPanel" class="liquidity-alert-panel" style="display: none;">
-            <div id="liquidityAlertTitle" class="liquidity-alert-title">Riesgo de saldo</div>
-            <div id="liquidityAlertSummary" class="liquidity-alert-summary"></div>
-            <div id="liquidityAlertList" class="liquidity-alert-list"></div>
-        </div>
-    </div>
     <div class="container">
         <header>
             <div class="nav-bar">
-                <a href="/">
-                    <img src="/pwa/icon-192.png" alt="ExpenseLo==> Deploying...
-==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
-2026/01/28 16:03:28 Failed to initialize storage: missing STORAGE_TYPE (set STORAGE_TYPE=postgres)
-2026/01/28 16:03:30 Failed to initialize storage: missing STORAGE_TYPE (set STORAGE_TYPE=postgres)
-==> Exited with status 1
-==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
-2026/01/28 16:03:40 Failed to initialize storage: missing STORAGE_TYPE (set STORAGE_TYPE=postgres) Logo" height="85" style="vertical-align: middle; margin-right: 20px;">
+                <a href="/app" class="nav-logo-link">
+                    <img src="/pwa/icon-192.png" alt="ExpenseLog Logo" class="nav-logo">
                 </a>
-                <a href="/" class="view-button active" data-tooltip="Panel">
-                    <i class="fa-solid fa-chart-pie"></i>
-                </a>
-                <a href="/table" class="view-button" data-tooltip="Tabla">
-                    <i class="fa-solid fa-table"></i>
-                </a>
-                <a href="/settings" class="view-button" data-tooltip="Configuracion">
-                    <i class="fa-solid fa-gear"></i>
-                </a>
-                <button id="logoutButton" class="view-button" data-tooltip="Salir" type="button">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                </button>
+                <nav class="nav-center-tabs" aria-label="Secciones">
+                    <a href="/app" class="view-button active" data-tooltip="Panel">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </a>
+                    <a href="/table" class="view-button" data-tooltip="Tabla">
+                        <i class="fa-solid fa-table"></i>
+                    </a>
+                    <a href="/settings" class="view-button" data-tooltip="Configuracion">
+                        <i class="fa-solid fa-gear"></i>
+                    </a>
+                </nav>
+                <div class="nav-right-slot">
+                    <button id="notificationCenterButton" class="view-button notification-trigger" data-tooltip="Notificaciones" type="button" aria-label="Notificaciones" aria-expanded="false">
+                        <i class="fa-regular fa-bell"></i>
+                        <span id="notificationCenterBadge" class="notification-badge" hidden></span>
+                    </button>
+                    <div id="notificationCenterPanel" class="notification-panel" hidden>
+                        <div class="notification-panel-title">Notificaciones</div>
+                        <div id="notificationCenterList" class="notification-list"></div>
+                    </div>
+                </div>
             </div>
         </header>
 
+        <div id="homeGreeting" class="home-greeting"></div>
+
         <div class="month-navigation">
-            <button id="prevMonth" class="nav-button"><i class="fa-solid fa-arrow-left"></i></button>
+            <button id="prevMonth" class="nav-button"><span class="month-nav-arrow" aria-hidden="true">&#8592;</span></button>
             <div class="current-month" id="currentMonth"></div>
-            <button id="nextMonth" class="nav-button"><i class="fa-solid fa-arrow-right"></i></button>
+            <span id="periodModeBadge" class="period-mode-badge" style="display: none;">Proyeccion</span>
+            <button id="nextMonth" class="nav-button"><span class="month-nav-arrow" aria-hidden="true">&#8594;</span></button>
         </div>
 
         <div class="table-controls">
             <div class="quick-actions">
-                <button id="toggleExpenseFormBtn" class="quick-action" data-action="open-form">
-                    <i class="fa-solid fa-plus"></i> Agregar gasto
-                </button>
+                <button id="toggleExpenseFormBtn" class="quick-action" data-action="open-form">Agregar gasto</button>
                 <button class="quick-action" data-action="income">Ingreso</button>
-                <button class="quick-action" data-action="expense">Gasto</button>
-                <button class="quick-action" data-action="card-expense">Gasto con Tarjeta</button>
+                <button class="quick-action" data-action="card-expense">Gasto Tarjeta</button>
             </div>
         </div>
 
@@ -150,19 +142,31 @@
                             document.getElementById('date').value = formattedDate;
                         </script>
                     </div>
-                    
-                    <div class="form-group form-group-checkbox">
-                        <label for="reportGain">Registrar ingreso</label>
-                        <input type="checkbox" id="reportGain" class="styled-checkbox">
+
+                    <div class="form-group">
+                        <label for="movementType">Tipo</label>
+                        <select id="movementType">
+                            <option value="expense">Gasto</option>
+                            <option value="income">Ingreso</option>
+                            <option value="refund">Reintegro</option>
+                        </select>
                     </div>
-    
-                    <button type="submit" class="nav-button">Agregar gasto</button>
+
+                    <div class="form-actions">
+                        <button type="button" id="cancelExpenseFormBtn" class="nav-button button-secondary">Cancelar</button>
+                        <button type="submit" class="nav-button button-primary">Agregar gasto</button>
+                    </div>
                 </form>
                 <div id="formMessage" class="form-message"></div>
             </div>
         </div>
 
-        <div class="panel-filters">
+        <div id="recentMovements" class="recent-movements" style="display: none;">
+            <h3>Ultimos 3 movimientos</h3>
+            <div id="recentList" class="recent-list"></div>
+        </div>
+
+        <div class="panel-filters home-filters">
             <div class="filter-group">
                 <span class="filter-label">Moneda</span>
                 <select id="filterCurrency" class="filter-select">
@@ -177,7 +181,6 @@
             </div>
             <button id="clearFilters" class="nav-button button-secondary">Limpiar</button>
             <button id="toggleChart" class="nav-button button-primary" style="display: none;">Ver grafico</button>
-            <span id="baseCurrencyIndicator" class="panel-indicator"></span>
         </div>
 
         <div id="emptyStateBanner" class="empty-state" style="display: none;"></div>
@@ -191,11 +194,6 @@
             </div>
             <div class="legend-box" id="customLegend">
             </div>
-        </div>
-
-        <div id="recentMovements" class="recent-movements" style="display: none;">
-            <h3>Ultimos 3 movimientos</h3>
-            <div id="recentList" class="recent-list"></div>
         </div>
 
         <div id="cashflow-section" class="cashflow-container"></div>
@@ -257,6 +255,7 @@
         </div>
     </div>
 
+    <script src="/alerts_ui.js"></script>
     <script src="/functions.js"></script>
     <script>
         let currentCurrency = 'usd';
@@ -272,13 +271,20 @@
         const supportedCurrencies = Object.keys(currencyBehaviors);
         const sourceSelect = document.getElementById('sourceSelect');
         const cardGroup = document.getElementById('cardGroup');
+        const movementTypeSelect = document.getElementById('movementType');
         let filterCurrency = 'all';
         let filterSource = 'all';
         let categories = [];
         let chartExpanded = false;
-        const LIQUIDITY_ALERT_CURRENCY = 'ars';
-        const LIQUIDITY_ALERT_DAYS = 7;
-        const LIQUIDITY_ALERT_REAPPEAR_DAYS = 1;
+        const expenseForm = document.getElementById('expenseForm');
+        const expenseSubmitButton = expenseForm ? expenseForm.querySelector('button[type="submit"]') : null;
+        const movementTypeGroup = movementTypeSelect ? movementTypeSelect.closest('.form-group') : null;
+        const LIQUIDITY_RULES = Object.freeze({
+            currency: 'ars',
+            windowDays: 7,
+            reappearDays: 1,
+        });
+        let activeLiquidityRules = { ...LIQUIDITY_RULES };
         const LIQUIDITY_DISMISS_STORAGE_KEY = 'expenselog_liquidity_dismiss_v1';
         const liquidityAlertWidget = document.getElementById('liquidityAlertWidget');
         const liquidityAlertToggle = document.getElementById('liquidityAlertToggle');
@@ -288,7 +294,94 @@
         const liquidityAlertSummary = document.getElementById('liquidityAlertSummary');
         const liquidityAlertList = document.getElementById('liquidityAlertList');
         const liquidityAlertIcon = liquidityAlertToggle ? liquidityAlertToggle.querySelector('i') : null;
+        const alertUI = (typeof ExpenseLogAlertUI !== 'undefined') ? ExpenseLogAlertUI : null;
         let latestLiquidityAlertsData = null;
+        const CONFIG_CACHE_KEY = 'expenselog_config_cache_v1';
+        const CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
+
+        function readConfigCache() {
+            try {
+                const raw = localStorage.getItem(CONFIG_CACHE_KEY);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') return null;
+                if (!parsed.config || typeof parsed.config !== 'object') return null;
+                return parsed;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function writeConfigCache(config) {
+            try {
+                localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify({
+                    cachedAt: Date.now(),
+                    config,
+                }));
+            } catch (error) {
+                // ignore cache write failures
+            }
+        }
+
+        function isConfigCacheFresh(entry) {
+            if (!entry || typeof entry.cachedAt !== 'number') return false;
+            return (Date.now() - entry.cachedAt) < CONFIG_CACHE_TTL_MS;
+        }
+
+        function applyHomeConfig(config) {
+            const categorySelect = document.getElementById('category');
+            categories = Array.isArray(config?.categories) ? config.categories : [];
+            categorySelect.innerHTML = categories.map(cat =>
+                `<option value="${cat}">${cat}</option>`
+            ).join('');
+
+            currentCurrency = (config?.currency || 'ars').toLowerCase();
+            if (!supportedCurrencies.includes(currentCurrency)) {
+                currentCurrency = 'ars';
+            }
+            baseCurrency = currentCurrency;
+            startDate = Number(config?.startDate) || 1;
+            populateFormCurrency();
+            populateFilters();
+        }
+
+        function userDisplayNameFromEmail(email) {
+            const localPart = (email || '').split('@')[0] || '';
+            const cleaned = localPart.replace(/[._-]+/g, ' ').trim();
+            if (!cleaned) return 'Usuario';
+            return cleaned
+                .split(' ')
+                .filter(Boolean)
+                .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+                .join(' ');
+        }
+
+        function resolveHomeDisplayName(user) {
+            if (!user || typeof user !== 'object') return '';
+            const explicitName = (user.name || user.displayName || '').trim();
+            if (explicitName) return explicitName;
+            return userDisplayNameFromEmail(user.email || '');
+        }
+
+        function getGreetingPrefix(now = new Date()) {
+            const hour = now.getHours();
+            if (hour < 12) return 'Buen dia';
+            if (hour < 20) return 'Buenas tardes';
+            return 'Buenas noches';
+        }
+
+        function updateHomeGreeting(user) {
+            const greetingEl = document.getElementById('homeGreeting');
+            if (!greetingEl) return;
+            const name = resolveHomeDisplayName(user);
+            if (!name) {
+                greetingEl.textContent = '';
+                greetingEl.style.display = 'none';
+                return;
+            }
+            greetingEl.style.display = 'block';
+            greetingEl.textContent = `${getGreetingPrefix()}, ${name} 👋`;
+        }
 
         function formatCurrencyWithCurrency(amount, currencyCode) {
             const behavior = currencyBehaviors[currencyCode] || currencyBehaviors[currentCurrency] || {symbol:"$",useComma:false,useDecimals:true,useSpace:false,right:false};
@@ -344,13 +437,31 @@
         }
 
         function buildLiquidityAlertKey(item) {
+            if (alertUI && typeof alertUI.buildLiquidityAlertKey === 'function') {
+                return alertUI.buildLiquidityAlertKey(item);
+            }
             const recurringId = String(item?.recurringId || 'sin-recurring');
             const dueDate = String(item?.dueDate || '');
             const kind = String(item?.kind || 'preview_7d');
             return `${recurringId}|${dueDate}|${kind}`;
         }
 
-        function shouldHideDismissedAlert(item, dismissMap) {
+        function getLiquidityRules(data) {
+            const reappearDays = Number(data?.reappearDays);
+            const windowDays = Number(data?.windowDays);
+            const next = {
+                currency: activeLiquidityRules.currency || LIQUIDITY_RULES.currency,
+                reappearDays: Number.isFinite(reappearDays) ? reappearDays : activeLiquidityRules.reappearDays,
+                windowDays: Number.isFinite(windowDays) ? windowDays : activeLiquidityRules.windowDays,
+            };
+            activeLiquidityRules = next;
+            return next;
+        }
+
+        function shouldHideDismissedAlert(item, dismissMap, reappearDays) {
+            if (alertUI && typeof alertUI.shouldHideDismissedAlert === 'function') {
+                return alertUI.shouldHideDismissedAlert(item, dismissMap, reappearDays);
+            }
             const key = buildLiquidityAlertKey(item);
             const entry = dismissMap[key];
             if (!entry) return false;
@@ -358,8 +469,8 @@
             const dismissedDaysUntil = typeof entry === 'object'
                 ? Number(entry.daysUntil ?? Number.POSITIVE_INFINITY)
                 : Number.POSITIVE_INFINITY;
-            const is24hWindow = daysUntil <= LIQUIDITY_ALERT_REAPPEAR_DAYS;
-            const wasDismissedBefore24h = dismissedDaysUntil > LIQUIDITY_ALERT_REAPPEAR_DAYS;
+            const is24hWindow = daysUntil <= reappearDays;
+            const wasDismissedBefore24h = dismissedDaysUntil > reappearDays;
             if (is24hWindow && wasDismissedBefore24h) {
                 return false;
             }
@@ -375,10 +486,11 @@
             writeLiquidityDismissMap(dismissMap);
         }
 
-        function liquidityAlertLead(item) {
+        function liquidityAlertLead(item, rules) {
+            const criticalDays = Number(rules?.criticalDays || 4);
             if (item?.kind === 'due') return 'Vencimiento';
-            if (item?.kind === 'risk_4d') return 'Riesgo en 4 dias';
-            if (item?.kind === 'monitor_4d') return 'Seguimiento 4 dias';
+            if (item?.kind === 'risk_4d') return `Riesgo en ${criticalDays} dias`;
+            if (item?.kind === 'monitor_4d') return `Seguimiento ${criticalDays} dias`;
             return 'Aviso 7 dias';
         }
 
@@ -390,9 +502,24 @@
 
         function renderLiquidityAlerts(data) {
             if (!liquidityAlertWidget) return;
-            const incomingAlerts = Array.isArray(data?.alerts) ? data.alerts : [];
             const dismissMap = readLiquidityDismissMap();
-            const alerts = incomingAlerts.filter(item => !shouldHideDismissedAlert(item, dismissMap));
+            const rules = getLiquidityRules(data);
+            rules.criticalDays = Number(data?.criticalDays || 4);
+
+            const panelModel = (alertUI && typeof alertUI.buildPanelModel === 'function')
+                ? alertUI.buildPanelModel(data, dismissMap, rules)
+                : null;
+            const alerts = panelModel ? panelModel.alerts : ((Array.isArray(data?.alerts) ? data.alerts : []).filter(item => !shouldHideDismissedAlert(item, dismissMap, rules.reappearDays)));
+            const summary = panelModel ? panelModel.summary : ((alertUI && typeof alertUI.summarizeAlerts === 'function')
+                ? alertUI.summarizeAlerts(alerts)
+                : {
+                    total: alerts.length,
+                    criticalCount: alerts.filter(item => item.severity === 'critical').length,
+                    infoCount: alerts.filter(item => item.severity !== 'critical').length,
+                    panelSeverity: alerts.some(item => item.severity === 'critical') ? 'critical' : 'info',
+                });
+            const hasCritical = panelModel ? (panelModel.summary.panelSeverity === 'critical') : (summary.panelSeverity === 'critical');
+
             if (alerts.length === 0) {
                 liquidityAlertWidget.style.display = 'none';
                 liquidityAlertWidget.dataset.severity = 'none';
@@ -400,24 +527,27 @@
                 return;
             }
 
-            const criticalCount = alerts.filter(item => item.severity === 'critical').length;
-            const infoCount = alerts.length - criticalCount;
-            const hasCritical = criticalCount > 0;
+            const criticalCount = summary.criticalCount;
+            const infoCount = summary.infoCount;
             liquidityAlertWidget.style.display = 'block';
             liquidityAlertWidget.dataset.severity = hasCritical ? 'critical' : 'info';
             liquidityAlertCount.textContent = String(alerts.length);
             if (liquidityAlertTitle) {
-                liquidityAlertTitle.textContent = hasCritical ? 'Riesgo de saldo' : 'Notificaciones de saldo';
+                liquidityAlertTitle.textContent = panelModel ? panelModel.title : (hasCritical ? 'Riesgo de saldo' : 'Notificaciones de saldo');
             }
             if (liquidityAlertIcon) {
-                liquidityAlertIcon.className = hasCritical ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-bell';
+                const iconClass = panelModel
+                    ? (panelModel.icon === 'warning' ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-bell')
+                    : (hasCritical ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-bell');
+                liquidityAlertIcon.className = iconClass;
             }
             const balanceNow = Number(data?.balanceNow || 0);
-            const windowDays = Number(data?.windowDays || LIQUIDITY_ALERT_DAYS);
+            const windowDays = Number(data?.windowDays || rules.windowDays);
+            const currencyLabel = rules.currency.toUpperCase();
             if (hasCritical) {
-                liquidityAlertSummary.textContent = `Saldo ARS actual: ${formatCurrencyWithCurrency(balanceNow, LIQUIDITY_ALERT_CURRENCY)}. ${criticalCount} alerta(s) critica(s) en ${windowDays} dias.`;
+                liquidityAlertSummary.textContent = `Saldo ${currencyLabel} actual: ${formatCurrencyWithCurrency(balanceNow, rules.currency)}. ${criticalCount} alerta(s) critica(s) en ${windowDays} dias.`;
             } else {
-                liquidityAlertSummary.textContent = `Saldo ARS actual: ${formatCurrencyWithCurrency(balanceNow, LIQUIDITY_ALERT_CURRENCY)}. ${infoCount} notificacion(es) en ${windowDays} dias.`;
+                liquidityAlertSummary.textContent = `Saldo ${currencyLabel} actual: ${formatCurrencyWithCurrency(balanceNow, rules.currency)}. ${infoCount} notificacion(es) en ${windowDays} dias.`;
             }
 
             liquidityAlertList.innerHTML = alerts.map((item, index) => {
@@ -435,17 +565,17 @@
                             <span class="liquidity-alert-badge ${isCritical ? 'critical' : 'info'}">${isCritical ? 'Alerta' : 'Info'}</span>
                         </div>
                         <div class="liquidity-alert-item-row">
-                            <span>${liquidityAlertLead(item)}: ${daysText} (${dueDate})</span>
-                            <span>${formatCurrencyWithCurrency(requiredAmount, LIQUIDITY_ALERT_CURRENCY)}</span>
+                            <span>${liquidityAlertLead(item, rules)}: ${daysText} (${dueDate})</span>
+                            <span>${formatCurrencyWithCurrency(requiredAmount, rules.currency)}</span>
                         </div>
                         <div class="liquidity-alert-item-row">
                             <span>Saldo proyectado luego del egreso</span>
-                            <span class="liquidity-alert-balance ${projectedClass}">${formatCurrencyWithCurrency(projectedAfter, LIQUIDITY_ALERT_CURRENCY)}</span>
+                            <span class="liquidity-alert-balance ${projectedClass}">${formatCurrencyWithCurrency(projectedAfter, rules.currency)}</span>
                         </div>
                         ${isCritical && shortfall > 0 ? `
                         <div class="liquidity-alert-item-row liquidity-alert-shortfall">
                             <span>Faltante estimado</span>
-                            <span>${formatCurrencyWithCurrency(shortfall, LIQUIDITY_ALERT_CURRENCY)}</span>
+                            <span>${formatCurrencyWithCurrency(shortfall, rules.currency)}</span>
                         </div>` : ''}
                         <div class="liquidity-alert-item-actions">
                             <button type="button" class="liquidity-alert-dismiss" data-alert-index="${index}">Borrar</button>
@@ -470,7 +600,7 @@
         async function refreshLiquidityAlert() {
             if (!liquidityAlertWidget) return;
             try {
-                const response = await fetch(`/alerts/liquidity?currency=${LIQUIDITY_ALERT_CURRENCY}&days=${LIQUIDITY_ALERT_DAYS}`);
+                const response = await fetch(`/alerts/liquidity?currency=${LIQUIDITY_RULES.currency}`);
                 if (!response.ok) throw new Error(`status ${response.status}`);
                 const data = await response.json();
                 latestLiquidityAlertsData = data;
@@ -569,6 +699,7 @@
                 cashflowSection.style.display = 'none';
                 baseSummary.style.display = 'none';
                 filtersRow.style.display = 'none';
+                updateHomeFilterControls(false);
                 noDataMessage.style.display = 'none';
                 emptyStateBanner.style.display = 'block';
                 emptyStateBanner.innerHTML = '<strong>Aun no hay gastos.</strong> Carga el primero con + Agregar gasto.';
@@ -584,9 +715,10 @@
             noDataMessage.style.display = 'none';
             emptyStateBanner.style.display = 'none';
             renderRecentMovements(monthExpenses);
-            filtersRow.style.display = hasBaseExpenses ? 'flex' : 'none';
+            filtersRow.style.display = hasBaseExpenses ? '' : 'none';
             toggleChart.style.display = hasBaseExpenses ? 'inline-flex' : 'none';
             toggleChart.textContent = chartExpanded ? 'Ocultar grafico' : 'Ver grafico';
+            updateHomeFilterControls(hasBaseExpenses);
 
             // Grafico solo para moneda base y gastos
             const filteredForChart = monthExpenses.filter(e => e.currency === baseCurrency && e.amount < 0);
@@ -609,7 +741,7 @@
                 legendBox.style.display = 'flex';
                 const categoryData = calculateCategoryBreakdown(filteredForChart);
                 createPieChart(categoryData);
-                updateLegend(categoryData);
+                updateLegend(categoryData, filteredForChart);
             }
         }
 
@@ -690,7 +822,17 @@
         function renderRecentMovements(expenses) {
             const container = document.getElementById('recentMovements');
             const list = document.getElementById('recentList');
-            const sorted = expenses.slice().sort((a, b) => getComparableExpenseDate(b) - getComparableExpenseDate(a));
+            const title = container.querySelector('h3');
+            const futureView = isFuturePeriodSelected();
+            if (title) {
+                title.textContent = futureView ? 'Proximos 3 movimientos' : 'Ultimos 3 movimientos';
+            }
+            const sorted = expenses.slice().sort((a, b) => {
+                if (futureView) {
+                    return getComparableExpenseDate(a) - getComparableExpenseDate(b);
+                }
+                return getComparableExpenseDate(b) - getComparableExpenseDate(a);
+            });
             const recent = sorted.slice(0, 3);
             if (recent.length === 0) {
                 container.style.display = 'none';
@@ -704,6 +846,20 @@
                     <span>${formatCurrencyWithCurrency(item.amount, item.currency || baseCurrency)}</span>
                 </div>
             `).join('');
+        }
+
+        function isFuturePeriodSelected() {
+            const selectedMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            const now = new Date();
+            const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            return selectedMonth > currentMonthStart;
+        }
+
+        function updatePeriodModeBadge() {
+            const badge = document.getElementById('periodModeBadge');
+            if (!badge) return;
+            const isFuture = isFuturePeriodSelected();
+            badge.style.display = isFuture ? 'inline-flex' : 'none';
         }
 
         function createPieChart(categoryData) {
@@ -741,11 +897,11 @@
             });
         }
 
-        function updateLegend(categoryData) {
+        function updateLegend(categoryData, filteredChartExpenses) {
             const legendContainer = document.getElementById('customLegend');
             legendContainer.innerHTML = '';
-            const monthExpenses = getVisiblePeriodExpenses(allExpenses).filter(exp => exp.currency === baseCurrency);
-            const currentMonthCategories = [...new Set(monthExpenses
+            const sourceExpenses = Array.isArray(filteredChartExpenses) ? filteredChartExpenses : [];
+            const currentMonthCategories = [...new Set(sourceExpenses
                 .filter(exp => exp.amount < 0)
                 .map(exp => exp.category))];
             const categoryMap = new Map(categoryData.map(cat => [cat.category, cat]));
@@ -775,7 +931,7 @@
                 legendContainer.appendChild(item);
             });
 
-            const activeTotalExpenses = monthExpenses
+            const activeTotalExpenses = sourceExpenses
                 .filter(exp => exp.amount < 0 && !disabledCategories.has(exp.category))
                 .reduce((sum, exp) => sum + Math.abs(exp.amount), 0);
 
@@ -792,6 +948,18 @@
             legendContainer.insertAdjacentHTML('beforeend', totalsHtml);
         }
 
+        function updateHomeFilterControls(hasBaseExpenses = true) {
+            const clearBtn = document.getElementById('clearFilters');
+            const filtersRow = document.querySelector('.home-filters');
+            if (!clearBtn) return;
+            const hasFilters = filterCurrency !== 'all' || filterSource !== 'all';
+            clearBtn.style.display = (hasBaseExpenses && hasFilters) ? 'inline-flex' : 'none';
+            clearBtn.disabled = !hasFilters;
+            if (filtersRow) {
+                filtersRow.classList.toggle('has-clear', hasBaseExpenses && hasFilters);
+            }
+        }
+
         function toggleCategory(category) {
             if (disabledCategories.has(category)) {
                 disabledCategories.delete(category);
@@ -803,22 +971,24 @@
 
         async function initialize() {
             try {
-                const configResponse = await fetch('/config');
-                if (!configResponse.ok) throw new Error('No se pudo obtener la configuracion');
-                const config = await configResponse.json();
-                const categorySelect = document.getElementById('category');
-                categories = config.categories || [];
-                categorySelect.innerHTML = categories.map(cat => 
-                    `<option value="${cat}">${cat}</option>`
-                ).join('');
-                currentCurrency = (config.currency || 'ars').toLowerCase();
-                if (!supportedCurrencies.includes(currentCurrency)) {
-                    currentCurrency = 'ars';
+                const cachedConfigEntry = readConfigCache();
+                const cachedConfig = cachedConfigEntry?.config || null;
+                updateHomeGreeting(currentUser);
+                if (cachedConfig) {
+                    applyHomeConfig(cachedConfig);
                 }
-                baseCurrency = currentCurrency;
-                populateFormCurrency();
-                startDate = config.startDate;
-                populateFilters();
+
+                if (!cachedConfig || !isConfigCacheFresh(cachedConfigEntry)) {
+                    try {
+                        const configResponse = await fetch('/config');
+                        if (!configResponse.ok) throw new Error('No se pudo obtener la configuracion');
+                        const config = await configResponse.json();
+                        applyHomeConfig(config);
+                        writeConfigCache(config);
+                    } catch (configError) {
+                        if (!cachedConfig) throw configError;
+                    }
+                }
 
                 const response = await fetch('/expenses');
                 if (!response.ok) throw new Error('No se pudieron obtener los datos');
@@ -841,9 +1011,9 @@
                 const uniqueCategories = [...new Set(allExpenses.map(exp => exp.category))];
                 assignCategoryColors(uniqueCategories);
                 updateMonthDisplay();
+                updatePeriodModeBadge();
                 updateChartAndLegend();
                 setupTagInput();
-                updateIndicator();
                 await refreshLiquidityAlert();
             } catch (error) {
                 console.error('No se pudo inicializar el panel:', error);
@@ -903,7 +1073,7 @@
                 
                 if (value && ![...allTags].map(t => t.toLowerCase()).includes(value)) {
                     const newItem = document.createElement('div');
-                    newItem.textContent = `+ Create "${input.value.trim()}"`;
+                    newItem.textContent = `+ Agregar "${input.value.trim()}"`;
                     newItem.className = 'new-tag';
                     newItem.onclick = () => addTag(input.value.trim());
                     dropdown.appendChild(newItem);
@@ -939,12 +1109,14 @@
         document.getElementById('prevMonth').addEventListener('click', () => {
             currentDate.setMonth(currentDate.getMonth() - 1);
             updateMonthDisplay();
+            updatePeriodModeBadge();
             updateChartAndLegend();
         });
 
         document.getElementById('nextMonth').addEventListener('click', () => {
             currentDate.setMonth(currentDate.getMonth() + 1);
             updateMonthDisplay();
+            updatePeriodModeBadge();
             updateChartAndLegend();
         });
 
@@ -963,13 +1135,20 @@
                 <option value="EFECTIVO">Efectivo</option>
                 <option value="TARJETA">Tarjeta</option>
             `;
+            updateCompactHomeFilterLabels();
+            updateHomeFilterControls();
         }
 
-        function updateIndicator() {
-            const indicator = document.getElementById('baseCurrencyIndicator');
-            indicator.textContent = `Moneda base: ${baseCurrency.toUpperCase()} · El grafico muestra solo gastos en ${baseCurrency.toUpperCase()}`;
+        function updateCompactHomeFilterLabels() {
+            const currencySelect = document.getElementById('filterCurrency');
+            const sourceFilterSelect = document.getElementById('filterSource');
+            if (!currencySelect || !sourceFilterSelect) return;
+            const compact = window.innerWidth <= 415;
+            const currencyAll = currencySelect.querySelector('option[value="all"]');
+            if (currencyAll) {
+                currencyAll.textContent = compact ? 'Tod.' : 'Todas';
+            }
         }
-
         function getFilteredMonthExpenses(periodExpenses) {
             const monthExpenses = Array.isArray(periodExpenses) ? periodExpenses : getVisiblePeriodExpenses(allExpenses);
             return monthExpenses.filter(exp => {
@@ -993,12 +1172,36 @@
             document.getElementById('cardError').textContent = '';
         }
 
+        function setExpenseFormVisible(visible) {
+            const formContainer = document.getElementById('addExpenseContainer');
+            formContainer.style.display = visible ? 'block' : 'none';
+            const openFormButton = document.getElementById('toggleExpenseFormBtn');
+            if (openFormButton) {
+                openFormButton.style.display = visible ? 'none' : '';
+                openFormButton.setAttribute('aria-expanded', visible ? 'true' : 'false');
+            }
+        }
+
+        function getCreateSubmitLabelByMovementType(movementType) {
+            if (movementType === 'income') return 'Agregar ingreso';
+            if (movementType === 'refund') return 'Agregar reintegro';
+            return 'Agregar gasto';
+        }
+
+        function syncExpenseSubmitButtonLabel() {
+            if (!expenseSubmitButton) return;
+            const movementType = movementTypeSelect ? movementTypeSelect.value : 'expense';
+            expenseSubmitButton.textContent = getCreateSubmitLabelByMovementType(movementType);
+        }
+
         document.getElementById('expenseForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const isGain = document.getElementById('reportGain').checked;
+            const movementType = movementTypeSelect ? movementTypeSelect.value : 'expense';
             let amount = parseFloat(document.getElementById('amount').value);
-            if (!isGain) {
+            if (movementType === 'expense') {
                 amount *= -1;
+            } else {
+                amount = Math.abs(amount);
             }
             const sourceValue = sourceSelect.value || 'CA';
             if (sourceValue === 'TARJETA' && !document.getElementById('cardInput').value.trim()) {
@@ -1014,6 +1217,7 @@
                 currency: document.getElementById('currencySelectForm').value || currentCurrency,
                 source: sourceValue,
                 card: sourceValue === 'TARJETA' ? document.getElementById('cardInput').value : '',
+                flow: movementType,
             };
             try {
                 const response = await fetch('/expense', {
@@ -1031,11 +1235,9 @@
                 selectedTags.clear();
                 populateFormCurrency();
                 sourceSelect.value = 'CA';
+                if (movementTypeSelect) movementTypeSelect.value = 'expense';
                 toggleCardInput();
-                const toggleBtn = document.getElementById('toggleExpenseFormBtn');
-                if (toggleBtn && toggleBtn.dataset.action === 'open-form') {
-                    toggleBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Agregar gasto';
-                }
+                setExpenseFormVisible(false);
                 await initialize();
                     const today = new Date();
                     const year = today.getFullYear();
@@ -1063,14 +1265,19 @@
 
         sourceSelect.addEventListener('change', toggleCardInput);
         toggleCardInput();
+        if (movementTypeSelect) {
+            movementTypeSelect.addEventListener('change', syncExpenseSubmitButtonLabel);
+        }
 
         document.getElementById('filterCurrency').addEventListener('change', (e) => {
             filterCurrency = e.target.value;
+            updateHomeFilterControls();
             updateChartAndLegend();
         });
 
         document.getElementById('filterSource').addEventListener('change', (e) => {
             filterSource = e.target.value;
+            updateHomeFilterControls();
             updateChartAndLegend();
         });
 
@@ -1079,10 +1286,18 @@
             filterSource = 'all';
             document.getElementById('filterCurrency').value = 'all';
             document.getElementById('filterSource').value = 'all';
+            updateHomeFilterControls();
             updateChartAndLegend();
         });
 
         document.getElementById('toggleChart').addEventListener('click', () => {
+            if (!chartExpanded) {
+                filterCurrency = 'ars';
+                filterSource = 'CA';
+                document.getElementById('filterCurrency').value = 'ars';
+                document.getElementById('filterSource').value = 'CA';
+                updateHomeFilterControls();
+            }
             chartExpanded = !chartExpanded;
             updateChartAndLegend();
         });
@@ -1109,29 +1324,55 @@
                 if (action === 'open-form') {
                     const isHidden = formContainer.style.display === 'none' || formContainer.style.display === '';
                     if (isHidden) {
-                        formContainer.style.display = 'block';
-                        btn.innerHTML = '<i class="fa-solid fa-times"></i> Close';
-                    } else {
-                        formContainer.style.display = 'none';
-                        btn.innerHTML = '<i class="fa-solid fa-plus"></i> Agregar gasto';
+                        if (movementTypeSelect) movementTypeSelect.value = 'expense';
+                        sourceSelect.value = 'CA';
+                        toggleCardInput();
+                        syncExpenseSubmitButtonLabel();
                     }
+                    setExpenseFormVisible(true);
+                    document.getElementById('name').focus();
                     return;
                 }
-                formContainer.style.display = 'block';
+                setExpenseFormVisible(true);
                 if (action === 'income') {
-                    document.getElementById('reportGain').checked = true;
-                    sourceSelect.value = 'CA';
-                } else if (action === 'expense') {
-                    document.getElementById('reportGain').checked = false;
+                    if (movementTypeSelect) movementTypeSelect.value = 'income';
                     sourceSelect.value = 'CA';
                 } else if (action === 'card-expense') {
-                    document.getElementById('reportGain').checked = false;
+                    if (movementTypeSelect) movementTypeSelect.value = 'expense';
                     sourceSelect.value = 'TARJETA';
                 }
+                if (movementTypeGroup) {
+                    movementTypeGroup.style.display = '';
+                }
                 toggleCardInput();
-                document.getElementById('amount').focus();
+                syncExpenseSubmitButtonLabel();
+                formContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
         });
+
+        document.getElementById('cancelExpenseFormBtn').addEventListener('click', () => {
+            document.getElementById('expenseForm').reset();
+            document.getElementById('selected-tags').innerHTML = '';
+            selectedTags.clear();
+            populateFormCurrency();
+            sourceSelect.value = 'CA';
+            if (movementTypeSelect) movementTypeSelect.value = 'expense';
+            toggleCardInput();
+            syncExpenseSubmitButtonLabel();
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            document.getElementById('date').value = `${year}-${month}-${day}`;
+            setExpenseFormVisible(false);
+        });
+
+        window.addEventListener('resize', () => {
+            updateCompactHomeFilterLabels();
+        });
+
+        setExpenseFormVisible(false);
+        syncExpenseSubmitButtonLabel();
     </script>
 </body>
 </html>

@@ -5,6 +5,7 @@ ExpenseLog es una app web para registrar ingresos/gastos, manejar recurrentes y 
 ## 🌐 App
 
 - Produccion: `https://www.expenselog.com.ar`
+- Uso recomendado: acceder directamente desde la web (no requiere instalacion local).
 
 ## ✨ Funcionalidades clave
 
@@ -19,57 +20,6 @@ ExpenseLog es una app web para registrar ingresos/gastos, manejar recurrentes y 
 - Backend: Go (`net/http`)
 - Storage: PostgreSQL
 - Frontend: HTML/CSS/JS embebido (`go:embed`)
-
-## 🚀 Ejecutar local
-
-1. Configura variables de entorno:
-
-```bash
-STORAGE_TYPE=postgres
-STORAGE_URL=localhost:5432/expenselog?sslmode=disable
-STORAGE_USER=postgres
-STORAGE_PASS=postgres
-```
-
-Opcionales:
-
-```bash
-APP_BASE_URL=http://localhost:8080
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-GOOGLE_REDIRECT_URL=http://localhost:8080/auth/google/callback
-SMTP_HOST=...
-SMTP_PORT=587
-SMTP_USER=...
-SMTP_PASS=...
-SMTP_FROM=...
-```
-
-2. Inicia la app:
-
-```bash
-go run ./cmd/expenselog -port 8080
-```
-
-3. Abre:
-
-```text
-http://localhost:8080
-```
-
-## 🧪 Tests
-
-```bash
-go test ./...
-node --test internal/web/templates/alerts_ui.test.js
-```
-
-## 🐳 Docker
-
-```bash
-docker build -t expenselog .
-docker run --rm -p 8080:8080 expenselog
-```
 
 ## 📁 Estructura
 

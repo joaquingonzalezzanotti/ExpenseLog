@@ -17,6 +17,7 @@ type Storage interface {
 	CreateUserWithStatus(email, passwordHash, status string) (User, error)
 	GetUserByEmail(email string) (User, error)
 	GetUserByID(id string) (User, error)
+	UpdateUserName(userID, name string) error
 	UpdateUserPassword(userID, passwordHash string) error
 	UpdateUserStatus(userID, status string) error
 	CreateOAuthIdentity(identity OAuthIdentity) error
@@ -82,6 +83,7 @@ type Config struct {
 
 type User struct {
 	ID           string    `json:"id"`
+	Name         string    `json:"name"`
 	Email        string    `json:"email"`
 	PasswordHash string    `json:"-"`
 	Status       string    `json:"status"`
@@ -246,6 +248,17 @@ func ValidateCategory(category string) (string, error) {
 	sanitized := SanitizeString(category)
 	if sanitized == "" {
 		return "", fmt.Errorf("category name cannot be empty or contain only invalid characters")
+	}
+	return sanitized, nil
+}
+
+func ValidateUserName(name string) (string, error) {
+	sanitized := SanitizeString(name)
+	if sanitized == "" {
+		return "", fmt.Errorf("name cannot be empty")
+	}
+	if len([]rune(sanitized)) > 80 {
+		return "", fmt.Errorf("name cannot exceed 80 characters")
 	}
 	return sanitized, nil
 }

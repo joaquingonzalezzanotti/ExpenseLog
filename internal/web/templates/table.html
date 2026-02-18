@@ -41,9 +41,10 @@
         </header>
 
         <div class="month-navigation">
-            <button id="prevMonth" class="nav-button"><i class="fa-solid fa-arrow-left"></i></button>
+            <button id="prevMonth" class="nav-button"><span class="month-nav-arrow" aria-hidden="true">&#8592;</span></button>
             <div class="current-month" id="currentMonth"></div>
-            <button id="nextMonth" class="nav-button"><i class="fa-solid fa-arrow-right"></i></button>
+            <span id="periodModeBadge" class="period-mode-badge" style="display: none;">Proyeccion</span>
+            <button id="nextMonth" class="nav-button"><span class="month-nav-arrow" aria-hidden="true">&#8594;</span></button>
         </div>
         
         <div class="table-controls">
@@ -123,7 +124,10 @@
                     </select>
                 </div>
 
-                <button type="submit" class="nav-button button-primary">Agregar gasto</button>
+                <div class="form-actions">
+                    <button type="button" id="cancelTableExpenseFormBtn" class="nav-button button-secondary">Cancelar</button>
+                    <button type="submit" class="nav-button button-primary">Agregar gasto</button>
+                </div>
             </form>
             <div id="formMessage" class="form-message"></div>
         </div>
@@ -275,6 +279,7 @@
         const toggleMobileRowsBtn = document.getElementById('toggleMobileRows');
         const clearSearchBtn = document.getElementById('clearSearch');
         const clearTableFiltersBtn = document.getElementById('clearTableFilters');
+        const cancelTableExpenseFormBtn = document.getElementById('cancelTableExpenseFormBtn');
 
         function isMobileTableView() {
             return window.innerWidth <= MOBILE_TABLE_BREAKPOINT;
@@ -286,7 +291,8 @@
             const shouldShow = !isMobileTableView() || expanded;
             tableFormContainer.style.display = shouldShow ? 'block' : 'none';
             if (toggleTableExpenseFormBtn) {
-                toggleTableExpenseFormBtn.textContent = shouldShow ? 'Ocultar formulario' : 'Agregar gasto';
+                toggleTableExpenseFormBtn.textContent = 'Agregar gasto';
+                toggleTableExpenseFormBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
             }
         }
 
@@ -307,6 +313,19 @@
                 const hasFilters = filterCurrency !== 'all' || filterSource !== 'all';
                 clearTableFiltersBtn.style.display = hasFilters ? 'inline-flex' : 'none';
             }
+        }
+
+        function isFuturePeriodSelected() {
+            const selectedMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            const now = new Date();
+            const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            return selectedMonth > currentMonthStart;
+        }
+
+        function updatePeriodModeBadge() {
+            const badge = document.getElementById('periodModeBadge');
+            if (!badge) return;
+            badge.style.display = isFuturePeriodSelected() ? 'inline-flex' : 'none';
         }
 
         function formatCurrencyWithCurrency(amount, currencyCode, compact = false) {
@@ -365,15 +384,15 @@
                 <table class="expense-table">
                     <thead>
                         <tr>
-                            <th>Nombre</th>
-                            <th class="secondary-col">Categoria</th>
-                            <th>Valor</th>
-                            <th>Balance</th>
-                            <th class="secondary-col">Metodo</th>
-                            <th class="secondary-col">Tarjeta</th>
-                            <th class="secondary-col">Moneda</th>
-                            <th class="date-header secondary-col">Fecha</th>
-                            <th class="actions-col"></th>
+                            <th class="col-left">Nombre</th>
+                            <th class="secondary-col col-left">Categoria</th>
+                            <th class="col-right">Valor</th>
+                            <th class="col-right">Balance</th>
+                            <th class="secondary-col col-center">Metodo</th>
+                            <th class="secondary-col col-center">Tarjeta</th>
+                            <th class="secondary-col col-center">Moneda</th>
+                            <th class="date-header secondary-col col-center">Fecha</th>
+                            <th class="actions-col col-center"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -391,14 +410,14 @@
                                         <span>${formatDateDDMMYYYY(expense.date)}</span>
                                     </div>
                                 </td>
-                                <td class="secondary-col"><span class="editable" data-edit="category" data-id="${expense.id}">${highlightText(expense.category, searchQuery)}</span></td>
-                                <td class="amount amount-value"><span class="editable" data-edit="amount" data-id="${expense.id}">${formatCurrencyWithCurrency(expense.amount, expense.currency || currentCurrency, compactAmounts)}</span></td>
-                                <td class="amount amount-balance">${runningBalances[expense.id] ? formatCurrencyWithCurrency(runningBalances[expense.id].amount, runningBalances[expense.id].currency, compactAmounts) : '-'}</td>
-                                <td class="secondary-col">${expense.source ? escapeHTML(expense.source) : '-'}</td>
-                                <td class="secondary-col">${expense.source === 'TARJETA' ? escapeHTML(expense.card || '-') : '-'}</td>
-                                <td class="secondary-col">${(expense.currency || currentCurrency).toUpperCase()}</td>
-                                <td class="date-column secondary-col">${formatDateDDMMYYYY(expense.date)}</td>
-                                <td class="actions-col">
+                                <td class="secondary-col col-left"><span class="editable" data-edit="category" data-id="${expense.id}">${highlightText(expense.category, searchQuery)}</span></td>
+                                <td class="amount amount-value col-right"><span class="editable" data-edit="amount" data-id="${expense.id}">${formatCurrencyWithCurrency(expense.amount, expense.currency || currentCurrency, compactAmounts)}</span></td>
+                                <td class="amount amount-balance col-right">${runningBalances[expense.id] ? formatCurrencyWithCurrency(runningBalances[expense.id].amount, runningBalances[expense.id].currency, compactAmounts) : '-'}</td>
+                                <td class="secondary-col col-center">${expense.source ? escapeHTML(expense.source) : '-'}</td>
+                                <td class="secondary-col col-center">${expense.source === 'TARJETA' ? escapeHTML(expense.card || '-') : '-'}</td>
+                                <td class="secondary-col col-center">${(expense.currency || currentCurrency).toUpperCase()}</td>
+                                <td class="date-column secondary-col col-center">${formatDateDDMMYYYY(expense.date)}</td>
+                                <td class="actions-col col-center">
                                     <div class="row-actions-desktop">
                                         <button class="edit-button" onclick="editExpenseByIndex(${index})">
                                             <i class="fa-solid fa-pen-to-square"></i>
@@ -773,6 +792,7 @@
                 });
 
                 updateMonthDisplay();
+                updatePeriodModeBadge();
                 updateTable();
                 setupTagInput();
             } catch (error) {
@@ -789,8 +809,8 @@
 
         if (toggleTableExpenseFormBtn) {
             toggleTableExpenseFormBtn.addEventListener('click', () => {
-                const expanded = tableFormContainer?.dataset.expanded === 'true';
-                setTableFormExpanded(!expanded);
+                setTableFormExpanded(true);
+                document.getElementById('name')?.focus();
             });
         }
 
@@ -813,6 +833,7 @@
         document.getElementById('prevMonth').addEventListener('click', () => {
             currentDate.setMonth(currentDate.getMonth() - 1);
             updateMonthDisplay();
+            updatePeriodModeBadge();
             showAllMobileRows = false;
             updateTable();
         });
@@ -820,6 +841,7 @@
         document.getElementById('nextMonth').addEventListener('click', () => {
             currentDate.setMonth(currentDate.getMonth() + 1);
             updateMonthDisplay();
+            updatePeriodModeBadge();
             showAllMobileRows = false;
             updateTable();
         });
@@ -868,6 +890,28 @@
             }
         });
 
+        function resetTableExpenseForm({ closeOnMobile = false } = {}) {
+            const form = document.getElementById('expenseForm');
+            form.reset();
+            document.getElementById('selected-tags').innerHTML = '';
+            selectedTags.clear();
+            delete form.dataset.editId;
+            const submitButton = form.querySelector('button[type="submit"]');
+            if (submitButton) submitButton.textContent = 'Agregar gasto';
+            populateFormCurrency();
+            sourceSelect.value = 'CA';
+            if (movementTypeSelect) movementTypeSelect.value = 'expense';
+            toggleCardInput();
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            document.getElementById('date').value = `${year}-${month}-${day}`;
+            if (closeOnMobile && isMobileTableView()) {
+                setTableFormExpanded(false);
+            }
+        }
+
         document.getElementById('expenseForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const form = e.target;
@@ -908,24 +952,8 @@
                     messageDiv.textContent = '';
                     messageDiv.className = 'form-message';
                     showToast(editId ? 'Gasto actualizado con exito' : 'Gasto agregado con exito', 'success');
-                    form.reset();
-                    document.getElementById('selected-tags').innerHTML = '';
-                    selectedTags.clear();
-                    delete form.dataset.editId;
-                    form.querySelector('button[type="submit"]').textContent = 'Agregar gasto';
-                    populateFormCurrency();
-                    sourceSelect.value = 'CA';
-                    if (movementTypeSelect) movementTypeSelect.value = 'expense';
-                    toggleCardInput();
                     await initialize();
-                    if (isMobileTableView()) {
-                        setTableFormExpanded(false);
-                    }
-                    const today = new Date();
-                    const year = today.getFullYear();
-                    const month = String(today.getMonth() + 1).padStart(2, '0');
-                    const day = String(today.getDate()).padStart(2, '0');
-                    document.getElementById('date').value = `${year}-${month}-${day}`;
+                    resetTableExpenseForm({ closeOnMobile: true });
                 } else {
                     const error = await response.json();
                     messageDiv.textContent = '';
@@ -936,6 +964,9 @@
                 console.error('Error saving expense:', error);
                 showToast('No se pudo guardar el gasto', 'error');
             }
+        });
+        cancelTableExpenseFormBtn?.addEventListener('click', () => {
+            resetTableExpenseForm({ closeOnMobile: true });
         });
         document.addEventListener('DOMContentLoaded', guardAppInit(initialize));
 

@@ -129,8 +129,15 @@ function hideAuthOverlay() {
     document.body.classList.remove('auth-locked');
 }
 
-function userInitialsFromEmail(email) {
-    const normalized = (email || '').trim().toLowerCase();
+function userInitialsFromUser(user) {
+    if (!user || typeof user !== 'object') return '';
+    const displayName = (user.name || user.displayName || '').trim();
+    if (displayName) {
+        const parts = displayName.split(/\s+/).filter(Boolean);
+        const initials = parts.slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join('');
+        if (initials) return initials;
+    }
+    const normalized = (user.email || '').trim().toLowerCase();
     if (!normalized) return '';
     const localPart = normalized.split('@')[0] || '';
     const chars = localPart.replace(/[^a-z0-9]/g, '');
@@ -141,8 +148,8 @@ function userInitialsFromEmail(email) {
 function updateUserBadge(user) {
     const badge = document.getElementById('userEmailBadge');
     if (!badge) return;
-    if (user && user.email) {
-        badge.textContent = userInitialsFromEmail(user.email);
+    if (user && (user.email || user.name || user.displayName)) {
+        badge.textContent = userInitialsFromUser(user);
         badge.setAttribute('aria-label', 'Usuario conectado');
         badge.style.display = 'inline-flex';
     } else {

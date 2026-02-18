@@ -78,6 +78,7 @@ func runServer(port int) {
 	http.HandleFunc("/auth/login", handler.AuthLogin)
 	http.HandleFunc("/auth/logout", handler.AuthLogout)
 	http.HandleFunc("/auth/me", handler.RequireAuth(handler.AuthMe))
+	http.HandleFunc("/auth/profile", handler.RequireAuth(handler.AuthUpdateProfile))
 	http.HandleFunc("/auth/reset/request", handler.AuthResetRequest)
 	http.HandleFunc("/auth/reset/confirm", handler.AuthResetConfirm)
 	http.HandleFunc("/auth/verify", handler.AuthVerifyEmail)

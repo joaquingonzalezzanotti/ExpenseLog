@@ -64,11 +64,13 @@
             </div>
         </header>
 
+        <div id="homeGreeting" class="home-greeting"></div>
+
         <div class="month-navigation">
-            <button id="prevMonth" class="nav-button"><i class="fa-solid fa-arrow-left"></i></button>
+            <button id="prevMonth" class="nav-button"><span class="month-nav-arrow" aria-hidden="true">&#8592;</span></button>
             <div class="current-month" id="currentMonth"></div>
             <span id="periodModeBadge" class="period-mode-badge" style="display: none;">Proyeccion</span>
-            <button id="nextMonth" class="nav-button"><i class="fa-solid fa-arrow-right"></i></button>
+            <button id="nextMonth" class="nav-button"><span class="month-nav-arrow" aria-hidden="true">&#8594;</span></button>
         </div>
 
         <div class="table-controls">
@@ -340,6 +342,44 @@
             startDate = Number(config?.startDate) || 1;
             populateFormCurrency();
             populateFilters();
+        }
+
+        function userDisplayNameFromEmail(email) {
+            const localPart = (email || '').split('@')[0] || '';
+            const cleaned = localPart.replace(/[._-]+/g, ' ').trim();
+            if (!cleaned) return 'Usuario';
+            return cleaned
+                .split(' ')
+                .filter(Boolean)
+                .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+                .join(' ');
+        }
+
+        function resolveHomeDisplayName(user) {
+            if (!user || typeof user !== 'object') return '';
+            const explicitName = (user.name || user.displayName || '').trim();
+            if (explicitName) return explicitName;
+            return userDisplayNameFromEmail(user.email || '');
+        }
+
+        function getGreetingPrefix(now = new Date()) {
+            const hour = now.getHours();
+            if (hour < 12) return 'Buen dia';
+            if (hour < 20) return 'Buenas tardes';
+            return 'Buenas noches';
+        }
+
+        function updateHomeGreeting(user) {
+            const greetingEl = document.getElementById('homeGreeting');
+            if (!greetingEl) return;
+            const name = resolveHomeDisplayName(user);
+            if (!name) {
+                greetingEl.textContent = '';
+                greetingEl.style.display = 'none';
+                return;
+            }
+            greetingEl.style.display = 'block';
+            greetingEl.textContent = `${getGreetingPrefix()}, ${name}`;
         }
 
         function formatCurrencyWithCurrency(amount, currencyCode) {
@@ -932,6 +972,7 @@
             try {
                 const cachedConfigEntry = readConfigCache();
                 const cachedConfig = cachedConfigEntry?.config || null;
+                updateHomeGreeting(currentUser);
                 if (cachedConfig) {
                     applyHomeConfig(cachedConfig);
                 }

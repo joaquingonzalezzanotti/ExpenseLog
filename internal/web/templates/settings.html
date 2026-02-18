@@ -49,6 +49,14 @@
                 </div>
                 <button id="settingsLogoutBtn" class="nav-button button-secondary settings-logout-btn" type="button">Cerrar sesion</button>
             </div>
+            <div class="settings-profile-edit">
+                <label for="settingsProfileNameInput">Nombre</label>
+                <div class="settings-profile-edit-row">
+                    <input type="text" id="settingsProfileNameInput" maxlength="80" placeholder="Tu nombre">
+                    <button id="saveProfileNameBtn" class="nav-button button-primary" type="button">Guardar nombre</button>
+                </div>
+                <div id="profileMessage" class="form-message"></div>
+            </div>
         </section>
 
         <section class="form-container settings-section">
@@ -361,6 +369,8 @@
         const settingsProfileName = document.getElementById('settingsProfileName');
         const settingsProfileEmail = document.getElementById('settingsProfileEmail');
         const settingsProfileAvatar = document.getElementById('settingsProfileAvatar');
+        const settingsProfileNameInput = document.getElementById('settingsProfileNameInput');
+        const saveProfileNameBtn = document.getElementById('saveProfileNameBtn');
         const recurringFormWrap = document.getElementById('recurringFormWrap');
         const toggleRecurringCreateBtn = document.getElementById('toggleRecurringCreateBtn');
 
@@ -428,6 +438,37 @@
             if (settingsProfileName) settingsProfileName.textContent = name || 'Usuario';
             if (settingsProfileEmail) settingsProfileEmail.textContent = email || '-';
             if (settingsProfileAvatar) settingsProfileAvatar.textContent = userInitials(email, name);
+            if (settingsProfileNameInput) settingsProfileNameInput.value = name || '';
+        }
+
+        async function saveProfileName() {
+            if (!settingsProfileNameInput) return;
+            const nextName = settingsProfileNameInput.value.trim();
+            if (!nextName) {
+                showMessage('profileMessage', 'Ingresa un nombre valido.', false);
+                return;
+            }
+            try {
+                const response = await fetch('/auth/profile', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: nextName }),
+                });
+                if (!response.ok) {
+                    const payload = await response.json().catch(() => ({}));
+                    showMessage('profileMessage', payload.error || 'No se pudo actualizar el nombre.', false);
+                    return;
+                }
+                const user = await response.json();
+                applySettingsProfile(user);
+                if (typeof updateUserBadge === 'function') {
+                    updateUserBadge(user);
+                }
+                showMessage('profileMessage', 'Nombre actualizado correctamente.', true);
+            } catch (error) {
+                console.error('Error actualizando nombre de perfil:', error);
+                showMessage('profileMessage', 'No se pudo actualizar el nombre.', false);
+            }
         }
 
         function invalidateSharedConfigCache() {
@@ -911,16 +952,16 @@ async function saveCategoriesList(nextCategories) {
             }
             list.innerHTML = `
                 <table class="expense-table">
-                    <thead><tr><th>Nombre</th><th>Monto</th><th class="recurring-col-secondary">Categoria</th><th class="recurring-col-secondary">Intervalo</th><th>Proxima ocurrencia</th><th class="actions-col"></th></tr></thead>
+                    <thead><tr><th class="col-left">Nombre</th><th class="col-right">Monto</th><th class="recurring-col-secondary col-left">Categoria</th><th class="recurring-col-secondary col-center">Intervalo</th><th class="col-center">Proxima ocurrencia</th><th class="actions-col col-center"></th></tr></thead>
                     <tbody>
                         ${recurring.map(r => `
                             <tr>
-                                <td>${r.name}</td>
-                                <td>${formatCurrency(r.amount)}</td>
-                                <td class="recurring-col-secondary">${r.category}</td>
-                                <td class="recurring-col-secondary">${formatIntervalLabel(r.interval)}</td>
-                                <td>${findNextOccurrence(r)}</td>
-                                <td class="actions-col">
+                                <td class="col-left">${r.name}</td>
+                                <td class="col-right">${formatCurrency(r.amount)}</td>
+                                <td class="recurring-col-secondary col-left">${r.category}</td>
+                                <td class="recurring-col-secondary col-center">${formatIntervalLabel(r.interval)}</td>
+                                <td class="col-center">${findNextOccurrence(r)}</td>
+                                <td class="actions-col col-center">
                                     <button class="edit-button" onclick="showRecurringEditModal('${r.id}')"><i class="fa-solid fa-pen-to-square"></i></button>
                                     <button class="delete-button" onclick="showRecurringDeleteModal('${r.id}')"><i class="fa-solid fa-trash-can"></i></button>
                                 </td>
@@ -1127,6 +1168,13 @@ async function saveCategoriesList(nextCategories) {
         });
         document.getElementById('settingsLogoutBtn')?.addEventListener('click', () => {
             document.getElementById('logoutButton')?.click();
+        });
+        saveProfileNameBtn?.addEventListener('click', saveProfileName);
+        settingsProfileNameInput?.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                saveProfileName();
+            }
         });
         document.getElementById('addCategory').addEventListener('click', addCategory);
         document.getElementById('categorySearch').addEventListener('input', (e) => {

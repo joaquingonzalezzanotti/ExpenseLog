@@ -39,9 +39,14 @@ type authPayload struct {
 
 type authUserResponse struct {
 	ID        string    `json:"id"`
+	Name      string    `json:"name"`
 	Email     string    `json:"email"`
 	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"createdAt"`
+}
+
+type authProfilePayload struct {
+	Name string `json:"name"`
 }
 
 type loginAttempt struct {
@@ -193,6 +198,7 @@ func (h *Handler) AuthLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, authUserResponse{
 		ID:        user.ID,
+		Name:      user.Name,
 		Email:     user.Email,
 		Status:    user.Status,
 		CreatedAt: user.CreatedAt,
@@ -235,6 +241,49 @@ func (h *Handler) AuthMe(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, authUserResponse{
 		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
+		Status:    user.Status,
+		CreatedAt: user.CreatedAt,
+	})
+}
+
+func (h *Handler) AuthUpdateProfile(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{Error: "Method not allowed"})
+		return
+	}
+	userID, ok := requireUserID(w, r)
+	if !ok {
+		return
+	}
+
+	var payload authProfilePayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid request body"})
+		return
+	}
+
+	name, err := storage.ValidateUserName(payload.Name)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Nombre invalido"})
+		return
+	}
+
+	if err := h.storage.UpdateUserName(userID, name); err != nil {
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to update profile"})
+		return
+	}
+
+	user, err := h.storage.GetUserByID(userID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to fetch user"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, authUserResponse{
+		ID:        user.ID,
+		Name:      user.Name,
 		Email:     user.Email,
 		Status:    user.Status,
 		CreatedAt: user.CreatedAt,

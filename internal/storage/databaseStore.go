@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -25,6 +26,7 @@ const (
 	CREATE TABLE IF NOT EXISTS users (
 		id VARCHAR(36) PRIMARY KEY,
 		email TEXT NOT NULL UNIQUE,
+		name TEXT NOT NULL DEFAULT '',
 		password_hash TEXT NOT NULL,
 		status VARCHAR(20) NOT NULL DEFAULT 'active',
 		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -181,6 +183,7 @@ func createTables(db *sql.DB) error {
 		"ALTER TABLE recurring_expenses ADD COLUMN IF NOT EXISTS currency VARCHAR(3) NOT NULL DEFAULT 'usd'",
 		"ALTER TABLE recurring_expenses ADD COLUMN IF NOT EXISTS flow VARCHAR(20) NOT NULL DEFAULT 'expense'",
 		"ALTER TABLE categories ADD COLUMN IF NOT EXISTS user_id VARCHAR(36)",
+		"ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT NOT NULL DEFAULT ''",
 		"ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL",
 	}
 	for _, stmt := range alterStmts {
@@ -442,7 +445,7 @@ func ensureUser(db *sql.DB, email, password string) (string, error) {
 		return "", err
 	}
 	id = uuid.New().String()
-	if _, err := db.Exec(`INSERT INTO users (id, email, password_hash, status) VALUES ($1, $2, $3, 'active')`, id, strings.ToLower(email), hashed); err != nil {
+	if _, err := db.Exec(`INSERT INTO users (id, email, name, password_hash, status) VALUES ($1, $2, $3, $4, 'active')`, id, strings.ToLower(email), defaultUserName(strings.ToLower(email)), hashed); err != nil {
 		return "", err
 	}
 	return id, nil
@@ -567,16 +570,17 @@ func (s *databaseStore) CreateUserWithStatus(email, passwordHash, status string)
 	email = strings.ToLower(strings.TrimSpace(email))
 	user := User{
 		ID:           uuid.New().String(),
+		Name:         defaultUserName(email),
 		Email:        email,
 		PasswordHash: passwordHash,
 		Status:       status,
 	}
-	query := `INSERT INTO users (id, email, password_hash, status) VALUES ($1, $2, $3, $4) RETURNING created_at`
+	query := `INSERT INTO users (id, email, name, password_hash, status) VALUES ($1, $2, $3, $4, $5) RETURNING created_at`
 	var passwordArg any = user.PasswordHash
 	if strings.TrimSpace(user.PasswordHash) == "" {
 		passwordArg = nil
 	}
-	if err := s.db.QueryRow(query, user.ID, user.Email, passwordArg, user.Status).Scan(&user.CreatedAt); err != nil {
+	if err := s.db.QueryRow(query, user.ID, user.Email, user.Name, passwordArg, user.Status).Scan(&user.CreatedAt); err != nil {
 		return User{}, err
 	}
 	if err := ensureUserConfig(s.db, user.ID, nil); err != nil {
@@ -590,10 +594,10 @@ func (s *databaseStore) CreateUserWithStatus(email, passwordHash, status string)
 
 func (s *databaseStore) GetUserByEmail(email string) (User, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
-	query := `SELECT id, email, password_hash, status, created_at FROM users WHERE email = $1`
+	query := `SELECT id, email, COALESCE(name, ''), password_hash, status, created_at FROM users WHERE email = $1`
 	var user User
 	var passwordHash sql.NullString
-	if err := s.db.QueryRow(query, email).Scan(&user.ID, &user.Email, &passwordHash, &user.Status, &user.CreatedAt); err != nil {
+	if err := s.db.QueryRow(query, email).Scan(&user.ID, &user.Email, &user.Name, &passwordHash, &user.Status, &user.CreatedAt); err != nil {
 		return User{}, err
 	}
 	user.PasswordHash = strings.TrimSpace(passwordHash.String)
@@ -601,14 +605,19 @@ func (s *databaseStore) GetUserByEmail(email string) (User, error) {
 }
 
 func (s *databaseStore) GetUserByID(id string) (User, error) {
-	query := `SELECT id, email, password_hash, status, created_at FROM users WHERE id = $1`
+	query := `SELECT id, email, COALESCE(name, ''), password_hash, status, created_at FROM users WHERE id = $1`
 	var user User
 	var passwordHash sql.NullString
-	if err := s.db.QueryRow(query, id).Scan(&user.ID, &user.Email, &passwordHash, &user.Status, &user.CreatedAt); err != nil {
+	if err := s.db.QueryRow(query, id).Scan(&user.ID, &user.Email, &user.Name, &passwordHash, &user.Status, &user.CreatedAt); err != nil {
 		return User{}, err
 	}
 	user.PasswordHash = strings.TrimSpace(passwordHash.String)
 	return user, nil
+}
+
+func (s *databaseStore) UpdateUserName(userID, name string) error {
+	_, err := s.db.Exec(`UPDATE users SET name = $1 WHERE id = $2`, name, userID)
+	return err
 }
 
 func (s *databaseStore) UpdateUserPassword(userID, passwordHash string) error {
@@ -619,6 +628,24 @@ func (s *databaseStore) UpdateUserPassword(userID, passwordHash string) error {
 func (s *databaseStore) UpdateUserStatus(userID, status string) error {
 	_, err := s.db.Exec(`UPDATE users SET status = $1 WHERE id = $2`, status, userID)
 	return err
+}
+
+func defaultUserName(email string) string {
+	localPart := strings.TrimSpace(strings.SplitN(email, "@", 2)[0])
+	localPart = strings.NewReplacer(".", " ", "_", " ", "-", " ").Replace(localPart)
+	parts := strings.Fields(localPart)
+	if len(parts) == 0 {
+		return "Usuario"
+	}
+	for i, part := range parts {
+		runes := []rune(strings.ToLower(part))
+		if len(runes) == 0 {
+			continue
+		}
+		runes[0] = unicode.ToUpper(runes[0])
+		parts[i] = string(runes)
+	}
+	return strings.Join(parts, " ")
 }
 
 func (s *databaseStore) CreateOAuthIdentity(identity OAuthIdentity) error {

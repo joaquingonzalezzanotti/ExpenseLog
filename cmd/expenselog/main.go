@@ -110,6 +110,9 @@ func runServer(port int) {
 	http.HandleFunc("/recurring-expense/edit", handler.RequireAuth(handler.UpdateRecurringExpense))   // PUT for edit
 	http.HandleFunc("/recurring-expense/delete", handler.RequireAuth(handler.DeleteRecurringExpense)) // DELETE
 
+	// Alerts
+	http.HandleFunc("/alerts/liquidity", handler.RequireAuth(handler.GetLiquidityAlerts))
+
 	// Import/Export
 	http.HandleFunc("/export/csv", handler.RequireAuth(handler.ExportCSV))
 	http.HandleFunc("/import/csv", handler.RequireAuth(handler.ImportCSV))

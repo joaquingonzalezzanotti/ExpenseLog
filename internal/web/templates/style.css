@@ -212,6 +212,106 @@ html[data-theme='light'] #toggleExpenseFormBtn {
     margin-left: auto;
 }
 
+.liquidity-alert {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 1200;
+}
+
+.liquidity-alert-toggle {
+    width: 44px;
+    height: 44px;
+    border-radius: 9999px;
+    border: 1px solid rgba(239, 68, 68, 0.55);
+    background: linear-gradient(140deg, #f87171, #dc2626);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    box-shadow: 0 10px 22px rgba(185, 28, 28, 0.35);
+}
+
+.liquidity-alert-toggle:hover {
+    filter: brightness(1.05);
+}
+
+.liquidity-alert-count {
+    position: absolute;
+    top: -7px;
+    right: -7px;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 9999px;
+    background-color: #111827;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.3rem;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.liquidity-alert-panel {
+    margin-top: 0.55rem;
+    width: min(340px, calc(100vw - 2rem));
+    background-color: var(--bg-secondary);
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    border-radius: 12px;
+    padding: 0.65rem;
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.26);
+}
+
+.liquidity-alert-title {
+    font-weight: 700;
+    color: #ef4444;
+    margin-bottom: 0.25rem;
+}
+
+.liquidity-alert-summary {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.55rem;
+}
+
+.liquidity-alert-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    max-height: 290px;
+    overflow: auto;
+}
+
+.liquidity-alert-item {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.45rem 0.55rem;
+}
+
+.liquidity-alert-item-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.liquidity-alert-item-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.liquidity-alert-shortfall {
+    color: #ef4444;
+    font-weight: 700;
+}
+
 .quick-actions {
     display: flex;
     gap: 0.5rem;
@@ -338,6 +438,26 @@ html[data-theme='light'] #toggleExpenseFormBtn {
     cursor: pointer;
     border-radius: 4px;
     padding: 0.1rem 0.25rem;
+}
+
+.expense-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.recurring-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.08rem 0.42rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background-color: var(--accent-soft);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    line-height: 1.25;
 }
 
 .editable:hover {
@@ -1375,6 +1495,15 @@ input:focus-visible {
     .panel-filters .panel-indicator {
         grid-column: 1 / -1;
         margin-left: 0;
+    }
+
+    .liquidity-alert {
+        top: 0.75rem;
+        left: 0.75rem;
+    }
+
+    .liquidity-alert-panel {
+        width: min(320px, calc(100vw - 1.5rem));
     }
 }
 

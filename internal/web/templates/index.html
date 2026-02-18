@@ -32,6 +32,17 @@
     <script src="/chart.min.js"></script>
 </head>
 <body>
+    <div id="liquidityAlertWidget" class="liquidity-alert" style="display: none;">
+        <button id="liquidityAlertToggle" class="liquidity-alert-toggle" type="button" aria-label="Alertas de liquidez">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span id="liquidityAlertCount" class="liquidity-alert-count">0</span>
+        </button>
+        <div id="liquidityAlertPanel" class="liquidity-alert-panel" style="display: none;">
+            <div class="liquidity-alert-title">Riesgo de saldo</div>
+            <div id="liquidityAlertSummary" class="liquidity-alert-summary"></div>
+            <div id="liquidityAlertList" class="liquidity-alert-list"></div>
+        </div>
+    </div>
     <div class="container">
         <header>
             <div class="nav-bar">
@@ -258,6 +269,14 @@
         let filterSource = 'all';
         let categories = [];
         let chartExpanded = false;
+        const LIQUIDITY_ALERT_CURRENCY = 'ars';
+        const LIQUIDITY_ALERT_DAYS = 4;
+        const liquidityAlertWidget = document.getElementById('liquidityAlertWidget');
+        const liquidityAlertToggle = document.getElementById('liquidityAlertToggle');
+        const liquidityAlertPanel = document.getElementById('liquidityAlertPanel');
+        const liquidityAlertCount = document.getElementById('liquidityAlertCount');
+        const liquidityAlertSummary = document.getElementById('liquidityAlertSummary');
+        const liquidityAlertList = document.getElementById('liquidityAlertList');
 
         function formatCurrencyWithCurrency(amount, currencyCode) {
             const behavior = currencyBehaviors[currencyCode] || currencyBehaviors[currentCurrency] || {symbol:"$",useComma:false,useDecimals:true,useSpace:false,right:false};
@@ -270,6 +289,73 @@
             const formatted = new Intl.NumberFormat(behavior.useComma ? "de-DE" : "en-US", options).format(absAmount);
             const result = behavior.right ? `${formatted}${behavior.useSpace ? " " : ""}${behavior.symbol}` : `${behavior.symbol}${behavior.useSpace ? " " : ""}${formatted}`;
             return isNegative ? `-${result}` : result;
+        }
+
+        function formatAlertDueDate(isoDate) {
+            const dueDate = new Date(isoDate);
+            return dueDate.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+
+        function formatDaysUntil(daysUntil) {
+            if (daysUntil <= 0) return 'hoy';
+            if (daysUntil === 1) return 'en 1 dia';
+            return `en ${daysUntil} dias`;
+        }
+
+        function closeLiquidityAlertPanel() {
+            if (liquidityAlertPanel) {
+                liquidityAlertPanel.style.display = 'none';
+            }
+        }
+
+        function renderLiquidityAlerts(data) {
+            if (!liquidityAlertWidget) return;
+            const alerts = Array.isArray(data?.alerts) ? data.alerts : [];
+            if (alerts.length === 0) {
+                liquidityAlertWidget.style.display = 'none';
+                closeLiquidityAlertPanel();
+                return;
+            }
+
+            liquidityAlertWidget.style.display = 'block';
+            liquidityAlertCount.textContent = String(alerts.length);
+            const balanceNow = Number(data?.balanceNow || 0);
+            const windowDays = Number(data?.windowDays || LIQUIDITY_ALERT_DAYS);
+            liquidityAlertSummary.textContent = `Saldo ARS actual: ${formatCurrencyWithCurrency(balanceNow, LIQUIDITY_ALERT_CURRENCY)}. Riesgos en ${windowDays} dias.`;
+
+            liquidityAlertList.innerHTML = alerts.map(item => {
+                const requiredAmount = Number(item.requiredAmount || 0);
+                const shortfall = Number(item.shortfall || 0);
+                const dueDate = formatAlertDueDate(item.dueDate);
+                const daysText = formatDaysUntil(Number(item.daysUntil || 0));
+                return `
+                    <div class="liquidity-alert-item">
+                        <div class="liquidity-alert-item-title">${escapeHTML(item.name || 'Recurrente')}</div>
+                        <div class="liquidity-alert-item-row">
+                            <span>Vence ${daysText} (${dueDate})</span>
+                            <span>${formatCurrencyWithCurrency(requiredAmount, LIQUIDITY_ALERT_CURRENCY)}</span>
+                        </div>
+                        <div class="liquidity-alert-item-row liquidity-alert-shortfall">
+                            <span>Faltante estimado</span>
+                            <span>${formatCurrencyWithCurrency(shortfall, LIQUIDITY_ALERT_CURRENCY)}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function refreshLiquidityAlert() {
+            if (!liquidityAlertWidget) return;
+            try {
+                const response = await fetch(`/alerts/liquidity?currency=${LIQUIDITY_ALERT_CURRENCY}&days=${LIQUIDITY_ALERT_DAYS}`);
+                if (!response.ok) throw new Error(`status ${response.status}`);
+                const data = await response.json();
+                renderLiquidityAlerts(data);
+            } catch (error) {
+                console.error('No se pudieron cargar las alertas de liquidez:', error);
+                liquidityAlertWidget.style.display = 'none';
+                closeLiquidityAlertPanel();
+            }
         }
 
         function assignCategoryColors(categories) {
@@ -626,6 +712,7 @@
                 updateChartAndLegend();
                 setupTagInput();
                 updateIndicator();
+                await refreshLiquidityAlert();
             } catch (error) {
                 console.error('No se pudo inicializar el panel:', error);
             }
@@ -866,6 +953,21 @@
         document.getElementById('toggleChart').addEventListener('click', () => {
             chartExpanded = !chartExpanded;
             updateChartAndLegend();
+        });
+
+        if (liquidityAlertToggle) {
+            liquidityAlertToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isVisible = liquidityAlertPanel.style.display === 'block';
+                liquidityAlertPanel.style.display = isVisible ? 'none' : 'block';
+            });
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!liquidityAlertWidget || !liquidityAlertPanel) return;
+            if (!liquidityAlertWidget.contains(e.target)) {
+                closeLiquidityAlertPanel();
+            }
         });
 
         document.querySelectorAll('.quick-action').forEach(btn => {

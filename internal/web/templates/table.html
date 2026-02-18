@@ -326,7 +326,12 @@
                     <tbody>
                         ${expenses.map((expense, index) => `
                             <tr>
-                                <td>${highlightText(expense.name, searchQuery)}</td>
+                                <td>
+                                    <div class="expense-name-cell">
+                                        <span>${highlightText(expense.name, searchQuery)}</span>
+                                        ${expense.recurringID ? '<span class="recurring-badge">Recurrente</span>' : ''}
+                                    </div>
+                                </td>
                                 <td><span class="editable" data-edit="category" data-id="${expense.id}">${highlightText(expense.category, searchQuery)}</span></td>
                                 <td class="amount"><span class="editable" data-edit="amount" data-id="${expense.id}">${formatCurrencyWithCurrency(expense.amount, expense.currency || currentCurrency)}</span></td>
                                 <td class="amount">${runningBalances[expense.id] ? formatCurrencyWithCurrency(runningBalances[expense.id].amount, runningBalances[expense.id].currency) : '-'}</td>

@@ -218,6 +218,9 @@ func createTables(db *sql.DB) error {
 	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS oauth_identities_user_idx ON oauth_identities (user_id)`); err != nil {
 		return err
 	}
+	if err := ensureRecurringInstanceUniqueIndex(db); err != nil {
+		return err
+	}
 	if _, err := db.Exec(`UPDATE expenses SET flow = CASE WHEN amount >= 0 THEN 'income' ELSE 'expense' END WHERE flow IS NULL OR flow = ''`); err != nil {
 		return err
 	}
@@ -238,6 +241,31 @@ func createTables(db *sql.DB) error {
 	}
 	if err := cleanupExpiredEmailVerifications(db); err != nil {
 		return err
+	}
+	return nil
+}
+
+func ensureRecurringInstanceUniqueIndex(db *sql.DB) error {
+	var duplicateGroups int
+	err := db.QueryRow(`
+		SELECT COUNT(1) FROM (
+			SELECT user_id, recurring_id, date
+			FROM expenses
+			WHERE recurring_id IS NOT NULL
+			GROUP BY user_id, recurring_id, date
+			HAVING COUNT(1) > 1
+		) dup
+	`).Scan(&duplicateGroups)
+	if err != nil {
+		return err
+	}
+	if duplicateGroups > 0 {
+		log.Printf("[WARN] skipping unique recurring instance index: found %d duplicate groups in expenses", duplicateGroups)
+		return nil
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS expenses_user_recurring_date_key ON expenses (user_id, recurring_id, date) WHERE recurring_id IS NOT NULL`); err != nil {
+		log.Printf("[WARN] could not create recurring instance unique index: %v", err)
+		return nil
 	}
 	return nil
 }

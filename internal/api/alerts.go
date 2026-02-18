@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tanq16/expenseowl/internal/storage"
+	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/storage"
 )
 
 type liquidityAlertItem struct {
@@ -316,3 +316,4 @@ func (h *Handler) GetLiquidityAlerts(w http.ResponseWriter, r *http.Request) {
 	resp := computeLiquidityAlerts(expenses, currency, days, now)
 	writeJSON(w, http.StatusOK, resp)
 }
+

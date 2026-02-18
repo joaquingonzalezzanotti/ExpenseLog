@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tanq16/expenseowl/internal/storage"
+	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/storage"
 )
 
 func (h *Handler) issueEmailVerification(user storage.User, r *http.Request) error {
@@ -129,3 +129,4 @@ func writeVerificationPage(w http.ResponseWriter, status int, title, message str
 </body>
 </html>`, html.EscapeString(title), html.EscapeString(title), html.EscapeString(message))
 }
+

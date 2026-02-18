@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/lib/pq"
-	"github.com/tanq16/expenseowl/internal/storage"
+	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/storage"
 )
 
 const (
@@ -343,3 +343,4 @@ func redirectAuthError(w http.ResponseWriter, r *http.Request, message string) {
 	target := "/app?auth_error=" + url.QueryEscape(strings.TrimSpace(message))
 	http.Redirect(w, r, target, http.StatusFound)
 }
+

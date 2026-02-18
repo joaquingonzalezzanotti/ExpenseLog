@@ -55,7 +55,7 @@
                         <span id="notificationCenterBadge" class="notification-badge" hidden></span>
                     </button>
                     <div id="notificationCenterPanel" class="notification-panel" hidden>
-                        <div class="notification-panel-title">Notificaciones</div>
+                        <div class="notification-panel-title">Notificaciones 🔔</div>
                         <div id="notificationCenterList" class="notification-list"></div>
                     </div>
                 </div>
@@ -162,7 +162,7 @@
         </div>
 
         <div id="recentMovements" class="recent-movements" style="display: none;">
-            <h3>Ultimos 3 movimientos</h3>
+            <h3>🧾 Ultimos 3 movimientos</h3>
             <div id="recentList" class="recent-list"></div>
         </div>
 
@@ -180,14 +180,14 @@
                 </select>
             </div>
             <button id="clearFilters" class="nav-button button-secondary">Limpiar</button>
-            <button id="toggleChart" class="nav-button button-primary" style="display: none;">Ver grafico</button>
+            <button id="toggleChart" class="nav-button button-primary" style="display: none;">📊 Ver grafico</button>
         </div>
 
         <div id="emptyStateBanner" class="empty-state" style="display: none;"></div>
 
         <div class="chart-container">
             <div id="noDataMessage" class="empty-state" style="display: none;">
-                <strong>Aun no hay gastos.</strong> Carga el primero con + Agregar gasto.
+                <strong>📭 Aun no hay gastos.</strong> Carga el primero con Agregar gasto.
             </div>
             <div class="chart-box">
                 <canvas id="categoryPieChart"></canvas>
@@ -702,7 +702,7 @@
                 updateHomeFilterControls(false);
                 noDataMessage.style.display = 'none';
                 emptyStateBanner.style.display = 'block';
-                emptyStateBanner.innerHTML = '<strong>Aun no hay gastos.</strong> Carga el primero con + Agregar gasto.';
+                emptyStateBanner.innerHTML = '<strong>📭 Aun no hay gastos.</strong> Carga el primero con Agregar gasto.';
                 renderCashflowByCurrency([], {});
                 renderRecentMovements([]);
                 return;
@@ -717,7 +717,7 @@
             renderRecentMovements(monthExpenses);
             filtersRow.style.display = hasBaseExpenses ? '' : 'none';
             toggleChart.style.display = hasBaseExpenses ? 'inline-flex' : 'none';
-            toggleChart.textContent = chartExpanded ? 'Ocultar grafico' : 'Ver grafico';
+            toggleChart.textContent = chartExpanded ? 'Ocultar grafico' : '📊 Ver grafico';
             updateHomeFilterControls(hasBaseExpenses);
 
             // Grafico solo para moneda base y gastos
@@ -730,7 +730,7 @@
                     emptyStateBanner.style.display = 'none';
                 } else {
                     emptyStateBanner.style.display = 'block';
-                    emptyStateBanner.innerHTML = `<strong>No hay gastos en ${baseCurrency.toUpperCase()}.</strong> Carga el primero con + Agregar gasto.`;
+                    emptyStateBanner.innerHTML = `<strong>📭 No hay gastos en ${baseCurrency.toUpperCase()}.</strong> Carga el primero con Agregar gasto.`;
                 }
             } else if (!chartExpanded) {
                 if (pieChart) { pieChart.destroy(); pieChart = null; }
@@ -825,7 +825,7 @@
             const title = container.querySelector('h3');
             const futureView = isFuturePeriodSelected();
             if (title) {
-                title.textContent = futureView ? 'Proximos 3 movimientos' : 'Ultimos 3 movimientos';
+                title.textContent = futureView ? '🔮 Proximos 3 movimientos' : '🧾 Ultimos 3 movimientos';
             }
             const sorted = expenses.slice().sort((a, b) => {
                 if (futureView) {
@@ -1183,8 +1183,8 @@
         }
 
         function getCreateSubmitLabelByMovementType(movementType) {
-            if (movementType === 'income') return 'Agregar ingreso';
-            if (movementType === 'refund') return 'Agregar reintegro';
+            if (movementType === 'income') return '💰 Agregar ingreso';
+            if (movementType === 'refund') return '↩️ Agregar reintegro';
             return 'Agregar gasto';
         }
 

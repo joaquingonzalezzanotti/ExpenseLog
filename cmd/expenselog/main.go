@@ -6,9 +6,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/tanq16/expenseowl/internal/api"
-	"github.com/tanq16/expenseowl/internal/storage"
-	"github.com/tanq16/expenseowl/internal/web"
+	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/api"
+	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/storage"
+	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/web"
 )
 
 var version = "dev"
@@ -131,3 +131,4 @@ func main() {
 	flag.Parse()
 	runServer(*port)
 }
+

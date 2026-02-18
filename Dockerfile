@@ -1,25 +1,25 @@
-FROM golang:alpine AS builder
+FROM golang:1.23.2-alpine3.20 AS builder
 
 WORKDIR /app
 
+# Cache dependencies in a dedicated layer.
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source only after dependencies are cached.
 COPY . .
 
-# Build the application
-RUN go build -o expenselog ./cmd/expenselog
+# Build a small Linux binary.
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /app/expenselog ./cmd/expenselog
 
-# Use a minimal alpine image for running
-FROM alpine:latest
+FROM alpine:3.20
 
 WORKDIR /app
 
-# Create data directory if not exists
-RUN mkdir -p /app/data
+RUN apk add --no-cache ca-certificates && mkdir -p /app/data
 
-# Copy the binary from builder
-COPY --from=builder /app/expenselog .
+COPY --from=builder /app/expenselog /app/expenselog
 
-# Expose the default port
 EXPOSE 8080
 
-# Run the server
 CMD ["./expenselog"]

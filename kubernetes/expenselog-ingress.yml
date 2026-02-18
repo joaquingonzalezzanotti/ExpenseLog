@@ -1,19 +1,20 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: expenseowl-ingress
-  namespace: expenseowl
+  name: expenselog-ingress
+  namespace: expenselog
   labels:
-    name: expenseowl
+    name: expenselog
 spec:
   rules:
-  - host: expenseowl.localhost
+  - host: expenselog.localhost
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: expenseowl-svc
+            name: expenselog-svc
             port:
               number: 8080
+

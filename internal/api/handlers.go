@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tanq16/expenseowl/internal/storage"
-	"github.com/tanq16/expenseowl/internal/web"
+	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/storage"
+	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/web"
 )
 
 // Handler holds the storage interface
@@ -679,3 +679,4 @@ func (h *Handler) ServeStaticFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to serve static file", http.StatusInternalServerError)
 	}
 }
+

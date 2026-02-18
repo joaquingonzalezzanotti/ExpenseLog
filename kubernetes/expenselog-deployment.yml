@@ -1,33 +1,34 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: expenseowl
-  namespace: expenseowl
+  name: expenselog
+  namespace: expenselog
 spec:
-  serviceName: expenseowl-svc
+  serviceName: expenselog-svc
   selector:
     matchLabels:
-      app: expenseowl
+      app: expenselog
   replicas: 1 
   template:
     metadata:
       labels:
-        app: expenseowl
+        app: expenselog
     spec:
       containers:
-      - name: expenseowl
-        image: tanq16/expenseowl:main
+      - name: expenselog
+        image: ghcr.io/joaquingonzalezzanotti/expenselog:main
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
-          name: expenseowl-port
+          name: expenselog-port
         envFrom:
         - configMapRef:
-            name: expenseowl-config
+            name: expenselog-config
         volumeMounts:
         - mountPath: "/app/data"
-          name: expenseowl-vol
+          name: expenselog-vol
       volumes:
-      - name: expenseowl-vol
+      - name: expenselog-vol
         persistentVolumeClaim:
-          claimName: "expenseowl-pvc"
+          claimName: "expenselog-pvc"
+

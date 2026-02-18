@@ -38,7 +38,7 @@
                 <div class="nav-right-slot">
                     <button id="notificationCenterButton" class="view-button notification-trigger" data-tooltip="Notificaciones" type="button" aria-label="Notificaciones" aria-expanded="false">
                         <i class="fa-regular fa-bell"></i>
-                        <span id="notificationCenterBadge" class="notification-badge" hidden>0</span>
+                        <span id="notificationCenterBadge" class="notification-badge" hidden></span>
                     </button>
                     <div id="notificationCenterPanel" class="notification-panel" hidden>
                         <div class="notification-panel-title">Notificaciones</div>
@@ -57,9 +57,6 @@
         
         <div class="table-controls">
             <button id="toggleTableExpenseFormBtn" class="nav-button button-primary mobile-only" type="button">Agregar gasto</button>
-            <label for="showAllToggle">
-                <input type="checkbox" id="showAllToggle" class="styled-checkbox"> Mostrar todas las transacciones
-            </label>
         </div>
 
         <div id="tableExpenseFormContainer" class="form-container" data-expanded="false">
@@ -167,6 +164,11 @@
         <div id="mobileTablePager" class="mobile-table-pager" style="display: none;">
             <span id="mobileTablePagerInfo" class="mobile-table-pager-info"></span>
             <button id="toggleMobileRows" class="nav-button button-secondary" type="button">Mostrar todos</button>
+        </div>
+        <div class="table-footer-controls">
+            <label for="showAllToggle">
+                <input type="checkbox" id="showAllToggle" class="styled-checkbox"> Mostrar todas las transacciones
+            </label>
         </div>
     </div>
     <div id="toastContainer" class="toast-container"></div>
@@ -754,6 +756,7 @@
                 source: exp.source || 'CA',
                 card: exp.card || '',
                 flow: exp.flow || resolveFlow(exp),
+                recurringID: exp.recurringID || '',
                 ...updatedFields,
             };
             try {
@@ -948,6 +951,7 @@
                 amount = Math.abs(amount);
             }
             const sourceValue = sourceSelect.value || 'CA';
+            const editingExpense = editId ? expensesForTable.find(exp => exp.id === editId) : null;
             if (sourceValue === 'TARJETA' && !document.getElementById('cardInput').value.trim()) {
                 document.getElementById('cardError').textContent = 'Especifica la tarjeta';
                 return;
@@ -963,6 +967,7 @@
                 source: sourceValue,
                 card: sourceValue === 'TARJETA' ? document.getElementById('cardInput').value : '',
                 flow: movementType,
+                recurringID: editingExpense?.recurringID || '',
             };
             try {
                 const url = editId ? `/expense/edit?id=${editId}` : '/expense';

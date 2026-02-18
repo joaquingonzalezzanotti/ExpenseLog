@@ -17,7 +17,7 @@
     </script>
     <title>Configuracion ExpenseLog</title>
 </head>
-<body class="auth-pending">
+<body class="auth-pending settings-page">
     <div class="container">
         <header>
             <div class="nav-bar">
@@ -38,7 +38,7 @@
                 <div class="nav-right-slot">
                     <button id="notificationCenterButton" class="view-button notification-trigger" data-tooltip="Notificaciones" type="button" aria-label="Notificaciones" aria-expanded="false">
                         <i class="fa-regular fa-bell"></i>
-                        <span id="notificationCenterBadge" class="notification-badge" hidden>0</span>
+                        <span id="notificationCenterBadge" class="notification-badge" hidden></span>
                     </button>
                     <div id="notificationCenterPanel" class="notification-panel" hidden>
                         <div class="notification-panel-title">Notificaciones</div>
@@ -51,7 +51,9 @@
         <section class="form-container settings-section settings-profile">
             <div class="settings-detail-header settings-profile-header">
                 <h2>Perfil</h2>
-                <button id="settingsLogoutBtn" class="nav-button button-secondary settings-logout-btn" type="button">Cerrar sesion</button>
+                <button id="settingsLogoutBtn" class="settings-logout-btn" type="button" aria-label="Cerrar sesion" title="Cerrar sesion">
+                    <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
+                </button>
             </div>
             <div class="settings-profile-row">
                 <div id="settingsProfileAvatar" class="settings-profile-avatar">EL</div>

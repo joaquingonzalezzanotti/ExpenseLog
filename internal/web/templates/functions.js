@@ -364,7 +364,7 @@ function renderNotificationCenter(payload) {
         dom.badge.textContent = String(Math.min(unseenCount, 99));
         dom.badge.hidden = false;
     } else {
-        dom.badge.textContent = '0';
+        dom.badge.textContent = '';
         dom.badge.hidden = true;
     }
 
@@ -499,7 +499,7 @@ function teardownNotificationCenter() {
     currentVisibleNotificationItems = [];
     if (dom.badge) {
         dom.badge.hidden = true;
-        dom.badge.textContent = '0';
+        dom.badge.textContent = '';
     }
     if (dom.panel) {
         dom.panel.hidden = true;

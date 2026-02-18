@@ -46,16 +46,10 @@
     <div class="container">
         <header>
             <div class="nav-bar">
-                <a href="/">
-                    <img src="/pwa/icon-192.png" alt="ExpenseLo==> Deploying...
-==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
-2026/01/28 16:03:28 Failed to initialize storage: missing STORAGE_TYPE (set STORAGE_TYPE=postgres)
-2026/01/28 16:03:30 Failed to initialize storage: missing STORAGE_TYPE (set STORAGE_TYPE=postgres)
-==> Exited with status 1
-==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
-2026/01/28 16:03:40 Failed to initialize storage: missing STORAGE_TYPE (set STORAGE_TYPE=postgres) Logo" height="85" style="vertical-align: middle; margin-right: 20px;">
+                <a href="/app">
+                    <img src="/pwa/icon-192.png" alt="ExpenseLog Logo" class="nav-logo">
                 </a>
-                <a href="/" class="view-button active" data-tooltip="Panel">
+                <a href="/app" class="view-button active" data-tooltip="Panel">
                     <i class="fa-solid fa-chart-pie"></i>
                 </a>
                 <a href="/table" class="view-button" data-tooltip="Tabla">
@@ -79,11 +73,8 @@
 
         <div class="table-controls">
             <div class="quick-actions">
-                <button id="toggleExpenseFormBtn" class="quick-action" data-action="open-form">
-                    <i class="fa-solid fa-plus"></i> Agregar gasto
-                </button>
+                <button id="toggleExpenseFormBtn" class="quick-action" data-action="open-form">Agregar gasto</button>
                 <button class="quick-action" data-action="income">Ingreso</button>
-                <button class="quick-action" data-action="expense">Gasto CA</button>
                 <button class="quick-action" data-action="card-expense">Gasto Tarjeta</button>
             </div>
         </div>
@@ -271,9 +262,11 @@
         let filterSource = 'all';
         let categories = [];
         let chartExpanded = false;
-        const LIQUIDITY_ALERT_CURRENCY = 'ars';
-        const LIQUIDITY_ALERT_DAYS = 7;
-        const LIQUIDITY_ALERT_REAPPEAR_DAYS = 1;
+        const LIQUIDITY_RULES = Object.freeze({
+            currency: 'ars',
+            windowDays: 7,
+            reappearDays: 1,
+        });
         const LIQUIDITY_DISMISS_STORAGE_KEY = 'expenselog_liquidity_dismiss_v1';
         const liquidityAlertWidget = document.getElementById('liquidityAlertWidget');
         const liquidityAlertToggle = document.getElementById('liquidityAlertToggle');
@@ -354,8 +347,8 @@
             const dismissedDaysUntil = typeof entry === 'object'
                 ? Number(entry.daysUntil ?? Number.POSITIVE_INFINITY)
                 : Number.POSITIVE_INFINITY;
-            const is24hWindow = daysUntil <= LIQUIDITY_ALERT_REAPPEAR_DAYS;
-            const wasDismissedBefore24h = dismissedDaysUntil > LIQUIDITY_ALERT_REAPPEAR_DAYS;
+            const is24hWindow = daysUntil <= LIQUIDITY_RULES.reappearDays;
+            const wasDismissedBefore24h = dismissedDaysUntil > LIQUIDITY_RULES.reappearDays;
             if (is24hWindow && wasDismissedBefore24h) {
                 return false;
             }
@@ -409,11 +402,12 @@
                 liquidityAlertIcon.className = hasCritical ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-bell';
             }
             const balanceNow = Number(data?.balanceNow || 0);
-            const windowDays = Number(data?.windowDays || LIQUIDITY_ALERT_DAYS);
+            const windowDays = Number(data?.windowDays || LIQUIDITY_RULES.windowDays);
+            const currencyLabel = LIQUIDITY_RULES.currency.toUpperCase();
             if (hasCritical) {
-                liquidityAlertSummary.textContent = `Saldo ARS actual: ${formatCurrencyWithCurrency(balanceNow, LIQUIDITY_ALERT_CURRENCY)}. ${criticalCount} alerta(s) critica(s) en ${windowDays} dias.`;
+                liquidityAlertSummary.textContent = `Saldo ${currencyLabel} actual: ${formatCurrencyWithCurrency(balanceNow, LIQUIDITY_RULES.currency)}. ${criticalCount} alerta(s) critica(s) en ${windowDays} dias.`;
             } else {
-                liquidityAlertSummary.textContent = `Saldo ARS actual: ${formatCurrencyWithCurrency(balanceNow, LIQUIDITY_ALERT_CURRENCY)}. ${infoCount} notificacion(es) en ${windowDays} dias.`;
+                liquidityAlertSummary.textContent = `Saldo ${currencyLabel} actual: ${formatCurrencyWithCurrency(balanceNow, LIQUIDITY_RULES.currency)}. ${infoCount} notificacion(es) en ${windowDays} dias.`;
             }
 
             liquidityAlertList.innerHTML = alerts.map((item, index) => {
@@ -432,16 +426,16 @@
                         </div>
                         <div class="liquidity-alert-item-row">
                             <span>${liquidityAlertLead(item)}: ${daysText} (${dueDate})</span>
-                            <span>${formatCurrencyWithCurrency(requiredAmount, LIQUIDITY_ALERT_CURRENCY)}</span>
+                            <span>${formatCurrencyWithCurrency(requiredAmount, LIQUIDITY_RULES.currency)}</span>
                         </div>
                         <div class="liquidity-alert-item-row">
                             <span>Saldo proyectado luego del egreso</span>
-                            <span class="liquidity-alert-balance ${projectedClass}">${formatCurrencyWithCurrency(projectedAfter, LIQUIDITY_ALERT_CURRENCY)}</span>
+                            <span class="liquidity-alert-balance ${projectedClass}">${formatCurrencyWithCurrency(projectedAfter, LIQUIDITY_RULES.currency)}</span>
                         </div>
                         ${isCritical && shortfall > 0 ? `
                         <div class="liquidity-alert-item-row liquidity-alert-shortfall">
                             <span>Faltante estimado</span>
-                            <span>${formatCurrencyWithCurrency(shortfall, LIQUIDITY_ALERT_CURRENCY)}</span>
+                            <span>${formatCurrencyWithCurrency(shortfall, LIQUIDITY_RULES.currency)}</span>
                         </div>` : ''}
                         <div class="liquidity-alert-item-actions">
                             <button type="button" class="liquidity-alert-dismiss" data-alert-index="${index}">Borrar</button>
@@ -466,7 +460,7 @@
         async function refreshLiquidityAlert() {
             if (!liquidityAlertWidget) return;
             try {
-                const response = await fetch(`/alerts/liquidity?currency=${LIQUIDITY_ALERT_CURRENCY}&days=${LIQUIDITY_ALERT_DAYS}`);
+                const response = await fetch(`/alerts/liquidity?currency=${LIQUIDITY_RULES.currency}&days=${LIQUIDITY_RULES.windowDays}`);
                 if (!response.ok) throw new Error(`status ${response.status}`);
                 const data = await response.json();
                 latestLiquidityAlertsData = data;
@@ -1014,9 +1008,7 @@
             const toggleBtn = document.getElementById('toggleExpenseFormBtn');
             formContainer.style.display = visible ? 'block' : 'none';
             if (toggleBtn) {
-                toggleBtn.innerHTML = visible
-                    ? '<i class="fa-solid fa-times"></i> Cerrar'
-                    : '<i class="fa-solid fa-plus"></i> Agregar gasto';
+                toggleBtn.textContent = visible ? 'Cerrar' : 'Agregar gasto';
             }
         }
 
@@ -1143,9 +1135,6 @@
                 setExpenseFormVisible(true);
                 if (action === 'income') {
                     setQuickMovementType('income');
-                    sourceSelect.value = 'CA';
-                } else if (action === 'expense') {
-                    setQuickMovementType('expense');
                     sourceSelect.value = 'CA';
                 } else if (action === 'card-expense') {
                     setQuickMovementType('expense');

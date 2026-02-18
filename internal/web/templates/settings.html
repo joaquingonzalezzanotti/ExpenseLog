@@ -671,7 +671,6 @@ async function saveEditCategory(index, value) {
 async function saveCategoriesList(nextCategories) {
     // Safety check: ensure we're never sending an empty array
     if (!nextCategories || nextCategories.length === 0) {
-        console.error('[SAVE] Attempting to save empty categories array!');
         showMessage('categoriesMessage', 'Error: No se pueden eliminar todas las categorias. Se requiere al menos una.', false);
         return false;
     }
@@ -679,7 +678,6 @@ async function saveCategoriesList(nextCategories) {
     // Additional validation: ensure no empty category names
     const hasEmpty = nextCategories.some(cat => !cat || typeof cat !== 'string' || cat.trim() === '');
     if (hasEmpty) {
-        console.error('[SAVE] Categories array contains empty values:', nextCategories);
         showMessage('categoriesMessage', 'Error: Hay categorias vacias que no se pueden guardar.', false);
         return false;
     }
@@ -696,11 +694,9 @@ async function saveCategoriesList(nextCategories) {
             return true;
         }
         const error = await response.json();
-        console.error('[SAVE] Server returned error:', error);
         showMessage('categoriesMessage', `No se pudieron guardar las categorias: ${error.error}`, false);
         return false;
     } catch (error) {
-        console.error('[SAVE] Error guardando categorias:', error);
         showMessage('categoriesMessage', 'Error guardando categorias', false);
         return false;
     }

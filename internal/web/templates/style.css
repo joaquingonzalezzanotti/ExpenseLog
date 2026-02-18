@@ -1722,17 +1722,22 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     }
 
     .nav-bar {
-        margin-bottom: 0.35rem;
-        gap: 0.45rem;
-        flex-wrap: wrap;
+        margin-bottom: 0.2rem;
+        gap: 0.35rem;
+        flex-wrap: nowrap;
     }
 
     .nav-logo {
-        height: 40px;
+        height: 34px;
     }
 
     .view-button {
-        padding: 0.4rem 0.72rem;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .user-badge {
@@ -1906,6 +1911,21 @@ html[data-theme='dark'] .expense-table td.amount-balance {
         padding: 0.5rem 0.65rem;
     }
 
+    .quick-action[data-action="open-form"] {
+        grid-column: 1 / -1;
+    }
+
+    .cashflow-row.base-currency {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.65rem;
+    }
+
+    .cashflow-row.base-currency .cashflow-item {
+        margin: 0;
+        min-width: 0;
+    }
+
     .search-bar {
         display: grid;
         grid-template-columns: auto 1fr;
@@ -1966,17 +1986,17 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     }
 
     .liquidity-alert {
-        top: 0.75rem;
-        right: 0.75rem;
+        top: 0.5rem;
+        right: 0.5rem;
     }
 
     .liquidity-alert-panel {
-        width: min(320px, calc(100vw - 1.5rem));
+        width: min(300px, calc(100vw - 1rem));
     }
 
     .liquidity-alert-toggle {
-        width: 40px;
-        height: 40px;
+        width: 36px;
+        height: 36px;
     }
 
     .mobile-table-pager {
@@ -1991,6 +2011,15 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 }
 
 @media (max-width: 520px) {
+    .nav-logo {
+        height: 30px;
+    }
+
+    .view-button {
+        width: 34px;
+        height: 34px;
+    }
+
     .panel-filters {
         grid-template-columns: 1fr;
     }

@@ -604,6 +604,68 @@ html[data-theme='light'] #toggleExpenseFormBtn {
     padding: 0.08rem 0.42rem;
 }
 
+.expense-mobile-actions {
+    display: none;
+    position: relative;
+    margin-top: 0.3rem;
+    justify-content: flex-end;
+}
+
+.row-menu-toggle {
+    width: 30px;
+    height: 30px;
+    border-radius: 9999px;
+    border: 1px solid var(--border);
+    background-color: var(--bg-primary);
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.row-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 0.25rem);
+    right: 0;
+    min-width: 132px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.2);
+    padding: 0.2rem;
+    z-index: 4;
+}
+
+.expense-mobile-actions.open .row-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.row-menu-item {
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    text-align: left;
+    border-radius: 8px;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.82rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    cursor: pointer;
+}
+
+.row-menu-item:hover {
+    background-color: var(--accent-soft);
+}
+
+.row-menu-item.danger {
+    color: var(--danger);
+}
+
 .recurring-badge {
     display: inline-flex;
     align-items: center;
@@ -1864,6 +1926,17 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
     .current-month {
         min-width: 0;
+    }
+}
+
+@media (max-width: 415px) {
+    .expense-table th.actions-col,
+    .expense-table td.actions-col {
+        display: none;
+    }
+
+    .expense-mobile-actions {
+        display: flex;
     }
 }
 

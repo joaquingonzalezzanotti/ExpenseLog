@@ -802,9 +802,12 @@ async function saveCategoriesList(nextCategories) {
         }
 
         function findNextOccurrence(r) {
-            let nextDate = new Date(r.startDate);
+            const startValue = getDateInputValueFromISO(r.startDate);
+            if (!startValue) return '-';
+            const [year, month, day] = startValue.split('-').map(Number);
+            let nextDate = new Date(year, month - 1, day, 12, 0, 0, 0);
             const today = new Date();
-            if (nextDate >= today) return nextDate.toLocaleDateString();
+            if (nextDate >= today) return nextDate.toLocaleDateString('es-AR');
             if (r.occurrences > 0) {
                 let occurrencesCount = 0;
                 while (nextDate < today) {
@@ -817,7 +820,7 @@ async function saveCategoriesList(nextCategories) {
                         case 'yearly': nextDate.setFullYear(nextDate.getFullYear() + 1); break;
                     }
                 }
-                return nextDate.toLocaleDateString();
+                return nextDate.toLocaleDateString('es-AR');
             } else { // Indefinite
                  while (nextDate < today) {
                     switch(r.interval) {
@@ -827,7 +830,7 @@ async function saveCategoriesList(nextCategories) {
                         case 'yearly': nextDate.setFullYear(nextDate.getFullYear() + 1); break;
                     }
                 }
-                return nextDate.toLocaleDateString();
+                return nextDate.toLocaleDateString('es-AR');
             }
         }
 
@@ -892,7 +895,7 @@ async function saveCategoriesList(nextCategories) {
             document.getElementById('editRecurringFlow').value = editFlow;
             document.getElementById('editRecurringCategory').value = recurringExpenseToEdit.category;
             document.getElementById('editRecurringInterval').value = recurringExpenseToEdit.interval;
-            document.getElementById('editRecurringStartDate').value = new Date(recurringExpenseToEdit.startDate).toISOString().split('T')[0];
+            document.getElementById('editRecurringStartDate').value = getDateInputValueFromISO(recurringExpenseToEdit.startDate);
             document.getElementById('editRecurringOccurrences').value = recurringExpenseToEdit.occurrences;
             editFormSelectedTags = new Set(recurringExpenseToEdit.tags || []);
             createTagInput('edit-tags-input', 'edit-selected-tags', 'edit-tags-dropdown', editFormSelectedTags).renderSelected();
@@ -921,7 +924,7 @@ async function saveCategoriesList(nextCategories) {
                 category: document.getElementById('editRecurringCategory').value,
                 tags: Array.from(editFormSelectedTags),
                 interval: document.getElementById('editRecurringInterval').value,
-                startDate: new Date(document.getElementById('editRecurringStartDate').value).toISOString(),
+                startDate: getISODateWithLocalNoon(document.getElementById('editRecurringStartDate').value),
                 occurrences: parseInt(document.getElementById('editRecurringOccurrences').value, 10),
                 flow: flow
             };
@@ -1162,7 +1165,7 @@ async function saveCategoriesList(nextCategories) {
                 category: document.getElementById('recurringCategory').value,
                 tags: Array.from(addFormSelectedTags),
                 interval: document.getElementById('recurringInterval').value,
-                startDate: getISODateWithLocalTime(document.getElementById('recurringStartDate').value),
+                startDate: getISODateWithLocalNoon(document.getElementById('recurringStartDate').value),
                 occurrences: parseInt(document.getElementById('recurringOccurrences').value, 10),
                 flow: flow
             };

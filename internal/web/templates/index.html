@@ -38,7 +38,7 @@
             <span id="liquidityAlertCount" class="liquidity-alert-count">0</span>
         </button>
         <div id="liquidityAlertPanel" class="liquidity-alert-panel" style="display: none;">
-            <div class="liquidity-alert-title">Riesgo de saldo</div>
+            <div id="liquidityAlertTitle" class="liquidity-alert-title">Riesgo de saldo</div>
             <div id="liquidityAlertSummary" class="liquidity-alert-summary"></div>
             <div id="liquidityAlertList" class="liquidity-alert-list"></div>
         </div>
@@ -277,13 +277,18 @@
         let categories = [];
         let chartExpanded = false;
         const LIQUIDITY_ALERT_CURRENCY = 'ars';
-        const LIQUIDITY_ALERT_DAYS = 4;
+        const LIQUIDITY_ALERT_DAYS = 7;
+        const LIQUIDITY_ALERT_REAPPEAR_DAYS = 1;
+        const LIQUIDITY_DISMISS_STORAGE_KEY = 'expenselog_liquidity_dismiss_v1';
         const liquidityAlertWidget = document.getElementById('liquidityAlertWidget');
         const liquidityAlertToggle = document.getElementById('liquidityAlertToggle');
         const liquidityAlertPanel = document.getElementById('liquidityAlertPanel');
         const liquidityAlertCount = document.getElementById('liquidityAlertCount');
+        const liquidityAlertTitle = document.getElementById('liquidityAlertTitle');
         const liquidityAlertSummary = document.getElementById('liquidityAlertSummary');
         const liquidityAlertList = document.getElementById('liquidityAlertList');
+        const liquidityAlertIcon = liquidityAlertToggle ? liquidityAlertToggle.querySelector('i') : null;
+        let latestLiquidityAlertsData = null;
 
         function formatCurrencyWithCurrency(amount, currencyCode) {
             const behavior = currencyBehaviors[currencyCode] || currencyBehaviors[currentCurrency] || {symbol:"$",useComma:false,useDecimals:true,useSpace:false,right:false};
@@ -299,14 +304,82 @@
         }
 
         function formatAlertDueDate(isoDate) {
-            const dueDate = new Date(isoDate);
-            return dueDate.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const ymd = getDateInputValueFromISO(isoDate);
+            if (!ymd) return '-';
+            const [year, month, day] = ymd.split('-');
+            return `${day}/${month}/${year}`;
         }
 
         function formatDaysUntil(daysUntil) {
-            if (daysUntil <= 0) return 'hoy';
+            if (daysUntil < 0) {
+                const ago = Math.abs(daysUntil);
+                return ago === 1 ? 'hace 1 dia' : `hace ${ago} dias`;
+            }
+            if (daysUntil === 0) return 'hoy';
             if (daysUntil === 1) return 'en 1 dia';
             return `en ${daysUntil} dias`;
+        }
+
+        function readLiquidityDismissMap() {
+            try {
+                const raw = localStorage.getItem(LIQUIDITY_DISMISS_STORAGE_KEY);
+                if (!raw) return {};
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+                    return {};
+                }
+                return parsed;
+            } catch (error) {
+                console.warn('No se pudo leer el estado de notificaciones borradas:', error);
+                return {};
+            }
+        }
+
+        function writeLiquidityDismissMap(dismissMap) {
+            try {
+                localStorage.setItem(LIQUIDITY_DISMISS_STORAGE_KEY, JSON.stringify(dismissMap));
+            } catch (error) {
+                console.warn('No se pudo guardar el estado de notificaciones borradas:', error);
+            }
+        }
+
+        function buildLiquidityAlertKey(item) {
+            const recurringId = String(item?.recurringId || 'sin-recurring');
+            const dueDate = String(item?.dueDate || '');
+            const kind = String(item?.kind || 'preview_7d');
+            return `${recurringId}|${dueDate}|${kind}`;
+        }
+
+        function shouldHideDismissedAlert(item, dismissMap) {
+            const key = buildLiquidityAlertKey(item);
+            const entry = dismissMap[key];
+            if (!entry) return false;
+            const daysUntil = Number(item?.daysUntil || 0);
+            const dismissedDaysUntil = typeof entry === 'object'
+                ? Number(entry.daysUntil ?? Number.POSITIVE_INFINITY)
+                : Number.POSITIVE_INFINITY;
+            const is24hWindow = daysUntil <= LIQUIDITY_ALERT_REAPPEAR_DAYS;
+            const wasDismissedBefore24h = dismissedDaysUntil > LIQUIDITY_ALERT_REAPPEAR_DAYS;
+            if (is24hWindow && wasDismissedBefore24h) {
+                return false;
+            }
+            return true;
+        }
+
+        function dismissLiquidityAlert(item) {
+            const dismissMap = readLiquidityDismissMap();
+            dismissMap[buildLiquidityAlertKey(item)] = {
+                dismissedAt: Date.now(),
+                daysUntil: Number(item?.daysUntil || 0),
+            };
+            writeLiquidityDismissMap(dismissMap);
+        }
+
+        function liquidityAlertLead(item) {
+            if (item?.kind === 'due') return 'Vencimiento';
+            if (item?.kind === 'risk_4d') return 'Riesgo en 4 dias';
+            if (item?.kind === 'monitor_4d') return 'Seguimiento 4 dias';
+            return 'Aviso 7 dias';
         }
 
         function closeLiquidityAlertPanel() {
@@ -317,38 +390,81 @@
 
         function renderLiquidityAlerts(data) {
             if (!liquidityAlertWidget) return;
-            const alerts = Array.isArray(data?.alerts) ? data.alerts : [];
+            const incomingAlerts = Array.isArray(data?.alerts) ? data.alerts : [];
+            const dismissMap = readLiquidityDismissMap();
+            const alerts = incomingAlerts.filter(item => !shouldHideDismissedAlert(item, dismissMap));
             if (alerts.length === 0) {
                 liquidityAlertWidget.style.display = 'none';
+                liquidityAlertWidget.dataset.severity = 'none';
                 closeLiquidityAlertPanel();
                 return;
             }
 
+            const criticalCount = alerts.filter(item => item.severity === 'critical').length;
+            const infoCount = alerts.length - criticalCount;
+            const hasCritical = criticalCount > 0;
             liquidityAlertWidget.style.display = 'block';
+            liquidityAlertWidget.dataset.severity = hasCritical ? 'critical' : 'info';
             liquidityAlertCount.textContent = String(alerts.length);
+            if (liquidityAlertTitle) {
+                liquidityAlertTitle.textContent = hasCritical ? 'Riesgo de saldo' : 'Notificaciones de saldo';
+            }
+            if (liquidityAlertIcon) {
+                liquidityAlertIcon.className = hasCritical ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-bell';
+            }
             const balanceNow = Number(data?.balanceNow || 0);
             const windowDays = Number(data?.windowDays || LIQUIDITY_ALERT_DAYS);
-            liquidityAlertSummary.textContent = `Saldo ARS actual: ${formatCurrencyWithCurrency(balanceNow, LIQUIDITY_ALERT_CURRENCY)}. Riesgos en ${windowDays} dias.`;
+            if (hasCritical) {
+                liquidityAlertSummary.textContent = `Saldo ARS actual: ${formatCurrencyWithCurrency(balanceNow, LIQUIDITY_ALERT_CURRENCY)}. ${criticalCount} alerta(s) critica(s) en ${windowDays} dias.`;
+            } else {
+                liquidityAlertSummary.textContent = `Saldo ARS actual: ${formatCurrencyWithCurrency(balanceNow, LIQUIDITY_ALERT_CURRENCY)}. ${infoCount} notificacion(es) en ${windowDays} dias.`;
+            }
 
-            liquidityAlertList.innerHTML = alerts.map(item => {
+            liquidityAlertList.innerHTML = alerts.map((item, index) => {
                 const requiredAmount = Number(item.requiredAmount || 0);
+                const projectedAfter = Number(item.balanceAfter || 0);
                 const shortfall = Number(item.shortfall || 0);
                 const dueDate = formatAlertDueDate(item.dueDate);
                 const daysText = formatDaysUntil(Number(item.daysUntil || 0));
+                const isCritical = item.severity === 'critical';
+                const projectedClass = projectedAfter < 0 ? 'negative' : 'positive';
                 return `
-                    <div class="liquidity-alert-item">
-                        <div class="liquidity-alert-item-title">${escapeHTML(item.name || 'Recurrente')}</div>
+                    <div class="liquidity-alert-item liquidity-alert-item-${isCritical ? 'critical' : 'info'}">
+                        <div class="liquidity-alert-item-head">
+                            <div class="liquidity-alert-item-title">${escapeHTML(item.name || 'Recurrente')}</div>
+                            <span class="liquidity-alert-badge ${isCritical ? 'critical' : 'info'}">${isCritical ? 'Alerta' : 'Info'}</span>
+                        </div>
                         <div class="liquidity-alert-item-row">
-                            <span>Vence ${daysText} (${dueDate})</span>
+                            <span>${liquidityAlertLead(item)}: ${daysText} (${dueDate})</span>
                             <span>${formatCurrencyWithCurrency(requiredAmount, LIQUIDITY_ALERT_CURRENCY)}</span>
                         </div>
+                        <div class="liquidity-alert-item-row">
+                            <span>Saldo proyectado luego del egreso</span>
+                            <span class="liquidity-alert-balance ${projectedClass}">${formatCurrencyWithCurrency(projectedAfter, LIQUIDITY_ALERT_CURRENCY)}</span>
+                        </div>
+                        ${isCritical && shortfall > 0 ? `
                         <div class="liquidity-alert-item-row liquidity-alert-shortfall">
                             <span>Faltante estimado</span>
                             <span>${formatCurrencyWithCurrency(shortfall, LIQUIDITY_ALERT_CURRENCY)}</span>
+                        </div>` : ''}
+                        <div class="liquidity-alert-item-actions">
+                            <button type="button" class="liquidity-alert-dismiss" data-alert-index="${index}">Borrar</button>
                         </div>
                     </div>
                 `;
             }).join('');
+
+            liquidityAlertList.querySelectorAll('.liquidity-alert-dismiss').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const index = Number(button.dataset.alertIndex);
+                    if (!Number.isFinite(index)) return;
+                    const selected = alerts[index];
+                    if (!selected) return;
+                    dismissLiquidityAlert(selected);
+                    renderLiquidityAlerts(latestLiquidityAlertsData || data);
+                });
+            });
         }
 
         async function refreshLiquidityAlert() {
@@ -357,10 +473,13 @@
                 const response = await fetch(`/alerts/liquidity?currency=${LIQUIDITY_ALERT_CURRENCY}&days=${LIQUIDITY_ALERT_DAYS}`);
                 if (!response.ok) throw new Error(`status ${response.status}`);
                 const data = await response.json();
+                latestLiquidityAlertsData = data;
                 renderLiquidityAlerts(data);
             } catch (error) {
                 console.error('No se pudieron cargar las alertas de liquidez:', error);
+                latestLiquidityAlertsData = null;
                 liquidityAlertWidget.style.display = 'none';
+                liquidityAlertWidget.dataset.severity = 'none';
                 closeLiquidityAlertPanel();
             }
         }
@@ -404,11 +523,11 @@
                 .reduce((sum, exp) => sum + Math.abs(exp.amount), 0);
         }
 
-        function calculateCarryoverByCurrency(expenses, periodStart) {
+        function calculateCarryoverByCurrency(expenses, periodStart, cutoffDate) {
             const carryoverExpenses = expenses.filter(exp => {
-                const expDate = new Date(exp.date);
+                const expDate = getComparableExpenseDate(exp);
                 const source = (exp.source || '').toUpperCase();
-                return expDate < periodStart && (source === '' || source === 'CA');
+                return expDate < periodStart && expDate <= cutoffDate && (source === '' || source === 'CA');
             });
             return carryoverExpenses.reduce((acc, exp) => {
                 const cur = exp.currency || baseCurrency;
@@ -417,11 +536,17 @@
             }, {});
         }
 
+        function getVisiblePeriodExpenses(expenses) {
+            const monthExpenses = getMonthExpenses(expenses);
+            const now = new Date();
+            return monthExpenses.filter(exp => getComparableExpenseDate(exp) <= now);
+        }
+
         function updateChartAndLegend() {
-            const monthExpensesAll = getMonthExpenses(allExpenses);
-            const monthExpenses = getFilteredMonthExpenses();
+            const monthExpensesAll = getVisiblePeriodExpenses(allExpenses);
+            const monthExpenses = getFilteredMonthExpenses(monthExpensesAll);
             const monthBounds = getMonthBounds(currentDate);
-            const carryoverByCurrency = calculateCarryoverByCurrency(allExpenses, monthBounds.start);
+            const carryoverByCurrency = calculateCarryoverByCurrency(allExpenses, monthBounds.start, new Date());
             const hasCarryover = Object.values(carryoverByCurrency).some(amount => amount !== 0);
             const chartContainer = document.querySelector('.chart-container');
             const chartBox = document.querySelector('.chart-box');
@@ -565,7 +690,7 @@
         function renderRecentMovements(expenses) {
             const container = document.getElementById('recentMovements');
             const list = document.getElementById('recentList');
-            const sorted = expenses.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+            const sorted = expenses.slice().sort((a, b) => getComparableExpenseDate(b) - getComparableExpenseDate(a));
             const recent = sorted.slice(0, 3);
             if (recent.length === 0) {
                 container.style.display = 'none';
@@ -619,7 +744,7 @@
         function updateLegend(categoryData) {
             const legendContainer = document.getElementById('customLegend');
             legendContainer.innerHTML = '';
-            const monthExpenses = getMonthExpenses(allExpenses).filter(exp => exp.currency === baseCurrency);
+            const monthExpenses = getVisiblePeriodExpenses(allExpenses).filter(exp => exp.currency === baseCurrency);
             const currentMonthCategories = [...new Set(monthExpenses
                 .filter(exp => exp.amount < 0)
                 .map(exp => exp.category))];
@@ -845,8 +970,8 @@
             indicator.textContent = `Moneda base: ${baseCurrency.toUpperCase()} · El grafico muestra solo gastos en ${baseCurrency.toUpperCase()}`;
         }
 
-        function getFilteredMonthExpenses() {
-            const monthExpenses = getMonthExpenses(allExpenses);
+        function getFilteredMonthExpenses(periodExpenses) {
+            const monthExpenses = Array.isArray(periodExpenses) ? periodExpenses : getVisiblePeriodExpenses(allExpenses);
             return monthExpenses.filter(exp => {
                 const currencyMatch = filterCurrency === 'all' || (exp.currency || baseCurrency) === filterCurrency;
                 const source = (exp.source || '').toUpperCase();

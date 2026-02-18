@@ -365,6 +365,23 @@ function getISODateWithLocalTime(dateInput) {
     return localDateTime.toISOString();
 }
 
+// Stores date-only fields (like recurring start date) at local noon to avoid timezone day-shifts.
+function getISODateWithLocalNoon(dateInput) {
+    const [year, month, day] = dateInput.split('-').map(Number);
+    const localNoon = new Date(year, month - 1, day, 12, 0, 0, 0);
+    return localNoon.toISOString();
+}
+
+// Reads ISO date fields as calendar dates (UTC components) for stable YYYY-MM-DD inputs.
+function getDateInputValueFromISO(isoDateString) {
+    const date = new Date(isoDateString);
+    if (Number.isNaN(date.getTime())) return '';
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 function formatDateFromUTC(utcDateString) {
     const date = new Date(utcDateString);
     return date.toLocaleDateString('es-AR', {
@@ -418,12 +435,21 @@ function getMonthBounds(date) {
     }
 }
 
+function getComparableExpenseDate(exp) {
+    const rawDate = new Date(exp?.date);
+    if (!exp?.recurringID) return rawDate;
+    const ymd = getDateInputValueFromISO(exp.date);
+    if (!ymd) return rawDate;
+    const [year, month, day] = ymd.split('-').map(Number);
+    return new Date(year, month - 1, day, 12, 0, 0, 0);
+}
+
 function getMonthExpenses(expenses) {
     const { start, end } = getMonthBounds(currentDate);
     return expenses.filter(exp => {
-        const expDate = new Date(exp.date);
+        const expDate = getComparableExpenseDate(exp);
         return expDate >= start && expDate <= end;
-    }).sort((a, b) => new Date(b.date) - new Date(a.date));
+    }).sort((a, b) => getComparableExpenseDate(b) - getComparableExpenseDate(a));
 }
 
 function escapeHTML(str) {

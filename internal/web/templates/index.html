@@ -84,7 +84,7 @@
                 </button>
                 <button class="quick-action" data-action="income">Ingreso</button>
                 <button class="quick-action" data-action="expense">Gasto CA</button>
-                <button class="quick-action" data-action="card-expense">Gasto con Tarjeta</button>
+                <button class="quick-action" data-action="card-expense">Gasto Tarjeta</button>
             </div>
         </div>
 
@@ -152,11 +152,6 @@
                         </script>
                     </div>
                     
-                    <div class="form-group form-group-checkbox">
-                        <label for="reportGain">Registrar ingreso</label>
-                        <input type="checkbox" id="reportGain" class="styled-checkbox">
-                    </div>
-    
                     <button type="submit" class="nav-button button-primary">Agregar gasto</button>
                 </form>
                 <div id="formMessage" class="form-message"></div>
@@ -289,6 +284,7 @@
         const liquidityAlertList = document.getElementById('liquidityAlertList');
         const liquidityAlertIcon = liquidityAlertToggle ? liquidityAlertToggle.querySelector('i') : null;
         let latestLiquidityAlertsData = null;
+        let quickMovementType = 'expense';
 
         function formatCurrencyWithCurrency(amount, currencyCode) {
             const behavior = currencyBehaviors[currencyCode] || currencyBehaviors[currentCurrency] || {symbol:"$",useComma:false,useDecimals:true,useSpace:false,right:false};
@@ -1013,9 +1009,24 @@
             document.getElementById('cardError').textContent = '';
         }
 
+        function setExpenseFormVisible(visible) {
+            const formContainer = document.getElementById('addExpenseContainer');
+            const toggleBtn = document.getElementById('toggleExpenseFormBtn');
+            formContainer.style.display = visible ? 'block' : 'none';
+            if (toggleBtn) {
+                toggleBtn.innerHTML = visible
+                    ? '<i class="fa-solid fa-times"></i> Cerrar'
+                    : '<i class="fa-solid fa-plus"></i> Agregar gasto';
+            }
+        }
+
+        function setQuickMovementType(type) {
+            quickMovementType = type === 'income' ? 'income' : 'expense';
+        }
+
         document.getElementById('expenseForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const isGain = document.getElementById('reportGain').checked;
+            const isGain = quickMovementType === 'income';
             let amount = parseFloat(document.getElementById('amount').value);
             if (!isGain) {
                 amount *= -1;
@@ -1051,11 +1062,9 @@
                 selectedTags.clear();
                 populateFormCurrency();
                 sourceSelect.value = 'CA';
+                setQuickMovementType('expense');
                 toggleCardInput();
-                const toggleBtn = document.getElementById('toggleExpenseFormBtn');
-                if (toggleBtn && toggleBtn.dataset.action === 'open-form') {
-                    toggleBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Agregar gasto';
-                }
+                setExpenseFormVisible(false);
                 await initialize();
                     const today = new Date();
                     const year = today.getFullYear();
@@ -1128,30 +1137,26 @@
                 const action = btn.dataset.action;
                 if (action === 'open-form') {
                     const isHidden = formContainer.style.display === 'none' || formContainer.style.display === '';
-                    if (isHidden) {
-                        formContainer.style.display = 'block';
-                        btn.innerHTML = '<i class="fa-solid fa-times"></i> Close';
-                    } else {
-                        formContainer.style.display = 'none';
-                        btn.innerHTML = '<i class="fa-solid fa-plus"></i> Agregar gasto';
-                    }
+                    setExpenseFormVisible(isHidden);
                     return;
                 }
-                formContainer.style.display = 'block';
+                setExpenseFormVisible(true);
                 if (action === 'income') {
-                    document.getElementById('reportGain').checked = true;
+                    setQuickMovementType('income');
                     sourceSelect.value = 'CA';
                 } else if (action === 'expense') {
-                    document.getElementById('reportGain').checked = false;
+                    setQuickMovementType('expense');
                     sourceSelect.value = 'CA';
                 } else if (action === 'card-expense') {
-                    document.getElementById('reportGain').checked = false;
+                    setQuickMovementType('expense');
                     sourceSelect.value = 'TARJETA';
                 }
                 toggleCardInput();
                 document.getElementById('amount').focus();
             });
         });
+
+        setExpenseFormVisible(false);
     </script>
 </body>
 </html>

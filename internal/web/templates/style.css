@@ -1906,11 +1906,6 @@ html[data-theme='dark'] .expense-table td.amount-balance {
         padding: 0.5rem 0.65rem;
     }
 
-    .quick-action[data-action="open-form"],
-    .quick-action[data-action="card-expense"] {
-        grid-column: 1 / -1;
-    }
-
     .search-bar {
         display: grid;
         grid-template-columns: auto 1fr;

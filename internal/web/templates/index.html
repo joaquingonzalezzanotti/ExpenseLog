@@ -243,6 +243,7 @@
         </div>
     </div>
 
+    <script src="/alerts_ui.js"></script>
     <script src="/functions.js"></script>
     <script>
         let currentCurrency = 'usd';
@@ -267,6 +268,7 @@
             windowDays: 7,
             reappearDays: 1,
         });
+        let activeLiquidityRules = { ...LIQUIDITY_RULES };
         const LIQUIDITY_DISMISS_STORAGE_KEY = 'expenselog_liquidity_dismiss_v1';
         const liquidityAlertWidget = document.getElementById('liquidityAlertWidget');
         const liquidityAlertToggle = document.getElementById('liquidityAlertToggle');
@@ -276,8 +278,57 @@
         const liquidityAlertSummary = document.getElementById('liquidityAlertSummary');
         const liquidityAlertList = document.getElementById('liquidityAlertList');
         const liquidityAlertIcon = liquidityAlertToggle ? liquidityAlertToggle.querySelector('i') : null;
+        const alertUI = (typeof ExpenseLogAlertUI !== 'undefined') ? ExpenseLogAlertUI : null;
         let latestLiquidityAlertsData = null;
         let quickMovementType = 'expense';
+        const CONFIG_CACHE_KEY = 'expenselog_config_cache_v1';
+        const CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
+
+        function readConfigCache() {
+            try {
+                const raw = localStorage.getItem(CONFIG_CACHE_KEY);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') return null;
+                if (!parsed.config || typeof parsed.config !== 'object') return null;
+                return parsed;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function writeConfigCache(config) {
+            try {
+                localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify({
+                    cachedAt: Date.now(),
+                    config,
+                }));
+            } catch (error) {
+                // ignore cache write failures
+            }
+        }
+
+        function isConfigCacheFresh(entry) {
+            if (!entry || typeof entry.cachedAt !== 'number') return false;
+            return (Date.now() - entry.cachedAt) < CONFIG_CACHE_TTL_MS;
+        }
+
+        function applyHomeConfig(config) {
+            const categorySelect = document.getElementById('category');
+            categories = Array.isArray(config?.categories) ? config.categories : [];
+            categorySelect.innerHTML = categories.map(cat =>
+                `<option value="${cat}">${cat}</option>`
+            ).join('');
+
+            currentCurrency = (config?.currency || 'ars').toLowerCase();
+            if (!supportedCurrencies.includes(currentCurrency)) {
+                currentCurrency = 'ars';
+            }
+            baseCurrency = currentCurrency;
+            startDate = Number(config?.startDate) || 1;
+            populateFormCurrency();
+            populateFilters();
+        }
 
         function formatCurrencyWithCurrency(amount, currencyCode) {
             const behavior = currencyBehaviors[currencyCode] || currencyBehaviors[currentCurrency] || {symbol:"$",useComma:false,useDecimals:true,useSpace:false,right:false};
@@ -333,13 +384,31 @@
         }
 
         function buildLiquidityAlertKey(item) {
+            if (alertUI && typeof alertUI.buildLiquidityAlertKey === 'function') {
+                return alertUI.buildLiquidityAlertKey(item);
+            }
             const recurringId = String(item?.recurringId || 'sin-recurring');
             const dueDate = String(item?.dueDate || '');
             const kind = String(item?.kind || 'preview_7d');
             return `${recurringId}|${dueDate}|${kind}`;
         }
 
-        function shouldHideDismissedAlert(item, dismissMap) {
+        function getLiquidityRules(data) {
+            const reappearDays = Number(data?.reappearDays);
+            const windowDays = Number(data?.windowDays);
+            const next = {
+                currency: activeLiquidityRules.currency || LIQUIDITY_RULES.currency,
+                reappearDays: Number.isFinite(reappearDays) ? reappearDays : activeLiquidityRules.reappearDays,
+                windowDays: Number.isFinite(windowDays) ? windowDays : activeLiquidityRules.windowDays,
+            };
+            activeLiquidityRules = next;
+            return next;
+        }
+
+        function shouldHideDismissedAlert(item, dismissMap, reappearDays) {
+            if (alertUI && typeof alertUI.shouldHideDismissedAlert === 'function') {
+                return alertUI.shouldHideDismissedAlert(item, dismissMap, reappearDays);
+            }
             const key = buildLiquidityAlertKey(item);
             const entry = dismissMap[key];
             if (!entry) return false;
@@ -347,8 +416,8 @@
             const dismissedDaysUntil = typeof entry === 'object'
                 ? Number(entry.daysUntil ?? Number.POSITIVE_INFINITY)
                 : Number.POSITIVE_INFINITY;
-            const is24hWindow = daysUntil <= LIQUIDITY_RULES.reappearDays;
-            const wasDismissedBefore24h = dismissedDaysUntil > LIQUIDITY_RULES.reappearDays;
+            const is24hWindow = daysUntil <= reappearDays;
+            const wasDismissedBefore24h = dismissedDaysUntil > reappearDays;
             if (is24hWindow && wasDismissedBefore24h) {
                 return false;
             }
@@ -364,10 +433,11 @@
             writeLiquidityDismissMap(dismissMap);
         }
 
-        function liquidityAlertLead(item) {
+        function liquidityAlertLead(item, rules) {
+            const criticalDays = Number(rules?.criticalDays || 4);
             if (item?.kind === 'due') return 'Vencimiento';
-            if (item?.kind === 'risk_4d') return 'Riesgo en 4 dias';
-            if (item?.kind === 'monitor_4d') return 'Seguimiento 4 dias';
+            if (item?.kind === 'risk_4d') return `Riesgo en ${criticalDays} dias`;
+            if (item?.kind === 'monitor_4d') return `Seguimiento ${criticalDays} dias`;
             return 'Aviso 7 dias';
         }
 
@@ -379,9 +449,13 @@
 
         function renderLiquidityAlerts(data) {
             if (!liquidityAlertWidget) return;
+            const rules = getLiquidityRules(data);
+            rules.criticalDays = Number(data?.criticalDays || 4);
             const incomingAlerts = Array.isArray(data?.alerts) ? data.alerts : [];
             const dismissMap = readLiquidityDismissMap();
-            const alerts = incomingAlerts.filter(item => !shouldHideDismissedAlert(item, dismissMap));
+            const alerts = (alertUI && typeof alertUI.filterVisibleAlerts === 'function')
+                ? alertUI.filterVisibleAlerts(incomingAlerts, dismissMap, rules.reappearDays)
+                : incomingAlerts.filter(item => !shouldHideDismissedAlert(item, dismissMap, rules.reappearDays));
             if (alerts.length === 0) {
                 liquidityAlertWidget.style.display = 'none';
                 liquidityAlertWidget.dataset.severity = 'none';
@@ -389,9 +463,17 @@
                 return;
             }
 
-            const criticalCount = alerts.filter(item => item.severity === 'critical').length;
-            const infoCount = alerts.length - criticalCount;
-            const hasCritical = criticalCount > 0;
+            const summary = (alertUI && typeof alertUI.summarizeAlerts === 'function')
+                ? alertUI.summarizeAlerts(alerts)
+                : {
+                    total: alerts.length,
+                    criticalCount: alerts.filter(item => item.severity === 'critical').length,
+                    infoCount: alerts.filter(item => item.severity !== 'critical').length,
+                    panelSeverity: alerts.some(item => item.severity === 'critical') ? 'critical' : 'info',
+                };
+            const criticalCount = summary.criticalCount;
+            const infoCount = summary.infoCount;
+            const hasCritical = summary.panelSeverity === 'critical';
             liquidityAlertWidget.style.display = 'block';
             liquidityAlertWidget.dataset.severity = hasCritical ? 'critical' : 'info';
             liquidityAlertCount.textContent = String(alerts.length);
@@ -402,12 +484,12 @@
                 liquidityAlertIcon.className = hasCritical ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-bell';
             }
             const balanceNow = Number(data?.balanceNow || 0);
-            const windowDays = Number(data?.windowDays || LIQUIDITY_RULES.windowDays);
-            const currencyLabel = LIQUIDITY_RULES.currency.toUpperCase();
+            const windowDays = Number(data?.windowDays || rules.windowDays);
+            const currencyLabel = rules.currency.toUpperCase();
             if (hasCritical) {
-                liquidityAlertSummary.textContent = `Saldo ${currencyLabel} actual: ${formatCurrencyWithCurrency(balanceNow, LIQUIDITY_RULES.currency)}. ${criticalCount} alerta(s) critica(s) en ${windowDays} dias.`;
+                liquidityAlertSummary.textContent = `Saldo ${currencyLabel} actual: ${formatCurrencyWithCurrency(balanceNow, rules.currency)}. ${criticalCount} alerta(s) critica(s) en ${windowDays} dias.`;
             } else {
-                liquidityAlertSummary.textContent = `Saldo ${currencyLabel} actual: ${formatCurrencyWithCurrency(balanceNow, LIQUIDITY_RULES.currency)}. ${infoCount} notificacion(es) en ${windowDays} dias.`;
+                liquidityAlertSummary.textContent = `Saldo ${currencyLabel} actual: ${formatCurrencyWithCurrency(balanceNow, rules.currency)}. ${infoCount} notificacion(es) en ${windowDays} dias.`;
             }
 
             liquidityAlertList.innerHTML = alerts.map((item, index) => {
@@ -425,17 +507,17 @@
                             <span class="liquidity-alert-badge ${isCritical ? 'critical' : 'info'}">${isCritical ? 'Alerta' : 'Info'}</span>
                         </div>
                         <div class="liquidity-alert-item-row">
-                            <span>${liquidityAlertLead(item)}: ${daysText} (${dueDate})</span>
-                            <span>${formatCurrencyWithCurrency(requiredAmount, LIQUIDITY_RULES.currency)}</span>
+                            <span>${liquidityAlertLead(item, rules)}: ${daysText} (${dueDate})</span>
+                            <span>${formatCurrencyWithCurrency(requiredAmount, rules.currency)}</span>
                         </div>
                         <div class="liquidity-alert-item-row">
                             <span>Saldo proyectado luego del egreso</span>
-                            <span class="liquidity-alert-balance ${projectedClass}">${formatCurrencyWithCurrency(projectedAfter, LIQUIDITY_RULES.currency)}</span>
+                            <span class="liquidity-alert-balance ${projectedClass}">${formatCurrencyWithCurrency(projectedAfter, rules.currency)}</span>
                         </div>
                         ${isCritical && shortfall > 0 ? `
                         <div class="liquidity-alert-item-row liquidity-alert-shortfall">
                             <span>Faltante estimado</span>
-                            <span>${formatCurrencyWithCurrency(shortfall, LIQUIDITY_RULES.currency)}</span>
+                            <span>${formatCurrencyWithCurrency(shortfall, rules.currency)}</span>
                         </div>` : ''}
                         <div class="liquidity-alert-item-actions">
                             <button type="button" class="liquidity-alert-dismiss" data-alert-index="${index}">Borrar</button>
@@ -460,7 +542,7 @@
         async function refreshLiquidityAlert() {
             if (!liquidityAlertWidget) return;
             try {
-                const response = await fetch(`/alerts/liquidity?currency=${LIQUIDITY_RULES.currency}&days=${LIQUIDITY_RULES.windowDays}`);
+                const response = await fetch(`/alerts/liquidity?currency=${LIQUIDITY_RULES.currency}`);
                 if (!response.ok) throw new Error(`status ${response.status}`);
                 const data = await response.json();
                 latestLiquidityAlertsData = data;
@@ -559,6 +641,7 @@
                 cashflowSection.style.display = 'none';
                 baseSummary.style.display = 'none';
                 filtersRow.style.display = 'none';
+                updateHomeFilterControls(false);
                 noDataMessage.style.display = 'none';
                 emptyStateBanner.style.display = 'block';
                 emptyStateBanner.innerHTML = '<strong>Aun no hay gastos.</strong> Carga el primero con + Agregar gasto.';
@@ -577,6 +660,7 @@
             filtersRow.style.display = hasBaseExpenses ? 'flex' : 'none';
             toggleChart.style.display = hasBaseExpenses ? 'inline-flex' : 'none';
             toggleChart.textContent = chartExpanded ? 'Ocultar grafico' : 'Ver grafico';
+            updateHomeFilterControls(hasBaseExpenses);
 
             // Grafico solo para moneda base y gastos
             const filteredForChart = monthExpenses.filter(e => e.currency === baseCurrency && e.amount < 0);
@@ -599,7 +683,7 @@
                 legendBox.style.display = 'flex';
                 const categoryData = calculateCategoryBreakdown(filteredForChart);
                 createPieChart(categoryData);
-                updateLegend(categoryData);
+                updateLegend(categoryData, filteredForChart);
             }
         }
 
@@ -755,11 +839,11 @@
             });
         }
 
-        function updateLegend(categoryData) {
+        function updateLegend(categoryData, filteredChartExpenses) {
             const legendContainer = document.getElementById('customLegend');
             legendContainer.innerHTML = '';
-            const monthExpenses = getVisiblePeriodExpenses(allExpenses).filter(exp => exp.currency === baseCurrency);
-            const currentMonthCategories = [...new Set(monthExpenses
+            const sourceExpenses = Array.isArray(filteredChartExpenses) ? filteredChartExpenses : [];
+            const currentMonthCategories = [...new Set(sourceExpenses
                 .filter(exp => exp.amount < 0)
                 .map(exp => exp.category))];
             const categoryMap = new Map(categoryData.map(cat => [cat.category, cat]));
@@ -789,7 +873,7 @@
                 legendContainer.appendChild(item);
             });
 
-            const activeTotalExpenses = monthExpenses
+            const activeTotalExpenses = sourceExpenses
                 .filter(exp => exp.amount < 0 && !disabledCategories.has(exp.category))
                 .reduce((sum, exp) => sum + Math.abs(exp.amount), 0);
 
@@ -806,6 +890,14 @@
             legendContainer.insertAdjacentHTML('beforeend', totalsHtml);
         }
 
+        function updateHomeFilterControls(hasBaseExpenses = true) {
+            const clearBtn = document.getElementById('clearFilters');
+            if (!clearBtn) return;
+            const hasFilters = filterCurrency !== 'all' || filterSource !== 'all';
+            clearBtn.style.display = (hasBaseExpenses && hasFilters) ? 'inline-flex' : 'none';
+            clearBtn.disabled = !hasFilters;
+        }
+
         function toggleCategory(category) {
             if (disabledCategories.has(category)) {
                 disabledCategories.delete(category);
@@ -817,22 +909,23 @@
 
         async function initialize() {
             try {
-                const configResponse = await fetch('/config');
-                if (!configResponse.ok) throw new Error('No se pudo obtener la configuracion');
-                const config = await configResponse.json();
-                const categorySelect = document.getElementById('category');
-                categories = config.categories || [];
-                categorySelect.innerHTML = categories.map(cat => 
-                    `<option value="${cat}">${cat}</option>`
-                ).join('');
-                currentCurrency = (config.currency || 'ars').toLowerCase();
-                if (!supportedCurrencies.includes(currentCurrency)) {
-                    currentCurrency = 'ars';
+                const cachedConfigEntry = readConfigCache();
+                const cachedConfig = cachedConfigEntry?.config || null;
+                if (cachedConfig) {
+                    applyHomeConfig(cachedConfig);
                 }
-                baseCurrency = currentCurrency;
-                populateFormCurrency();
-                startDate = config.startDate;
-                populateFilters();
+
+                if (!cachedConfig || !isConfigCacheFresh(cachedConfigEntry)) {
+                    try {
+                        const configResponse = await fetch('/config');
+                        if (!configResponse.ok) throw new Error('No se pudo obtener la configuracion');
+                        const config = await configResponse.json();
+                        applyHomeConfig(config);
+                        writeConfigCache(config);
+                    } catch (configError) {
+                        if (!cachedConfig) throw configError;
+                    }
+                }
 
                 const response = await fetch('/expenses');
                 if (!response.ok) throw new Error('No se pudieron obtener los datos');
@@ -979,6 +1072,7 @@
                 <option value="EFECTIVO">Efectivo</option>
                 <option value="TARJETA">Tarjeta</option>
             `;
+            updateHomeFilterControls();
         }
         function getFilteredMonthExpenses(periodExpenses) {
             const monthExpenses = Array.isArray(periodExpenses) ? periodExpenses : getVisiblePeriodExpenses(allExpenses);
@@ -1087,11 +1181,13 @@
 
         document.getElementById('filterCurrency').addEventListener('change', (e) => {
             filterCurrency = e.target.value;
+            updateHomeFilterControls();
             updateChartAndLegend();
         });
 
         document.getElementById('filterSource').addEventListener('change', (e) => {
             filterSource = e.target.value;
+            updateHomeFilterControls();
             updateChartAndLegend();
         });
 
@@ -1100,10 +1196,18 @@
             filterSource = 'all';
             document.getElementById('filterCurrency').value = 'all';
             document.getElementById('filterSource').value = 'all';
+            updateHomeFilterControls();
             updateChartAndLegend();
         });
 
         document.getElementById('toggleChart').addEventListener('click', () => {
+            if (!chartExpanded) {
+                filterCurrency = 'ars';
+                filterSource = 'CA';
+                document.getElementById('filterCurrency').value = 'ars';
+                document.getElementById('filterSource').value = 'CA';
+                updateHomeFilterControls();
+            }
             chartExpanded = !chartExpanded;
             updateChartAndLegend();
         });

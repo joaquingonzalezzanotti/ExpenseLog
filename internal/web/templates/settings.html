@@ -42,7 +42,7 @@
 
             <div class="form-container">
             <h2 align="center">Categorias</h2>
-            <button id="toggleCategoriesBtn" class="nav-button button-secondary mobile-only settings-toggle-btn" type="button" aria-expanded="false">
+            <button id="toggleCategoriesBtn" class="nav-button button-primary mobile-only settings-toggle-btn" type="button" aria-expanded="false">
                 Ver categorias
             </button>
             <div id="categories-manager" data-mobile-expanded="false">
@@ -72,7 +72,7 @@
             </div>
         </div>
 
-        <div class="settings-container">
+        <div class="settings-container compact-pair">
             <div class="form-container half-width">
                 <h2 align="center">Moneda</h2>
                 <div class="currency-selector">
@@ -107,17 +107,11 @@
                 </div>
                 <div id="themeMessage" class="form-message"></div>
             </div>
-            <div class="form-container half-width">
-                <h2 align="center">Importar/Exportar datos</h2>
-                <p class="section-hint" style="text-align: center; margin: 0;">
-                    La importacion/exportacion CSV esta deshabilitada temporalmente.
-                </p>
-            </div>
         </div>
         
         <div class="form-container">
             <h2 align="center">Transacciones recurrentes</h2>
-            <button id="toggleRecurringFormBtn" class="nav-button button-secondary mobile-only settings-toggle-btn" type="button" aria-expanded="false">
+            <button id="toggleRecurringFormBtn" class="nav-button button-primary mobile-only settings-toggle-btn" type="button" aria-expanded="false">
                 Agregar transaccion recurrente
             </button>
             <div id="recurringFormWrap" data-mobile-expanded="false">
@@ -552,7 +546,6 @@ async function addCategoryOnServer(category) {
         const error = await response.json().catch(() => ({}));
         showMessage('categoriesMessage', `No se pudo agregar la categoria: ${error.error || 'Error desconocido'}`, false);
     } catch (error) {
-        console.error('Error agregando categoria:', error);
         showMessage('categoriesMessage', 'Error agregando categoria', false);
     }
     return null;
@@ -571,7 +564,6 @@ async function deleteCategoryOnServer(category) {
         const error = await response.json().catch(() => ({}));
         showMessage('categoriesMessage', `No se pudo eliminar la categoria: ${error.error || 'Error desconocido'}`, false);
     } catch (error) {
-        console.error('Error eliminando categoria:', error);
         showMessage('categoriesMessage', 'Error eliminando categoria', false);
     }
     return null;
@@ -590,7 +582,6 @@ async function renameCategoryOnServer(fromCategory, toCategory) {
         const error = await response.json().catch(() => ({}));
         showMessage('categoriesMessage', `No se pudo editar la categoria: ${error.error || 'Error desconocido'}`, false);
     } catch (error) {
-        console.error('Error editando categoria:', error);
         showMessage('categoriesMessage', 'Error editando categoria', false);
     }
     return null;

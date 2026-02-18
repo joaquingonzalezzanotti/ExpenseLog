@@ -265,6 +265,8 @@
         const MOBILE_TABLE_BREAKPOINT = 768;
         const MOBILE_TABLE_LIMIT = 10;
         let showAllMobileRows = false;
+        const CONFIG_CACHE_KEY = 'expenselog_config_cache_v1';
+        const CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
 
         const tableFormContainer = document.getElementById('tableExpenseFormContainer');
         const toggleTableExpenseFormBtn = document.getElementById('toggleTableExpenseFormBtn');
@@ -634,6 +636,50 @@
             sourceFilterSelect.value = ['all', 'CA', 'EFECTIVO', 'TARJETA'].includes(filterSource) ? filterSource : 'all';
         }
 
+        function readConfigCache() {
+            try {
+                const raw = localStorage.getItem(CONFIG_CACHE_KEY);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') return null;
+                if (!parsed.config || typeof parsed.config !== 'object') return null;
+                return parsed;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function writeConfigCache(config) {
+            try {
+                localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify({
+                    cachedAt: Date.now(),
+                    config,
+                }));
+            } catch (error) {
+                // ignore cache write failures
+            }
+        }
+
+        function isConfigCacheFresh(entry) {
+            if (!entry || typeof entry.cachedAt !== 'number') return false;
+            return (Date.now() - entry.cachedAt) < CONFIG_CACHE_TTL_MS;
+        }
+
+        function applyTableConfig(config) {
+            const categorySelect = document.getElementById('category');
+            categories = Array.isArray(config?.categories) ? config.categories : [];
+            categorySelect.innerHTML = categories.map(cat =>
+                `<option value="${cat}">${cat}</option>`
+            ).join('');
+            currentCurrency = (config?.currency || 'ars').toLowerCase();
+            if (!supportedCurrencies.includes(currentCurrency)) {
+                currentCurrency = 'ars';
+            }
+            startDate = Number(config?.startDate) || 1;
+            populateFormCurrency();
+            populateTableFilters();
+        }
+
         function toggleCardInput() {
             if (sourceSelect.value === 'TARJETA') {
                 cardGroup.style.display = 'block';
@@ -689,21 +735,23 @@
             try {
                 showAllMobileRows = false;
                 updateTableFormVisibilityOnViewport();
-                const configResponse = await fetch('/config');
-                if (!configResponse.ok) throw new Error('No se pudo obtener la configuracion');
-                const config = await configResponse.json();
-                const categorySelect = document.getElementById('category');
-                categories = config.categories || [];
-                categorySelect.innerHTML = categories.map(cat => 
-                    `<option value="${cat}">${cat}</option>`
-                ).join('');
-                currentCurrency = (config.currency || 'ars').toLowerCase();
-                if (!supportedCurrencies.includes(currentCurrency)) {
-                    currentCurrency = 'ars';
+                const cachedConfigEntry = readConfigCache();
+                const cachedConfig = cachedConfigEntry?.config || null;
+                if (cachedConfig) {
+                    applyTableConfig(cachedConfig);
                 }
-                populateFormCurrency();
-                populateTableFilters();
-                startDate = config.startDate;
+
+                if (!cachedConfig || !isConfigCacheFresh(cachedConfigEntry)) {
+                    try {
+                        const configResponse = await fetch('/config');
+                        if (!configResponse.ok) throw new Error('No se pudo obtener la configuracion');
+                        const config = await configResponse.json();
+                        applyTableConfig(config);
+                        writeConfigCache(config);
+                    } catch (configError) {
+                        if (!cachedConfig) throw configError;
+                    }
+                }
                 
                 const response = await fetch('/expenses');
                 if (!response.ok) throw new Error('No se pudieron obtener los datos');

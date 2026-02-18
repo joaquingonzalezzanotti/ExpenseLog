@@ -29,6 +29,8 @@ type liquidityAlertItem struct {
 type liquidityAlertsResponse struct {
 	Currency         string               `json:"currency"`
 	WindowDays       int                  `json:"windowDays"`
+	CriticalDays     int                  `json:"criticalDays"`
+	ReappearDays     int                  `json:"reappearDays"`
 	BalanceNow       float64              `json:"balanceNow"`
 	ProjectedBalance float64              `json:"projectedBalance"`
 	AlertCount       int                  `json:"alertCount"`
@@ -270,6 +272,8 @@ func computeLiquidityAlerts(expenses []storage.Expense, currency string, days in
 	return liquidityAlertsResponse{
 		Currency:         currency,
 		WindowDays:       days,
+		CriticalDays:     liquidityCriticalWindowDays,
+		ReappearDays:     liquidityRecentDueDays,
 		BalanceNow:       balance,
 		ProjectedBalance: projectedBalance,
 		AlertCount:       len(alerts),

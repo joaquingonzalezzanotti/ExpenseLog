@@ -73,7 +73,7 @@
 
         <div class="table-controls">
             <div class="quick-actions">
-                <button id="toggleExpenseFormBtn" class="quick-action" data-action="open-form">➕ Agregar gasto</button>
+                <button id="toggleExpenseFormBtn" class="quick-action" data-action="open-form">Agregar gasto</button>
                 <button class="quick-action" data-action="income">Ingreso</button>
                 <button class="quick-action" data-action="card-expense">Gasto Tarjeta</button>
             </div>
@@ -154,7 +154,7 @@
 
                     <div class="form-actions">
                         <button type="button" id="cancelExpenseFormBtn" class="nav-button button-secondary">Cancelar</button>
-                        <button type="submit" class="nav-button button-primary">➕ Agregar gasto</button>
+                        <button type="submit" class="nav-button button-primary">Agregar gasto</button>
                     </div>
                 </form>
                 <div id="formMessage" class="form-message"></div>
@@ -187,7 +187,7 @@
 
         <div class="chart-container">
             <div id="noDataMessage" class="empty-state" style="display: none;">
-                <strong>📭 Aun no hay gastos.</strong> Carga el primero con ➕ Agregar gasto.
+                <strong>📭 Aun no hay gastos.</strong> Carga el primero con Agregar gasto.
             </div>
             <div class="chart-box">
                 <canvas id="categoryPieChart"></canvas>
@@ -702,7 +702,7 @@
                 updateHomeFilterControls(false);
                 noDataMessage.style.display = 'none';
                 emptyStateBanner.style.display = 'block';
-                emptyStateBanner.innerHTML = '<strong>📭 Aun no hay gastos.</strong> Carga el primero con ➕ Agregar gasto.';
+                emptyStateBanner.innerHTML = '<strong>📭 Aun no hay gastos.</strong> Carga el primero con Agregar gasto.';
                 renderCashflowByCurrency([], {});
                 renderRecentMovements([]);
                 return;
@@ -717,7 +717,7 @@
             renderRecentMovements(monthExpenses);
             filtersRow.style.display = hasBaseExpenses ? '' : 'none';
             toggleChart.style.display = hasBaseExpenses ? 'inline-flex' : 'none';
-            toggleChart.textContent = chartExpanded ? '🫣 Ocultar grafico' : '📊 Ver grafico';
+            toggleChart.textContent = chartExpanded ? 'Ocultar grafico' : '📊 Ver grafico';
             updateHomeFilterControls(hasBaseExpenses);
 
             // Grafico solo para moneda base y gastos
@@ -730,7 +730,7 @@
                     emptyStateBanner.style.display = 'none';
                 } else {
                     emptyStateBanner.style.display = 'block';
-                    emptyStateBanner.innerHTML = `<strong>📭 No hay gastos en ${baseCurrency.toUpperCase()}.</strong> Carga el primero con ➕ Agregar gasto.`;
+                    emptyStateBanner.innerHTML = `<strong>📭 No hay gastos en ${baseCurrency.toUpperCase()}.</strong> Carga el primero con Agregar gasto.`;
                 }
             } else if (!chartExpanded) {
                 if (pieChart) { pieChart.destroy(); pieChart = null; }
@@ -1185,7 +1185,7 @@
         function getCreateSubmitLabelByMovementType(movementType) {
             if (movementType === 'income') return '💰 Agregar ingreso';
             if (movementType === 'refund') return '↩️ Agregar reintegro';
-            return '➕ Agregar gasto';
+            return 'Agregar gasto';
         }
 
         function syncExpenseSubmitButtonLabel() {

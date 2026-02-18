@@ -133,6 +133,22 @@
             <button id="clearSearch" class="nav-button button-secondary">Limpiar</button>
         </div>
 
+        <div class="panel-filters">
+            <div class="filter-group">
+                <span class="filter-label">Moneda</span>
+                <select id="tableFilterCurrency" class="filter-select">
+                    <option value="all">Todas</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">Medio de pago</span>
+                <select id="tableFilterSource" class="filter-select">
+                    <option value="all">Todos</option>
+                </select>
+            </div>
+            <button id="clearTableFilters" class="nav-button button-secondary">Limpiar filtros</button>
+        </div>
+
         <div id="tableContainer">
         </div>
     </div>
@@ -239,6 +255,8 @@
         const movementTypeSelect = document.getElementById('movementType');
         let categories = [];
         let searchQuery = '';
+        let filterCurrency = 'all';
+        let filterSource = 'all';
 
         function formatCurrencyWithCurrency(amount, currencyCode) {
             const behavior = currencyBehaviors[currencyCode] || currencyBehaviors[currentCurrency] || {symbol:"$",useComma:false,useDecimals:true,useSpace:false,right:false};
@@ -338,6 +356,16 @@
             expensesForTable = showAll
                 ? allExpenses.slice().sort((a, b) => new Date(b.date) - new Date(a.date))
                 : getMonthExpenses(allExpenses);
+
+            expensesForTable = expensesForTable.filter(exp => {
+                const currency = (exp.currency || currentCurrency).toLowerCase();
+                const source = (exp.source || '').toUpperCase();
+                const currencyMatch = filterCurrency === 'all' || currency === filterCurrency;
+                const sourceMatch = filterSource === 'all'
+                    || (filterSource === 'CA' && (source === '' || source === 'CA'))
+                    || source === filterSource;
+                return currencyMatch && sourceMatch;
+            });
 
             if (searchQuery) {
                 expensesForTable = expensesForTable.filter(exp => {
@@ -485,6 +513,21 @@
             select.innerHTML = supportedCurrencies.map(code => `<option value="${code}" ${code === currentCurrency ? 'selected' : ''}>${code.toUpperCase()}</option>`).join('');
         }
 
+        function populateTableFilters() {
+            const currencySelect = document.getElementById('tableFilterCurrency');
+            currencySelect.innerHTML = `<option value="all">Todas</option>` + supportedCurrencies.map(code => `<option value="${code}">${code.toUpperCase()}</option>`).join('');
+            currencySelect.value = supportedCurrencies.includes(filterCurrency) ? filterCurrency : 'all';
+
+            const sourceFilterSelect = document.getElementById('tableFilterSource');
+            sourceFilterSelect.innerHTML = `
+                <option value="all">Todos</option>
+                <option value="CA">CA</option>
+                <option value="EFECTIVO">Efectivo</option>
+                <option value="TARJETA">Tarjeta</option>
+            `;
+            sourceFilterSelect.value = ['all', 'CA', 'EFECTIVO', 'TARJETA'].includes(filterSource) ? filterSource : 'all';
+        }
+
         function toggleCardInput() {
             if (sourceSelect.value === 'TARJETA') {
                 cardGroup.style.display = 'block';
@@ -551,6 +594,7 @@
                     currentCurrency = 'ars';
                 }
                 populateFormCurrency();
+                populateTableFilters();
                 startDate = config.startDate;
                 
                 const response = await fetch('/expenses');
@@ -725,6 +769,24 @@
         document.getElementById('clearSearch').addEventListener('click', () => {
             searchQuery = '';
             document.getElementById('tableSearch').value = '';
+            updateTable();
+        });
+
+        document.getElementById('tableFilterCurrency').addEventListener('change', (e) => {
+            filterCurrency = e.target.value;
+            updateTable();
+        });
+
+        document.getElementById('tableFilterSource').addEventListener('change', (e) => {
+            filterSource = e.target.value;
+            updateTable();
+        });
+
+        document.getElementById('clearTableFilters').addEventListener('click', () => {
+            filterCurrency = 'all';
+            filterSource = 'all';
+            document.getElementById('tableFilterCurrency').value = 'all';
+            document.getElementById('tableFilterSource').value = 'all';
             updateTable();
         });
 

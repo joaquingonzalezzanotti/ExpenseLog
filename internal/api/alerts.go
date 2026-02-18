@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/tanq16/expenseowl/internal/storage"
 )
 
 type liquidityAlertItem struct {
@@ -48,48 +50,30 @@ func isCashAccountSource(source string) bool {
 	return normalized == "" || normalized == "CA"
 }
 
+func localDayStart(t time.Time) time.Time {
+	local := t.In(time.Local)
+	return time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, time.Local)
+}
+
+// Recurring due dates are treated as calendar-day events (not timestamp events).
+// We take UTC Y-M-D as the authoritative date and map it to local midnight.
+func recurringDueLocalDay(due time.Time) time.Time {
+	utc := due.UTC()
+	return time.Date(utc.Year(), utc.Month(), utc.Day(), 0, 0, 0, 0, time.Local)
+}
+
 func daysUntilDate(now, due time.Time) int {
-	nowLocal := now.In(time.Local)
-	dueLocal := due.In(time.Local)
-	startNow := time.Date(nowLocal.Year(), nowLocal.Month(), nowLocal.Day(), 0, 0, 0, 0, time.Local)
-	startDue := time.Date(dueLocal.Year(), dueLocal.Month(), dueLocal.Day(), 0, 0, 0, 0, time.Local)
+	startNow := localDayStart(now)
+	startDue := recurringDueLocalDay(due)
 	return int(startDue.Sub(startNow).Hours() / 24)
 }
 
-func (h *Handler) GetLiquidityAlerts(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{Error: "Method not allowed"})
-		return
-	}
-	userID, ok := requireUserID(w, r)
-	if !ok {
-		return
-	}
-	currency := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("currency")))
-	if currency == "" {
-		currency = "ars"
-	}
-	days := 7
-	if q := strings.TrimSpace(r.URL.Query().Get("days")); q != "" {
-		parsed, err := strconv.Atoi(q)
-		if err != nil || parsed < 0 || parsed > 30 {
-			writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid days value"})
-			return
-		}
-		days = parsed
-	}
+func computeLiquidityAlerts(expenses []storage.Expense, currency string, days int, now time.Time) liquidityAlertsResponse {
 	criticalDays := 4
+	todayStart := localDayStart(now)
+	horizonDay := todayStart.AddDate(0, 0, days)
+	recentCutoffDay := todayStart.AddDate(0, 0, -1)
 
-	now := time.Now()
-	horizon := now.AddDate(0, 0, days)
-	recentPast := now.Add(-24 * time.Hour)
-
-	expenses, err := h.storage.GetAllExpenses(userID)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to load expenses"})
-		log.Printf("API ERROR: Failed to load expenses for liquidity alerts: %v\n", err)
-		return
-	}
 	balance := 0.0
 	for _, exp := range expenses {
 		if strings.ToLower(strings.TrimSpace(exp.Currency)) != currency {
@@ -98,7 +82,11 @@ func (h *Handler) GetLiquidityAlerts(w http.ResponseWriter, r *http.Request) {
 		if !isCashAccountSource(exp.Source) {
 			continue
 		}
-		if exp.Date.After(now) {
+		if strings.TrimSpace(exp.RecurringID) != "" {
+			if recurringDueLocalDay(exp.Date).After(todayStart) {
+				continue
+			}
+		} else if exp.Date.After(now) {
 			continue
 		}
 		balance += exp.Amount
@@ -115,14 +103,15 @@ func (h *Handler) GetLiquidityAlerts(w http.ResponseWriter, r *http.Request) {
 		if strings.TrimSpace(exp.RecurringID) == "" {
 			continue
 		}
-		if !exp.Date.After(now) || exp.Date.After(horizon) {
+		dueDay := recurringDueLocalDay(exp.Date)
+		if !dueDay.After(todayStart) || dueDay.After(horizonDay) {
 			continue
 		}
 		timeline = append(timeline, recurringProjection{
 			ID:       exp.RecurringID,
 			Name:     exp.Name,
 			Category: exp.Category,
-			DueDate:  exp.Date,
+			DueDate:  dueDay,
 			Amount:   exp.Amount,
 		})
 	}
@@ -136,7 +125,11 @@ func (h *Handler) GetLiquidityAlerts(w http.ResponseWriter, r *http.Request) {
 		if !isCashAccountSource(exp.Source) {
 			continue
 		}
-		if exp.Date.After(recentPast) {
+		if strings.TrimSpace(exp.RecurringID) != "" {
+			if recurringDueLocalDay(exp.Date).After(recentCutoffDay) {
+				continue
+			}
+		} else if exp.Date.After(recentCutoffDay) {
 			continue
 		}
 		historyBalance += exp.Amount
@@ -152,14 +145,15 @@ func (h *Handler) GetLiquidityAlerts(w http.ResponseWriter, r *http.Request) {
 		if strings.TrimSpace(exp.RecurringID) == "" {
 			continue
 		}
-		if exp.Date.Before(recentPast) || exp.Date.After(now) {
+		dueDay := recurringDueLocalDay(exp.Date)
+		if dueDay.Before(recentCutoffDay) || dueDay.After(todayStart) {
 			continue
 		}
 		recentDueTimeline = append(recentDueTimeline, recurringProjection{
 			ID:       exp.RecurringID,
 			Name:     exp.Name,
 			Category: exp.Category,
-			DueDate:  exp.Date,
+			DueDate:  dueDay,
 			Amount:   exp.Amount,
 		})
 	}
@@ -266,7 +260,7 @@ func (h *Handler) GetLiquidityAlerts(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	resp := liquidityAlertsResponse{
+	return liquidityAlertsResponse{
 		Currency:         currency,
 		WindowDays:       days,
 		BalanceNow:       balance,
@@ -276,5 +270,38 @@ func (h *Handler) GetLiquidityAlerts(w http.ResponseWriter, r *http.Request) {
 		InfoCount:        len(alerts) - criticalCount,
 		Alerts:           alerts,
 	}
+}
+
+func (h *Handler) GetLiquidityAlerts(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{Error: "Method not allowed"})
+		return
+	}
+	userID, ok := requireUserID(w, r)
+	if !ok {
+		return
+	}
+	currency := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("currency")))
+	if currency == "" {
+		currency = "ars"
+	}
+	days := 7
+	if q := strings.TrimSpace(r.URL.Query().Get("days")); q != "" {
+		parsed, err := strconv.Atoi(q)
+		if err != nil || parsed < 0 || parsed > 30 {
+			writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid days value"})
+			return
+		}
+		days = parsed
+	}
+	now := time.Now()
+
+	expenses, err := h.storage.GetAllExpenses(userID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to load expenses"})
+		log.Printf("API ERROR: Failed to load expenses for liquidity alerts: %v\n", err)
+		return
+	}
+	resp := computeLiquidityAlerts(expenses, currency, days, now)
 	writeJSON(w, http.StatusOK, resp)
 }

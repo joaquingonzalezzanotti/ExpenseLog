@@ -20,6 +20,8 @@ type liquidityAlertItem struct {
 	BalanceBefore  float64   `json:"balanceBefore"`
 	BalanceAfter   float64   `json:"balanceAfter"`
 	Shortfall      float64   `json:"shortfall"`
+	Severity       string    `json:"severity"` // info | critical
+	Kind           string    `json:"kind"`     // preview_7d | monitor_4d | risk_4d | due
 }
 
 type liquidityAlertsResponse struct {
@@ -28,6 +30,8 @@ type liquidityAlertsResponse struct {
 	BalanceNow       float64              `json:"balanceNow"`
 	ProjectedBalance float64              `json:"projectedBalance"`
 	AlertCount       int                  `json:"alertCount"`
+	CriticalCount    int                  `json:"criticalCount"`
+	InfoCount        int                  `json:"infoCount"`
 	Alerts           []liquidityAlertItem `json:"alerts"`
 }
 
@@ -65,7 +69,7 @@ func (h *Handler) GetLiquidityAlerts(w http.ResponseWriter, r *http.Request) {
 	if currency == "" {
 		currency = "ars"
 	}
-	days := 4
+	days := 7
 	if q := strings.TrimSpace(r.URL.Query().Get("days")); q != "" {
 		parsed, err := strconv.Atoi(q)
 		if err != nil || parsed < 0 || parsed > 30 {
@@ -74,9 +78,11 @@ func (h *Handler) GetLiquidityAlerts(w http.ResponseWriter, r *http.Request) {
 		}
 		days = parsed
 	}
+	criticalDays := 4
 
 	now := time.Now()
 	horizon := now.AddDate(0, 0, days)
+	recentPast := now.Add(-24 * time.Hour)
 
 	expenses, err := h.storage.GetAllExpenses(userID)
 	if err != nil {
@@ -120,6 +126,43 @@ func (h *Handler) GetLiquidityAlerts(w http.ResponseWriter, r *http.Request) {
 			Amount:   exp.Amount,
 		})
 	}
+
+	// Recently due recurring expenses: always informational (never critical).
+	historyBalance := 0.0
+	for _, exp := range expenses {
+		if strings.ToLower(strings.TrimSpace(exp.Currency)) != currency {
+			continue
+		}
+		if !isCashAccountSource(exp.Source) {
+			continue
+		}
+		if exp.Date.After(recentPast) {
+			continue
+		}
+		historyBalance += exp.Amount
+	}
+	var recentDueTimeline []recurringProjection
+	for _, exp := range expenses {
+		if strings.ToLower(strings.TrimSpace(exp.Currency)) != currency {
+			continue
+		}
+		if !isCashAccountSource(exp.Source) {
+			continue
+		}
+		if strings.TrimSpace(exp.RecurringID) == "" {
+			continue
+		}
+		if exp.Date.Before(recentPast) || exp.Date.After(now) {
+			continue
+		}
+		recentDueTimeline = append(recentDueTimeline, recurringProjection{
+			ID:       exp.RecurringID,
+			Name:     exp.Name,
+			Category: exp.Category,
+			DueDate:  exp.Date,
+			Amount:   exp.Amount,
+		})
+	}
 	sort.Slice(timeline, func(i, j int) bool {
 		if timeline[i].DueDate.Equal(timeline[j].DueDate) {
 			if timeline[i].Name == timeline[j].Name {
@@ -129,22 +172,29 @@ func (h *Handler) GetLiquidityAlerts(w http.ResponseWriter, r *http.Request) {
 		}
 		return timeline[i].DueDate.Before(timeline[j].DueDate)
 	})
+	sort.Slice(recentDueTimeline, func(i, j int) bool {
+		if recentDueTimeline[i].DueDate.Equal(recentDueTimeline[j].DueDate) {
+			if recentDueTimeline[i].Name == recentDueTimeline[j].Name {
+				return recentDueTimeline[i].ID < recentDueTimeline[j].ID
+			}
+			return recentDueTimeline[i].Name < recentDueTimeline[j].Name
+		}
+		return recentDueTimeline[i].DueDate.Before(recentDueTimeline[j].DueDate)
+	})
 
 	projectedBalance := balance
 	var alerts []liquidityAlertItem
-	for _, item := range timeline {
-		balanceBefore := projectedBalance
-		projectedBalance += item.Amount
+	rollingRecentBalance := historyBalance
+	for _, item := range recentDueTimeline {
+		balanceBefore := rollingRecentBalance
+		rollingRecentBalance += item.Amount
 		if item.Amount >= 0 {
 			continue
 		}
 		required := math.Abs(item.Amount)
-		if balanceBefore >= required {
-			continue
-		}
-		shortfall := required - balanceBefore
-		if shortfall < 0 {
-			shortfall = 0
+		shortfall := 0.0
+		if rollingRecentBalance < 0 {
+			shortfall = math.Abs(rollingRecentBalance)
 		}
 		alerts = append(alerts, liquidityAlertItem{
 			RecurringID:    item.ID,
@@ -154,9 +204,66 @@ func (h *Handler) GetLiquidityAlerts(w http.ResponseWriter, r *http.Request) {
 			DaysUntil:      daysUntilDate(now, item.DueDate),
 			RequiredAmount: required,
 			BalanceBefore:  balanceBefore,
+			BalanceAfter:   rollingRecentBalance,
+			Shortfall:      shortfall,
+			Severity:       "info",
+			Kind:           "due",
+		})
+	}
+
+	for _, item := range timeline {
+		balanceBefore := projectedBalance
+		projectedBalance += item.Amount
+		if item.Amount >= 0 {
+			continue
+		}
+		required := math.Abs(item.Amount)
+		daysUntil := daysUntilDate(now, item.DueDate)
+		shortfall := 0.0
+		if projectedBalance < 0 {
+			shortfall = math.Abs(projectedBalance)
+		}
+		severity := "info"
+		kind := "preview_7d"
+		if daysUntil <= criticalDays {
+			kind = "monitor_4d"
+			if projectedBalance < 0 {
+				severity = "critical"
+				kind = "risk_4d"
+			}
+		}
+		alerts = append(alerts, liquidityAlertItem{
+			RecurringID:    item.ID,
+			Name:           item.Name,
+			Category:       item.Category,
+			DueDate:        item.DueDate,
+			DaysUntil:      daysUntil,
+			RequiredAmount: required,
+			BalanceBefore:  balanceBefore,
 			BalanceAfter:   projectedBalance,
 			Shortfall:      shortfall,
+			Severity:       severity,
+			Kind:           kind,
 		})
+	}
+
+	sort.Slice(alerts, func(i, j int) bool {
+		leftCritical := alerts[i].Severity == "critical"
+		rightCritical := alerts[j].Severity == "critical"
+		if leftCritical != rightCritical {
+			return leftCritical
+		}
+		if alerts[i].DueDate.Equal(alerts[j].DueDate) {
+			return alerts[i].Name < alerts[j].Name
+		}
+		return alerts[i].DueDate.Before(alerts[j].DueDate)
+	})
+
+	criticalCount := 0
+	for _, item := range alerts {
+		if item.Severity == "critical" {
+			criticalCount++
+		}
 	}
 
 	resp := liquidityAlertsResponse{
@@ -165,6 +272,8 @@ func (h *Handler) GetLiquidityAlerts(w http.ResponseWriter, r *http.Request) {
 		BalanceNow:       balance,
 		ProjectedBalance: projectedBalance,
 		AlertCount:       len(alerts),
+		CriticalCount:    criticalCount,
+		InfoCount:        len(alerts) - criticalCount,
 		Alerts:           alerts,
 	}
 	writeJSON(w, http.StatusOK, resp)

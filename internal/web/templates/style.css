@@ -1647,7 +1647,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
 .settings-preferences-grid {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
 }
 
@@ -1673,6 +1673,13 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     border-radius: 10px;
     background-color: var(--bg-primary);
     color: var(--text-primary);
+}
+
+.settings-helper-text {
+    margin: 0.35rem 0 0;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.35;
 }
 
 .settings-nav-list {
@@ -1721,6 +1728,14 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     margin-top: 1.25rem;
     margin-bottom: 0.55rem;
     font-size: 1rem;
+}
+
+.settings-recurring-toggle {
+    margin-top: 0.9rem;
+}
+
+#recurringFormWrap {
+    margin-top: 0.85rem;
 }
 
 .settings-toggle-btn {
@@ -2026,16 +2041,6 @@ html[data-theme='dark'] .expense-table td.amount-balance {
         justify-content: center;
     }
 
-    .settings-preference-control {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .settings-preference-control .nav-button {
-        width: 100%;
-        justify-content: center;
-    }
-
     .settings-detail-header {
         flex-wrap: wrap;
     }
@@ -2047,6 +2052,16 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
     .expense-form {
         grid-template-columns: 1fr;
+    }
+
+    .settings-detail-section .recurring-expense-form {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .settings-detail-section .recurring-expense-form > button[type="submit"] {
+        grid-column: 1 / -1;
+        justify-self: center;
+        min-width: 210px;
     }
 
     .table-controls {
@@ -2346,6 +2361,20 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 1rem;
     align-items: end;
+}
+
+.expense-form .form-actions {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+    align-items: center;
+}
+
+.expense-form .form-actions .nav-button {
+    width: 100%;
+    justify-content: center;
+    min-height: var(--control-min-height);
 }
 
 #tableExpenseFormContainer .expense-form > button[type="submit"] {

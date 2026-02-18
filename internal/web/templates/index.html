@@ -142,8 +142,20 @@
                             document.getElementById('date').value = formattedDate;
                         </script>
                     </div>
-                    
-                    <button type="submit" class="nav-button button-primary">Agregar gasto</button>
+
+                    <div class="form-group">
+                        <label for="movementType">Tipo</label>
+                        <select id="movementType">
+                            <option value="expense">Gasto</option>
+                            <option value="income">Ingreso</option>
+                            <option value="refund">Reintegro</option>
+                        </select>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" id="cancelExpenseFormBtn" class="nav-button button-secondary">Cancelar</button>
+                        <button type="submit" class="nav-button button-primary">Agregar gasto</button>
+                    </div>
                 </form>
                 <div id="formMessage" class="form-message"></div>
             </div>
@@ -259,6 +271,7 @@
         const supportedCurrencies = Object.keys(currencyBehaviors);
         const sourceSelect = document.getElementById('sourceSelect');
         const cardGroup = document.getElementById('cardGroup');
+        const movementTypeSelect = document.getElementById('movementType');
         let filterCurrency = 'all';
         let filterSource = 'all';
         let categories = [];
@@ -280,7 +293,6 @@
         const liquidityAlertIcon = liquidityAlertToggle ? liquidityAlertToggle.querySelector('i') : null;
         const alertUI = (typeof ExpenseLogAlertUI !== 'undefined') ? ExpenseLogAlertUI : null;
         let latestLiquidityAlertsData = null;
-        let quickMovementType = 'expense';
         const CONFIG_CACHE_KEY = 'expenselog_config_cache_v1';
         const CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -1108,23 +1120,17 @@
 
         function setExpenseFormVisible(visible) {
             const formContainer = document.getElementById('addExpenseContainer');
-            const toggleBtn = document.getElementById('toggleExpenseFormBtn');
             formContainer.style.display = visible ? 'block' : 'none';
-            if (toggleBtn) {
-                toggleBtn.textContent = visible ? 'Cerrar' : 'Agregar gasto';
-            }
-        }
-
-        function setQuickMovementType(type) {
-            quickMovementType = type === 'income' ? 'income' : 'expense';
         }
 
         document.getElementById('expenseForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const isGain = quickMovementType === 'income';
+            const movementType = movementTypeSelect ? movementTypeSelect.value : 'expense';
             let amount = parseFloat(document.getElementById('amount').value);
-            if (!isGain) {
+            if (movementType === 'expense') {
                 amount *= -1;
+            } else {
+                amount = Math.abs(amount);
             }
             const sourceValue = sourceSelect.value || 'CA';
             if (sourceValue === 'TARJETA' && !document.getElementById('cardInput').value.trim()) {
@@ -1140,6 +1146,7 @@
                 currency: document.getElementById('currencySelectForm').value || currentCurrency,
                 source: sourceValue,
                 card: sourceValue === 'TARJETA' ? document.getElementById('cardInput').value : '',
+                flow: movementType,
             };
             try {
                 const response = await fetch('/expense', {
@@ -1157,7 +1164,7 @@
                 selectedTags.clear();
                 populateFormCurrency();
                 sourceSelect.value = 'CA';
-                setQuickMovementType('expense');
+                if (movementTypeSelect) movementTypeSelect.value = 'expense';
                 toggleCardInput();
                 setExpenseFormVisible(false);
                 await initialize();
@@ -1242,20 +1249,42 @@
                 const action = btn.dataset.action;
                 if (action === 'open-form') {
                     const isHidden = formContainer.style.display === 'none' || formContainer.style.display === '';
-                    setExpenseFormVisible(isHidden);
+                    if (isHidden) {
+                        if (movementTypeSelect) movementTypeSelect.value = 'expense';
+                        sourceSelect.value = 'CA';
+                        toggleCardInput();
+                    }
+                    setExpenseFormVisible(true);
+                    document.getElementById('name').focus();
                     return;
                 }
                 setExpenseFormVisible(true);
                 if (action === 'income') {
-                    setQuickMovementType('income');
+                    if (movementTypeSelect) movementTypeSelect.value = 'income';
                     sourceSelect.value = 'CA';
                 } else if (action === 'card-expense') {
-                    setQuickMovementType('expense');
+                    if (movementTypeSelect) movementTypeSelect.value = 'expense';
                     sourceSelect.value = 'TARJETA';
                 }
                 toggleCardInput();
                 document.getElementById('amount').focus();
             });
+        });
+
+        document.getElementById('cancelExpenseFormBtn').addEventListener('click', () => {
+            document.getElementById('expenseForm').reset();
+            document.getElementById('selected-tags').innerHTML = '';
+            selectedTags.clear();
+            populateFormCurrency();
+            sourceSelect.value = 'CA';
+            if (movementTypeSelect) movementTypeSelect.value = 'expense';
+            toggleCardInput();
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            document.getElementById('date').value = `${year}-${month}-${day}`;
+            setExpenseFormVisible(false);
         });
 
         setExpenseFormVisible(false);

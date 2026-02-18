@@ -62,8 +62,8 @@
                             <option value="usd">USD ($)</option>
                             <option value="eur">EUR (EUR)</option>
                         </select>
-                        <button id="saveCurrency" class="nav-button" type="button">Guardar</button>
                     </div>
+                    <p class="settings-helper-text">Esta moneda define la referencia principal de Caja de Ahorro (CA), balance y calculos por defecto.</p>
                     <div id="currencyMessage" class="form-message"></div>
                 </div>
                 <div class="settings-preference-item">
@@ -130,7 +130,10 @@
                 <h2>Transacciones recurrentes</h2>
                 <button class="nav-button button-secondary settings-close-btn" type="button" data-settings-close="recurringSection">Ocultar</button>
             </div>
-            <div id="recurringFormWrap">
+            <h3 class="settings-subtitle">Transacciones recurrentes existentes</h3>
+            <div id="recurring-expenses-list" class="recurring-table-box"></div>
+            <button id="toggleRecurringCreateBtn" class="nav-button button-primary settings-recurring-toggle" type="button" aria-expanded="false">Agregar transaccion recurrente</button>
+            <div id="recurringFormWrap" hidden>
                 <form id="recurringExpenseForm" class="expense-form recurring-expense-form">
                     <div class="form-group">
                         <label for="recurringName">Nombre</label>
@@ -189,8 +192,6 @@
                 </form>
                 <div id="recurringExpenseMessage" class="form-message"></div>
             </div>
-            <h3 class="settings-subtitle">Transacciones recurrentes existentes</h3>
-            <div id="recurring-expenses-list" class="recurring-table-box"></div>
         </section>
 
     </div>
@@ -354,11 +355,14 @@
         let recurringExpenses = [];
         let recurringExpenseToDelete = null;
         let recurringExpenseToEdit = null;
+        const SHARED_CONFIG_CACHE_KEY = 'expenselog_config_cache_v1';
         const settingsSectionButtons = Array.from(document.querySelectorAll('[data-settings-section]'));
         const settingsCloseButtons = Array.from(document.querySelectorAll('[data-settings-close]'));
         const settingsProfileName = document.getElementById('settingsProfileName');
         const settingsProfileEmail = document.getElementById('settingsProfileEmail');
         const settingsProfileAvatar = document.getElementById('settingsProfileAvatar');
+        const recurringFormWrap = document.getElementById('recurringFormWrap');
+        const toggleRecurringCreateBtn = document.getElementById('toggleRecurringCreateBtn');
 
         function setSettingsSection(sectionId, expanded) {
             const section = document.getElementById(sectionId);
@@ -373,6 +377,7 @@
         function showOnlySettingsSection(sectionId) {
             const targets = ['categoriesSection', 'recurringSection'];
             targets.forEach((id) => setSettingsSection(id, id === sectionId));
+            setRecurringComposerVisible(false);
             const targetNode = document.getElementById(sectionId);
             if (targetNode) {
                 targetNode.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -381,6 +386,18 @@
 
         function hideSettingsSection(sectionId) {
             setSettingsSection(sectionId, false);
+            if (sectionId === 'recurringSection') {
+                setRecurringComposerVisible(false);
+            }
+        }
+
+        function setRecurringComposerVisible(visible) {
+            if (!recurringFormWrap) return;
+            recurringFormWrap.hidden = !visible;
+            if (toggleRecurringCreateBtn) {
+                toggleRecurringCreateBtn.textContent = visible ? 'Ocultar formulario' : 'Agregar transaccion recurrente';
+                toggleRecurringCreateBtn.setAttribute('aria-expanded', visible ? 'true' : 'false');
+            }
         }
 
         function userDisplayNameFromEmail(email) {
@@ -411,6 +428,14 @@
             if (settingsProfileName) settingsProfileName.textContent = name || 'Usuario';
             if (settingsProfileEmail) settingsProfileEmail.textContent = email || '-';
             if (settingsProfileAvatar) settingsProfileAvatar.textContent = userInitials(email, name);
+        }
+
+        function invalidateSharedConfigCache() {
+            try {
+                localStorage.removeItem(SHARED_CONFIG_CACHE_KEY);
+            } catch (error) {
+                console.warn('No se pudo invalidar cache de configuracion:', error);
+            }
         }
 
         function formatIntervalLabel(interval) {
@@ -801,15 +826,19 @@ async function saveCategoriesList(nextCategories) {
             const currencies = [
                 { code: 'ars', label: 'ARS ($)' },
                 { code: 'usd', label: 'USD ($)' },
-                { code: 'eur', label: 'EUR (€)' },
+                { code: 'eur', label: 'EUR (EUR)' },
             ];
-            select.innerHTML = currencies.map(({code, label}) => 
+            select.innerHTML = currencies.map(({code, label}) =>
                 `<option value="${code}" ${code === currentCurrency ? 'selected' : ''}>${label}</option>`
             ).join('');
         }
-        
+
         async function saveCurrency() {
             const currencyCode = document.getElementById('currencySelect').value;
+            if (currencyCode === currentCurrency) {
+                showMessage('currencyMessage', 'Esta moneda ya esta configurada como principal.', true);
+                return;
+            }
             try {
                 const response = await fetch('/currency/edit', {
                     method: 'PUT',
@@ -817,8 +846,9 @@ async function saveCategoriesList(nextCategories) {
                     body: JSON.stringify(currencyCode)
                 });
                 if (response.ok) {
-                    showMessage('currencyMessage', 'Moneda guardada con exito', true);
+                    showMessage('currencyMessage', 'Moneda principal actualizada. Se usara como referencia para Caja de Ahorro (CA), balance y vistas por defecto.', true);
                     currentCurrency = currencyCode;
+                    invalidateSharedConfigCache();
                 } else {
                     showMessage('currencyMessage', 'No se pudo guardar la moneda', false);
                 }
@@ -1026,7 +1056,7 @@ async function saveCategoriesList(nextCategories) {
                 if (!recurringExpensesResponse.ok) throw new Error('No se pudieron obtener las transacciones recurrentes');
                 recurringExpenses = await recurringExpensesResponse.json() || [];
 
-                currentCurrency = config.currency;
+                currentCurrency = (config.currency || 'ars').toLowerCase();
                 allTags.clear();
                 (expenses || []).forEach(exp => (exp.tags || []).forEach(tag => allTags.add(tag)));
                 (recurringExpenses || []).forEach(exp => (exp.tags || []).forEach(tag => allTags.add(tag)));
@@ -1035,6 +1065,7 @@ async function saveCategoriesList(nextCategories) {
                 renderRecurringExpenses(recurringExpenses);
                 hideSettingsSection('categoriesSection');
                 hideSettingsSection('recurringSection');
+                setRecurringComposerVisible(false);
 
                 try {
                     const authResponse = await fetch('/auth/me', { cache: 'no-store' });
@@ -1114,7 +1145,10 @@ async function saveCategoriesList(nextCategories) {
                 if (input) saveEditCategory(index, input.value);
             }
         });
-        document.getElementById('saveCurrency').addEventListener('click', saveCurrency);
+        document.getElementById('currencySelect').addEventListener('change', saveCurrency);
+        toggleRecurringCreateBtn?.addEventListener('click', () => {
+            setRecurringComposerVisible(recurringFormWrap?.hidden === true);
+        });
         document.getElementById('newCategory').addEventListener('keypress', e => e.key === 'Enter' && addCategory());
 
         document.getElementById('recurringExpenseForm').addEventListener('submit', async (e) => {
@@ -1149,6 +1183,7 @@ async function saveCategoriesList(nextCategories) {
                     document.getElementById('recurringExpenseForm').reset();
                     document.getElementById('selected-tags').innerHTML = '';
                     addFormSelectedTags.clear();
+                    setRecurringComposerVisible(false);
                     fetchAndRenderRecurringExpenses();
                 } else {
                     const error = await response.json();
@@ -1171,4 +1206,5 @@ async function saveCategoriesList(nextCategories) {
     </script>
 </body>
 </html>
+
 

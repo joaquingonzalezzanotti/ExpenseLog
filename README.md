@@ -20,6 +20,24 @@ ExpenseLog es una app web para llevar ingresos y gastos con foco en simplicidad 
 - Etiquetas y categorias personalizadas.
 - Importacion y exportacion CSV.
 
+## Paleta UI oficial (Variante A)
+- Light:
+  - `--bg-primary: #F6F7F9`
+  - `--bg-secondary: #FFFFFF`
+  - `--text-primary: #1B2430`
+  - `--text-secondary: #5A6778`
+  - `--border: #D9E0E8`
+  - `--accent: #2563EB`
+  - `--danger: #DC2626`
+- Dark:
+  - `--bg-primary: #0B1220`
+  - `--bg-secondary: #121C2E`
+  - `--text-primary: #E6EDF6`
+  - `--text-secondary: #9BAAC0`
+  - `--border: #253247`
+  - `--accent: #60A5FA`
+  - `--danger: #EF4444`
+
 ## Cuenta y seguridad
 - Sesiones seguras con opcion de recordar sesion.
 - Recupero de contrasena por codigo.

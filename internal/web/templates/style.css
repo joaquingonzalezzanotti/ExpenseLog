@@ -2,25 +2,44 @@
 
 :root {
     /* Default theme: Light mode */
-    --bg-primary: #f2e5d7;
-    --bg-secondary: #faecdd;
-    --text-primary: #2e2e2e;
-    --text-secondary: #3e3e3e;
-    --border: #e6ddd4;
-    --accent: #69afde;
-    --accent-soft: rgba(105, 175, 222, 0.2);
-    --success-soft: rgba(52, 211, 153, 0.16);
+    --bg-primary: #f6f7f9;
+    --bg-secondary: #ffffff;
+    --text-primary: #1b2430;
+    --text-secondary: #5a6778;
+    --border: #d9e0e8;
+    --accent: #2563eb;
+    --accent-contrast: #ffffff;
+    --accent-soft: rgba(37, 99, 235, 0.16);
+    --success: #16a34a;
+    --success-soft: rgba(22, 163, 74, 0.16);
+    --warning: #d97706;
+    --warning-soft: rgba(217, 119, 6, 0.14);
+    --danger: #dc2626;
+    --danger-soft: rgba(220, 38, 38, 0.12);
+    --bg-blob-1: rgba(37, 99, 235, 0.14);
+    --bg-blob-2: rgba(217, 119, 6, 0.08);
+    --table-row-alt: rgba(37, 99, 235, 0.035);
 }
 
 /* Dark theme override */
 html[data-theme='dark'] {
-    --bg-primary: #081528;
-    --bg-secondary: #101f3b;
-    --text-primary: #f4f4f4;
-    --text-secondary: #b3b3b3;
-    --border: #1a365d;
-    --accent-soft: rgba(105, 175, 222, 0.18);
-    --success-soft: rgba(52, 211, 153, 0.14);
+    --bg-primary: #0b1220;
+    --bg-secondary: #121c2e;
+    --text-primary: #e6edf6;
+    --text-secondary: #9baac0;
+    --border: #253247;
+    --accent: #60a5fa;
+    --accent-contrast: #06203a;
+    --accent-soft: rgba(96, 165, 250, 0.2);
+    --success: #22c55e;
+    --success-soft: rgba(34, 197, 94, 0.14);
+    --warning: #f59e0b;
+    --warning-soft: rgba(245, 158, 11, 0.16);
+    --danger: #ef4444;
+    --danger-soft: rgba(239, 68, 68, 0.14);
+    --bg-blob-1: rgba(96, 165, 250, 0.1);
+    --bg-blob-2: rgba(245, 158, 11, 0.08);
+    --table-row-alt: rgba(148, 163, 184, 0.08);
 }
 
 body {
@@ -31,8 +50,8 @@ body {
     color: var(--text-primary);
     line-height: 1.6;
     background-image:
-        radial-gradient(circle at 12% 8%, rgba(105, 175, 222, 0.12), transparent 35%),
-        radial-gradient(circle at 85% 15%, rgba(251, 191, 36, 0.1), transparent 40%);
+        radial-gradient(circle at 12% 8%, var(--bg-blob-1), transparent 35%),
+        radial-gradient(circle at 85% 15%, var(--bg-blob-2), transparent 40%);
 }
 
 body.auth-pending .container {
@@ -95,10 +114,12 @@ html[data-theme='light'] #toggleExpenseFormBtn {
 
 .nav-button:hover, .edit-button:hover {
     background-color: var(--accent);
+    color: var(--accent-contrast);
 }
 
 .nav-button:hover, .view-button:hover, .edit-button:hover {
     background-color: var(--accent);
+    color: var(--accent-contrast);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -114,7 +135,7 @@ html[data-theme='light'] #toggleExpenseFormBtn {
 .button-primary {
     background-color: var(--accent);
     border-color: var(--accent);
-    color: #0f2238;
+    color: var(--accent-contrast);
     font-weight: 700;
 }
 
@@ -194,16 +215,16 @@ html[data-theme='light'] #toggleExpenseFormBtn {
 }
 
 .panel-filters .button-secondary {
-    border-color: rgba(239, 68, 68, 0.45);
+    border-color: rgba(220, 38, 38, 0.45);
 }
 
 .panel-filters .button-secondary:hover {
-    background-color: rgba(239, 68, 68, 0.14);
-    border-color: rgba(239, 68, 68, 0.7);
+    background-color: var(--danger-soft);
+    border-color: rgba(220, 38, 38, 0.7);
 }
 
 .panel-filters .button-primary {
-    box-shadow: 0 8px 20px rgba(105, 175, 222, 0.25);
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
 }
 
 .panel-indicator {
@@ -223,8 +244,8 @@ html[data-theme='light'] #toggleExpenseFormBtn {
     width: 44px;
     height: 44px;
     border-radius: 9999px;
-    border: 1px solid rgba(239, 68, 68, 0.55);
-    background: linear-gradient(140deg, #f87171, #dc2626);
+    border: 1px solid rgba(220, 38, 38, 0.55);
+    background: linear-gradient(140deg, #f87171, var(--danger));
     color: #fff;
     display: inline-flex;
     align-items: center;
@@ -260,7 +281,7 @@ html[data-theme='light'] #toggleExpenseFormBtn {
     margin-top: 0.55rem;
     width: min(340px, calc(100vw - 2rem));
     background-color: var(--bg-secondary);
-    border: 1px solid rgba(239, 68, 68, 0.45);
+    border: 1px solid rgba(220, 38, 38, 0.45);
     border-radius: 12px;
     padding: 0.65rem;
     box-shadow: 0 16px 34px rgba(0, 0, 0, 0.26);
@@ -268,7 +289,7 @@ html[data-theme='light'] #toggleExpenseFormBtn {
 
 .liquidity-alert-title {
     font-weight: 700;
-    color: #ef4444;
+    color: var(--danger);
     margin-bottom: 0.25rem;
 }
 
@@ -308,7 +329,7 @@ html[data-theme='light'] #toggleExpenseFormBtn {
 }
 
 .liquidity-alert-shortfall {
-    color: #ef4444;
+    color: var(--danger);
     font-weight: 700;
 }
 
@@ -390,11 +411,11 @@ html[data-theme='light'] #toggleExpenseFormBtn {
 }
 
 .toast.success {
-    border-color: rgba(52, 211, 153, 0.6);
+    border-color: rgba(22, 163, 74, 0.6);
 }
 
 .toast.error {
-    border-color: rgba(239, 68, 68, 0.6);
+    border-color: rgba(220, 38, 38, 0.6);
 }
 
 .search-bar {
@@ -461,18 +482,18 @@ html[data-theme='light'] #toggleExpenseFormBtn {
 }
 
 .editable:hover {
-    background-color: rgba(59, 130, 246, 0.12);
+    background-color: var(--accent-soft);
 }
 
 mark {
-    background-color: rgba(251, 191, 36, 0.4);
+    background-color: var(--warning-soft);
     color: inherit;
     padding: 0 2px;
     border-radius: 3px;
 }
 
 .form-error {
-    color: #ef4444;
+    color: var(--danger);
     font-size: 0.8rem;
 }
 
@@ -607,6 +628,7 @@ input:focus-visible {
 
 .view-button.active {
     background-color: var(--accent);
+    color: var(--accent-contrast);
     cursor: default;
 }
 
@@ -755,7 +777,7 @@ input:focus-visible {
 
 .auth-tab.active {
     background: var(--accent);
-    color: var(--text-primary);
+    color: var(--accent-contrast);
 }
 
 .auth-form {
@@ -817,20 +839,27 @@ input:focus-visible {
 #tableContainer {
     margin-top: 1rem;
     overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background-color: var(--bg-secondary);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+html[data-theme='dark'] #tableContainer {
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.26);
 }
 
 .expense-table {
     width: 100%;
-    min-width: 720px;
-    border-collapse: collapse;
-    background-color: var(--bg-secondary);
-    border-radius: 8px;
-    overflow: hidden;
+    min-width: 760px;
+    border-collapse: separate;
+    border-spacing: 0;
+    background-color: transparent;
 }
 
 .expense-table th,
 .expense-table td {
-    padding: 0.5rem;
+    padding: 0.72rem 0.78rem;
     text-align: left;
     border-bottom: 1px solid var(--border);
 }
@@ -838,14 +867,48 @@ input:focus-visible {
 .expense-table th {
     background-color: var(--bg-primary);
     font-weight: 600;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.expense-table tbody tr {
+    transition: background-color 0.18s ease;
+}
+
+.expense-table tbody tr:nth-child(even) {
+    background-color: var(--table-row-alt);
+}
+
+.expense-table tbody tr:hover {
+    background-color: var(--accent-soft);
+}
+
+.expense-table td.amount {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    text-align: right;
+    white-space: nowrap;
+    color: var(--text-primary);
+    font-weight: 600;
 }
 
 .expense-table tr:last-child td {
     border-bottom: none;
 }
 
+.expense-table td:last-child {
+    white-space: nowrap;
+    width: 96px;
+}
+
 .date-column {
     color: var(--text-secondary);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
 }
 
 .delete-button, .edit-button {
@@ -860,17 +923,30 @@ input:focus-visible {
 
 .delete-button, .edit-button {
     border-radius: 9999px;
-    padding: 6px 10px;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+}
+
+.delete-button i,
+.edit-button i {
+    font-size: 0.9rem;
 }
 
 .delete-button:hover {
-    background-color: rgba(255, 99, 99, 0.1);
-    color: #ff6b6b;
+    background-color: var(--danger-soft);
+    color: var(--danger);
+    border-color: rgba(220, 38, 38, 0.28);
 }
 
 .edit-button:hover {
-    background-color: rgba(105, 175, 222, 0.1);
+    background-color: var(--accent-soft);
     color: var(--accent);
+    border-color: rgba(37, 99, 235, 0.28);
 }
 
 .modal {
@@ -928,8 +1004,8 @@ input:focus-visible {
 }
 
 .modal-button.confirm {
-    background-color: #ff6b6b;
-    border-color: #ff6b6b;
+    background-color: var(--danger);
+    border-color: var(--danger);
     color: white;
 }
 
@@ -1126,19 +1202,19 @@ input:focus-visible {
 }
 
 .cashflow-item.income {
-    background-color: rgba(52, 211, 153, 0.1);
+    background-color: var(--success-soft);
 }
 
 .cashflow-item.expenses {
-    background-color: rgba(239, 68, 68, 0.1);
+    background-color: var(--danger-soft);
 }
 
 .cashflow-item.balance {
-    background-color: rgba(251, 191, 36, 0.1);
+    background-color: var(--warning-soft);
 }
 
 .cashflow-item.refund {
-    background-color: rgba(59, 130, 246, 0.12);
+    background-color: var(--accent-soft);
 }
 
 .cashflow-label {
@@ -1153,11 +1229,11 @@ input:focus-visible {
 }
 
 .cashflow-value.positive {
-    color: #2EAB7D;
+    color: var(--success);
 }
 
 .cashflow-value.negative {
-    color: #EF4444;
+    color: var(--danger);
 }
 
 .import-section {
@@ -1311,9 +1387,10 @@ input:focus-visible {
 }
 .tags-dropdown div:hover {
     background-color: var(--accent);
+    color: var(--accent-contrast);
 }
 .tags-dropdown .new-tag {
-    color: #2EAB7D;
+    color: var(--success);
     font-style: italic;
 }
 
@@ -1579,13 +1656,13 @@ input:focus-visible {
 }
 
 .form-message.success {
-    background-color: rgba(52, 211, 153, 0.1);
-    color: #2EAB7D;
+    background-color: var(--success-soft);
+    color: var(--success);
 }
 
 .form-message.error {
-    background-color: rgba(239, 68, 68, 0.1);
-    color: #EF4444;
+    background-color: var(--danger-soft);
+    color: var(--danger);
 }
 
 .form-group.form-group-checkbox {
@@ -1616,4 +1693,5 @@ input:focus-visible {
 
 .table-controls label:hover {
     background-color: var(--accent);
+    color: var(--accent-contrast);
 }

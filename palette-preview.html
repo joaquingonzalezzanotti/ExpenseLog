@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExpenseLog - Paleta Variante A</title>
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            background: #e7ecf3;
+            color: #111827;
+            padding: 1rem;
+            line-height: 1.45;
+        }
+
+        .title {
+            max-width: 980px;
+            margin: 0 auto 0.8rem auto;
+            font-weight: 700;
+        }
+
+        .grid {
+            max-width: 980px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 0.9rem;
+        }
+
+        .theme {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-secondary);
+            font-weight: 700;
+        }
+
+        .section {
+            padding: 0.85rem 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .swatches {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.5rem;
+        }
+
+        .swatch {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.45rem;
+            font-size: 0.76rem;
+        }
+
+        .chip {
+            width: 100%;
+            height: 32px;
+            border-radius: 7px;
+            margin-bottom: 0.3rem;
+            border: 1px solid rgba(0, 0, 0, 0.15);
+        }
+
+        .theme.dark .chip {
+            border-color: rgba(255, 255, 255, 0.22);
+        }
+
+        .card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg-secondary);
+            padding: 0.75rem;
+            margin-top: 0.45rem;
+        }
+
+        .row {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
+
+        .btn {
+            border-radius: 999px;
+            border: 1px solid transparent;
+            padding: 0.42rem 0.82rem;
+            font-size: 0.84rem;
+            font-weight: 600;
+        }
+
+        .btn.primary {
+            background: var(--accent);
+            color: var(--accent-contrast);
+        }
+
+        .btn.secondary {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border-color: var(--border);
+        }
+
+        .btn.danger {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .note {
+            margin-top: 0.45rem;
+            background: var(--accent-soft);
+            color: var(--text-primary);
+            border-radius: 8px;
+            padding: 0.52rem;
+            font-size: 0.82rem;
+        }
+
+        .contrast-sample {
+            margin-top: 0.45rem;
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            padding: 0.6rem;
+        }
+
+        .size-12 { font-size: 12px; }
+        .size-14 { font-size: 14px; }
+        .size-16 { font-size: 16px; }
+
+        .logo-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+            margin-top: 0.55rem;
+        }
+
+        .logo-surface {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.7rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 96px;
+        }
+
+        .logo-surface.primary-bg {
+            background: var(--bg-primary);
+        }
+
+        .logo-surface.secondary-bg {
+            background: var(--bg-secondary);
+        }
+
+        .logo-img {
+            width: min(260px, 90%);
+            height: auto;
+            display: block;
+        }
+
+        .surface-label {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            margin-top: 0.3rem;
+        }
+
+        /* Variante A */
+        .variant-a.light {
+            --bg-primary: #F6F7F9;
+            --bg-secondary: #FFFFFF;
+            --text-primary: #1B2430;
+            --text-secondary: #5A6778;
+            --border: #D9E0E8;
+            --accent: #2563EB;
+            --accent-soft: rgba(37, 99, 235, 0.16);
+            --accent-contrast: #FFFFFF;
+            --success: #16A34A;
+            --warning: #D97706;
+            --danger: #DC2626;
+        }
+
+        .variant-a.dark {
+            --bg-primary: #0B1220;
+            --bg-secondary: #121C2E;
+            --text-primary: #E6EDF6;
+            --text-secondary: #9BAAC0;
+            --border: #253247;
+            --accent: #60A5FA;
+            --accent-soft: rgba(96, 165, 250, 0.20);
+            --accent-contrast: #06203A;
+            --success: #22C55E;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="title">Preview de paleta seleccionada (Variante A, sin cyan)</div>
+    <div class="grid">
+        <section class="theme light variant-a">
+            <div class="header">Modo Claro</div>
+            <div class="section">
+                <strong>Preview de logo ExpenseLog</strong>
+                <div class="logo-grid">
+                    <div>
+                        <div class="logo-surface primary-bg">
+                            <img class="logo-img" src="assets/logo.png" alt="Logo ExpenseLog">
+                        </div>
+                        <div class="surface-label">Sobre bg-primary</div>
+                    </div>
+                    <div>
+                        <div class="logo-surface secondary-bg">
+                            <img class="logo-img" src="assets/logo.png" alt="Logo ExpenseLog">
+                        </div>
+                        <div class="surface-label">Sobre bg-secondary</div>
+                    </div>
+                </div>
+            </div>
+            <div class="section">
+                <strong>Tokens</strong>
+                <div class="swatches">
+                    <div class="swatch"><div class="chip" style="background: var(--bg-primary);"></div>bg-primary</div>
+                    <div class="swatch"><div class="chip" style="background: var(--bg-secondary);"></div>bg-secondary</div>
+                    <div class="swatch"><div class="chip" style="background: var(--text-primary);"></div>text-primary</div>
+                    <div class="swatch"><div class="chip" style="background: var(--text-secondary);"></div>text-secondary</div>
+                    <div class="swatch"><div class="chip" style="background: var(--accent);"></div>accent</div>
+                    <div class="swatch"><div class="chip" style="background: var(--danger);"></div>danger</div>
+                </div>
+            </div>
+            <div class="section">
+                <strong>Componentes</strong>
+                <div class="card">
+                    Resumen mensual
+                    <div class="row">
+                        <button class="btn primary">Primario</button>
+                        <button class="btn secondary">Secundario</button>
+                        <button class="btn danger">Eliminar</button>
+                    </div>
+                    <div class="note">Acento principal azul sobrio.</div>
+                </div>
+            </div>
+            <div class="section">
+                <strong>Legibilidad text-secondary sobre bg-primary</strong>
+                <div class="contrast-sample size-12">12px: usar solo para microcopy corto.</div>
+                <div class="contrast-sample size-14">14px: recomendado para labels/hints.</div>
+                <div class="contrast-sample size-16">16px: lectura cómoda en bloques.</div>
+            </div>
+        </section>
+
+        <section class="theme dark variant-a">
+            <div class="header">Modo Oscuro</div>
+            <div class="section">
+                <strong>Preview de logo ExpenseLog</strong>
+                <div class="logo-grid">
+                    <div>
+                        <div class="logo-surface primary-bg">
+                            <img class="logo-img" src="assets/logo.png" alt="Logo ExpenseLog">
+                        </div>
+                        <div class="surface-label">Sobre bg-primary</div>
+                    </div>
+                    <div>
+                        <div class="logo-surface secondary-bg">
+                            <img class="logo-img" src="assets/logo.png" alt="Logo ExpenseLog">
+                        </div>
+                        <div class="surface-label">Sobre bg-secondary</div>
+                    </div>
+                </div>
+            </div>
+            <div class="section">
+                <strong>Tokens</strong>
+                <div class="swatches">
+                    <div class="swatch"><div class="chip" style="background: var(--bg-primary);"></div>bg-primary</div>
+                    <div class="swatch"><div class="chip" style="background: var(--bg-secondary);"></div>bg-secondary</div>
+                    <div class="swatch"><div class="chip" style="background: var(--text-primary);"></div>text-primary</div>
+                    <div class="swatch"><div class="chip" style="background: var(--text-secondary);"></div>text-secondary</div>
+                    <div class="swatch"><div class="chip" style="background: var(--accent);"></div>accent</div>
+                    <div class="swatch"><div class="chip" style="background: var(--danger);"></div>danger</div>
+                </div>
+            </div>
+            <div class="section">
+                <strong>Componentes</strong>
+                <div class="card">
+                    Resumen mensual
+                    <div class="row">
+                        <button class="btn primary">Primario</button>
+                        <button class="btn secondary">Secundario</button>
+                        <button class="btn danger">Eliminar</button>
+                    </div>
+                    <div class="note">Danger en dark más contenido y legible.</div>
+                </div>
+            </div>
+            <div class="section">
+                <strong>Legibilidad text-secondary sobre bg-primary</strong>
+                <div class="contrast-sample size-12">12px: usar solo para microcopy corto.</div>
+                <div class="contrast-sample size-14">14px: recomendado para labels/hints.</div>
+                <div class="contrast-sample size-16">16px: lectura cómoda en bloques.</div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

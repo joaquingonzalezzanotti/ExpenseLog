@@ -20,6 +20,15 @@ let authChecked = false;
 let currentUser = null;
 let pendingAuthErrorMessage = null;
 let authCheckPromise = null;
+const NOTIFICATION_FETCH_CURRENCY = 'ars';
+const NOTIFICATION_FETCH_DAYS = 7;
+const NOTIFICATION_REFRESH_MS = 45000;
+const NOTIFICATION_SEEN_STORAGE_KEY = 'expenselog_notification_seen_v1';
+const NOTIFICATION_DISMISS_STORAGE_KEY = 'expenselog_liquidity_dismiss_v1';
+let notificationCenterBound = false;
+let notificationCenterTimer = null;
+let latestNotificationPayload = null;
+let currentVisibleNotificationItems = [];
 
 function setAuthPending(pending) {
     if (!document.body || !document.getElementById('authOverlay')) return;
@@ -59,6 +68,7 @@ async function checkAuthStatus() {
                 currentUser = user;
                 updateUserBadge(user);
                 hideAuthOverlay();
+                ensureNotificationCenter();
                 authChecked = true;
                 setAuthPending(false);
                 return user;
@@ -66,6 +76,7 @@ async function checkAuthStatus() {
             if (res.status === 401) {
                 currentUser = null;
                 updateUserBadge(null);
+                teardownNotificationCenter();
                 if (pendingAuthErrorMessage) {
                     showAuthOverlay(pendingAuthErrorMessage, 'error');
                     pendingAuthErrorMessage = null;
@@ -77,9 +88,11 @@ async function checkAuthStatus() {
                 return null;
             }
             showAuthOverlay('No se pudo validar la sesion', 'error');
+            teardownNotificationCenter();
         } catch (error) {
             console.error('Auth check failed:', error);
             showAuthOverlay('No se pudo validar la sesion', 'error');
+            teardownNotificationCenter();
         }
         authChecked = true;
         setAuthPending(false);
@@ -158,6 +171,339 @@ function updateUserBadge(user) {
         badge.style.display = 'none';
     }
 }
+
+function getNotificationCenterDOM() {
+    const button = document.getElementById('notificationCenterButton');
+    const badge = document.getElementById('notificationCenterBadge');
+    const panel = document.getElementById('notificationCenterPanel');
+    const list = document.getElementById('notificationCenterList');
+    const icon = button ? button.querySelector('i') : null;
+    const slot = button ? button.closest('.nav-right-slot') : null;
+    return { button, badge, panel, list, icon, slot };
+}
+
+function readJSONStorage(key, fallback) {
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return fallback;
+        const parsed = JSON.parse(raw);
+        return parsed ?? fallback;
+    } catch (error) {
+        return fallback;
+    }
+}
+
+function writeJSONStorage(key, value) {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+        // ignore storage write failures
+    }
+}
+
+function readSeenNotificationKeys() {
+    const raw = readJSONStorage(NOTIFICATION_SEEN_STORAGE_KEY, []);
+    if (!Array.isArray(raw)) return new Set();
+    return new Set(raw.filter(item => typeof item === 'string' && item));
+}
+
+function saveSeenNotificationKeys(keys) {
+    writeJSONStorage(NOTIFICATION_SEEN_STORAGE_KEY, Array.from(keys));
+}
+
+function readNotificationDismissMap() {
+    const value = readJSONStorage(NOTIFICATION_DISMISS_STORAGE_KEY, {});
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return {};
+    }
+    return value;
+}
+
+function writeNotificationDismissMap(map) {
+    writeJSONStorage(NOTIFICATION_DISMISS_STORAGE_KEY, map);
+}
+
+function buildNotificationKey(item) {
+    if (typeof ExpenseLogAlertUI !== 'undefined' && typeof ExpenseLogAlertUI.buildLiquidityAlertKey === 'function') {
+        return ExpenseLogAlertUI.buildLiquidityAlertKey(item);
+    }
+    const recurringId = String(item?.recurringId || 'sin-recurring');
+    const dueDate = String(item?.dueDate || '');
+    const kind = String(item?.kind || 'preview_7d');
+    return `${recurringId}|${dueDate}|${kind}`;
+}
+
+function shouldHideDismissedNotification(item, dismissMap, reappearDays) {
+    if (typeof ExpenseLogAlertUI !== 'undefined' && typeof ExpenseLogAlertUI.shouldHideDismissedAlert === 'function') {
+        return ExpenseLogAlertUI.shouldHideDismissedAlert(item, dismissMap, reappearDays);
+    }
+    const key = buildNotificationKey(item);
+    const entry = dismissMap[key];
+    if (!entry) return false;
+    const daysUntil = Number(item?.daysUntil || 0);
+    const dismissedDaysUntil = typeof entry === 'object'
+        ? Number(entry.daysUntil ?? Number.POSITIVE_INFINITY)
+        : Number.POSITIVE_INFINITY;
+    const is24hWindow = daysUntil <= reappearDays;
+    const wasDismissedBeforeWindow = dismissedDaysUntil > reappearDays;
+    if (is24hWindow && wasDismissedBeforeWindow) {
+        return false;
+    }
+    return true;
+}
+
+function getNotificationLead(item, criticalDays) {
+    if (item?.kind === 'due') return 'Vencimiento';
+    if (item?.kind === 'risk_4d') return `Riesgo en ${criticalDays} dias`;
+    if (item?.kind === 'monitor_4d') return `Seguimiento ${criticalDays} dias`;
+    return 'Aviso 7 dias';
+}
+
+function formatNotificationDueDate(isoDate) {
+    if (typeof getDateInputValueFromISO === 'function') {
+        const ymd = getDateInputValueFromISO(isoDate);
+        if (!ymd) return '-';
+        const [year, month, day] = ymd.split('-');
+        return `${day}/${month}/${year}`;
+    }
+    const date = new Date(isoDate);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString('es-AR');
+}
+
+function formatNotificationDays(daysUntil) {
+    if (daysUntil < 0) {
+        const ago = Math.abs(daysUntil);
+        return ago === 1 ? 'hace 1 dia' : `hace ${ago} dias`;
+    }
+    if (daysUntil === 0) return 'hoy';
+    if (daysUntil === 1) return 'en 1 dia';
+    return `en ${daysUntil} dias`;
+}
+
+function formatNotificationAmount(amount, currencyCode) {
+    const code = (currencyCode || 'ars').toLowerCase();
+    const behavior = currencyBehaviors[code] || currencyBehaviors.ars;
+    const isNegative = amount < 0;
+    const absAmount = Math.abs(amount);
+    const formatted = new Intl.NumberFormat(behavior.useComma ? 'de-DE' : 'en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(absAmount);
+    const result = behavior.right
+        ? `${formatted}${behavior.useSpace ? ' ' : ''}${behavior.symbol}`
+        : `${behavior.symbol}${behavior.useSpace ? ' ' : ''}${formatted}`;
+    return isNegative ? `-${result}` : result;
+}
+
+function getVisibleNotificationItems(payload) {
+    const alerts = Array.isArray(payload?.alerts) ? payload.alerts : [];
+    const dismissMap = readNotificationDismissMap();
+    const reappearDays = Number(payload?.reappearDays || 1);
+    return alerts.filter((item) => !shouldHideDismissedNotification(item, dismissMap, reappearDays));
+}
+
+function markCurrentNotificationsAsSeen() {
+    if (!currentVisibleNotificationItems.length) return;
+    const seenKeys = readSeenNotificationKeys();
+    currentVisibleNotificationItems.forEach((item) => {
+        seenKeys.add(buildNotificationKey(item));
+    });
+    saveSeenNotificationKeys(seenKeys);
+}
+
+function closeNotificationPanel() {
+    const dom = getNotificationCenterDOM();
+    if (!dom.panel || !dom.button) return;
+    dom.panel.hidden = true;
+    dom.button.setAttribute('aria-expanded', 'false');
+}
+
+async function openNotificationPanel() {
+    const dom = getNotificationCenterDOM();
+    if (!dom.panel || !dom.button) return;
+    await refreshNotificationCenter();
+    dom.panel.hidden = false;
+    dom.button.setAttribute('aria-expanded', 'true');
+    markCurrentNotificationsAsSeen();
+    renderNotificationCenter(latestNotificationPayload);
+}
+
+function dismissNotification(itemKey) {
+    const selected = currentVisibleNotificationItems.find((item) => buildNotificationKey(item) === itemKey);
+    if (!selected) return;
+    const dismissMap = readNotificationDismissMap();
+    dismissMap[itemKey] = {
+        dismissedAt: Date.now(),
+        daysUntil: Number(selected?.daysUntil || 0),
+    };
+    writeNotificationDismissMap(dismissMap);
+    renderNotificationCenter(latestNotificationPayload);
+}
+
+function renderNotificationCenter(payload) {
+    const dom = getNotificationCenterDOM();
+    if (!dom.button || !dom.list || !dom.badge) return;
+
+    const visibleItems = getVisibleNotificationItems(payload);
+    currentVisibleNotificationItems = visibleItems;
+    const topItems = visibleItems.slice(0, 3);
+    const hasCritical = visibleItems.some((item) => item?.severity === 'critical');
+    const seenKeys = readSeenNotificationKeys();
+    const unseenCount = visibleItems.filter((item) => !seenKeys.has(buildNotificationKey(item))).length;
+
+    if (dom.icon) {
+        dom.icon.className = hasCritical ? 'fa-solid fa-triangle-exclamation' : 'fa-regular fa-bell';
+    }
+    dom.button.classList.toggle('has-alert', hasCritical);
+
+    if (!hasCritical && unseenCount > 0) {
+        dom.badge.textContent = String(unseenCount);
+        dom.badge.hidden = false;
+    } else {
+        dom.badge.textContent = '0';
+        dom.badge.hidden = true;
+    }
+
+    if (topItems.length === 0) {
+        dom.list.innerHTML = '<div class="notification-empty">Sin notificaciones pendientes.</div>';
+        return;
+    }
+
+    const criticalDays = Number(payload?.criticalDays || 4);
+    const currency = String(payload?.currency || NOTIFICATION_FETCH_CURRENCY).toLowerCase();
+    dom.list.innerHTML = topItems.map((item) => {
+        const itemKey = buildNotificationKey(item);
+        const isCritical = item?.severity === 'critical';
+        const requiredAmount = Number(item?.requiredAmount || 0);
+        const projected = Number(item?.balanceAfter || 0);
+        const shortfall = Number(item?.shortfall || 0);
+        return `
+            <article class="notification-item ${isCritical ? 'is-critical' : ''}" data-item-key="${itemKey}">
+                <div class="notification-item-head">
+                    <div class="notification-item-title">${escapeHTML(item?.name || 'Recurrente')}</div>
+                    <span class="notification-item-badge ${isCritical ? 'critical' : ''}">${isCritical ? 'Alerta' : 'Info'}</span>
+                </div>
+                <div class="notification-item-summary">${getNotificationLead(item, criticalDays)}: ${formatNotificationDays(Number(item?.daysUntil || 0))} (${formatNotificationDueDate(item?.dueDate)})</div>
+                <div class="notification-item-details">
+                    <div>Importe: ${formatNotificationAmount(requiredAmount, currency)}</div>
+                    <div>Saldo proyectado: ${formatNotificationAmount(projected, currency)}</div>
+                    ${shortfall > 0 ? `<div>Faltante estimado: ${formatNotificationAmount(shortfall, currency)}</div>` : ''}
+                </div>
+                <div class="notification-item-actions">
+                    <button type="button" class="notification-item-btn" data-notif-action="toggle" data-notif-key="${itemKey}">Ver completa</button>
+                    <button type="button" class="notification-item-btn danger" data-notif-action="dismiss" data-notif-key="${itemKey}">Borrar</button>
+                </div>
+            </article>
+        `;
+    }).join('') + (visibleItems.length > 3 ? `<div class="notification-list-more">Mostrando ultimas 3 de ${visibleItems.length}</div>` : '');
+}
+
+function bindNotificationCenter() {
+    if (notificationCenterBound) return;
+    const dom = getNotificationCenterDOM();
+    if (!dom.button || !dom.panel || !dom.list) return;
+
+    dom.button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (dom.panel.hidden) {
+            openNotificationPanel();
+        } else {
+            closeNotificationPanel();
+        }
+    });
+
+    dom.list.addEventListener('click', (event) => {
+        const actionButton = event.target.closest('[data-notif-action]');
+        if (!actionButton) return;
+        const action = actionButton.dataset.notifAction;
+        const itemKey = actionButton.dataset.notifKey;
+        if (!itemKey) return;
+        if (action === 'dismiss') {
+            dismissNotification(itemKey);
+            return;
+        }
+        if (action === 'toggle') {
+            const itemNode = actionButton.closest('.notification-item');
+            if (!itemNode) return;
+            const opened = itemNode.classList.toggle('is-open');
+            actionButton.textContent = opened ? 'Ver menos' : 'Ver completa';
+        }
+    });
+
+    document.addEventListener('click', (event) => {
+        if (dom.panel.hidden) return;
+        const insideButton = dom.button.contains(event.target);
+        const insidePanel = dom.panel.contains(event.target);
+        if (!insideButton && !insidePanel) {
+            closeNotificationPanel();
+        }
+    });
+
+    notificationCenterBound = true;
+}
+
+async function refreshNotificationCenter() {
+    const dom = getNotificationCenterDOM();
+    if (!dom.button || !currentUser) return;
+    try {
+        const response = await fetch(`/alerts/liquidity?currency=${NOTIFICATION_FETCH_CURRENCY}&days=${NOTIFICATION_FETCH_DAYS}`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`status ${response.status}`);
+        latestNotificationPayload = await response.json();
+        renderNotificationCenter(latestNotificationPayload);
+    } catch (error) {
+        console.error('No se pudo refrescar el centro de notificaciones:', error);
+        latestNotificationPayload = { alerts: [] };
+        renderNotificationCenter(latestNotificationPayload);
+    }
+}
+
+function ensureNotificationCenter() {
+    const dom = getNotificationCenterDOM();
+    if (!dom.button) return;
+    if (dom.slot) {
+        dom.slot.style.display = 'inline-flex';
+    }
+    bindNotificationCenter();
+    refreshNotificationCenter();
+    if (!notificationCenterTimer) {
+        notificationCenterTimer = window.setInterval(refreshNotificationCenter, NOTIFICATION_REFRESH_MS);
+    }
+}
+
+function teardownNotificationCenter() {
+    const dom = getNotificationCenterDOM();
+    if (notificationCenterTimer) {
+        window.clearInterval(notificationCenterTimer);
+        notificationCenterTimer = null;
+    }
+    latestNotificationPayload = null;
+    currentVisibleNotificationItems = [];
+    if (dom.badge) {
+        dom.badge.hidden = true;
+        dom.badge.textContent = '0';
+    }
+    if (dom.panel) {
+        dom.panel.hidden = true;
+    }
+    if (dom.slot) {
+        dom.slot.style.display = 'none';
+    }
+}
+
+async function expenseLogLogout() {
+    try {
+        await fetch('/auth/logout', { method: 'POST' });
+    } catch (error) {
+        console.error('Logout failed:', error);
+    } finally {
+        teardownNotificationCenter();
+        showAuthOverlay();
+        window.location.reload();
+    }
+}
+
+window.expenseLogLogout = expenseLogLogout;
 
 function setAuthTab(tab) {
     const tabs = document.querySelectorAll('.auth-tab');
@@ -299,16 +645,7 @@ function setupAuthUI() {
 
     const logoutButton = document.getElementById('logoutButton');
     if (logoutButton) {
-        logoutButton.addEventListener('click', async () => {
-            try {
-                await fetch('/auth/logout', { method: 'POST' });
-            } catch (error) {
-                console.error('Logout failed:', error);
-            } finally {
-                showAuthOverlay();
-                window.location.reload();
-            }
-        });
+        logoutButton.addEventListener('click', expenseLogLogout);
     }
 
     setAuthTab('login');

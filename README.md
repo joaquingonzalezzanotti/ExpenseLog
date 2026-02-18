@@ -1,29 +1,47 @@
-# ExpenseLog 💸
+﻿<p align="center">
+  <img src="/assets/ExpenseLogLogoText.png" alt="ExpenseLog" width="220" />
+</p>
 
-ExpenseLog es una app web para registrar ingresos/gastos, manejar recurrentes y controlar liquidez por moneda base.
+<h1 align="center">ExpenseLog :moneybag:</h1>
 
-## 🌐 App
+<p align="center">
+  ExpenseLog te ayuda a controlar ingresos, gastos y liquidez mensual de forma simple.
+</p>
 
-- Produccion: `https://www.expenselog.com.ar`
-- Uso recomendado: acceder directamente desde la web (no requiere instalacion local).
+<p align="center">
+  <a href="https://www.expenselog.com.ar"><b>:globe_with_meridians: Usar ExpenseLog</b></a>
+</p>
 
-## ✨ Funcionalidades clave
+## :sparkles: Que ofrece
 
-- Autenticacion con email/password y Google.
-- Movimientos: gasto, ingreso y reintegro.
-- Recurrentes con generacion de instancias.
-- Alertas de liquidez (preview 7d + riesgo 4d).
-- Dashboard, tabla y configuracion en UI responsive.
+- Registro rapido de gastos, ingresos y reintegros.
+- Dashboard mensual con resumen y grafico por categoria.
+- Tabla completa con filtros por moneda y medio de pago.
+- Configuracion de categorias, recurrentes, tema y moneda principal.
+- Centro de notificaciones con alertas de liquidez.
 
-## 🧱 Stack
+## :compass: Vistas principales
 
-- Backend: Go (`net/http`)
-- Storage: PostgreSQL
-- Frontend: HTML/CSS/JS embebido (`go:embed`)
+- `/app`: panel principal y resumen mensual.
+- `/table`: movimientos detallados y edicion.
+- `/settings`: preferencias y gestion.
 
-## 📁 Estructura
+## :camera_flash: Capturas
 
-- `cmd/expenselog`: entrypoint de la app
-- `internal/api`: handlers y reglas de negocio
-- `internal/storage`: acceso a datos
-- `internal/web/templates`: UI y assets embebidos
+Las capturas del producto se cargan en:
+
+- `docs/screenshots/`
+
+Guia de nombres y ejemplos en:
+
+- `docs/screenshots/README.md`
+
+## :shield: Estado del proyecto
+
+- Producto activo en produccion.
+- Desarrollo continuo en rama `dev`.
+- Publicacion principal en `main`.
+
+## :page_facing_up: Licencia
+
+Este proyecto se distribuye bajo licencia MIT. Ver `LICENSE`.

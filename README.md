@@ -42,6 +42,4 @@ Guia de nombres y ejemplos en:
 - Desarrollo continuo en rama `dev`.
 - Publicacion principal en `main`.
 
-## :page_facing_up: Licencia
 
-Este proyecto se distribuye bajo licencia MIT. Ver `LICENSE`.

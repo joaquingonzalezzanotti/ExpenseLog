@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/fa.min.css">
     <meta name="theme-color" content="#1a1a1a">
-    <meta name="application-name" content="ExpenseLog">
-    <meta name="apple-mobile-web-app-title" content="ExpenseLog">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
@@ -15,9 +13,12 @@
     <link rel="stylesheet" href="/style.css">
     <script>
         (function() {
-            const storedTheme = localStorage.getItem('theme');
-            const theme = storedTheme === 'dark' ? 'dark' : 'light';
-            document.documentElement.setAttribute('data-theme', theme);
+            const theme = localStorage.getItem('theme') || 'system';
+            if (theme === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+            } else if (theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
         })();
     </script>
     <script>
@@ -30,14 +31,20 @@
     <title>Panel ExpenseLog</title>
     <script src="/chart.min.js"></script>
 </head>
-<body class="auth-pending">
+<body>
     <div class="container">
         <header>
             <div class="nav-bar">
-                <a href="/app">
-                    <img src="/pwa/icon-192.png" alt="ExpenseLog Logo" class="nav-logo">
+                <a href="/">
+                    <img src="/pwa/icon-192.png" alt="ExpenseLo==> Deploying...
+==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+2026/01/28 16:03:28 Failed to initialize storage: missing STORAGE_TYPE (set STORAGE_TYPE=postgres)
+2026/01/28 16:03:30 Failed to initialize storage: missing STORAGE_TYPE (set STORAGE_TYPE=postgres)
+==> Exited with status 1
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+2026/01/28 16:03:40 Failed to initialize storage: missing STORAGE_TYPE (set STORAGE_TYPE=postgres) Logo" height="85" style="vertical-align: middle; margin-right: 20px;">
                 </a>
-                <a href="/app" class="view-button active" data-tooltip="Panel">
+                <a href="/" class="view-button active" data-tooltip="Panel">
                     <i class="fa-solid fa-chart-pie"></i>
                 </a>
                 <a href="/table" class="view-button" data-tooltip="Tabla">
@@ -144,11 +151,6 @@
             </div>
         </div>
 
-        <div id="recentMovements" class="recent-movements" style="display: none;">
-            <h3>Ultimos 3 movimientos</h3>
-            <div id="recentList" class="recent-list"></div>
-        </div>
-
         <div class="panel-filters">
             <div class="filter-group">
                 <span class="filter-label">Moneda</span>
@@ -157,9 +159,9 @@
                 </select>
             </div>
             <div class="filter-group">
-                <span class="filter-label">Categoria</span>
-                <select id="filterCategory" class="filter-select">
-                    <option value="all">Todas</option>
+                <span class="filter-label">Medio de pago</span>
+                <select id="filterSource" class="filter-select">
+                    <option value="all">Todos</option>
                 </select>
             </div>
             <button id="clearFilters" class="nav-button button-secondary">Limpiar</button>
@@ -180,6 +182,11 @@
             </div>
         </div>
 
+        <div id="recentMovements" class="recent-movements" style="display: none;">
+            <h3>Ultimos 3 movimientos</h3>
+            <div id="recentList" class="recent-list"></div>
+        </div>
+
         <div id="cashflow-section" class="cashflow-container"></div>
     </div>
     <div id="toastContainer" class="toast-container"></div>
@@ -195,15 +202,8 @@
                 <button class="auth-tab" type="button" data-auth-tab="register">Crear cuenta</button>
             </div>
             <a id="authGoogleButton" class="auth-google-button" href="/auth/google">
-                <span class="auth-google-logo" aria-hidden="true">
-                    <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
-                        <path fill="#EA4335" d="M17.64 9.2045c0-.6382-.0573-1.2518-.1636-1.8409H9v3.4818h4.8436c-.2086 1.125-.8427 2.0782-1.7959 2.7164v2.2581h2.9086c1.7018-1.5668 2.6837-3.8727 2.6837-6.6154z"/>
-                        <path fill="#4285F4" d="M9 18c2.43 0 4.4673-.8059 5.9563-2.1791l-2.9086-2.2581c-.806 0-1.5427.2728-2.1845.4636-1.26 0-2.3264-.8509-2.7096-1.9954H4.1455v2.3218C5.6264 16.9845 7.1309 18 9 18z"/>
-                        <path fill="#FBBC05" d="M4.1455 12.0309C3.9482 11.4409 3.8364 10.8091 3.8364 10.1591s.1118-1.2818.3091-1.8718V5.9655H1.2373C.4482 7.5373 0 9.2582 0 10.1591s.4482 2.6218 1.2373 4.1936l2.9082-2.3218z"/>
-                        <path fill="#34A853" d="M9 3.5791c1.3214 0 2.5077.4545 3.4418 1.3454l2.5818-2.5818C13.4636.891 11.4264 0 9 0 7.1309 0 5.6264 1.0155 4.1455 2.6473l3.0082 2.3409C7.5373 3.84 8.6045 3.5791 9 3.5791z"/>
-                    </svg>
-                </span>
-                <span>Continuar con Google</span>
+                <span class="auth-google-icon" aria-hidden="true">G</span>
+                Continuar con Google
             </a>
             <div id="authMessage" class="form-message"></div>
             <form id="authLoginForm" class="auth-form active" data-auth-form="login">
@@ -255,7 +255,7 @@
         const sourceSelect = document.getElementById('sourceSelect');
         const cardGroup = document.getElementById('cardGroup');
         let filterCurrency = 'all';
-        let filterCategory = 'all';
+        let filterSource = 'all';
         let categories = [];
         let chartExpanded = false;
 
@@ -737,8 +737,13 @@
         function populateFilters() {
             const currencySelect = document.getElementById('filterCurrency');
             currencySelect.innerHTML = `<option value="all">Todas</option>` + supportedCurrencies.map(code => `<option value="${code}">${code.toUpperCase()}</option>`).join('');
-            const categorySelect = document.getElementById('filterCategory');
-            categorySelect.innerHTML = `<option value="all">Todas</option>` + categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+            const sourceFilterSelect = document.getElementById('filterSource');
+            sourceFilterSelect.innerHTML = `
+                <option value="all">Todos</option>
+                <option value="CA">CA</option>
+                <option value="EFECTIVO">Efectivo</option>
+                <option value="TARJETA">Tarjeta</option>
+            `;
         }
 
         function updateIndicator() {
@@ -750,8 +755,11 @@
             const monthExpenses = getMonthExpenses(allExpenses);
             return monthExpenses.filter(exp => {
                 const currencyMatch = filterCurrency === 'all' || (exp.currency || baseCurrency) === filterCurrency;
-                const categoryMatch = filterCategory === 'all' || exp.category === filterCategory;
-                return currencyMatch && categoryMatch;
+                const source = (exp.source || '').toUpperCase();
+                const sourceMatch = filterSource === 'all'
+                    || (filterSource === 'CA' && (source === '' || source === 'CA'))
+                    || source === filterSource;
+                return currencyMatch && sourceMatch;
             });
         }
 
@@ -842,16 +850,16 @@
             updateChartAndLegend();
         });
 
-        document.getElementById('filterCategory').addEventListener('change', (e) => {
-            filterCategory = e.target.value;
+        document.getElementById('filterSource').addEventListener('change', (e) => {
+            filterSource = e.target.value;
             updateChartAndLegend();
         });
 
         document.getElementById('clearFilters').addEventListener('click', () => {
             filterCurrency = 'all';
-            filterCategory = 'all';
+            filterSource = 'all';
             document.getElementById('filterCurrency').value = 'all';
-            document.getElementById('filterCategory').value = 'all';
+            document.getElementById('filterSource').value = 'all';
             updateChartAndLegend();
         });
 

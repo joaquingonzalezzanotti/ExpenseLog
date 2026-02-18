@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tanq16/expenseowl/internal/storage"
+	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/storage"
 )
 
 func mkExpense(name string, amount float64, date time.Time, recurringID string) storage.Expense {
@@ -222,3 +222,4 @@ func TestComputeLiquidityAlerts_TimezoneOffsetStoredDate_UsesUTCCalendarDay(t *t
 		t.Fatalf("expected daysUntil 1 when UTC day shifts to 19/02, got %d", resp.Alerts[0].DaysUntil)
 	}
 }
+

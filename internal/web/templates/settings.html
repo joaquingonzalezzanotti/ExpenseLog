@@ -1144,7 +1144,7 @@ async function saveCategoriesList(nextCategories) {
                     const link = document.getElementById('version-link');
                     if (!link) return;
                     link.textContent = version;
-                    if (version !== 'dev') link.href = `https://github.com/tanq16/expenseowl/releases/tag/${version}`;
+                    if (version !== 'dev') link.href = `https://github.com/joaquingonzalezzanotti/ExpenseLog/releases/tag/${version}`;
                 }).catch(e => console.error('No se pudo obtener la version:', e));
 
             } catch (error) {

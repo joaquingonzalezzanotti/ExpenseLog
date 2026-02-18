@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tanq16/expenseowl/internal/storage"
+	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/storage"
 )
 
 func (h *Handler) CSVFeatureDisabled(w http.ResponseWriter, r *http.Request) {
@@ -315,7 +315,7 @@ func (h *Handler) ImportOldCSV(w http.ResponseWriter, r *http.Request) {
 			categorySet[strings.ToLower(category)] = true // Add to set to handle duplicates in the same file
 		}
 
-		// switches sign for new expenseowl
+		// Switches sign to match current ExpenseLog convention.
 		amountUpdated := amount
 		if category != "Income" {
 			amountUpdated = amount * -1
@@ -380,3 +380,4 @@ func parseDate(dateStr string) (time.Time, error) {
 	}
 	return time.Time{}, fmt.Errorf("unable to parse date: %s", dateStr)
 }
+

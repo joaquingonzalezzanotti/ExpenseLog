@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tanq16/expenseowl/internal/storage"
+	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/storage"
 )
 
 const (
@@ -516,3 +516,4 @@ func clearLoginAttempts(key string) {
 	defer loginAttemptMu.Unlock()
 	delete(loginAttempts, key)
 }
+

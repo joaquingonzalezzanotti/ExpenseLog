@@ -1,17 +1,22 @@
-**NOTE:** The Kubernetes specification mentioned here has not been tested avidly and is a community supported definition. I (author) may disregard issues associated with the Kubernetes spec (until I personally shift my homelab to a cluster). 
+# Kubernetes (referencia)
 
-Use the following instructions to apply the Kubernetes spec:
+Manifiestos base para desplegar ExpenseLog en un cluster simple.
+
+## Aplicar recursos
 
 ```bash
-kubectl apply -f kubernetes/_namespace.yml
-kubectl apply -f kubernetes/Expenseowl-Deployment.yml
-kubectl apply -f kubernetes/Expenseowl-configmap.yml
-kubectl apply -f kubernetes/Expenseowl-svc.yml
-kubectl apply -f kubernetes/Expenseowl-pvc.yml
-kubectl apply -f kubernetes/Expenseowl-ingress.yml
-kubectl port-forward pod/<pod-name> 8080:8080 # Change Pod Name Here
+kubectl apply -f kubernetes/namespace.yml
+kubectl apply -f kubernetes/expenselog-configmap.yml
+kubectl apply -f kubernetes/expenselog-pvc.yml
+kubectl apply -f kubernetes/expenselog-deployment.yml
+kubectl apply -f kubernetes/expenselog-svc.yml
+kubectl apply -f kubernetes/expenselog-ingress.yml
 ```
 
-```
-Dashboard available at http://expenseowl.localhost/
-```
+## Notas
+
+- Namespace: `expenselog`
+- Host de ejemplo: `expenselog.localhost`
+- Imagen por defecto: `ghcr.io/joaquingonzalezzanotti/expenselog:main`
+- Ajusta `storageClassName`, dominio e imagen para tu entorno.
+

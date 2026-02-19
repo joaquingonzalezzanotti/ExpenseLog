@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"html"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -29,7 +30,10 @@ func (h *Handler) issueEmailVerification(user storage.User, r *http.Request) err
 	if err := h.storage.CreateEmailVerification(verification); err != nil {
 		return err
 	}
-	verifyURL := buildVerificationURL(r, token)
+	verifyURL, err := buildVerificationURL(r, token)
+	if err != nil {
+		return err
+	}
 	return sendVerificationEmail(user.Email, verifyURL)
 }
 
@@ -47,30 +51,88 @@ func hashVerificationToken(token string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func buildVerificationURL(r *http.Request, token string) string {
-	base := baseURLFromRequest(r)
-	return fmt.Sprintf("%s/auth/verify?token=%s", base, url.QueryEscape(token))
+func buildVerificationURL(r *http.Request, token string) (string, error) {
+	base, err := externalBaseURL(r)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s/auth/verify?token=%s", base, url.QueryEscape(token)), nil
 }
 
 func baseURLFromRequest(r *http.Request) string {
-	if base := strings.TrimSpace(os.Getenv("APP_BASE_URL")); base != "" {
-		return strings.TrimRight(base, "/")
+	if base, ok := configuredAppBaseURL(); ok {
+		return base
+	}
+	return requestBaseURL(r)
+}
+
+func configuredAppBaseURL() (string, bool) {
+	base := strings.TrimSpace(os.Getenv("APP_BASE_URL"))
+	if base == "" {
+		return "", false
+	}
+	parsed, err := url.Parse(base)
+	if err != nil || parsed.Host == "" {
+		return "", false
+	}
+	if !strings.EqualFold(parsed.Scheme, "http") && !strings.EqualFold(parsed.Scheme, "https") {
+		return "", false
+	}
+	parsed.Path = strings.TrimRight(parsed.Path, "/")
+	return strings.TrimRight(parsed.String(), "/"), true
+}
+
+func requestBaseURL(r *http.Request) string {
+	host := strings.TrimSpace(r.Host)
+	if host == "" || strings.ContainsAny(host, " /\\") {
+		return ""
 	}
 	scheme := "http"
 	if r.TLS != nil {
 		scheme = "https"
-	} else if proto := strings.TrimSpace(r.Header.Get("X-Forwarded-Proto")); proto != "" {
+	} else if trustProxyHeaders() {
+		proto := strings.TrimSpace(r.Header.Get("X-Forwarded-Proto"))
 		parts := strings.Split(proto, ",")
 		if len(parts) > 0 && strings.TrimSpace(parts[0]) != "" {
 			scheme = strings.TrimSpace(parts[0])
 		}
 	}
-	host := strings.TrimSpace(r.Host)
 	return fmt.Sprintf("%s://%s", scheme, host)
 }
 
+func externalBaseURL(r *http.Request) (string, error) {
+	if base, ok := configuredAppBaseURL(); ok {
+		return base, nil
+	}
+	if isLocalHost(r.Host) {
+		if base := requestBaseURL(r); base != "" {
+			return base, nil
+		}
+	}
+	return "", fmt.Errorf("APP_BASE_URL is required")
+}
+
+func isLocalHost(host string) bool {
+	h := strings.TrimSpace(host)
+	if parsedHost, _, err := net.SplitHostPort(h); err == nil {
+		h = parsedHost
+	}
+	h = strings.Trim(h, "[]")
+	switch strings.ToLower(h) {
+	case "localhost", "127.0.0.1", "::1":
+		return true
+	default:
+		return false
+	}
+}
+
 func (h *Handler) AuthVerifyEmail(w http.ResponseWriter, r *http.Request) {
-	loginURL := baseURLFromRequest(r) + "/app"
+	loginURL := "/app"
+	if base, err := externalBaseURL(r); err == nil {
+		loginURL = base + "/app"
+	} else if base := baseURLFromRequest(r); base != "" {
+		loginURL = base + "/app"
+	}
 	if r.Method != http.MethodGet {
 		writeVerificationPage(w, http.StatusMethodNotAllowed, "Metodo no permitido", "Este endpoint solo acepta GET.", loginURL, false)
 		return
@@ -186,4 +248,3 @@ func writeVerificationPage(w http.ResponseWriter, status int, title, message, lo
 </body>
 </html>`, redirectMeta, html.EscapeString(title), html.EscapeString(title), html.EscapeString(message), redirectHint, html.EscapeString(loginURL))
 }
-

@@ -50,6 +50,8 @@ const (
 		id VARCHAR(36) PRIMARY KEY,
 		user_id VARCHAR(36) NOT NULL,
 		code_hash TEXT NOT NULL,
+		attempts INTEGER NOT NULL DEFAULT 0,
+		max_attempts INTEGER NOT NULL DEFAULT 5,
 		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 		expires_at TIMESTAMPTZ NOT NULL,
 		used_at TIMESTAMPTZ
@@ -217,6 +219,8 @@ func createTables(db *sql.DB) error {
 		"ALTER TABLE reconciliations ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'applied'",
 		"ALTER TABLE reconciliations ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
 		"ALTER TABLE reconciliations ADD COLUMN IF NOT EXISTS reverted_at TIMESTAMPTZ",
+		"ALTER TABLE password_resets ADD COLUMN IF NOT EXISTS attempts INTEGER NOT NULL DEFAULT 0",
+		"ALTER TABLE password_resets ADD COLUMN IF NOT EXISTS max_attempts INTEGER NOT NULL DEFAULT 5",
 	}
 	for _, stmt := range alterStmts {
 		if _, err := db.Exec(stmt); err != nil {
@@ -406,6 +410,7 @@ const (
 	systemOriginUser                     = "user"
 	systemOriginReconciliationAdjustment = "reconciliation_adjustment"
 	systemOriginReconciliationReversal   = "reconciliation_reversal"
+	defaultResetMaxAttempts              = 5
 )
 
 func backfillLegacyReconciliations(db *sql.DB) error {
@@ -582,9 +587,6 @@ func updateDefaultCategoriesToSpanish(db *sql.DB) error {
 	return nil
 }
 
-const defaultBootstrapEmail = "joaquingzzz79@gmail.com"
-const defaultBootstrapPassword = "admin2008"
-
 func ensureBootstrapUser(db *sql.DB) error {
 	email, password := bootstrapCredentials()
 	if email == "" || password == "" {
@@ -623,12 +625,6 @@ func ensureBootstrapUser(db *sql.DB) error {
 func bootstrapCredentials() (string, string) {
 	email := strings.TrimSpace(os.Getenv("BOOTSTRAP_EMAIL"))
 	password := strings.TrimSpace(os.Getenv("BOOTSTRAP_PASSWORD"))
-	if email == "" {
-		email = defaultBootstrapEmail
-	}
-	if password == "" {
-		password = defaultBootstrapPassword
-	}
 	return strings.ToLower(email), password
 }
 
@@ -917,6 +913,11 @@ func (s *databaseStore) DeleteSession(id string) error {
 	return err
 }
 
+func (s *databaseStore) DeleteSessionsByUserID(userID string) error {
+	_, err := s.db.Exec(`DELETE FROM sessions WHERE user_id = $1`, userID)
+	return err
+}
+
 func (s *databaseStore) CreatePasswordReset(reset PasswordReset) error {
 	if reset.ID == "" {
 		reset.ID = uuid.New().String()
@@ -924,15 +925,20 @@ func (s *databaseStore) CreatePasswordReset(reset PasswordReset) error {
 	if reset.CreatedAt.IsZero() {
 		reset.CreatedAt = time.Now()
 	}
+	if reset.MaxAttempts <= 0 {
+		reset.MaxAttempts = defaultResetMaxAttempts
+	}
 	_, err := s.db.Exec(`DELETE FROM password_resets WHERE user_id = $1 AND used_at IS NULL`, reset.UserID)
 	if err != nil {
 		return err
 	}
 	_, err = s.db.Exec(
-		`INSERT INTO password_resets (id, user_id, code_hash, created_at, expires_at) VALUES ($1, $2, $3, $4, $5)`,
+		`INSERT INTO password_resets (id, user_id, code_hash, attempts, max_attempts, created_at, expires_at) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 		reset.ID,
 		reset.UserID,
 		reset.CodeHash,
+		0,
+		reset.MaxAttempts,
 		reset.CreatedAt,
 		reset.ExpiresAt,
 	)
@@ -940,9 +946,9 @@ func (s *databaseStore) CreatePasswordReset(reset PasswordReset) error {
 }
 
 func (s *databaseStore) GetLatestPasswordReset(userID string) (PasswordReset, error) {
-	query := `SELECT id, user_id, code_hash, created_at, expires_at FROM password_resets WHERE user_id = $1 AND used_at IS NULL ORDER BY created_at DESC LIMIT 1`
+	query := `SELECT id, user_id, code_hash, attempts, max_attempts, created_at, expires_at FROM password_resets WHERE user_id = $1 AND used_at IS NULL ORDER BY created_at DESC LIMIT 1`
 	var reset PasswordReset
-	if err := s.db.QueryRow(query, userID).Scan(&reset.ID, &reset.UserID, &reset.CodeHash, &reset.CreatedAt, &reset.ExpiresAt); err != nil {
+	if err := s.db.QueryRow(query, userID).Scan(&reset.ID, &reset.UserID, &reset.CodeHash, &reset.Attempts, &reset.MaxAttempts, &reset.CreatedAt, &reset.ExpiresAt); err != nil {
 		return PasswordReset{}, err
 	}
 	return reset, nil
@@ -951,6 +957,26 @@ func (s *databaseStore) GetLatestPasswordReset(userID string) (PasswordReset, er
 func (s *databaseStore) MarkPasswordResetUsed(resetID string) error {
 	_, err := s.db.Exec(`UPDATE password_resets SET used_at = NOW() WHERE id = $1`, resetID)
 	return err
+}
+
+func (s *databaseStore) RegisterPasswordResetFailure(resetID string) (attempts int, maxAttempts int, exhausted bool, err error) {
+	row := s.db.QueryRow(`
+		WITH updated AS (
+			UPDATE password_resets
+			SET attempts = attempts + 1,
+			    used_at = CASE
+			        WHEN (attempts + 1) >= max_attempts THEN NOW()
+			        ELSE used_at
+			    END
+			WHERE id = $1
+			  AND used_at IS NULL
+			RETURNING attempts, max_attempts, used_at
+		)
+		SELECT attempts, max_attempts, used_at IS NOT NULL
+		FROM updated
+	`, resetID)
+	err = row.Scan(&attempts, &maxAttempts, &exhausted)
+	return attempts, maxAttempts, exhausted, err
 }
 
 func (s *databaseStore) CreateEmailVerification(verification EmailVerification) error {

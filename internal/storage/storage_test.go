@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"database/sql"
 	"math"
 	"net/url"
 	"os"
@@ -280,5 +281,93 @@ func TestRevertReconciliationNotFound(t *testing.T) {
 	}
 	if err != ErrReconciliationNotFound {
 		t.Fatalf("expected ErrReconciliationNotFound, got %v", err)
+	}
+}
+
+func TestPasswordResetAttemptsAreLimitedAndInvalidateToken(t *testing.T) {
+	store := newPostgresStoreForTest(t)
+	user := createIntegrationUser(t, store)
+
+	reset := PasswordReset{
+		UserID:      user.ID,
+		CodeHash:    "hash",
+		CreatedAt:   time.Now().UTC(),
+		ExpiresAt:   time.Now().UTC().Add(15 * time.Minute),
+		MaxAttempts: 3,
+	}
+	if err := store.CreatePasswordReset(reset); err != nil {
+		t.Fatalf("create reset: %v", err)
+	}
+
+	latest, err := store.GetLatestPasswordReset(user.ID)
+	if err != nil {
+		t.Fatalf("get latest reset: %v", err)
+	}
+
+	for i := 1; i <= 2; i++ {
+		attempts, maxAttempts, exhausted, regErr := store.RegisterPasswordResetFailure(latest.ID)
+		if regErr != nil {
+			t.Fatalf("register failure #%d: %v", i, regErr)
+		}
+		if attempts != i {
+			t.Fatalf("expected attempts=%d, got %d", i, attempts)
+		}
+		if maxAttempts != 3 {
+			t.Fatalf("expected maxAttempts=3, got %d", maxAttempts)
+		}
+		if exhausted {
+			t.Fatalf("did not expect reset to be exhausted at attempt %d", i)
+		}
+	}
+
+	attempts, maxAttempts, exhausted, regErr := store.RegisterPasswordResetFailure(latest.ID)
+	if regErr != nil {
+		t.Fatalf("register failure #3: %v", regErr)
+	}
+	if attempts != 3 || maxAttempts != 3 || !exhausted {
+		t.Fatalf("expected exhausted on third attempt, got attempts=%d max=%d exhausted=%v", attempts, maxAttempts, exhausted)
+	}
+
+	_, err = store.GetLatestPasswordReset(user.ID)
+	if err == nil {
+		t.Fatalf("expected no active reset after exhausting attempts")
+	}
+	if err != sql.ErrNoRows {
+		t.Fatalf("expected sql.ErrNoRows after exhaustion, got %v", err)
+	}
+}
+
+func TestDeleteSessionsByUserIDRemovesAllUserSessions(t *testing.T) {
+	store := newPostgresStoreForTest(t)
+	userA := createIntegrationUser(t, store)
+	userB := createIntegrationUser(t, store)
+
+	now := time.Now().UTC()
+	sessionA1 := Session{ID: "sess-a1-" + strconv.FormatInt(now.UnixNano(), 10), UserID: userA.ID, CreatedAt: now, ExpiresAt: now.Add(time.Hour)}
+	sessionA2 := Session{ID: "sess-a2-" + strconv.FormatInt(now.UnixNano()+1, 10), UserID: userA.ID, CreatedAt: now, ExpiresAt: now.Add(time.Hour)}
+	sessionB1 := Session{ID: "sess-b1-" + strconv.FormatInt(now.UnixNano()+2, 10), UserID: userB.ID, CreatedAt: now, ExpiresAt: now.Add(time.Hour)}
+
+	if err := store.CreateSession(sessionA1); err != nil {
+		t.Fatalf("create sessionA1: %v", err)
+	}
+	if err := store.CreateSession(sessionA2); err != nil {
+		t.Fatalf("create sessionA2: %v", err)
+	}
+	if err := store.CreateSession(sessionB1); err != nil {
+		t.Fatalf("create sessionB1: %v", err)
+	}
+
+	if err := store.DeleteSessionsByUserID(userA.ID); err != nil {
+		t.Fatalf("delete sessions by user: %v", err)
+	}
+
+	if _, err := store.GetSession(sessionA1.ID); err != sql.ErrNoRows {
+		t.Fatalf("expected sessionA1 deleted, got %v", err)
+	}
+	if _, err := store.GetSession(sessionA2.ID); err != sql.ErrNoRows {
+		t.Fatalf("expected sessionA2 deleted, got %v", err)
+	}
+	if _, err := store.GetSession(sessionB1.ID); err != nil {
+		t.Fatalf("expected sessionB1 to remain, got %v", err)
 	}
 }

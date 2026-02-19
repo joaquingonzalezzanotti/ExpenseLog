@@ -28,11 +28,13 @@ type Storage interface {
 	CreateSession(session Session) error
 	GetSession(id string) (Session, error)
 	DeleteSession(id string) error
+	DeleteSessionsByUserID(userID string) error
 
 	// Password resets
 	CreatePasswordReset(reset PasswordReset) error
 	GetLatestPasswordReset(userID string) (PasswordReset, error)
 	MarkPasswordResetUsed(resetID string) error
+	RegisterPasswordResetFailure(resetID string) (attempts int, maxAttempts int, exhausted bool, err error)
 
 	// Email verification
 	CreateEmailVerification(verification EmailVerification) error
@@ -101,11 +103,13 @@ type User struct {
 }
 
 type PasswordReset struct {
-	ID        string    `json:"id"`
-	UserID    string    `json:"userId"`
-	CodeHash  string    `json:"-"`
-	ExpiresAt time.Time `json:"expiresAt"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID          string    `json:"id"`
+	UserID      string    `json:"userId"`
+	CodeHash    string    `json:"-"`
+	ExpiresAt   time.Time `json:"expiresAt"`
+	CreatedAt   time.Time `json:"createdAt"`
+	Attempts    int       `json:"attempts"`
+	MaxAttempts int       `json:"maxAttempts"`
 }
 
 type EmailVerification struct {
@@ -252,7 +256,7 @@ func backendSSLFromEnv(env string) string {
 	case "disable", "require", "verify-full", "verify-ca":
 		return env
 	default:
-		return "disable"
+		return "require"
 	}
 }
 

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/api"
 	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/storage"
@@ -126,10 +128,45 @@ func runServer(port int) {
 	http.HandleFunc("/import/csv", handler.RequireAuth(handler.CSVFeatureDisabled))
 	http.HandleFunc("/import/csvold", handler.RequireAuth(handler.CSVFeatureDisabled))
 
+	server := &http.Server{
+		Addr:              fmt.Sprint(":", port),
+		Handler:           withSecurityHeaders(http.DefaultServeMux),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
 	log.Println("Starting server on port", port, "...")
-	if err := http.ListenAndServe(fmt.Sprint(":", port), nil); err != nil {
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
+}
+
+func withSecurityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+		w.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
+		if isHTTPSRequest(r) {
+			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func isHTTPSRequest(r *http.Request) bool {
+	if r.TLS != nil {
+		return true
+	}
+	proto := strings.TrimSpace(r.Header.Get("X-Forwarded-Proto"))
+	if proto == "" {
+		return false
+	}
+	parts := strings.Split(proto, ",")
+	return strings.EqualFold(strings.TrimSpace(parts[0]), "https")
 }
 
 func main() {

@@ -256,6 +256,7 @@
     </div>
 
     <script src="/alerts_ui.js"></script>
+    <script src="/cashflow_ui.js"></script>
     <script src="/functions.js"></script>
     <script>
         let currentCurrency = 'usd';
@@ -755,13 +756,15 @@
                 const source = (exp.source || '').toUpperCase();
                 return source === '' || source === 'CA';
             });
-            const byCurrency = cashflowExpenses.reduce((acc, exp) => {
-                const cur = exp.currency || baseCurrency;
-                acc[cur] = acc[cur] || { income: 0, expense: 0 };
-                if (exp.amount > 0) acc[cur].income += exp.amount;
-                else acc[cur].expense += Math.abs(exp.amount);
-                return acc;
-            }, {});
+            const byCurrency = window.ExpenseLogCashflow && typeof window.ExpenseLogCashflow.calculateCashflowBuckets === 'function'
+                ? window.ExpenseLogCashflow.calculateCashflowBuckets(cashflowExpenses, baseCurrency)
+                : cashflowExpenses.reduce((acc, exp) => {
+                    const cur = exp.currency || baseCurrency;
+                    acc[cur] = acc[cur] || { income: 0, expense: 0 };
+                    if (exp.amount > 0) acc[cur].income += exp.amount;
+                    else acc[cur].expense += Math.abs(exp.amount);
+                    return acc;
+                }, {});
             const carryover = carryoverByCurrency || {};
 
             const baseData = byCurrency[baseCurrency];

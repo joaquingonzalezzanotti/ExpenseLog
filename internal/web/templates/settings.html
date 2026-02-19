@@ -413,6 +413,19 @@
 
     <script src="/functions.js"></script>
     <script>
+        const SYSTEM_RECONCILIATION_CATEGORY = '_Conciliacion';
+
+        function ensureSystemCategories(nextCategories) {
+            const list = Array.isArray(nextCategories) ? [...nextCategories] : [];
+            const hasSystem = list.some(cat => (cat || '').toLowerCase() === SYSTEM_RECONCILIATION_CATEGORY.toLowerCase());
+            if (!hasSystem) list.push(SYSTEM_RECONCILIATION_CATEGORY);
+            return list;
+        }
+
+        function isProtectedSystemCategory(category) {
+            return (category || '').toLowerCase() === SYSTEM_RECONCILIATION_CATEGORY.toLowerCase();
+        }
+
         let categories = ensureSystemCategories([]);
         let categoriesLower = new Set();
         let categoriesLoading = true;
@@ -569,19 +582,6 @@
         }
 
         // --- Category Management ---
-const SYSTEM_RECONCILIATION_CATEGORY = '_Conciliacion';
-
-function ensureSystemCategories(nextCategories) {
-    const list = Array.isArray(nextCategories) ? [...nextCategories] : [];
-    const hasSystem = list.some(cat => (cat || '').toLowerCase() === SYSTEM_RECONCILIATION_CATEGORY.toLowerCase());
-    if (!hasSystem) list.push(SYSTEM_RECONCILIATION_CATEGORY);
-    return list;
-}
-
-function isProtectedSystemCategory(category) {
-    return (category || '').toLowerCase() === SYSTEM_RECONCILIATION_CATEGORY.toLowerCase();
-}
-
 function syncCategoriesLower() {
     categoriesLower = new Set(categories.map(c => c.toLowerCase()));
 }

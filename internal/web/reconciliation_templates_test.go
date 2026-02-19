@@ -50,3 +50,16 @@ func TestSettingsTemplateKeepsReconciliationModule(t *testing.T) {
 		}
 	}
 }
+
+func TestSettingsTemplateDeclaresSystemCategoryBeforeUse(t *testing.T) {
+	settings := readTemplateForTest(t, "settings.html")
+	constDecl := strings.Index(settings, "const SYSTEM_RECONCILIATION_CATEGORY")
+	firstUse := strings.Index(settings, "let categories = ensureSystemCategories([]);")
+
+	if constDecl == -1 || firstUse == -1 {
+		t.Fatalf("missing expected settings tokens for system reconciliation category declaration/order")
+	}
+	if constDecl > firstUse {
+		t.Fatalf("SYSTEM_RECONCILIATION_CATEGORY must be declared before ensureSystemCategories first use")
+	}
+}

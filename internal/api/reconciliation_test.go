@@ -33,3 +33,39 @@ func TestParseTaggedFloat(t *testing.T) {
 		t.Fatalf("unexpected before tag parse: %#v", before)
 	}
 }
+
+func TestParseTaggedFloatSupportsSanitizedFormats(t *testing.T) {
+	tags := []string{"target109467.69", "before 104232.67"}
+	target := parseTaggedFloat(tags, "target:")
+	before := parseTaggedFloat(tags, "before:")
+	if target == nil || *target != 109467.69 {
+		t.Fatalf("unexpected target parse for sanitized tags: %#v", target)
+	}
+	if before == nil || *before != 104232.67 {
+		t.Fatalf("unexpected before parse for sanitized tags: %#v", before)
+	}
+}
+
+func TestHasIdempotencyTagSupportsSanitizedFormat(t *testing.T) {
+	tags := []string{"reconciliation_adjustment", "idem rec-12345"}
+	if !hasIdempotencyTag(tags, "rec-12345") {
+		t.Fatalf("expected idempotency match for sanitized tag format")
+	}
+}
+
+func TestExtractReversedReferenceSupportsSanitizedFormat(t *testing.T) {
+	tags := []string{"reconciliation_reversal", "reversed 8f8a9c"}
+	if ref := extractReversedReference(tags); ref != "8f8a9c" {
+		t.Fatalf("expected reversed reference 8f8a9c, got %q", ref)
+	}
+}
+
+func TestIsAdjustmentByFallback(t *testing.T) {
+	exp := storage.Expense{
+		Name:     "Ajuste conciliacion CA",
+		Category: "Conciliacion",
+	}
+	if !isAdjustmentByFallback(exp) {
+		t.Fatalf("expected fallback adjustment detection to be true")
+	}
+}

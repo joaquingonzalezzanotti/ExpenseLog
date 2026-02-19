@@ -16,6 +16,7 @@ import (
 
 const (
 	reconciliationCategory       = "_Conciliacion"
+	reconciliationCategoryLegacy = "Conciliacion"
 	reconciliationTagAdjustment  = "reconciliation_adjustment"
 	reconciliationTagReversal    = "reconciliation_reversal"
 	reconciliationTagReversedRef = "reversed:"
@@ -61,11 +62,23 @@ func firstTagWithPrefix(tags []string, prefix string) string {
 }
 
 func parseTaggedFloat(tags []string, prefix string) *float64 {
-	raw := firstTagWithPrefix(tags, prefix)
-	if raw == "" {
+	normalizedPrefix := strings.TrimSuffix(strings.ToLower(strings.TrimSpace(prefix)), ":")
+	if normalizedPrefix == "" {
 		return nil
 	}
-	value := strings.TrimSpace(strings.TrimPrefix(raw, prefix))
+	var value string
+	for _, tag := range tags {
+		normalizedTag := strings.ToLower(strings.TrimSpace(tag))
+		if !strings.HasPrefix(normalizedTag, normalizedPrefix) {
+			continue
+		}
+		raw := strings.TrimSpace(tag)
+		value = strings.TrimSpace(raw[len(normalizedPrefix):])
+		value = strings.TrimLeft(value, ":=_- ")
+		if value != "" {
+			break
+		}
+	}
 	if value == "" {
 		return nil
 	}
@@ -74,6 +87,55 @@ func parseTaggedFloat(tags []string, prefix string) *float64 {
 		return nil
 	}
 	return &parsed
+}
+
+func extractTaggedValue(tags []string, key string) string {
+	normalizedKey := strings.ToLower(strings.TrimSpace(key))
+	for _, tag := range tags {
+		raw := strings.TrimSpace(tag)
+		normalized := strings.ToLower(raw)
+		if !strings.HasPrefix(normalized, normalizedKey) {
+			continue
+		}
+		value := strings.TrimSpace(raw[len(normalizedKey):])
+		value = strings.TrimLeft(value, ":=_- ")
+		if value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func hasIdempotencyTag(tags []string, key string) bool {
+	key = strings.TrimSpace(key)
+	if key == "" {
+		return false
+	}
+	return strings.EqualFold(extractTaggedValue(tags, "idem"), key)
+}
+
+func isReconciliationCategory(category string) bool {
+	category = strings.TrimSpace(strings.ToLower(category))
+	return category == strings.ToLower(reconciliationCategory) || category == strings.ToLower(reconciliationCategoryLegacy)
+}
+
+func isAdjustmentByFallback(exp storage.Expense) bool {
+	if !isReconciliationCategory(exp.Category) {
+		return false
+	}
+	return strings.Contains(strings.ToLower(strings.TrimSpace(exp.Name)), "ajuste conciliacion")
+}
+
+func isReversalByFallback(exp storage.Expense) bool {
+	if !isReconciliationCategory(exp.Category) {
+		return false
+	}
+	return strings.Contains(strings.ToLower(strings.TrimSpace(exp.Name)), "reversion ajuste conciliacion")
+}
+
+func extractReversedReference(tags []string) string {
+	ref := extractTaggedValue(tags, "reversed")
+	return strings.TrimSpace(ref)
 }
 
 func calculateCurrentCABalance(expenses []storage.Expense, currency string, now time.Time) float64 {
@@ -159,9 +221,8 @@ func (h *Handler) ReconcileBalance(w http.ResponseWriter, r *http.Request) {
 	}
 	idempotencyKey := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
 	if idempotencyKey != "" {
-		idemTag := reconciliationTagIdempotency + idempotencyKey
 		for _, exp := range expenses {
-			if hasTag(exp.Tags, reconciliationTagAdjustment) && hasTag(exp.Tags, idemTag) {
+			if hasTag(exp.Tags, reconciliationTagAdjustment) && hasIdempotencyTag(exp.Tags, idempotencyKey) {
 				writeJSON(w, http.StatusOK, map[string]any{
 					"status":         "duplicate",
 					"expense":        exp,
@@ -230,15 +291,15 @@ func (h *Handler) GetReconciliationHistory(w http.ResponseWriter, r *http.Reques
 	reversedRefs := map[string]string{}
 	items := make([]reconciliationHistoryItem, 0)
 	for _, exp := range expenses {
-		if hasTag(exp.Tags, reconciliationTagReversal) {
-			ref := strings.TrimSpace(strings.TrimPrefix(firstTagWithPrefix(exp.Tags, reconciliationTagReversedRef), reconciliationTagReversedRef))
+		if hasTag(exp.Tags, reconciliationTagReversal) || isReversalByFallback(exp) {
+			ref := extractReversedReference(exp.Tags)
 			if ref != "" {
 				reversedRefs[ref] = exp.ID
 			}
 			items = append(items, reconciliationHistoryItem{ID: exp.ID, Date: exp.Date, Name: exp.Name, Amount: exp.Amount, Currency: exp.Currency, Type: "reversal"})
 			continue
 		}
-		if !hasTag(exp.Tags, reconciliationTagAdjustment) {
+		if !hasTag(exp.Tags, reconciliationTagAdjustment) && !isAdjustmentByFallback(exp) {
 			continue
 		}
 		items = append(items, reconciliationHistoryItem{
@@ -298,15 +359,15 @@ func (h *Handler) RevertReconciliation(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusNotFound, ErrorResponse{Error: "Reconciliation adjustment not found"})
 		return
 	}
-	if !hasTag(target.Tags, reconciliationTagAdjustment) {
+	if !hasTag(target.Tags, reconciliationTagAdjustment) && !isAdjustmentByFallback(*target) {
 		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Selected expense is not a reconciliation adjustment"})
 		return
 	}
 	for _, exp := range expenses {
-		if !hasTag(exp.Tags, reconciliationTagReversal) {
+		if !hasTag(exp.Tags, reconciliationTagReversal) && !isReversalByFallback(exp) {
 			continue
 		}
-		ref := strings.TrimSpace(strings.TrimPrefix(firstTagWithPrefix(exp.Tags, reconciliationTagReversedRef), reconciliationTagReversedRef))
+		ref := extractReversedReference(exp.Tags)
 		if ref == id {
 			writeJSON(w, http.StatusConflict, ErrorResponse{Error: "Reconciliation is already reverted"})
 			return

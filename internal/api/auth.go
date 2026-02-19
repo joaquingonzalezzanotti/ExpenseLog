@@ -6,7 +6,9 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -23,6 +25,12 @@ const (
 	verificationTokenTTL    = 24 * time.Hour
 	maxLoginAttempts        = 3
 	loginBlockDuration      = 10 * time.Minute
+	authThrottleWindow      = 10 * time.Minute
+	authThrottleBlock       = 15 * time.Minute
+	maxRegisterAttempts     = 8
+	maxResetReqAttempts     = 6
+	maxResetConfAttempts    = 8
+	resetCodeMaxAttempts    = 5
 	userStatusActive        = "active"
 	userStatusPending       = "pending"
 )
@@ -56,6 +64,15 @@ type loginAttempt struct {
 
 var loginAttemptMu = &sync.Mutex{}
 var loginAttempts = map[string]*loginAttempt{}
+
+type actionThrottle struct {
+	count       int
+	windowStart time.Time
+	lockedUntil time.Time
+}
+
+var authThrottleMu = &sync.Mutex{}
+var authThrottleState = map[string]*actionThrottle{}
 
 type resetRequestPayload struct {
 	Email string `json:"email"`
@@ -103,6 +120,10 @@ func (h *Handler) RequireAuth(next http.HandlerFunc) http.HandlerFunc {
 func (h *Handler) AuthRegister(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{Error: "Method not allowed"})
+		return
+	}
+	if blocked, _ := consumeAuthThrottle("register|"+readClientIP(r), maxRegisterAttempts); blocked {
+		writeJSON(w, http.StatusTooManyRequests, ErrorResponse{Error: "Demasiadas solicitudes. Intenta de nuevo en unos minutos"})
 		return
 	}
 	var payload authPayload
@@ -305,6 +326,15 @@ func (h *Handler) AuthResetRequest(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid email"})
 		return
 	}
+	if blocked, _ := consumeAuthThrottle("reset-request|"+readClientIP(r)+"|"+email, maxResetReqAttempts); blocked {
+		writeJSON(w, http.StatusTooManyRequests, ErrorResponse{Error: "Demasiadas solicitudes. Intenta de nuevo en unos minutos"})
+		return
+	}
+	appBaseURL, err := externalBaseURL(r)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Configuracion incompleta del servidor"})
+		return
+	}
 	user, err := h.storage.GetUserByEmail(email)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -320,16 +350,17 @@ func (h *Handler) AuthResetRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	reset := storage.PasswordReset{
-		UserID:    user.ID,
-		CodeHash:  hashResetCode(code),
-		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().Add(resetCodeTTL),
+		UserID:      user.ID,
+		CodeHash:    hashResetCode(code),
+		CreatedAt:   time.Now(),
+		ExpiresAt:   time.Now().Add(resetCodeTTL),
+		MaxAttempts: resetCodeMaxAttempts,
 	}
 	if err := h.storage.CreatePasswordReset(reset); err != nil {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to create reset code"})
 		return
 	}
-	if err := sendResetCodeEmail(email, code, baseURLFromRequest(r)); err != nil {
+	if err := sendResetCodeEmail(email, code, appBaseURL); err != nil {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to send reset code"})
 		return
 	}
@@ -349,6 +380,10 @@ func (h *Handler) AuthResetConfirm(w http.ResponseWriter, r *http.Request) {
 	email := normalizeEmail(payload.Email)
 	if email == "" || !strings.Contains(email, "@") {
 		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid email"})
+		return
+	}
+	if blocked, _ := consumeAuthThrottle("reset-confirm|"+readClientIP(r)+"|"+email, maxResetConfAttempts); blocked {
+		writeJSON(w, http.StatusTooManyRequests, ErrorResponse{Error: "Demasiados intentos. Solicita un nuevo codigo"})
 		return
 	}
 	if len(payload.Password) < minPasswordLength {
@@ -375,6 +410,15 @@ func (h *Handler) AuthResetConfirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if hashResetCode(code) != reset.CodeHash {
+		_, _, exhausted, failureErr := h.storage.RegisterPasswordResetFailure(reset.ID)
+		if failureErr != nil && failureErr != sql.ErrNoRows {
+			writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "No se pudo validar el codigo"})
+			return
+		}
+		if exhausted {
+			writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Codigo invalido. Solicita uno nuevo"})
+			return
+		}
 		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Codigo invalido"})
 		return
 	}
@@ -388,8 +432,12 @@ func (h *Handler) AuthResetConfirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = h.storage.MarkPasswordResetUsed(reset.ID)
+	_ = h.storage.DeleteSessionsByUserID(user.ID)
 	// Best-effort notification to improve account security visibility.
-	_ = sendPasswordChangedEmail(email, baseURLFromRequest(r))
+	if appBaseURL, baseErr := externalBaseURL(r); baseErr == nil {
+		_ = sendPasswordChangedEmail(email, appBaseURL)
+	}
+	clearAuthThrottle("reset-confirm|" + readClientIP(r) + "|" + email)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
@@ -459,16 +507,40 @@ func isSecureRequest(r *http.Request) bool {
 	if r.TLS != nil {
 		return true
 	}
-	return strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https")
+	if trustProxyHeaders() {
+		proto := strings.TrimSpace(r.Header.Get("X-Forwarded-Proto"))
+		if proto != "" {
+			parts := strings.Split(proto, ",")
+			return strings.EqualFold(strings.TrimSpace(parts[0]), "https")
+		}
+	}
+	return false
 }
 
 func readClientIP(r *http.Request) string {
-	xff := strings.TrimSpace(r.Header.Get("X-Forwarded-For"))
-	if xff != "" {
-		parts := strings.Split(xff, ",")
-		return strings.TrimSpace(parts[0])
+	if trustProxyHeaders() {
+		xff := strings.TrimSpace(r.Header.Get("X-Forwarded-For"))
+		if xff != "" {
+			for _, candidate := range strings.Split(xff, ",") {
+				candidate = strings.TrimSpace(candidate)
+				if net.ParseIP(candidate) != nil {
+					return candidate
+				}
+			}
+		}
+		if xrip := strings.TrimSpace(r.Header.Get("X-Real-IP")); net.ParseIP(xrip) != nil {
+			return xrip
+		}
 	}
-	return r.RemoteAddr
+	host, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr))
+	if err == nil && host != "" {
+		return host
+	}
+	remote := strings.TrimSpace(r.RemoteAddr)
+	if net.ParseIP(remote) != nil {
+		return remote
+	}
+	return "unknown"
 }
 
 func loginKey(email, ip string) string {
@@ -519,3 +591,43 @@ func clearLoginAttempts(key string) {
 	delete(loginAttempts, key)
 }
 
+func consumeAuthThrottle(key string, maxAttempts int) (bool, time.Duration) {
+	authThrottleMu.Lock()
+	defer authThrottleMu.Unlock()
+
+	now := time.Now()
+	entry, ok := authThrottleState[key]
+	if !ok {
+		authThrottleState[key] = &actionThrottle{
+			count:       1,
+			windowStart: now,
+		}
+		return false, 0
+	}
+	if !entry.lockedUntil.IsZero() && now.Before(entry.lockedUntil) {
+		return true, time.Until(entry.lockedUntil)
+	}
+	if entry.windowStart.IsZero() || now.Sub(entry.windowStart) > authThrottleWindow {
+		entry.count = 1
+		entry.windowStart = now
+		entry.lockedUntil = time.Time{}
+		return false, 0
+	}
+
+	entry.count++
+	if entry.count > maxAttempts {
+		entry.lockedUntil = now.Add(authThrottleBlock)
+		return true, authThrottleBlock
+	}
+	return false, 0
+}
+
+func clearAuthThrottle(key string) {
+	authThrottleMu.Lock()
+	defer authThrottleMu.Unlock()
+	delete(authThrottleState, key)
+}
+
+func trustProxyHeaders() bool {
+	return strings.EqualFold(strings.TrimSpace(os.Getenv("TRUST_PROXY_HEADERS")), "true")
+}

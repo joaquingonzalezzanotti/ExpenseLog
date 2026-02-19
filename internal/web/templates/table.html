@@ -728,20 +728,6 @@
                                         <span>${(expense.currency || currentCurrency).toUpperCase()}</span>
                                         <span>${formatDateDDMMYYYY(expense.date)}</span>
                                     </div>
-                                    <div class="expense-mobile-actions">
-                                        ${expense.systemLocked ? `
-                                            <button type="button" class="row-mobile-action" data-row-action="manage-reconciliation" aria-label="Gestionar conciliacion">
-                                                <i class="fa-solid fa-sliders"></i>
-                                            </button>
-                                        ` : `
-                                            <button type="button" class="row-mobile-action" data-row-action="edit" data-row-index="${index}" aria-label="Editar">
-                                                <i class="fa-solid fa-pen-to-square"></i>
-                                            </button>
-                                            <button type="button" class="row-mobile-action danger" data-row-action="delete" data-row-id="${expense.id}" aria-label="Borrar">
-                                                <i class="fa-solid fa-trash-can"></i>
-                                            </button>
-                                        `}
-                                    </div>
                                 </td>
                                 <td class="secondary-col col-left"><span class="${expense.systemLocked ? '' : 'editable'}" data-edit="category" data-id="${expense.id}">${highlightText(formatCategoryLabel(expense.category), searchQuery)}</span></td>
                                 <td class="amount amount-value col-right"><span class="${expense.systemLocked ? '' : 'editable'}" data-edit="amount" data-id="${expense.id}">${formatCurrencyWithCurrency(expense.amount, expense.currency || currentCurrency, compactAmounts)}</span></td>
@@ -762,6 +748,25 @@
                                                 <i class="fa-solid fa-trash-can"></i>
                                             </button>
                                         `}
+                                    </div>
+                                    <div class="row-actions-mobile">
+                                        <button type="button" class="row-menu-toggle" data-row-menu-toggle aria-label="Acciones del movimiento" aria-expanded="false">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                        <div class="row-menu" role="menu">
+                                            ${expense.systemLocked ? `
+                                                <button type="button" class="row-menu-item" data-row-action="manage-reconciliation">
+                                                    <i class="fa-solid fa-sliders"></i> Gestionar conciliacion
+                                                </button>
+                                            ` : `
+                                                <button type="button" class="row-menu-item" data-row-action="edit" data-row-index="${index}">
+                                                    <i class="fa-solid fa-pen-to-square"></i> Editar
+                                                </button>
+                                                <button type="button" class="row-menu-item danger" data-row-action="delete" data-row-id="${expense.id}">
+                                                    <i class="fa-solid fa-trash-can"></i> Borrar
+                                                </button>
+                                            `}
+                                        </div>
                                     </div>
                                 </td>
                             </tr>

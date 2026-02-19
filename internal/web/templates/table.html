@@ -429,6 +429,7 @@
                                     <div class="expense-name-cell">
                                         <span class="expense-name-text">${highlightText(expense.name, searchQuery)}</span>
                                         ${expense.recurringID ? '<span class="recurring-badge">🔁 Recurrente</span>' : ''}
+                                        ${expense.systemLocked ? '<span class="recurring-badge">🔒 Sistema</span>' : ''}
                                     </div>
                                     <div class="expense-meta-mobile">
                                         <span>${highlightText(expense.category, searchQuery)}</span>
@@ -437,8 +438,8 @@
                                         <span>${formatDateDDMMYYYY(expense.date)}</span>
                                     </div>
                                 </td>
-                                <td class="secondary-col col-left"><span class="editable" data-edit="category" data-id="${expense.id}">${highlightText(expense.category, searchQuery)}</span></td>
-                                <td class="amount amount-value col-right"><span class="editable" data-edit="amount" data-id="${expense.id}">${formatCurrencyWithCurrency(expense.amount, expense.currency || currentCurrency, compactAmounts)}</span></td>
+                                <td class="secondary-col col-left"><span class="${expense.systemLocked ? '' : 'editable'}" data-edit="category" data-id="${expense.id}">${highlightText(expense.category, searchQuery)}</span></td>
+                                <td class="amount amount-value col-right"><span class="${expense.systemLocked ? '' : 'editable'}" data-edit="amount" data-id="${expense.id}">${formatCurrencyWithCurrency(expense.amount, expense.currency || currentCurrency, compactAmounts)}</span></td>
                                 <td class="amount amount-balance col-right">${runningBalances[expense.id] ? formatCurrencyWithCurrency(runningBalances[expense.id].amount, runningBalances[expense.id].currency, compactAmounts) : '-'}</td>
                                 <td class="secondary-col col-center">${expense.source ? escapeHTML(expense.source) : '-'}</td>
                                 <td class="secondary-col col-center">${expense.source === 'TARJETA' ? escapeHTML(expense.card || '-') : '-'}</td>
@@ -446,25 +447,33 @@
                                 <td class="date-column secondary-col col-center">${formatDateDDMMYYYY(expense.date)}</td>
                                 <td class="actions-col col-center">
                                     <div class="row-actions-desktop">
-                                        <button class="edit-button" onclick="editExpenseByIndex(${index})">
-                                            <i class="fa-solid fa-pen-to-square"></i>
-                                        </button>
-                                        <button class="delete-button" onclick="handleDeleteClick(event, '${expense.id}')">
-                                            <i class="fa-solid fa-trash-can"></i>
-                                        </button>
+                                        ${expense.systemLocked ? `
+                                            <span class="muted-text">Sistema</span>
+                                        ` : `
+                                            <button class="edit-button" onclick="editExpenseByIndex(${index})">
+                                                <i class="fa-solid fa-pen-to-square"></i>
+                                            </button>
+                                            <button class="delete-button" onclick="handleDeleteClick(event, '${expense.id}')">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        `}
                                     </div>
                                     <div class="row-actions-mobile">
-                                        <button type="button" class="row-menu-toggle" data-row-menu-toggle aria-label="Acciones del movimiento" aria-expanded="false">
-                                            <i class="fa-solid fa-ellipsis-vertical"></i>
-                                        </button>
-                                        <div class="row-menu" role="menu">
-                                            <button type="button" class="row-menu-item" data-row-action="edit" data-row-index="${index}">
-                                                <i class="fa-solid fa-pen-to-square"></i> Editar
+                                        ${expense.systemLocked ? `
+                                            <span class="muted-text">Sistema</span>
+                                        ` : `
+                                            <button type="button" class="row-menu-toggle" data-row-menu-toggle aria-label="Acciones del movimiento" aria-expanded="false">
+                                                <i class="fa-solid fa-ellipsis-vertical"></i>
                                             </button>
-                                            <button type="button" class="row-menu-item danger" data-row-action="delete" data-row-id="${expense.id}">
-                                                <i class="fa-solid fa-trash-can"></i> Borrar
-                                            </button>
-                                        </div>
+                                            <div class="row-menu" role="menu">
+                                                <button type="button" class="row-menu-item" data-row-action="edit" data-row-index="${index}">
+                                                    <i class="fa-solid fa-pen-to-square"></i> Editar
+                                                </button>
+                                                <button type="button" class="row-menu-item danger" data-row-action="delete" data-row-id="${expense.id}">
+                                                    <i class="fa-solid fa-trash-can"></i> Borrar
+                                                </button>
+                                            </div>
+                                        `}
                                     </div>
                                 </td>
                             </tr>
@@ -524,6 +533,10 @@
         function editExpenseByIndex(index) {
             const expense = expensesForTable[index];
             if (expense) {
+                if (expense.systemLocked) {
+                    showToast('Este movimiento es de sistema. Reverti la conciliacion desde Ajustes.', 'error');
+                    return;
+                }
                 editExpense(expense.id, expense.name, expense.category, expense.amount, (expense.tags || []), expense.date);
             }
         }

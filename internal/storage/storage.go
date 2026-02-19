@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -67,10 +68,19 @@ type Storage interface {
 	RemoveMultipleExpenses(userID string, ids []string) error
 	UpdateExpense(userID, id string, expense Expense) error
 
+	// Reconciliation
+	ApplyReconciliation(userID string, input ReconciliationApplyInput) (ReconciliationApplyResult, error)
+	GetReconciliationHistory(userID string) ([]ReconciliationRecord, error)
+	RevertReconciliation(userID, adjustmentExpenseID string, now time.Time) (Expense, error)
+
 	// Potential Future Feature: Multi-currency
 	// GetConversions() (map[string]float64, error)
 	// UpdateConversions(conversions map[string]float64) error
 }
+
+var ErrSystemLockedExpense = errors.New("system-locked expense cannot be modified")
+var ErrReconciliationNotFound = errors.New("reconciliation not found")
+var ErrReconciliationAlreadyReverted = errors.New("reconciliation already reverted")
 
 // config for expense data
 type Config struct {
@@ -158,18 +168,52 @@ type SystemConfig struct {
 
 // expense struct
 type Expense struct {
-	UserID      string    `json:"-"`
-	Flow        string    `json:"flow"`
-	ID          string    `json:"id"`
-	RecurringID string    `json:"recurringID"`
-	Name        string    `json:"name"`
-	Tags        []string  `json:"tags"`
-	Category    string    `json:"category"`
-	Amount      float64   `json:"amount"`
-	Currency    string    `json:"currency"`
-	Source      string    `json:"source"`
-	Card        string    `json:"card"`
-	Date        time.Time `json:"date"`
+	UserID       string    `json:"-"`
+	Flow         string    `json:"flow"`
+	ID           string    `json:"id"`
+	RecurringID  string    `json:"recurringID"`
+	Name         string    `json:"name"`
+	Tags         []string  `json:"tags"`
+	Category     string    `json:"category"`
+	Amount       float64   `json:"amount"`
+	Currency     string    `json:"currency"`
+	Source       string    `json:"source"`
+	Card         string    `json:"card"`
+	SystemOrigin string    `json:"systemOrigin,omitempty"`
+	SystemLocked bool      `json:"systemLocked,omitempty"`
+	Date         time.Time `json:"date"`
+}
+
+type ReconciliationApplyInput struct {
+	TargetBalance  float64
+	Currency       string
+	Note           string
+	IdempotencyKey string
+	Now            time.Time
+}
+
+type ReconciliationApplyResult struct {
+	Status         string
+	Expense        Expense
+	CurrentBalance float64
+	Difference     float64
+	Currency       string
+}
+
+type ReconciliationRecord struct {
+	ID                  string
+	UserID              string
+	AdjustmentExpenseID string
+	ReversalExpenseID   string
+	TargetBalance       *float64
+	AppBalanceBefore    *float64
+	DeltaAmount         float64
+	Currency            string
+	Note                string
+	IdempotencyKey      string
+	Status              string
+	CreatedAt           time.Time
+	RevertedAt          *time.Time
 }
 
 func (c *Config) SetBaseConfig() {

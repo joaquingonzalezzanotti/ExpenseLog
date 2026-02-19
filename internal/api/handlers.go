@@ -398,6 +398,9 @@ func (h *Handler) AddExpense(w http.ResponseWriter, r *http.Request) {
 	if expense.Date.IsZero() {
 		expense.Date = time.Now()
 	}
+	// Generic add endpoint can never create system-generated movements.
+	expense.SystemOrigin = ""
+	expense.SystemLocked = false
 	if err := h.storage.AddExpense(userID, expense); err != nil {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to save expense"})
 		log.Printf("API ERROR: Failed to save expense: %v\n", err)
@@ -472,6 +475,10 @@ func (h *Handler) EditExpense(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err := h.storage.UpdateExpense(userID, id, expense); err != nil {
+		if err == storage.ErrSystemLockedExpense {
+			writeJSON(w, http.StatusConflict, ErrorResponse{Error: "Este movimiento es de sistema. Reverti la conciliacion desde Ajustes."})
+			return
+		}
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to edit expense"})
 		log.Printf("API ERROR: Failed to edit expense: %v\n", err)
 		return
@@ -494,6 +501,10 @@ func (h *Handler) DeleteExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.storage.RemoveExpense(userID, id); err != nil {
+		if err == storage.ErrSystemLockedExpense {
+			writeJSON(w, http.StatusConflict, ErrorResponse{Error: "Este movimiento es de sistema. Reverti la conciliacion desde Ajustes."})
+			return
+		}
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to delete expense"})
 		log.Printf("API ERROR: Failed to delete expense: %v\n", err)
 		return
@@ -518,6 +529,10 @@ func (h *Handler) DeleteMultipleExpenses(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	if err := h.storage.RemoveMultipleExpenses(userID, payload.IDs); err != nil {
+		if err == storage.ErrSystemLockedExpense {
+			writeJSON(w, http.StatusConflict, ErrorResponse{Error: "Hay movimientos de sistema seleccionados. Reverti la conciliacion desde Ajustes."})
+			return
+		}
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to delete multiple expenses"})
 		log.Printf("API ERROR: Failed to delete multiple expenses: %v\n", err)
 		return
@@ -679,4 +694,3 @@ func (h *Handler) ServeStaticFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to serve static file", http.StatusInternalServerError)
 	}
 }
-

@@ -794,6 +794,12 @@ html[data-theme='light'] #nextMonth {
     justify-content: flex-end;
 }
 
+.muted-text {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
 .row-menu-toggle {
     width: 30px;
     height: 30px;

@@ -13,6 +13,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: UTF-8 validation
+        run: python3 scripts/check_utf8.py
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:

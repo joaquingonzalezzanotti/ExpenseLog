@@ -377,7 +377,7 @@
             const expanded = tableFormContainer?.dataset.expanded === 'true';
             const userSet = tableFormContainer.dataset.userSet === 'true';
             if (!tableFormInitialized && !userSet) {
-                setTableFormExpanded(!isMobileTableView(), { persist: false });
+                setTableFormExpanded(false, { persist: false });
                 tableFormInitialized = true;
                 return;
             }

@@ -57,6 +57,10 @@
         
         <div class="table-controls">
             <button id="toggleTableExpenseFormBtn" class="nav-button button-primary mobile-only" type="button">Agregar gasto</button>
+            <div class="table-view-switch" role="tablist" aria-label="Vista de movimientos">
+                <button id="viewTableBtn" class="table-view-tab active" type="button" role="tab" aria-selected="true">Tabla</button>
+                <button id="viewCalendarBtn" class="table-view-tab" type="button" role="tab" aria-selected="false">Calendario</button>
+            </div>
         </div>
 
         <div id="tableExpenseFormContainer" class="form-container" data-expanded="false">
@@ -137,11 +141,12 @@
             <div id="formMessage" class="form-message"></div>
         </div>
 
-        <div class="search-bar">
-            <span class="search-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>
-            <input type="text" id="tableSearch" placeholder="Buscar movimientos por nombre, categoria o etiquetas">
-            <button id="clearSearch" class="nav-button button-secondary">Limpiar</button>
-        </div>
+        <div id="tableDataModule">
+            <div class="search-bar">
+                <span class="search-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>
+                <input type="text" id="tableSearch" placeholder="Buscar movimientos por nombre, categoria o etiquetas">
+                <button id="clearSearch" class="nav-button button-secondary">Limpiar</button>
+            </div>
 
         <div class="panel-filters">
             <div class="filter-group">
@@ -163,12 +168,54 @@
         </div>
         <div id="mobileTablePager" class="mobile-table-pager" style="display: none;">
             <span id="mobileTablePagerInfo" class="mobile-table-pager-info"></span>
-            <button id="toggleMobileRows" class="nav-button button-secondary" type="button">📄 Mostrar todos</button>
+            <button id="toggleMobileRows" class="nav-button button-secondary" type="button">Mostrar todos</button>
         </div>
         <div class="table-footer-controls">
             <label for="showAllToggle">
-                <input type="checkbox" id="showAllToggle" class="styled-checkbox"> 🗂️ Mostrar todas las transacciones
+                <input type="checkbox" id="showAllToggle" class="styled-checkbox"> Mostrar todas las transacciones
             </label>
+        </div>
+        </div>
+
+        <div id="calendarDataModule" class="financial-calendar-module" hidden>
+            <div class="financial-calendar-header">
+                <h3><i class="fa-regular fa-calendar"></i> Calendario financiero</h3>
+                <p>Vista completa de tus movimientos</p>
+            </div>
+            <div class="financial-calendar-month">
+                <button id="calendarPrevMonth" class="nav-button" type="button" aria-label="Mes anterior">
+                    <span class="month-nav-arrow" aria-hidden="true">&#8592;</span>
+                </button>
+                <div class="financial-calendar-month-title">
+                    <strong id="calendarMonthTitle"></strong>
+                    <span id="calendarMonthYear"></span>
+                </div>
+                <button id="calendarNextMonth" class="nav-button" type="button" aria-label="Mes siguiente">
+                    <span class="month-nav-arrow" aria-hidden="true">&#8594;</span>
+                </button>
+                <button id="calendarTodayBtn" class="nav-button button-secondary" type="button">Hoy</button>
+            </div>
+            <div class="financial-calendar-filters">
+                <div class="calendar-filter-field">
+                    <label for="calendarFilterType">Tipo</label>
+                    <select id="calendarFilterType">
+                        <option value="all">Todos</option>
+                        <option value="income">Ingreso</option>
+                        <option value="expense">Gasto</option>
+                        <option value="refund">Reintegro</option>
+                    </select>
+                </div>
+                <div class="calendar-filter-field">
+                    <label for="calendarFilterCategory">Categoria</label>
+                    <select id="calendarFilterCategory">
+                        <option value="all">Todas</option>
+                    </select>
+                </div>
+            </div>
+            <div id="financialCalendarGrid" class="financial-calendar-grid"></div>
+            <div id="financialCalendarDetails" class="financial-calendar-details">
+                <div class="no-data">Selecciona un dia para ver los movimientos.</div>
+            </div>
         </div>
     </div>
     <div id="toastContainer" class="toast-container"></div>
@@ -292,6 +339,23 @@
         const clearSearchBtn = document.getElementById('clearSearch');
         const clearTableFiltersBtn = document.getElementById('clearTableFilters');
         const cancelTableExpenseFormBtn = document.getElementById('cancelTableExpenseFormBtn');
+        const tableDataModule = document.getElementById('tableDataModule');
+        const calendarDataModule = document.getElementById('calendarDataModule');
+        const viewTableBtn = document.getElementById('viewTableBtn');
+        const viewCalendarBtn = document.getElementById('viewCalendarBtn');
+        const calendarFilterType = document.getElementById('calendarFilterType');
+        const calendarFilterCategory = document.getElementById('calendarFilterCategory');
+        const financialCalendarGrid = document.getElementById('financialCalendarGrid');
+        const financialCalendarDetails = document.getElementById('financialCalendarDetails');
+        const calendarMonthTitle = document.getElementById('calendarMonthTitle');
+        const calendarMonthYear = document.getElementById('calendarMonthYear');
+        const calendarTodayBtn = document.getElementById('calendarTodayBtn');
+        const calendarPrevMonth = document.getElementById('calendarPrevMonth');
+        const calendarNextMonth = document.getElementById('calendarNextMonth');
+        let activeDataView = 'table';
+        let calendarTypeFilter = 'all';
+        let calendarCategoryFilter = 'all';
+        let selectedCalendarDayKey = '';
 
         function isMobileTableView() {
             return window.innerWidth <= MOBILE_TABLE_BREAKPOINT;
@@ -330,8 +394,8 @@
         }
 
         function getTableCreateSubmitLabel(movementType) {
-            if (movementType === 'income') return '💰 Agregar ingreso';
-            if (movementType === 'refund') return '↩️ Agregar reintegro';
+            if (movementType === 'income') return 'Agregar ingreso';
+            if (movementType === 'refund') return 'Agregar reintegro';
             return 'Agregar gasto';
         }
 
@@ -353,6 +417,230 @@
             const badge = document.getElementById('periodModeBadge');
             if (!badge) return;
             badge.style.display = isFuturePeriodSelected() ? 'inline-flex' : 'none';
+        }
+
+        function updateDataViewSwitchUI() {
+            if (viewTableBtn) {
+                const isActive = activeDataView === 'table';
+                viewTableBtn.classList.toggle('active', isActive);
+                viewTableBtn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            }
+            if (viewCalendarBtn) {
+                const isActive = activeDataView === 'calendar';
+                viewCalendarBtn.classList.toggle('active', isActive);
+                viewCalendarBtn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            }
+            if (tableDataModule) {
+                tableDataModule.hidden = activeDataView !== 'table';
+            }
+            if (calendarDataModule) {
+                calendarDataModule.hidden = activeDataView !== 'calendar';
+            }
+        }
+
+        function setActiveDataView(view) {
+            activeDataView = view === 'calendar' ? 'calendar' : 'table';
+            updateDataViewSwitchUI();
+            if (activeDataView === 'calendar') {
+                closeAllRowMenus();
+                renderFinancialCalendar();
+            } else {
+                updateTable();
+            }
+        }
+
+        function applyCommonExpenseFilters(expenses) {
+            let filtered = (expenses || []).filter(exp => {
+                const currency = (exp.currency || currentCurrency).toLowerCase();
+                const source = (exp.source || '').toUpperCase();
+                const currencyMatch = filterCurrency === 'all' || currency === filterCurrency;
+                const sourceMatch = filterSource === 'all'
+                    || (filterSource === 'CA' && (source === '' || source === 'CA'))
+                    || source === filterSource;
+                return currencyMatch && sourceMatch;
+            });
+
+            if (searchQuery) {
+                filtered = filtered.filter(exp => {
+                    const categoryLabel = formatCategoryLabel(exp.category);
+                    const haystack = `${exp.name} ${exp.category} ${categoryLabel} ${(exp.tags || []).join(' ')}`.toLowerCase();
+                    return haystack.includes(searchQuery.toLowerCase());
+                });
+            }
+            return filtered;
+        }
+
+        function getExpenseCalendarDate(expense) {
+            const dateValue = getDateInputValueFromISO(expense?.date || '');
+            if (!dateValue) return null;
+            const [year, month, day] = dateValue.split('-').map(Number);
+            if (!year || !month || !day) return null;
+            return new Date(year, month - 1, day, 12, 0, 0, 0);
+        }
+
+        function getCalendarDateKey(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function getCurrentMonthExpenses(expenses) {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            return (expenses || []).filter(exp => {
+                const expDate = getExpenseCalendarDate(exp);
+                if (!expDate) return false;
+                return expDate.getFullYear() === year && expDate.getMonth() === month;
+            });
+        }
+
+        function getCalendarFilteredExpenses(expenses) {
+            return (expenses || []).filter(exp => {
+                if (calendarTypeFilter !== 'all' && resolveFlow(exp) !== calendarTypeFilter) {
+                    return false;
+                }
+                if (calendarCategoryFilter !== 'all' && (exp.category || '') !== calendarCategoryFilter) {
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        function populateCalendarCategoryFilter(expenses) {
+            if (!calendarFilterCategory) return;
+            const options = Array.from(new Set((expenses || [])
+                .map(exp => (exp.category || '').trim())
+                .filter(Boolean)))
+                .sort((a, b) => a.localeCompare(b));
+            const currentSelection = calendarFilterCategory.value || 'all';
+            calendarFilterCategory.innerHTML = '<option value="all">Todas</option>'
+                + options.map(option => `<option value="${escapeHTML(option)}">${escapeHTML(formatCategoryLabel(option))}</option>`).join('');
+            calendarFilterCategory.value = options.includes(currentSelection) ? currentSelection : 'all';
+            calendarCategoryFilter = calendarFilterCategory.value;
+        }
+
+        function buildCalendarDetailsHTML(dayKey, dayExpenses) {
+            if (!dayKey || !dayExpenses || dayExpenses.length === 0) {
+                return '<div class="no-data">Selecciona un dia para ver los movimientos.</div>';
+            }
+            const totalIncome = dayExpenses
+                .filter(exp => resolveFlow(exp) !== 'expense')
+                .reduce((acc, exp) => acc + Math.abs(Number(exp.amount) || 0), 0);
+            const totalExpense = dayExpenses
+                .filter(exp => resolveFlow(exp) === 'expense')
+                .reduce((acc, exp) => acc + Math.abs(Number(exp.amount) || 0), 0);
+
+            const headerDate = (() => {
+                const [year, month, day] = dayKey.split('-').map(Number);
+                const date = new Date(year, (month || 1) - 1, day || 1);
+                return date.toLocaleDateString('es-AR', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                });
+            })();
+
+            const rows = dayExpenses
+                .slice()
+                .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
+                .map(exp => {
+                    const flow = resolveFlow(exp);
+                    const flowClass = flow === 'expense' ? 'negative' : 'positive';
+                    const source = (exp.source || 'CA').toUpperCase();
+                    const amountText = formatCurrencyWithCurrency(exp.amount, exp.currency || currentCurrency);
+                    return `
+                        <li class="financial-calendar-movement ${flowClass}">
+                            <div class="financial-calendar-movement-main">
+                                <strong>${escapeHTML(exp.name || '-')}</strong>
+                                <span>${escapeHTML(formatCategoryLabel(exp.category))} · ${escapeHTML(source)}</span>
+                            </div>
+                            <div class="financial-calendar-movement-amount">${amountText}</div>
+                        </li>
+                    `;
+                }).join('');
+
+            return `
+                <div class="financial-calendar-details-head">
+                    <div>
+                        <h4>${escapeHTML(headerDate)}</h4>
+                        <p>${dayExpenses.length} movimiento(s)</p>
+                    </div>
+                    <div class="financial-calendar-details-totals">
+                        <span class="income">Ingresos: ${formatCurrencyWithCurrency(totalIncome, currentCurrency)}</span>
+                        <span class="expense">Gastos: ${formatCurrencyWithCurrency(-totalExpense, currentCurrency)}</span>
+                    </div>
+                </div>
+                <ul class="financial-calendar-movements">${rows}</ul>
+            `;
+        }
+
+        function renderFinancialCalendar() {
+            if (!calendarDataModule || !financialCalendarGrid || !financialCalendarDetails) return;
+
+            const monthName = currentDate.toLocaleDateString('es-AR', { month: 'long' });
+            if (calendarMonthTitle) calendarMonthTitle.textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+            if (calendarMonthYear) calendarMonthYear.textContent = String(currentDate.getFullYear());
+
+            const monthExpenses = getCurrentMonthExpenses(allExpenses);
+            const commonFilteredExpenses = applyCommonExpenseFilters(monthExpenses);
+            populateCalendarCategoryFilter(commonFilteredExpenses);
+            const filteredExpenses = getCalendarFilteredExpenses(commonFilteredExpenses);
+
+            const buckets = new Map();
+            filteredExpenses.forEach(exp => {
+                const expDate = getExpenseCalendarDate(exp);
+                if (!expDate) return;
+                const key = getCalendarDateKey(expDate);
+                if (!buckets.has(key)) buckets.set(key, []);
+                buckets.get(key).push(exp);
+            });
+
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const headers = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+            let gridHTML = `<div class="financial-calendar-weekdays">${headers.map(day => `<span>${day}</span>`).join('')}</div>`;
+            gridHTML += '<div class="financial-calendar-days">';
+
+            for (let i = 0; i < firstDay; i += 1) {
+                gridHTML += '<div class="financial-calendar-day is-empty" aria-hidden="true"></div>';
+            }
+
+            let firstMovementsDay = '';
+            for (let day = 1; day <= daysInMonth; day += 1) {
+                const date = new Date(year, month, day, 12, 0, 0, 0);
+                const key = getCalendarDateKey(date);
+                const dayExpenses = buckets.get(key) || [];
+                if (!firstMovementsDay && dayExpenses.length > 0) firstMovementsDay = key;
+                const incomeCount = dayExpenses.filter(exp => resolveFlow(exp) !== 'expense').length;
+                const expenseCount = dayExpenses.filter(exp => resolveFlow(exp) === 'expense').length;
+                const isSelected = key === selectedCalendarDayKey;
+                gridHTML += `
+                    <button type="button" class="financial-calendar-day ${dayExpenses.length ? 'has-movements' : ''} ${isSelected ? 'is-selected' : ''}" data-calendar-day="${key}">
+                        <span class="day-number">${day}</span>
+                        <div class="day-badges">
+                            ${incomeCount > 0 ? `<span class="day-badge income"><i class="fa-solid fa-arrow-up"></i> ${incomeCount}</span>` : ''}
+                            ${expenseCount > 0 ? `<span class="day-badge expense"><i class="fa-solid fa-arrow-down"></i> ${expenseCount}</span>` : ''}
+                        </div>
+                    </button>
+                `;
+            }
+
+            const totalSlots = firstDay + daysInMonth;
+            const trailingSlots = (7 - (totalSlots % 7)) % 7;
+            for (let i = 0; i < trailingSlots; i += 1) {
+                gridHTML += '<div class="financial-calendar-day is-empty" aria-hidden="true"></div>';
+            }
+            gridHTML += '</div>';
+            financialCalendarGrid.innerHTML = gridHTML;
+
+            if (!selectedCalendarDayKey || !buckets.has(selectedCalendarDayKey)) {
+                selectedCalendarDayKey = firstMovementsDay;
+            }
+            financialCalendarDetails.innerHTML = buildCalendarDetailsHTML(selectedCalendarDayKey, buckets.get(selectedCalendarDayKey) || []);
         }
 
         function formatCurrencyWithCurrency(amount, currencyCode, compact = false) {
@@ -408,8 +696,8 @@
         function createTable(expenses, runningBalances) {
             if (!expenses || expenses.length === 0) {
                 const message = document.getElementById('showAllToggle').checked ? 
-                                '📭 No hay transacciones para mostrar' : 
-                                '📭 No hay gastos cargados para este mes';
+                                'No hay transacciones para mostrar' : 
+                                'No hay gastos cargados para este mes';
                 return `<div class="no-data">${message}</div>`;
             }
             const compactAmounts = isMobileTableView();
@@ -493,29 +781,17 @@
 
         function updateTable() {
             const showAll = document.getElementById('showAllToggle').checked;
-            document.querySelector('.month-navigation').style.display = showAll ? 'none' : 'flex';
+            if (activeDataView === 'table') {
+                document.querySelector('.month-navigation').style.display = showAll ? 'none' : 'flex';
+            } else {
+                document.querySelector('.month-navigation').style.display = 'flex';
+            }
 
             expensesForTable = showAll
                 ? allExpenses.slice().sort((a, b) => new Date(b.date) - new Date(a.date))
                 : getMonthExpenses(allExpenses);
 
-            expensesForTable = expensesForTable.filter(exp => {
-                const currency = (exp.currency || currentCurrency).toLowerCase();
-                const source = (exp.source || '').toUpperCase();
-                const currencyMatch = filterCurrency === 'all' || currency === filterCurrency;
-                const sourceMatch = filterSource === 'all'
-                    || (filterSource === 'CA' && (source === '' || source === 'CA'))
-                    || source === filterSource;
-                return currencyMatch && sourceMatch;
-            });
-
-            if (searchQuery) {
-                expensesForTable = expensesForTable.filter(exp => {
-                    const categoryLabel = formatCategoryLabel(exp.category);
-                    const haystack = `${exp.name} ${exp.category} ${categoryLabel} ${(exp.tags || []).join(' ')}`.toLowerCase();
-                    return haystack.includes(searchQuery.toLowerCase());
-                });
-            }
+            expensesForTable = applyCommonExpenseFilters(expensesForTable);
 
             const mobileView = isMobileTableView();
             const totalFiltered = expensesForTable.length;
@@ -528,6 +804,7 @@
             tableContainer.innerHTML = createTable(limitedExpenses, runningBalances);
             updateMobilePager(totalFiltered, limitedExpenses.length, mobileView);
             updateClearButtonsVisibility();
+            renderFinancialCalendar();
         }
 
         function updateMobilePager(total, visible, mobileView) {
@@ -536,7 +813,7 @@
             mobileTablePager.style.display = shouldShowPager ? 'flex' : 'none';
             if (!shouldShowPager) return;
             mobileTablePagerInfo.textContent = `Mostrando ${visible} de ${total} movimientos`;
-            toggleMobileRowsBtn.textContent = showAllMobileRows ? '📄 Mostrar menos' : '📄 Mostrar todos';
+            toggleMobileRowsBtn.textContent = showAllMobileRows ? 'Mostrar menos' : 'Mostrar todos';
         }
 
         function editExpenseByIndex(index) {
@@ -841,6 +1118,7 @@
                     }
                 });
 
+                updateDataViewSwitchUI();
                 updateMonthDisplay();
                 updatePeriodModeBadge();
                 updateTable();
@@ -854,6 +1132,60 @@
 
         document.getElementById('showAllToggle').addEventListener('change', () => {
             showAllMobileRows = false;
+            updateTable();
+        });
+
+        viewTableBtn?.addEventListener('click', () => {
+            setActiveDataView('table');
+        });
+
+        viewCalendarBtn?.addEventListener('click', () => {
+            setActiveDataView('calendar');
+        });
+
+        calendarFilterType?.addEventListener('change', (event) => {
+            calendarTypeFilter = event.target.value || 'all';
+            selectedCalendarDayKey = '';
+            renderFinancialCalendar();
+        });
+
+        calendarFilterCategory?.addEventListener('change', (event) => {
+            calendarCategoryFilter = event.target.value || 'all';
+            selectedCalendarDayKey = '';
+            renderFinancialCalendar();
+        });
+
+        financialCalendarGrid?.addEventListener('click', (event) => {
+            const dayButton = event.target.closest('[data-calendar-day]');
+            if (!dayButton) return;
+            selectedCalendarDayKey = dayButton.dataset.calendarDay || '';
+            renderFinancialCalendar();
+        });
+
+        calendarTodayBtn?.addEventListener('click', () => {
+            currentDate = new Date();
+            updateMonthDisplay();
+            updatePeriodModeBadge();
+            showAllMobileRows = false;
+            selectedCalendarDayKey = '';
+            updateTable();
+        });
+
+        calendarPrevMonth?.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            updateMonthDisplay();
+            updatePeriodModeBadge();
+            showAllMobileRows = false;
+            selectedCalendarDayKey = '';
+            updateTable();
+        });
+
+        calendarNextMonth?.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            updateMonthDisplay();
+            updatePeriodModeBadge();
+            showAllMobileRows = false;
+            selectedCalendarDayKey = '';
             updateTable();
         });
 
@@ -885,6 +1217,7 @@
             updateMonthDisplay();
             updatePeriodModeBadge();
             showAllMobileRows = false;
+            selectedCalendarDayKey = '';
             updateTable();
         });
 
@@ -893,6 +1226,7 @@
             updateMonthDisplay();
             updatePeriodModeBadge();
             showAllMobileRows = false;
+            selectedCalendarDayKey = '';
             updateTable();
         });
 

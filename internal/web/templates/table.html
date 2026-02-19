@@ -56,14 +56,10 @@
         </div>
         
         <div class="table-controls">
-            <button id="toggleTableExpenseFormBtn" class="nav-button button-primary mobile-only" type="button">
+            <button id="toggleTableExpenseFormBtn" class="nav-button button-primary" type="button">
                 <i class="fa-solid fa-plus"></i>
                 <span>Agregar gasto</span>
             </button>
-            <div class="table-view-switch" role="tablist" aria-label="Vista de movimientos">
-                <button id="viewTableBtn" class="table-view-tab active" type="button" role="tab" aria-selected="true">Tabla</button>
-                <button id="viewCalendarBtn" class="table-view-tab" type="button" role="tab" aria-selected="false">Calendario</button>
-            </div>
         </div>
 
         <div id="tableExpenseFormContainer" class="form-container" data-expanded="false">
@@ -144,7 +140,18 @@
             <div id="formMessage" class="form-message"></div>
         </div>
 
-        <div id="tableDataModule">
+        <div class="table-view-row">
+            <div class="table-view-switch" role="tablist" aria-label="Vista de movimientos">
+                <button id="viewTableBtn" class="table-view-tab active" type="button" role="tab" aria-selected="true">Tabla</button>
+                <button id="viewCalendarBtn" class="table-view-tab" type="button" role="tab" aria-selected="false">Calendario</button>
+            </div>
+        </div>
+
+        <div id="tableDataModule" class="table-data-module">
+            <div class="table-data-header">
+                <h3><i class="fa-solid fa-table-list"></i> Tabla de movimientos</h3>
+                <p>Vista detallada de todos tus movimientos.</p>
+            </div>
             <div class="search-bar">
                 <span class="search-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>
                 <input type="text" id="tableSearch" placeholder="Buscar movimientos por nombre, categoria o etiquetas">
@@ -341,6 +348,7 @@
         let calendarTypeFilter = 'all';
         let calendarCategoryFilter = 'all';
         let selectedCalendarDayKey = '';
+        let tableFormInitialized = false;
 
         function isMobileTableView() {
             return window.innerWidth <= MOBILE_TABLE_BREAKPOINT;
@@ -350,26 +358,30 @@
             return '<i class="fa-solid fa-plus"></i><span>Agregar gasto</span>';
         }
 
-        function setTableFormExpanded(expanded) {
+        function setTableFormExpanded(expanded, { persist = true } = {}) {
             if (!tableFormContainer) return;
             tableFormContainer.dataset.expanded = expanded ? 'true' : 'false';
-            const shouldShow = !isMobileTableView() || expanded;
-            tableFormContainer.style.display = shouldShow ? 'block' : 'none';
+            if (persist) {
+                tableFormContainer.dataset.userSet = 'true';
+            }
+            tableFormContainer.style.display = expanded ? 'block' : 'none';
             if (toggleTableExpenseFormBtn) {
                 toggleTableExpenseFormBtn.innerHTML = getTableFormToggleButtonHTML();
                 toggleTableExpenseFormBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-                const hideToggle = isMobileTableView() && expanded;
-                toggleTableExpenseFormBtn.style.display = hideToggle ? 'none' : '';
+                toggleTableExpenseFormBtn.style.display = expanded ? 'none' : 'inline-flex';
             }
         }
 
         function updateTableFormVisibilityOnViewport() {
+            if (!tableFormContainer) return;
             const expanded = tableFormContainer?.dataset.expanded === 'true';
-            if (isMobileTableView()) {
-                setTableFormExpanded(expanded);
+            const userSet = tableFormContainer.dataset.userSet === 'true';
+            if (!tableFormInitialized && !userSet) {
+                setTableFormExpanded(!isMobileTableView(), { persist: false });
+                tableFormInitialized = true;
                 return;
             }
-            setTableFormExpanded(true);
+            setTableFormExpanded(expanded, { persist: false });
         }
 
         function updateClearButtonsVisibility() {
@@ -1244,7 +1256,7 @@
             }
         });
 
-        function resetTableExpenseForm({ closeOnMobile = false } = {}) {
+        function resetTableExpenseForm({ closeForm = false } = {}) {
             const form = document.getElementById('expenseForm');
             form.reset();
             document.getElementById('selected-tags').innerHTML = '';
@@ -1260,7 +1272,7 @@
             const month = String(today.getMonth() + 1).padStart(2, '0');
             const day = String(today.getDate()).padStart(2, '0');
             document.getElementById('date').value = `${year}-${month}-${day}`;
-            if (closeOnMobile && isMobileTableView()) {
+            if (closeForm) {
                 setTableFormExpanded(false);
             }
         }
@@ -1308,7 +1320,7 @@
                     messageDiv.className = 'form-message';
                     showToast(editId ? 'Gasto actualizado con exito' : 'Gasto agregado con exito', 'success');
                     await initialize();
-                    resetTableExpenseForm({ closeOnMobile: true });
+                    resetTableExpenseForm({ closeForm: isMobileTableView() });
                 } else {
                     const error = await response.json();
                     messageDiv.textContent = '';
@@ -1321,7 +1333,7 @@
             }
         });
         cancelTableExpenseFormBtn?.addEventListener('click', () => {
-            resetTableExpenseForm({ closeOnMobile: true });
+            resetTableExpenseForm({ closeForm: true });
         });
         document.addEventListener('DOMContentLoaded', guardAppInit(initialize));
 

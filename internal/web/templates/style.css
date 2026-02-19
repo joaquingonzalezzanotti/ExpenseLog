@@ -3353,7 +3353,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 }
 
 .financial-calendar-header h3 i {
-    color: var(--success);
+    color: var(--accent);
 }
 
 .financial-calendar-header p {
@@ -3439,8 +3439,8 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 .financial-calendar-weekdays {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
-    background-color: var(--success);
-    color: #fff;
+    background-color: rgba(37, 99, 235, 0.16);
+    color: var(--accent);
 }
 
 .financial-calendar-weekdays span {
@@ -3506,8 +3506,8 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 }
 
 .financial-calendar-day .day-badge.income {
-    background-color: var(--success-soft);
-    color: var(--success);
+    background-color: rgba(37, 99, 235, 0.14);
+    color: var(--accent);
 }
 
 .financial-calendar-day .day-badge.expense {

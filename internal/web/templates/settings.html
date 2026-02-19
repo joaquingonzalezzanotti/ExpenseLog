@@ -109,6 +109,10 @@
                     <span>🔁 Transacciones recurrentes</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
+                <button class="settings-nav-item" id="openReconciliationSection" type="button" data-settings-section="reconciliationSection" aria-expanded="false">
+                    <span>🧮 Conciliacion CA</span>
+                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
             </div>
         </section>
 
@@ -215,6 +219,49 @@
                 </form>
                 <div id="recurringExpenseMessage" class="form-message"></div>
             </div>
+
+        </section>
+
+        <section id="reconciliationSection" class="form-container settings-section settings-detail-section" hidden>
+            <div class="settings-detail-header">
+                <h2>🧮 Conciliacion CA</h2>
+                <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="reconciliationSection" aria-label="Cerrar conciliacion" title="Cerrar conciliacion">
+                    <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="settings-divider"></div>
+            <h3 class="settings-subtitle">🧮 Conciliacion rapida de Caja de Ahorro</h3>
+            <p class="settings-helper-text">Ingresa el saldo real de tu CA para crear un ajuste automatico sin buscar el origen de la diferencia.</p>
+            <div id="settingsReconciliationPanel" class="reconciliation-container settings-reconciliation-panel">
+                <div class="reconciliation-metrics">
+                    <div class="reconciliation-metric">
+                        <span>Balance app (CA)</span>
+                        <strong id="settingsReconciliationAppBalance">-</strong>
+                    </div>
+                    <div class="reconciliation-metric">
+                        <span>Diferencia a aplicar</span>
+                        <strong id="settingsReconciliationDifference">-</strong>
+                    </div>
+                </div>
+                <form id="settingsReconciliationForm" class="reconciliation-form">
+                    <label for="settingsReconciliationTarget">Saldo real CA (<span id="settingsReconciliationCurrency">ARS</span>)</label>
+                    <input type="number" id="settingsReconciliationTarget" step="0.01" placeholder="Ej: 154230.35" required>
+                    <div class="settings-reconciliation-shortcuts">
+                        <button type="button" id="settingsReconciliationUseCurrent" class="nav-button button-secondary">Usar balance app</button>
+                    </div>
+                    <label for="settingsReconciliationNote">Nota (opcional)</label>
+                    <input type="text" id="settingsReconciliationNote" maxlength="90" placeholder="Ej: cierre de mes sin detalle">
+                    <div id="settingsReconciliationImpact" class="settings-reconciliation-impact">Ajuste estimado: -</div>
+                    <div class="reconciliation-actions">
+                        <button type="submit" id="settingsReconciliationSubmit" class="nav-button button-primary">Aplicar conciliacion</button>
+                    </div>
+                </form>
+                <div id="settingsReconciliationMessage" class="form-message"></div>
+            </div>
+
+            <h3 class="settings-subtitle">🗂️ Historial de conciliaciones</h3>
+            <div id="reconciliation-history-list" class="recurring-table-box"></div>
+
         </section>
 
     </div>
@@ -366,7 +413,7 @@
 
     <script src="/functions.js"></script>
     <script>
-        let categories = [];
+        let categories = ensureSystemCategories([]);
         let categoriesLower = new Set();
         let categoriesLoading = true;
         let categoryFilter = '';
@@ -376,8 +423,11 @@
         let editFormSelectedTags = new Set();
         let currentCurrency = "usd";
         let recurringExpenses = [];
+        let reconciliationHistoryItems = [];
+        let allExpensesCache = [];
         let recurringExpenseToDelete = null;
         let recurringExpenseToEdit = null;
+        let reconciliationSubmitInFlight = false;
         const SHARED_CONFIG_CACHE_KEY = 'expenselog_config_cache_v1';
         const settingsSectionButtons = Array.from(document.querySelectorAll('[data-settings-section]'));
         const settingsCloseButtons = Array.from(document.querySelectorAll('[data-settings-close]'));
@@ -399,7 +449,7 @@
         }
 
         function showOnlySettingsSection(sectionId) {
-            const targets = ['categoriesSection', 'recurringSection'];
+            const targets = ['categoriesSection', 'recurringSection', 'reconciliationSection'];
             targets.forEach((id) => setSettingsSection(id, id === sectionId));
             setRecurringComposerVisible(false);
             const targetNode = document.getElementById(sectionId);
@@ -519,6 +569,19 @@
         }
 
         // --- Category Management ---
+const SYSTEM_RECONCILIATION_CATEGORY = '_Conciliacion';
+
+function ensureSystemCategories(nextCategories) {
+    const list = Array.isArray(nextCategories) ? [...nextCategories] : [];
+    const hasSystem = list.some(cat => (cat || '').toLowerCase() === SYSTEM_RECONCILIATION_CATEGORY.toLowerCase());
+    if (!hasSystem) list.push(SYSTEM_RECONCILIATION_CATEGORY);
+    return list;
+}
+
+function isProtectedSystemCategory(category) {
+    return (category || '').toLowerCase() === SYSTEM_RECONCILIATION_CATEGORY.toLowerCase();
+}
+
 function syncCategoriesLower() {
     categoriesLower = new Set(categories.map(c => c.toLowerCase()));
 }
@@ -573,19 +636,21 @@ function renderCategories() {
     filtered.forEach((category) => {
         const index = categories.findIndex(item => item === category);
         const item = document.createElement('div');
-        item.className = 'category-item';
+        const isSystem = isProtectedSystemCategory(category);
+        item.className = `category-item${isSystem ? ' category-item-system' : ''}`;
         item.dataset.index = index;
         item.innerHTML = `
             <div class="category-handle-area">
-                <span class="category-name">${category}</span>
+                <span class="category-name">${category}${isSystem ? ' <small class="category-system-label">(sistema)</small>' : ''}</span>
             </div>
             <div class="category-actions">
+                ${isSystem ? '<span class="category-system-lock" title="Categoria protegida">🔒</span>' : `
                 <button class="edit-button" data-action="edit" data-index="${index}">
                     <i class="fa-solid fa-pen-to-square"></i>
                 </button>
                 <button class="delete-button" data-action="delete" data-index="${index}">
                     <i class="fa-solid fa-trash-can"></i>
-                </button>
+                </button>`}
             </div>
         `;
         list.appendChild(item);
@@ -604,7 +669,7 @@ function renderCategorySelects() {
 }
 
 function applyCategoriesUpdate(updatedCategories) {
-    categories = updatedCategories || [];
+    categories = ensureSystemCategories(updatedCategories || []);
     saveCachedCategories(categories);
     renderCategories();
 }
@@ -615,7 +680,7 @@ function loadCachedCategories() {
         if (!cached) return null;
         const parsed = JSON.parse(cached);
         if (!Array.isArray(parsed)) return null;
-        return parsed.filter(item => typeof item === 'string');
+        return ensureSystemCategories(parsed.filter(item => typeof item === 'string'));
     } catch (error) {
         console.warn('No se pudo leer el cache de categorias:', error);
         return null;
@@ -625,7 +690,7 @@ function loadCachedCategories() {
 function saveCachedCategories(nextCategories) {
     if (!Array.isArray(nextCategories)) return;
     try {
-        localStorage.setItem(categoriesCacheKey, JSON.stringify(nextCategories));
+        localStorage.setItem(categoriesCacheKey, JSON.stringify(ensureSystemCategories(nextCategories)));
     } catch (error) {
         console.warn('No se pudo guardar el cache de categorias:', error);
     }
@@ -705,6 +770,10 @@ async function addCategory() {
 async function removeCategory(index) {
     const removed = categories[index];
     if (!removed) return;
+    if (isProtectedSystemCategory(removed)) {
+        showMessage('categoriesMessage', 'La categoria _Conciliacion es de sistema y no se puede eliminar.', false);
+        return;
+    }
     if (!confirm(`Eliminar la categoria "${removed}"?`)) return;
     const updated = await deleteCategoryOnServer(removed);
     if (updated) {
@@ -717,6 +786,10 @@ function startEditCategory(index) {
     const item = list.querySelector(`.category-item[data-index="${index}"]`);
     if (!item) return;
     const current = categories[index] || '';
+    if (isProtectedSystemCategory(current)) {
+        showMessage('categoriesMessage', 'La categoria _Conciliacion es de sistema y no se puede editar.', false);
+        return;
+    }
     item.innerHTML = `
         <div class="category-handle-area">
             <input type="text" class="category-edit-input" value="${current}">
@@ -751,6 +824,10 @@ async function saveEditCategory(index, value) {
         showMessage('categoriesMessage', 'La categoria ya existe', false);
         return;
     }
+    if (isProtectedSystemCategory(categories[index])) {
+        showMessage('categoriesMessage', 'La categoria _Conciliacion es de sistema y no se puede editar.', false);
+        return;
+    }
     const updated = await renameCategoryOnServer(categories[index], name);
     if (updated) {
         applyCategoriesUpdate(updated);
@@ -776,7 +853,7 @@ async function saveCategoriesList(nextCategories) {
         const response = await fetch('/categories/edit', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(nextCategories)
+            body: JSON.stringify(ensureSystemCategories(nextCategories))
         });
         if (response.ok) {
             showMessage('categoriesMessage', 'Categorias guardadas con exito', true);
@@ -1075,6 +1152,191 @@ async function saveCategoriesList(nextCategories) {
             }
         }
 
+
+        function formatSignedCurrency(amount, currencyCode) {
+            const sign = amount >= 0 ? '+' : '-';
+            return `${sign}${formatCurrency(Math.abs(amount), currencyCode)}`;
+        }
+
+        function calculateSettingsCurrentCABalance(currency = currentCurrency) {
+            const now = new Date();
+            return (allExpensesCache || []).reduce((sum, exp) => {
+                const source = (exp.source || '').toUpperCase();
+                const expCurrency = (exp.currency || currentCurrency || 'ars').toLowerCase();
+                const expDate = exp.date ? new Date(exp.date) : new Date();
+                if (Number.isNaN(expDate.getTime())) return sum;
+                if (!(source === '' || source === 'CA')) return sum;
+                if (expCurrency !== (currency || '').toLowerCase()) return sum;
+                if (expDate > now) return sum;
+                return sum + Number(exp.amount || 0);
+            }, 0);
+        }
+
+        function renderSettingsReconciliationPreview() {
+            const currency = (currentCurrency || 'ars').toLowerCase();
+            const appBalance = calculateSettingsCurrentCABalance(currency);
+            const targetInput = document.getElementById('settingsReconciliationTarget');
+            const targetAmount = Number.parseFloat(targetInput?.value || '');
+            const difference = Number.isFinite(targetAmount) ? (targetAmount - appBalance) : null;
+
+            const appBalanceEl = document.getElementById('settingsReconciliationAppBalance');
+            const diffEl = document.getElementById('settingsReconciliationDifference');
+            const impactEl = document.getElementById('settingsReconciliationImpact');
+            const currencyEl = document.getElementById('settingsReconciliationCurrency');
+
+            if (currencyEl) currencyEl.textContent = currency.toUpperCase();
+            if (appBalanceEl) appBalanceEl.textContent = formatCurrency(appBalance, currency);
+            if (diffEl) {
+                if (difference === null) {
+                    diffEl.textContent = '-';
+                    diffEl.className = '';
+                } else {
+                    diffEl.textContent = formatSignedCurrency(difference, currency);
+                    diffEl.className = difference >= 0 ? 'positive' : 'negative';
+                }
+            }
+            if (impactEl) {
+                if (difference === null) {
+                    impactEl.textContent = 'Ajuste estimado: -';
+                } else if (Math.abs(difference) < 0.005) {
+                    impactEl.textContent = 'Ajuste estimado: sin cambios, el balance ya coincide.';
+                } else {
+                    const action = difference > 0 ? 'Ingreso de ajuste' : 'Gasto de ajuste';
+                    impactEl.textContent = `${action}: ${formatCurrency(Math.abs(difference), currency)}.`;
+                }
+            }
+            return { appBalance, difference, currency };
+        }
+
+        function buildReconciliationHistoryRows(items) {
+            if (!items || items.length === 0) {
+                return '<div class="no-data">Sin conciliaciones aplicadas todavia.</div>';
+            }
+            return `
+                <table class="expense-table">
+                    <thead><tr><th class="col-left">Fecha</th><th class="col-left">Tipo</th><th class="col-right">Monto</th><th class="col-left">Detalle</th><th class="actions-col col-center"></th></tr></thead>
+                    <tbody>
+                        ${items.map(item => {
+                            const canRevert = item.type === 'adjustment' && !item.reversed;
+                            const date = item.date ? new Date(item.date).toLocaleString('es-AR') : '-';
+                            const detail = item.type === 'adjustment'
+                                ? `Objetivo: ${item.targetBalance != null ? formatCurrency(item.targetBalance, item.currency || currentCurrency) : '-'} • Balance previo: ${item.appBalanceBefore != null ? formatCurrency(item.appBalanceBefore, item.currency || currentCurrency) : '-'}`
+                                : `Revierte ajuste ${item.id}`;
+                            return `
+                                <tr>
+                                    <td class="col-left">${date}</td>
+                                    <td class="col-left">${item.type === 'adjustment' ? 'Ajuste' : 'Reversion'}</td>
+                                    <td class="col-right">${formatSignedCurrency(item.amount || 0, item.currency || currentCurrency)}</td>
+                                    <td class="col-left">${detail}${item.reversed ? ' • Revertido' : ''}</td>
+                                    <td class="actions-col col-center">
+                                        ${canRevert ? `<button class="nav-button button-secondary" data-revert-reconciliation-id="${item.id}">Revertir</button>` : '-'}
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        async function fetchAndRenderReconciliationHistory() {
+            const list = document.getElementById('reconciliation-history-list');
+            if (!list) return;
+            try {
+                const response = await fetch('/reconciliation/history');
+                if (!response.ok) throw new Error('No se pudo cargar historial de conciliaciones');
+                const payload = await response.json();
+                reconciliationHistoryItems = Array.isArray(payload?.items) ? payload.items : [];
+                list.innerHTML = buildReconciliationHistoryRows(reconciliationHistoryItems);
+            } catch (error) {
+                console.error('Error cargando historial de conciliaciones:', error);
+                list.innerHTML = '<div class="no-data">No se pudo cargar historial de conciliaciones.</div>';
+            }
+        }
+
+        async function refreshExpensesCache() {
+            const expensesResponse = await fetch('/expenses');
+            if (!expensesResponse.ok) throw new Error('No se pudieron obtener los gastos');
+            allExpensesCache = await expensesResponse.json();
+            renderSettingsReconciliationPreview();
+        }
+
+        async function submitSettingsReconciliation() {
+            const messageEl = document.getElementById('settingsReconciliationMessage');
+            const submitButton = document.getElementById('settingsReconciliationSubmit');
+            if (reconciliationSubmitInFlight) return;
+            const preview = renderSettingsReconciliationPreview();
+            if (!Number.isFinite(preview.difference)) {
+                showMessage('settingsReconciliationMessage', 'Ingresa un saldo real valido para conciliar.', false);
+                return;
+            }
+            if (Math.abs(preview.difference) < 0.005) {
+                showMessage('settingsReconciliationMessage', 'No hay diferencia para conciliar.', true);
+                return;
+            }
+            const confirmText = `Vas a aplicar un ${preview.difference > 0 ? 'ingreso' : 'gasto'} de ajuste por ${formatCurrency(Math.abs(preview.difference), preview.currency)}. ¿Confirmas?`;
+            if (!window.confirm(confirmText)) {
+                return;
+            }
+
+            const targetInput = document.getElementById('settingsReconciliationTarget');
+            const noteInput = document.getElementById('settingsReconciliationNote');
+            const payload = {
+                targetBalance: Number.parseFloat(targetInput.value),
+                currency: preview.currency,
+                note: (noteInput?.value || '').trim(),
+            };
+            reconciliationSubmitInFlight = true;
+            if (submitButton) submitButton.disabled = true;
+            const idempotencyKey = `rec-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+            try {
+                const response = await fetch('/reconciliation/apply', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Idempotency-Key': idempotencyKey,
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(result.error || 'No se pudo aplicar la conciliacion');
+
+                if (result.status === 'noop') {
+                    showMessage('settingsReconciliationMessage', 'No se realizaron cambios: la app ya coincide con tu CA.', true);
+                } else {
+                    const amountLabel = formatCurrency(Math.abs(preview.difference), preview.currency);
+                    showMessage('settingsReconciliationMessage', `Conciliacion aplicada. Se registro ${preview.difference > 0 ? 'un ingreso' : 'un gasto'} de ajuste por ${amountLabel}.`, true);
+                }
+                await refreshExpensesCache();
+                await fetchAndRenderReconciliationHistory();
+            } catch (error) {
+                console.error('Error aplicando conciliacion:', error);
+                showMessage('settingsReconciliationMessage', error.message || 'No se pudo aplicar la conciliacion.', false);
+            } finally {
+                reconciliationSubmitInFlight = false;
+                if (submitButton) submitButton.disabled = false;
+            }
+        }
+
+        async function revertReconciliationByID(id) {
+            if (!id) return;
+            if (!window.confirm('Se va a crear un movimiento inverso para deshacer esta conciliacion. ¿Continuar?')) {
+                return;
+            }
+            try {
+                const response = await fetch(`/reconciliation/revert?id=${encodeURIComponent(id)}`, { method: 'POST' });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(result.error || 'No se pudo revertir la conciliacion');
+                showMessage('settingsReconciliationMessage', 'Conciliacion revertida correctamente.', true);
+                await refreshExpensesCache();
+                await fetchAndRenderReconciliationHistory();
+            } catch (error) {
+                console.error('Error revirtiendo conciliacion:', error);
+                showMessage('settingsReconciliationMessage', error.message || 'No se pudo revertir la conciliacion.', false);
+            }
+        }
+
         // --- Initialization ---
         async function initialize() {
             try {
@@ -1092,15 +1354,15 @@ async function saveCategoriesList(nextCategories) {
                 if (!configResponse.ok) throw new Error('No se pudo obtener la configuracion');
                 const config = await configResponse.json();
                 if (categoriesResponse.ok) {
-                    categories = await categoriesResponse.json();
+                    categories = ensureSystemCategories(await categoriesResponse.json());
                 }
 
                 if (!categories || categories.length === 0) {
                     const fallback = [...(config.categories || [])];
                     if (fallback.length > 0) {
-                        categories = fallback;
+                        categories = ensureSystemCategories(fallback);
                     } else {
-                        categories = [];
+                        categories = ensureSystemCategories([]);
                     }
                 }
                 categoriesLoading = false;
@@ -1112,20 +1374,23 @@ async function saveCategoriesList(nextCategories) {
                     fetch('/recurring-expenses')
                 ]);
                 if (!expensesResponse.ok) throw new Error('No se pudieron obtener los gastos');
-                const expenses = await expensesResponse.json();
+                allExpensesCache = await expensesResponse.json();
                 if (!recurringExpensesResponse.ok) throw new Error('No se pudieron obtener las transacciones recurrentes');
                 recurringExpenses = await recurringExpensesResponse.json() || [];
 
                 currentCurrency = (config.currency || 'ars').toLowerCase();
                 allTags.clear();
-                (expenses || []).forEach(exp => (exp.tags || []).forEach(tag => allTags.add(tag)));
+                (allExpensesCache || []).forEach(exp => (exp.tags || []).forEach(tag => allTags.add(tag)));
                 (recurringExpenses || []).forEach(exp => (exp.tags || []).forEach(tag => allTags.add(tag)));
 
                 populateCurrencySelect();
                 renderRecurringExpenses(recurringExpenses);
                 hideSettingsSection('categoriesSection');
                 hideSettingsSection('recurringSection');
+                hideSettingsSection('reconciliationSection');
                 setRecurringComposerVisible(false);
+                renderSettingsReconciliationPreview();
+                await fetchAndRenderReconciliationHistory();
 
                 try {
                     const authResponse = await fetch('/auth/me', { cache: 'no-store' });
@@ -1216,6 +1481,26 @@ async function saveCategoriesList(nextCategories) {
         });
         document.getElementById('newCategory').addEventListener('keypress', e => e.key === 'Enter' && addCategory());
 
+        document.getElementById('settingsReconciliationTarget')?.addEventListener('input', () => {
+            renderSettingsReconciliationPreview();
+        });
+        document.getElementById('settingsReconciliationUseCurrent')?.addEventListener('click', () => {
+            const preview = renderSettingsReconciliationPreview();
+            const targetInput = document.getElementById('settingsReconciliationTarget');
+            if (targetInput) {
+                targetInput.value = preview.appBalance.toFixed(2);
+                renderSettingsReconciliationPreview();
+            }
+        });
+        document.getElementById('settingsReconciliationForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await submitSettingsReconciliation();
+        });
+        document.getElementById('reconciliation-history-list')?.addEventListener('click', async (e) => {
+            const button = e.target.closest('[data-revert-reconciliation-id]');
+            if (!button) return;
+            await revertReconciliationByID(button.dataset.revertReconciliationId);
+        });
         document.getElementById('recurringExpenseForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const flow = document.getElementById('recurringFlow').value || 'expense';

@@ -531,6 +531,91 @@ html[data-theme='light'] #nextMonth {
     font-weight: 700;
 }
 
+.quick-action[data-action="reconcile"] {
+    border-color: rgba(20, 184, 166, 0.45);
+}
+
+.reconciliation-container {
+    margin-top: 0.75rem;
+    border: 1px solid var(--border);
+    background-color: var(--bg-secondary);
+    border-radius: 10px;
+    padding: 0.9rem;
+}
+
+.reconciliation-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.reconciliation-close {
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: var(--radius-pill);
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+}
+
+.reconciliation-help {
+    margin: 0.5rem 0 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.reconciliation-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.reconciliation-metric {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.45rem 0.6rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.reconciliation-metric span {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.reconciliation-metric strong {
+    font-size: 1rem;
+}
+
+#reconciliationDifference.positive {
+    color: var(--success);
+}
+
+#reconciliationDifference.negative {
+    color: var(--danger);
+}
+
+.reconciliation-form {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.reconciliation-form input {
+    padding: 0.56rem 0.7rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background-color: transparent;
+    color: var(--text-primary);
+}
+
+.reconciliation-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
 #toggleExpenseFormBtn {
     font-size: 1.04rem;
     letter-spacing: 0.01em;
@@ -1659,6 +1744,44 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     align-items: center;
 }
 
+
+.category-item-system {
+    border-style: dashed;
+}
+
+.category-system-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 0.74rem;
+}
+
+.category-system-lock {
+    color: var(--text-secondary);
+    font-size: 0.86rem;
+}
+
+.settings-divider {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.settings-reconciliation-panel {
+    margin-top: 0.35rem;
+}
+
+.settings-reconciliation-shortcuts {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.settings-reconciliation-impact {
+    font-size: 0.86rem;
+    color: var(--text-secondary);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 0.45rem 0.6rem;
+}
 .category-edit-input {
     width: 100%;
     padding: 0.4rem 0.5rem;

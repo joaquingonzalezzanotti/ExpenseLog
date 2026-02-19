@@ -76,6 +76,33 @@
                 <button id="toggleExpenseFormBtn" class="quick-action" data-action="open-form">Agregar gasto</button>
                 <button class="quick-action" data-action="income">Ingreso</button>
                 <button class="quick-action" data-action="card-expense">Gasto Tarjeta</button>
+                <button id="toggleReconciliationBtn" class="quick-action" data-action="reconcile">Conciliar CA</button>
+            </div>
+
+            <div id="reconciliationContainer" class="reconciliation-container" style="display: none;">
+                <div class="reconciliation-head">
+                    <strong>Conciliacion rapida de Caja de Ahorro</strong>
+                    <button id="closeReconciliationBtn" class="reconciliation-close" type="button" aria-label="Cerrar conciliacion">✕</button>
+                </div>
+                <p class="reconciliation-help">Si no queres investigar el origen de la diferencia, ingresa el saldo real de tu Caja de Ahorro y ExpenseLog creara un ajuste automatico.</p>
+                <div class="reconciliation-metrics">
+                    <div class="reconciliation-metric">
+                        <span>Balance app</span>
+                        <strong id="reconciliationAppBalance">-</strong>
+                    </div>
+                    <div class="reconciliation-metric">
+                        <span>Diferencia</span>
+                        <strong id="reconciliationDifference">-</strong>
+                    </div>
+                </div>
+                <form id="reconciliationForm" class="reconciliation-form">
+                    <label for="reconciliationTargetAmount">Saldo real en CA (<span id="reconciliationCurrencyLabel">ARS</span>)</label>
+                    <input type="number" id="reconciliationTargetAmount" step="0.01" required>
+                    <div class="reconciliation-actions">
+                        <button type="submit" class="nav-button button-primary">Aplicar conciliacion</button>
+                    </div>
+                </form>
+                <div id="reconciliationMessage" class="form-message"></div>
             </div>
         </div>
 
@@ -276,6 +303,7 @@
         let filterSource = 'all';
         let categories = [];
         let chartExpanded = false;
+        let latestReconciliationPreview = null;
         const expenseForm = document.getElementById('expenseForm');
         const expenseSubmitButton = expenseForm ? expenseForm.querySelector('button[type="submit"]') : null;
         const movementTypeGroup = movementTypeSelect ? movementTypeSelect.closest('.form-group') : null;
@@ -666,6 +694,61 @@
             }, {});
         }
 
+        function calculateCurrentCABalance(currency = baseCurrency) {
+            const now = new Date();
+            return allExpenses.reduce((sum, exp) => {
+                const source = (exp.source || '').toUpperCase();
+                const expCurrency = exp.currency || baseCurrency;
+                if (!(source === '' || source === 'CA')) return sum;
+                if (expCurrency !== currency) return sum;
+                if (getComparableExpenseDate(exp) > now) return sum;
+                return sum + Number(exp.amount || 0);
+            }, 0);
+        }
+
+        function renderReconciliationPreview(targetAmountRaw) {
+            const appBalance = calculateCurrentCABalance(baseCurrency);
+            const targetAmount = Number(targetAmountRaw);
+            const difference = Number.isFinite(targetAmount) ? targetAmount - appBalance : null;
+            const appBalanceLabel = document.getElementById('reconciliationAppBalance');
+            const differenceLabel = document.getElementById('reconciliationDifference');
+            const currencyLabel = document.getElementById('reconciliationCurrencyLabel');
+            if (currencyLabel) currencyLabel.textContent = baseCurrency.toUpperCase();
+            if (appBalanceLabel) {
+                appBalanceLabel.textContent = formatCurrencyWithCurrency(appBalance, baseCurrency);
+            }
+            if (!differenceLabel) return;
+            if (difference === null) {
+                differenceLabel.textContent = '-';
+                differenceLabel.className = '';
+            } else {
+                differenceLabel.textContent = formatCurrencyWithCurrency(difference, baseCurrency);
+                differenceLabel.className = difference >= 0 ? 'positive' : 'negative';
+            }
+            latestReconciliationPreview = {
+                appBalance,
+                difference,
+                targetAmount,
+                currency: baseCurrency,
+            };
+        }
+
+        function toggleReconciliationPanel(forceVisible) {
+            const container = document.getElementById('reconciliationContainer');
+            if (!container) return;
+            const nextVisible = typeof forceVisible === 'boolean'
+                ? forceVisible
+                : (container.style.display === 'none' || container.style.display === '');
+            container.style.display = nextVisible ? 'block' : 'none';
+            const toggleButton = document.getElementById('toggleReconciliationBtn');
+            if (toggleButton) {
+                toggleButton.setAttribute('aria-expanded', nextVisible ? 'true' : 'false');
+            }
+            if (nextVisible) {
+                renderReconciliationPreview(document.getElementById('reconciliationTargetAmount').value);
+            }
+        }
+
         function getVisiblePeriodExpenses(expenses) {
             const monthExpenses = getMonthExpenses(expenses);
             const now = new Date();
@@ -1013,6 +1096,7 @@
                 updateMonthDisplay();
                 updatePeriodModeBadge();
                 updateChartAndLegend();
+                renderReconciliationPreview(document.getElementById('reconciliationTargetAmount').value);
                 setupTagInput();
                 await refreshLiquidityAlert();
             } catch (error) {
@@ -1255,7 +1339,87 @@
                 showToast('No se pudo agregar el gasto', 'error');
             }
         });
+
+        document.getElementById('reconciliationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const messageDiv = document.getElementById('reconciliationMessage');
+            messageDiv.textContent = '';
+            messageDiv.className = 'form-message';
+
+            const targetRaw = parseFloat(document.getElementById('reconciliationTargetAmount').value);
+            if (!Number.isFinite(targetRaw)) {
+                messageDiv.textContent = 'Ingresa un saldo valido.';
+                messageDiv.className = 'form-message error';
+                return;
+            }
+            renderReconciliationPreview(targetRaw);
+            const preview = latestReconciliationPreview;
+            const difference = Number(preview?.difference || 0);
+
+            if (Math.abs(difference) < 0.005) {
+                messageDiv.textContent = 'No hay diferencia. El balance de la app ya coincide con la CA.';
+                messageDiv.className = 'form-message success';
+                showToast('Sin cambios: balance ya conciliado.', 'success');
+                return;
+            }
+
+            const adjustmentFlow = difference > 0 ? 'income' : 'expense';
+            const adjustmentPayload = {
+                name: 'Ajuste conciliacion CA',
+                category: 'Conciliacion',
+                amount: difference,
+                date: new Date().toISOString(),
+                tags: ['conciliacion', 'ajuste'],
+                currency: baseCurrency,
+                source: 'CA',
+                card: '',
+                flow: adjustmentFlow,
+            };
+
+            try {
+                const response = await fetch('/expense', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(adjustmentPayload),
+                });
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'No se pudo aplicar la conciliacion');
+                }
+
+                const appliedLabel = difference > 0
+                    ? `Ingreso de ajuste ${formatCurrencyWithCurrency(Math.abs(difference), baseCurrency)}`
+                    : `Gasto de ajuste ${formatCurrencyWithCurrency(Math.abs(difference), baseCurrency)}`;
+                messageDiv.textContent = `Conciliacion aplicada: ${appliedLabel}.`;
+                messageDiv.className = 'form-message success';
+                showToast('Conciliacion aplicada con exito', 'success');
+                document.getElementById('reconciliationTargetAmount').value = '';
+                await initialize();
+            } catch (error) {
+                console.error('Error applying reconciliation:', error);
+                messageDiv.textContent = error.message || 'No se pudo aplicar la conciliacion';
+                messageDiv.className = 'form-message error';
+                showToast('No se pudo aplicar la conciliacion', 'error');
+            }
+        });
+
         document.addEventListener('DOMContentLoaded', guardAppInit(initialize));
+
+        document.getElementById('toggleReconciliationBtn').addEventListener('click', () => {
+            toggleReconciliationPanel();
+            const input = document.getElementById('reconciliationTargetAmount');
+            if (input && document.getElementById('reconciliationContainer').style.display === 'block') {
+                input.focus();
+            }
+        });
+
+        document.getElementById('closeReconciliationBtn').addEventListener('click', () => {
+            toggleReconciliationPanel(false);
+        });
+
+        document.getElementById('reconciliationTargetAmount').addEventListener('input', (e) => {
+            renderReconciliationPreview(e.target.value);
+        });
 
         document.getElementById('name').addEventListener('click', (e) => {
             if (e.target.value === '-') {

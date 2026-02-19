@@ -99,6 +99,11 @@ func runServer(port int) {
 	// http.HandleFunc("/tags", handler.GetTags)
 	// http.HandleFunc("/tags/edit", handler.UpdateTags)
 
+	// Reconciliation
+	http.HandleFunc("/reconciliation/apply", handler.RequireAuth(handler.ReconcileBalance))
+	http.HandleFunc("/reconciliation/history", handler.RequireAuth(handler.GetReconciliationHistory))
+	http.HandleFunc("/reconciliation/revert", handler.RequireAuth(handler.RevertReconciliation))
+
 	// Expenses
 	http.HandleFunc("/expense", handler.RequireAuth(handler.AddExpense))                     // PUT for add
 	http.HandleFunc("/expenses", handler.RequireAuth(handler.GetExpenses))                   // GET all
@@ -131,4 +136,3 @@ func main() {
 	flag.Parse()
 	runServer(*port)
 }
-

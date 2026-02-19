@@ -2702,9 +2702,9 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     }
 
     .table-controls {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        align-items: stretch;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         gap: 0.5rem;
     }
 
@@ -2719,11 +2719,14 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     }
 
     .table-controls #toggleTableExpenseFormBtn {
-        grid-column: 1 / -1;
+        width: 100%;
     }
 
-    .table-controls .table-view-switch {
-        grid-column: 1 / -1;
+    .table-view-row {
+        margin: 0.45rem 0 0.65rem;
+    }
+
+    .table-view-row .table-view-switch {
         width: 100%;
     }
 
@@ -3003,6 +3006,14 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
     .financial-calendar-module {
         padding: 0.7rem;
+    }
+
+    .table-data-module {
+        padding: 0.7rem;
+    }
+
+    .table-data-header h3 {
+        font-size: 1.2rem;
     }
 
     .financial-calendar-header h3 {
@@ -3299,9 +3310,15 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: 0.55rem;
     gap: 0.5rem;
     flex-wrap: wrap;
+}
+
+.table-view-row {
+    display: flex;
+    justify-content: center;
+    margin: 0.3rem 0 0.8rem;
 }
 
 .table-controls label {
@@ -3429,6 +3446,32 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 #tableDataModule,
 #calendarDataModule {
     margin-top: 0.55rem;
+}
+
+.table-data-module {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 150%);
+    padding: 1rem;
+    box-shadow: var(--card-shadow);
+}
+
+.table-data-header h3 {
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 1.42rem;
+    color: var(--text-primary);
+}
+
+.table-data-header h3 i {
+    color: var(--accent);
+}
+
+.table-data-header p {
+    margin: 0.35rem 0 1rem 0;
+    color: var(--text-secondary);
 }
 
 .financial-calendar-module {

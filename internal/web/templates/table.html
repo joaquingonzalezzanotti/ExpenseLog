@@ -185,19 +185,6 @@
                 <h3><i class="fa-regular fa-calendar"></i> Calendario financiero</h3>
                 <p>Vista completa de tus movimientos</p>
             </div>
-            <div class="financial-calendar-month">
-                <button id="calendarPrevMonth" class="nav-button" type="button" aria-label="Mes anterior">
-                    <span class="month-nav-arrow" aria-hidden="true">&#8592;</span>
-                </button>
-                <div class="financial-calendar-month-title">
-                    <strong id="calendarMonthTitle"></strong>
-                    <span id="calendarMonthYear"></span>
-                </div>
-                <button id="calendarNextMonth" class="nav-button" type="button" aria-label="Mes siguiente">
-                    <span class="month-nav-arrow" aria-hidden="true">&#8594;</span>
-                </button>
-                <button id="calendarTodayBtn" class="nav-button button-secondary" type="button">Hoy</button>
-            </div>
             <div class="financial-calendar-filters">
                 <div class="calendar-filter-field">
                     <label for="calendarFilterType">Tipo</label>
@@ -350,11 +337,6 @@
         const calendarFilterCategory = document.getElementById('calendarFilterCategory');
         const financialCalendarGrid = document.getElementById('financialCalendarGrid');
         const financialCalendarDetails = document.getElementById('financialCalendarDetails');
-        const calendarMonthTitle = document.getElementById('calendarMonthTitle');
-        const calendarMonthYear = document.getElementById('calendarMonthYear');
-        const calendarTodayBtn = document.getElementById('calendarTodayBtn');
-        const calendarPrevMonth = document.getElementById('calendarPrevMonth');
-        const calendarNextMonth = document.getElementById('calendarNextMonth');
         let activeDataView = 'table';
         let calendarTypeFilter = 'all';
         let calendarCategoryFilter = 'all';
@@ -528,15 +510,9 @@
         }
 
         function buildCalendarDetailsHTML(dayKey, dayExpenses) {
-            if (!dayKey || !dayExpenses || dayExpenses.length === 0) {
+            if (!dayKey) {
                 return '<div class="no-data">Selecciona un dia para ver los movimientos.</div>';
             }
-            const totalIncome = dayExpenses
-                .filter(exp => resolveFlow(exp) !== 'expense')
-                .reduce((acc, exp) => acc + Math.abs(Number(exp.amount) || 0), 0);
-            const totalExpense = dayExpenses
-                .filter(exp => resolveFlow(exp) === 'expense')
-                .reduce((acc, exp) => acc + Math.abs(Number(exp.amount) || 0), 0);
 
             const headerDate = (() => {
                 const [year, month, day] = dayKey.split('-').map(Number);
@@ -548,6 +524,24 @@
                     year: 'numeric',
                 });
             })();
+
+            if (!dayExpenses || dayExpenses.length === 0) {
+                return `
+                    <div class="financial-calendar-details-head">
+                        <div>
+                            <h4>${escapeHTML(headerDate)}</h4>
+                            <p>Sin movimientos en esta fecha.</p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const totalIncome = dayExpenses
+                .filter(exp => resolveFlow(exp) !== 'expense')
+                .reduce((acc, exp) => acc + Math.abs(Number(exp.amount) || 0), 0);
+            const totalExpense = dayExpenses
+                .filter(exp => resolveFlow(exp) === 'expense')
+                .reduce((acc, exp) => acc + Math.abs(Number(exp.amount) || 0), 0);
 
             const rows = dayExpenses
                 .slice()
@@ -561,7 +555,7 @@
                         <li class="financial-calendar-movement ${flowClass}">
                             <div class="financial-calendar-movement-main">
                                 <strong>${escapeHTML(exp.name || '-')}</strong>
-                                <span>${escapeHTML(formatCategoryLabel(exp.category))} · ${escapeHTML(source)}</span>
+                                <span>${escapeHTML(formatCategoryLabel(exp.category))} - ${escapeHTML(source)}</span>
                             </div>
                             <div class="financial-calendar-movement-amount">${amountText}</div>
                         </li>
@@ -585,10 +579,6 @@
 
         function renderFinancialCalendar() {
             if (!calendarDataModule || !financialCalendarGrid || !financialCalendarDetails) return;
-
-            const monthName = currentDate.toLocaleDateString('es-AR', { month: 'long' });
-            if (calendarMonthTitle) calendarMonthTitle.textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1);
-            if (calendarMonthYear) calendarMonthYear.textContent = String(currentDate.getFullYear());
 
             const monthExpenses = getCurrentMonthExpenses(allExpenses);
             const commonFilteredExpenses = applyCommonExpenseFilters(monthExpenses);
@@ -644,8 +634,8 @@
             gridHTML += '</div>';
             financialCalendarGrid.innerHTML = gridHTML;
 
-            if (!selectedCalendarDayKey || !buckets.has(selectedCalendarDayKey)) {
-                selectedCalendarDayKey = firstMovementsDay;
+            if (!selectedCalendarDayKey) {
+                selectedCalendarDayKey = firstMovementsDay || getCalendarDateKey(new Date(year, month, 1, 12, 0, 0, 0));
             }
             financialCalendarDetails.innerHTML = buildCalendarDetailsHTML(selectedCalendarDayKey, buckets.get(selectedCalendarDayKey) || []);
         }
@@ -738,6 +728,20 @@
                                         <span>${(expense.currency || currentCurrency).toUpperCase()}</span>
                                         <span>${formatDateDDMMYYYY(expense.date)}</span>
                                     </div>
+                                    <div class="expense-mobile-actions">
+                                        ${expense.systemLocked ? `
+                                            <button type="button" class="row-mobile-action" data-row-action="manage-reconciliation" aria-label="Gestionar conciliacion">
+                                                <i class="fa-solid fa-sliders"></i>
+                                            </button>
+                                        ` : `
+                                            <button type="button" class="row-mobile-action" data-row-action="edit" data-row-index="${index}" aria-label="Editar">
+                                                <i class="fa-solid fa-pen-to-square"></i>
+                                            </button>
+                                            <button type="button" class="row-mobile-action danger" data-row-action="delete" data-row-id="${expense.id}" aria-label="Borrar">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        `}
+                                    </div>
                                 </td>
                                 <td class="secondary-col col-left"><span class="${expense.systemLocked ? '' : 'editable'}" data-edit="category" data-id="${expense.id}">${highlightText(formatCategoryLabel(expense.category), searchQuery)}</span></td>
                                 <td class="amount amount-value col-right"><span class="${expense.systemLocked ? '' : 'editable'}" data-edit="amount" data-id="${expense.id}">${formatCurrencyWithCurrency(expense.amount, expense.currency || currentCurrency, compactAmounts)}</span></td>
@@ -757,25 +761,6 @@
                                             <button class="delete-button" onclick="handleDeleteClick(event, '${expense.id}')">
                                                 <i class="fa-solid fa-trash-can"></i>
                                             </button>
-                                        `}
-                                    </div>
-                                    <div class="row-actions-mobile">
-                                        ${expense.systemLocked ? `
-                                            <button type="button" class="row-menu-toggle" data-row-action="manage-reconciliation" aria-label="Gestionar conciliacion">
-                                                <i class="fa-solid fa-sliders"></i>
-                                            </button>
-                                        ` : `
-                                            <button type="button" class="row-menu-toggle" data-row-menu-toggle aria-label="Acciones del movimiento" aria-expanded="false">
-                                                <i class="fa-solid fa-ellipsis-vertical"></i>
-                                            </button>
-                                            <div class="row-menu" role="menu">
-                                                <button type="button" class="row-menu-item" data-row-action="edit" data-row-index="${index}">
-                                                    <i class="fa-solid fa-pen-to-square"></i> Editar
-                                                </button>
-                                                <button type="button" class="row-menu-item danger" data-row-action="delete" data-row-id="${expense.id}">
-                                                    <i class="fa-solid fa-trash-can"></i> Borrar
-                                                </button>
-                                            </div>
                                         `}
                                     </div>
                                 </td>
@@ -1169,33 +1154,6 @@
             renderFinancialCalendar();
         });
 
-        calendarTodayBtn?.addEventListener('click', () => {
-            currentDate = new Date();
-            updateMonthDisplay();
-            updatePeriodModeBadge();
-            showAllMobileRows = false;
-            selectedCalendarDayKey = '';
-            updateTable();
-        });
-
-        calendarPrevMonth?.addEventListener('click', () => {
-            currentDate.setMonth(currentDate.getMonth() - 1);
-            updateMonthDisplay();
-            updatePeriodModeBadge();
-            showAllMobileRows = false;
-            selectedCalendarDayKey = '';
-            updateTable();
-        });
-
-        calendarNextMonth?.addEventListener('click', () => {
-            currentDate.setMonth(currentDate.getMonth() + 1);
-            updateMonthDisplay();
-            updatePeriodModeBadge();
-            showAllMobileRows = false;
-            selectedCalendarDayKey = '';
-            updateTable();
-        });
-
         if (toggleTableExpenseFormBtn) {
             toggleTableExpenseFormBtn.addEventListener('click', () => {
                 setTableFormExpanded(true);
@@ -1508,7 +1466,6 @@
         }
         
         window.editExpenseByIndex = editExpenseByIndex;
-    </script>
+</script>
 </body>
 </html>
-

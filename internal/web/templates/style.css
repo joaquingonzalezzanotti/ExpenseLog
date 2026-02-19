@@ -780,6 +780,36 @@ html[data-theme='light'] #nextMonth {
     padding: 0.08rem 0.42rem;
 }
 
+.expense-mobile-actions {
+    display: none;
+    margin-top: 0.38rem;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.35rem;
+}
+
+.row-mobile-action {
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--border);
+    background-color: var(--bg-primary);
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.row-mobile-action.danger {
+    color: var(--danger);
+}
+
+.row-mobile-action:hover {
+    border-color: rgba(37, 99, 235, 0.26);
+    color: var(--accent);
+}
+
 .row-actions-desktop {
     display: inline-flex;
     align-items: center;
@@ -2776,12 +2806,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
     .expense-table td.actions-col,
     .expense-table th.actions-col {
-        width: 52px;
-        min-width: 52px;
-        text-align: right;
-        padding-left: 0.2rem;
-        padding-right: 0.35rem;
-        white-space: nowrap;
+        display: none;
     }
 
     .row-actions-desktop {
@@ -2789,9 +2814,14 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     }
 
     .row-actions-mobile {
-        display: inline-flex;
+        display: none;
         width: 100%;
         justify-content: flex-end;
+    }
+
+    .expense-mobile-actions {
+        display: inline-flex;
+        width: 100%;
     }
 
     .quick-actions {
@@ -3506,8 +3536,8 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 }
 
 .financial-calendar-day .day-badge.income {
-    background-color: rgba(37, 99, 235, 0.14);
-    color: var(--accent);
+    background-color: var(--success-soft);
+    color: var(--success);
 }
 
 .financial-calendar-day .day-badge.expense {

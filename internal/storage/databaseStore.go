@@ -3,10 +3,13 @@ package storage
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -92,7 +95,26 @@ const (
 		flow VARCHAR(20) NOT NULL DEFAULT 'expense',
 		tags TEXT,
 		source VARCHAR(50),
-		card VARCHAR(100)
+		card VARCHAR(100),
+		system_origin VARCHAR(50) NOT NULL DEFAULT 'user',
+		system_locked BOOLEAN NOT NULL DEFAULT FALSE
+	);`
+
+	createReconciliationsTableSQL = `
+	CREATE TABLE IF NOT EXISTS reconciliations (
+		id VARCHAR(36) PRIMARY KEY,
+		user_id VARCHAR(36) NOT NULL,
+		adjustment_expense_id VARCHAR(36) NOT NULL,
+		reversal_expense_id VARCHAR(36),
+		target_balance NUMERIC(14, 2),
+		app_balance_before NUMERIC(14, 2),
+		delta_amount NUMERIC(14, 2) NOT NULL,
+		currency VARCHAR(3) NOT NULL,
+		note TEXT,
+		idempotency_key VARCHAR(120),
+		status VARCHAR(20) NOT NULL DEFAULT 'applied',
+		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		reverted_at TIMESTAMPTZ
 	);`
 
 	createRecurringExpensesTableSQL = `
@@ -165,6 +187,7 @@ func createTables(db *sql.DB) error {
 		createOAuthIdentitiesTableSQL,
 		createUserConfigTableSQL,
 		createExpensesTableSQL,
+		createReconciliationsTableSQL,
 		createRecurringExpensesTableSQL,
 		createConfigTableSQL,
 		createCategoriesTableSQL,
@@ -179,12 +202,21 @@ func createTables(db *sql.DB) error {
 		"ALTER TABLE expenses ADD COLUMN IF NOT EXISTS source VARCHAR(50)",
 		"ALTER TABLE expenses ADD COLUMN IF NOT EXISTS card VARCHAR(100)",
 		"ALTER TABLE expenses ADD COLUMN IF NOT EXISTS flow VARCHAR(20) NOT NULL DEFAULT 'expense'",
+		"ALTER TABLE expenses ADD COLUMN IF NOT EXISTS system_origin VARCHAR(50) NOT NULL DEFAULT 'user'",
+		"ALTER TABLE expenses ADD COLUMN IF NOT EXISTS system_locked BOOLEAN NOT NULL DEFAULT FALSE",
 		"ALTER TABLE recurring_expenses ADD COLUMN IF NOT EXISTS user_id VARCHAR(36)",
 		"ALTER TABLE recurring_expenses ADD COLUMN IF NOT EXISTS currency VARCHAR(3) NOT NULL DEFAULT 'usd'",
 		"ALTER TABLE recurring_expenses ADD COLUMN IF NOT EXISTS flow VARCHAR(20) NOT NULL DEFAULT 'expense'",
 		"ALTER TABLE categories ADD COLUMN IF NOT EXISTS user_id VARCHAR(36)",
 		"ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT NOT NULL DEFAULT ''",
 		"ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL",
+		"ALTER TABLE reconciliations ADD COLUMN IF NOT EXISTS target_balance NUMERIC(14, 2)",
+		"ALTER TABLE reconciliations ADD COLUMN IF NOT EXISTS app_balance_before NUMERIC(14, 2)",
+		"ALTER TABLE reconciliations ADD COLUMN IF NOT EXISTS note TEXT",
+		"ALTER TABLE reconciliations ADD COLUMN IF NOT EXISTS idempotency_key VARCHAR(120)",
+		"ALTER TABLE reconciliations ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'applied'",
+		"ALTER TABLE reconciliations ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+		"ALTER TABLE reconciliations ADD COLUMN IF NOT EXISTS reverted_at TIMESTAMPTZ",
 	}
 	for _, stmt := range alterStmts {
 		if _, err := db.Exec(stmt); err != nil {
@@ -198,6 +230,21 @@ func createTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS expenses_user_date_idx ON expenses (user_id, date DESC)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS expenses_user_system_locked_idx ON expenses (user_id, system_locked)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS reconciliations_adjustment_expense_key ON reconciliations (adjustment_expense_id)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS reconciliations_reversal_expense_key ON reconciliations (reversal_expense_id) WHERE reversal_expense_id IS NOT NULL`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS reconciliations_user_idempotency_key ON reconciliations (user_id, idempotency_key) WHERE idempotency_key IS NOT NULL AND idempotency_key <> ''`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS reconciliations_user_created_idx ON reconciliations (user_id, created_at DESC)`); err != nil {
 		return err
 	}
 	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS recurring_expenses_user_idx ON recurring_expenses (user_id)`); err != nil {
@@ -222,6 +269,9 @@ func createTables(db *sql.DB) error {
 		return err
 	}
 	if err := ensureRecurringInstanceUniqueIndex(db); err != nil {
+		return err
+	}
+	if err := backfillLegacyReconciliations(db); err != nil {
 		return err
 	}
 	if _, err := db.Exec(`UPDATE expenses SET flow = CASE WHEN amount >= 0 THEN 'income' ELSE 'expense' END WHERE flow IS NULL OR flow = ''`); err != nil {
@@ -280,16 +330,20 @@ func ensureForeignKeys(db *sql.DB) error {
 		column    string
 		refTable  string
 		refColumn string
+		onDelete  string
 	}
 	fks := []fk{
-		{name: "sessions_user_fk", table: "sessions", column: "user_id", refTable: "users", refColumn: "id"},
-		{name: "password_resets_user_fk", table: "password_resets", column: "user_id", refTable: "users", refColumn: "id"},
-		{name: "email_verifications_user_fk", table: "email_verifications", column: "user_id", refTable: "users", refColumn: "id"},
-		{name: "oauth_identities_user_fk", table: "oauth_identities", column: "user_id", refTable: "users", refColumn: "id"},
-		{name: "user_config_user_fk", table: "user_config", column: "user_id", refTable: "users", refColumn: "id"},
-		{name: "categories_user_fk", table: "categories", column: "user_id", refTable: "users", refColumn: "id"},
-		{name: "expenses_user_fk", table: "expenses", column: "user_id", refTable: "users", refColumn: "id"},
-		{name: "recurring_expenses_user_fk", table: "recurring_expenses", column: "user_id", refTable: "users", refColumn: "id"},
+		{name: "sessions_user_fk", table: "sessions", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
+		{name: "password_resets_user_fk", table: "password_resets", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
+		{name: "email_verifications_user_fk", table: "email_verifications", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
+		{name: "oauth_identities_user_fk", table: "oauth_identities", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
+		{name: "user_config_user_fk", table: "user_config", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
+		{name: "categories_user_fk", table: "categories", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
+		{name: "expenses_user_fk", table: "expenses", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
+		{name: "recurring_expenses_user_fk", table: "recurring_expenses", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
+		{name: "reconciliations_user_fk", table: "reconciliations", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
+		{name: "reconciliations_adjustment_fk", table: "reconciliations", column: "adjustment_expense_id", refTable: "expenses", refColumn: "id", onDelete: "RESTRICT"},
+		{name: "reconciliations_reversal_fk", table: "reconciliations", column: "reversal_expense_id", refTable: "expenses", refColumn: "id", onDelete: "RESTRICT"},
 	}
 
 	for _, fkDef := range fks {
@@ -302,11 +356,12 @@ func ensureForeignKeys(db *sql.DB) error {
 		}
 		var orphans int
 		orphansQuery := fmt.Sprintf(
-			`SELECT COUNT(1) FROM %s t LEFT JOIN %s r ON t.%s = r.%s WHERE r.%s IS NULL`,
+			`SELECT COUNT(1) FROM %s t LEFT JOIN %s r ON t.%s = r.%s WHERE t.%s IS NOT NULL AND r.%s IS NULL`,
 			fkDef.table,
 			fkDef.refTable,
 			fkDef.column,
 			fkDef.refColumn,
+			fkDef.column,
 			fkDef.refColumn,
 		)
 		if err := db.QueryRow(orphansQuery).Scan(&orphans); err != nil {
@@ -317,12 +372,13 @@ func ensureForeignKeys(db *sql.DB) error {
 			continue
 		}
 		stmt := fmt.Sprintf(
-			`ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s) ON DELETE CASCADE`,
+			`ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s) ON DELETE %s`,
 			fkDef.table,
 			fkDef.name,
 			fkDef.column,
 			fkDef.refTable,
 			fkDef.refColumn,
+			fkDef.onDelete,
 		)
 		if _, err := db.Exec(stmt); err != nil {
 			return err
@@ -344,6 +400,151 @@ func cleanupExpiredPasswordResets(db *sql.DB) error {
 func cleanupExpiredEmailVerifications(db *sql.DB) error {
 	_, err := db.Exec(`DELETE FROM email_verifications WHERE verified_at IS NOT NULL OR expires_at < NOW()`)
 	return err
+}
+
+const (
+	systemOriginUser                     = "user"
+	systemOriginReconciliationAdjustment = "reconciliation_adjustment"
+	systemOriginReconciliationReversal   = "reconciliation_reversal"
+)
+
+func backfillLegacyReconciliations(db *sql.DB) error {
+	type expenseRow struct {
+		ID       string
+		UserID   string
+		Name     string
+		Category string
+		Amount   float64
+		Currency string
+		Date     time.Time
+		TagsRaw  sql.NullString
+	}
+
+	normalize := func(s string) string {
+		return strings.ToLower(strings.TrimSpace(s))
+	}
+	isReconCategory := func(category string) bool {
+		n := normalize(category)
+		return n == "_conciliacion" || n == "conciliacion"
+	}
+	isAdjustmentName := func(name string) bool {
+		return strings.Contains(normalize(name), "ajuste conciliacion")
+	}
+	isReversalName := func(name string) bool {
+		return strings.Contains(normalize(name), "reversion ajuste conciliacion")
+	}
+	parseTags := func(raw sql.NullString) []string {
+		if !raw.Valid || strings.TrimSpace(raw.String) == "" {
+			return nil
+		}
+		var tags []string
+		if err := json.Unmarshal([]byte(raw.String), &tags); err != nil {
+			return nil
+		}
+		return tags
+	}
+	extractTagValue := func(tags []string, key string) string {
+		key = strings.ToLower(strings.TrimSpace(key))
+		for _, tag := range tags {
+			raw := strings.TrimSpace(tag)
+			lower := strings.ToLower(raw)
+			if !strings.HasPrefix(lower, key) {
+				continue
+			}
+			value := strings.TrimSpace(raw[len(key):])
+			value = strings.TrimLeft(value, ":=_- ")
+			if value != "" {
+				return value
+			}
+		}
+		return ""
+	}
+	parseTagFloat := func(tags []string, key string) *float64 {
+		value := extractTagValue(tags, key)
+		if value == "" {
+			return nil
+		}
+		v, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return nil
+		}
+		return &v
+	}
+
+	rows, err := db.Query(`SELECT id, user_id, name, category, amount, currency, date, tags FROM expenses`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var adjustments []expenseRow
+	var reversals []expenseRow
+	for rows.Next() {
+		var row expenseRow
+		if err := rows.Scan(&row.ID, &row.UserID, &row.Name, &row.Category, &row.Amount, &row.Currency, &row.Date, &row.TagsRaw); err != nil {
+			return err
+		}
+		if !isReconCategory(row.Category) {
+			continue
+		}
+		if isReversalName(row.Name) {
+			reversals = append(reversals, row)
+			continue
+		}
+		if isAdjustmentName(row.Name) {
+			adjustments = append(adjustments, row)
+		}
+	}
+
+	for _, adj := range adjustments {
+		var exists bool
+		if err := db.QueryRow(`SELECT EXISTS(SELECT 1 FROM reconciliations WHERE adjustment_expense_id = $1)`, adj.ID).Scan(&exists); err != nil {
+			return err
+		}
+		if exists {
+			if _, err := db.Exec(`UPDATE expenses SET system_origin = $1, system_locked = TRUE WHERE id = $2`, systemOriginReconciliationAdjustment, adj.ID); err != nil {
+				return err
+			}
+			continue
+		}
+		tags := parseTags(adj.TagsRaw)
+		target := parseTagFloat(tags, "target")
+		before := parseTagFloat(tags, "before")
+		idem := extractTagValue(tags, "idem")
+		note := extractTagValue(tags, "note")
+
+		recID := uuid.New().String()
+		if _, err := db.Exec(`
+			INSERT INTO reconciliations (id, user_id, adjustment_expense_id, target_balance, app_balance_before, delta_amount, currency, note, idempotency_key, status, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, NULLIF($8, ''), NULLIF($9, ''), 'applied', $10)
+			ON CONFLICT (adjustment_expense_id) DO NOTHING
+		`, recID, adj.UserID, adj.ID, target, before, adj.Amount, strings.ToLower(strings.TrimSpace(adj.Currency)), note, idem, adj.Date); err != nil {
+			return err
+		}
+		if _, err := db.Exec(`UPDATE expenses SET system_origin = $1, system_locked = TRUE WHERE id = $2`, systemOriginReconciliationAdjustment, adj.ID); err != nil {
+			return err
+		}
+	}
+
+	for _, rev := range reversals {
+		tags := parseTags(rev.TagsRaw)
+		ref := strings.TrimSpace(extractTagValue(tags, "reversed"))
+		if ref == "" {
+			continue
+		}
+		if _, err := db.Exec(`
+			UPDATE reconciliations
+			SET reversal_expense_id = $1, status = 'reverted', reverted_at = COALESCE(reverted_at, $2)
+			WHERE adjustment_expense_id = $3
+		`, rev.ID, rev.Date, ref); err != nil {
+			return err
+		}
+		if _, err := db.Exec(`UPDATE expenses SET system_origin = $1, system_locked = TRUE WHERE id = $2`, systemOriginReconciliationReversal, rev.ID); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func updateDefaultCategoriesToSpanish(db *sql.DB) error {
@@ -989,6 +1190,8 @@ func scanExpense(scanner interface{ Scan(...any) error }) (Expense, error) {
 	var recurringID sql.NullString
 	var source sql.NullString
 	var card sql.NullString
+	var systemOrigin sql.NullString
+	var systemLocked sql.NullBool
 	err := scanner.Scan(
 		&expense.ID,
 		&recurringID,
@@ -1001,6 +1204,8 @@ func scanExpense(scanner interface{ Scan(...any) error }) (Expense, error) {
 		&tagsStr,
 		&source,
 		&card,
+		&systemOrigin,
+		&systemLocked,
 	)
 	if err != nil {
 		return Expense{}, err
@@ -1014,6 +1219,12 @@ func scanExpense(scanner interface{ Scan(...any) error }) (Expense, error) {
 	if card.Valid {
 		expense.Card = card.String
 	}
+	if systemOrigin.Valid {
+		expense.SystemOrigin = systemOrigin.String
+	}
+	if systemLocked.Valid {
+		expense.SystemLocked = systemLocked.Bool
+	}
 	if tagsStr.Valid && tagsStr.String != "" {
 		if err := json.Unmarshal([]byte(tagsStr.String), &expense.Tags); err != nil {
 			return Expense{}, fmt.Errorf("failed to parse tags for expense %s: %v", expense.ID, err)
@@ -1023,7 +1234,7 @@ func scanExpense(scanner interface{ Scan(...any) error }) (Expense, error) {
 }
 
 func (s *databaseStore) GetAllExpenses(userID string) ([]Expense, error) {
-	query := `SELECT id, recurring_id, name, category, amount, currency, date, flow, tags, source, card FROM expenses WHERE user_id = $1 ORDER BY date DESC`
+	query := `SELECT id, recurring_id, name, category, amount, currency, date, flow, tags, source, card, system_origin, system_locked FROM expenses WHERE user_id = $1 ORDER BY date DESC`
 	rows, err := s.db.Query(query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query expenses: %v", err)
@@ -1042,7 +1253,7 @@ func (s *databaseStore) GetAllExpenses(userID string) ([]Expense, error) {
 }
 
 func (s *databaseStore) GetExpense(userID, id string) (Expense, error) {
-	query := `SELECT id, recurring_id, name, category, amount, currency, date, flow, tags, source, card FROM expenses WHERE user_id = $1 AND id = $2`
+	query := `SELECT id, recurring_id, name, category, amount, currency, date, flow, tags, source, card, system_origin, system_locked FROM expenses WHERE user_id = $1 AND id = $2`
 	expense, err := scanExpense(s.db.QueryRow(query, userID, id))
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -1072,19 +1283,32 @@ func (s *databaseStore) AddExpense(userID string, expense Expense) error {
 	if expense.Date.IsZero() {
 		expense.Date = time.Now()
 	}
+	expense.SystemOrigin = systemOriginUser
+	expense.SystemLocked = false
 	tagsJSON, err := json.Marshal(expense.Tags)
 	if err != nil {
 		return err
 	}
 	query := `
-		INSERT INTO expenses (id, user_id, recurring_id, name, category, amount, currency, date, flow, tags, source, card)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		INSERT INTO expenses (id, user_id, recurring_id, name, category, amount, currency, date, flow, tags, source, card, system_origin, system_locked)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 	`
-	_, err = s.db.Exec(query, expense.ID, userID, expense.RecurringID, expense.Name, expense.Category, expense.Amount, expense.Currency, expense.Date, expense.Flow, string(tagsJSON), expense.Source, expense.Card)
+	_, err = s.db.Exec(query, expense.ID, userID, expense.RecurringID, expense.Name, expense.Category, expense.Amount, expense.Currency, expense.Date, expense.Flow, string(tagsJSON), expense.Source, expense.Card, expense.SystemOrigin, expense.SystemLocked)
 	return err
 }
 
 func (s *databaseStore) UpdateExpense(userID, id string, expense Expense) error {
+	var isLocked bool
+	if err := s.db.QueryRow(`SELECT system_locked FROM expenses WHERE user_id = $1 AND id = $2`, userID, id).Scan(&isLocked); err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("expense with ID %s not found", id)
+		}
+		return fmt.Errorf("failed to check expense lock: %v", err)
+	}
+	if isLocked {
+		return ErrSystemLockedExpense
+	}
+
 	tagsJSON, err := json.Marshal(expense.Tags)
 	if err != nil {
 		return err
@@ -1122,6 +1346,17 @@ func (s *databaseStore) UpdateExpense(userID, id string, expense Expense) error 
 }
 
 func (s *databaseStore) RemoveExpense(userID, id string) error {
+	var isLocked bool
+	if err := s.db.QueryRow(`SELECT system_locked FROM expenses WHERE user_id = $1 AND id = $2`, userID, id).Scan(&isLocked); err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("expense with ID %s not found", id)
+		}
+		return fmt.Errorf("failed to check expense lock: %v", err)
+	}
+	if isLocked {
+		return ErrSystemLockedExpense
+	}
+
 	query := `DELETE FROM expenses WHERE user_id = $1 AND id = $2`
 	result, err := s.db.Exec(query, userID, id)
 	if err != nil {
@@ -1154,12 +1389,384 @@ func (s *databaseStore) RemoveMultipleExpenses(userID string, ids []string) erro
 	if len(ids) == 0 {
 		return nil
 	}
+	var lockedCount int
+	if err := s.db.QueryRow(`SELECT COUNT(1) FROM expenses WHERE user_id = $1 AND id = ANY($2) AND system_locked = TRUE`, userID, pq.Array(ids)).Scan(&lockedCount); err != nil {
+		return fmt.Errorf("failed to validate system-locked expenses: %v", err)
+	}
+	if lockedCount > 0 {
+		return ErrSystemLockedExpense
+	}
 	query := `DELETE FROM expenses WHERE user_id = $1 AND id = ANY($2)`
 	_, err := s.db.Exec(query, userID, pq.Array(ids))
 	if err != nil {
 		return fmt.Errorf("failed to delete multiple expenses: %v", err)
 	}
 	return nil
+}
+
+func normalizeCurrencyCode(currency string) string {
+	normalized := strings.ToLower(strings.TrimSpace(currency))
+	if normalized == "" {
+		return "ars"
+	}
+	return normalized
+}
+
+func (s *databaseStore) userCurrencyTx(tx *sql.Tx, userID string) (string, error) {
+	var currency string
+	if err := tx.QueryRow(`SELECT currency FROM user_config WHERE user_id = $1`, userID).Scan(&currency); err != nil {
+		if err == sql.ErrNoRows {
+			return "ars", nil
+		}
+		return "", err
+	}
+	return normalizeCurrencyCode(currency), nil
+}
+
+func (s *databaseStore) currentCABalanceTx(tx *sql.Tx, userID, currency string, now time.Time) (float64, error) {
+	var balance float64
+	if err := tx.QueryRow(`
+		SELECT COALESCE(SUM(amount), 0)
+		FROM expenses
+		WHERE user_id = $1
+		  AND LOWER(COALESCE(currency, '')) = LOWER($2)
+		  AND (source IS NULL OR source = '' OR UPPER(source) = 'CA')
+		  AND date <= $3
+	`, userID, currency, now).Scan(&balance); err != nil {
+		return 0, err
+	}
+	return balance, nil
+}
+
+func scanReconciliationRecord(scanner interface{ Scan(...any) error }) (ReconciliationRecord, error) {
+	var rec ReconciliationRecord
+	var target sql.NullFloat64
+	var before sql.NullFloat64
+	var note sql.NullString
+	var idem sql.NullString
+	var reversalID sql.NullString
+	var revertedAt sql.NullTime
+	if err := scanner.Scan(
+		&rec.ID,
+		&rec.UserID,
+		&rec.AdjustmentExpenseID,
+		&reversalID,
+		&target,
+		&before,
+		&rec.DeltaAmount,
+		&rec.Currency,
+		&note,
+		&idem,
+		&rec.Status,
+		&rec.CreatedAt,
+		&revertedAt,
+	); err != nil {
+		return ReconciliationRecord{}, err
+	}
+	if target.Valid {
+		v := target.Float64
+		rec.TargetBalance = &v
+	}
+	if before.Valid {
+		v := before.Float64
+		rec.AppBalanceBefore = &v
+	}
+	if note.Valid {
+		rec.Note = note.String
+	}
+	if idem.Valid {
+		rec.IdempotencyKey = idem.String
+	}
+	if reversalID.Valid {
+		rec.ReversalExpenseID = reversalID.String
+	}
+	if revertedAt.Valid {
+		v := revertedAt.Time
+		rec.RevertedAt = &v
+	}
+	return rec, nil
+}
+
+func (s *databaseStore) getReconciliationByIdempotencyTx(tx *sql.Tx, userID, idempotencyKey string) (ReconciliationRecord, error) {
+	query := `
+		SELECT id, user_id, adjustment_expense_id, reversal_expense_id, target_balance, app_balance_before, delta_amount, currency, note, idempotency_key, status, created_at, reverted_at
+		FROM reconciliations
+		WHERE user_id = $1 AND idempotency_key = $2
+		ORDER BY created_at DESC
+		LIMIT 1
+	`
+	return scanReconciliationRecord(tx.QueryRow(query, userID, idempotencyKey))
+}
+
+func (s *databaseStore) getExpenseTx(tx *sql.Tx, userID, id string) (Expense, error) {
+	query := `SELECT id, recurring_id, name, category, amount, currency, date, flow, tags, source, card, system_origin, system_locked FROM expenses WHERE user_id = $1 AND id = $2`
+	expense, err := scanExpense(tx.QueryRow(query, userID, id))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return Expense{}, fmt.Errorf("expense with ID %s not found", id)
+		}
+		return Expense{}, err
+	}
+	return expense, nil
+}
+
+func (s *databaseStore) insertSystemExpenseTx(tx *sql.Tx, userID string, expense Expense) error {
+	if expense.ID == "" {
+		expense.ID = uuid.New().String()
+	}
+	if expense.Flow == "" {
+		if expense.Amount >= 0 {
+			expense.Flow = "income"
+		} else {
+			expense.Flow = "expense"
+		}
+	}
+	if expense.Currency == "" {
+		expense.Currency = "ars"
+	}
+	if expense.Date.IsZero() {
+		expense.Date = time.Now()
+	}
+	tagsJSON, err := json.Marshal(expense.Tags)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(`
+		INSERT INTO expenses (id, user_id, recurring_id, name, category, amount, currency, date, flow, tags, source, card, system_origin, system_locked)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+	`, expense.ID, userID, expense.RecurringID, expense.Name, expense.Category, expense.Amount, expense.Currency, expense.Date, expense.Flow, string(tagsJSON), expense.Source, expense.Card, expense.SystemOrigin, expense.SystemLocked)
+	return err
+}
+
+func (s *databaseStore) ApplyReconciliation(userID string, input ReconciliationApplyInput) (ReconciliationApplyResult, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return ReconciliationApplyResult{}, err
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	now := input.Now
+	if now.IsZero() {
+		now = time.Now()
+	}
+
+	currency := normalizeCurrencyCode(input.Currency)
+	if strings.TrimSpace(input.Currency) == "" {
+		currency, err = s.userCurrencyTx(tx, userID)
+		if err != nil {
+			return ReconciliationApplyResult{}, err
+		}
+	}
+
+	currentBalance, err := s.currentCABalanceTx(tx, userID, currency, now)
+	if err != nil {
+		return ReconciliationApplyResult{}, err
+	}
+
+	difference := input.TargetBalance - currentBalance
+	if math.Abs(difference) < 0.005 {
+		if err := tx.Commit(); err != nil {
+			return ReconciliationApplyResult{}, err
+		}
+		return ReconciliationApplyResult{
+			Status:         "noop",
+			CurrentBalance: currentBalance,
+			Difference:     0,
+			Currency:       currency,
+		}, nil
+	}
+
+	idempotencyKey := strings.TrimSpace(input.IdempotencyKey)
+	if idempotencyKey != "" {
+		existing, findErr := s.getReconciliationByIdempotencyTx(tx, userID, idempotencyKey)
+		if findErr == nil {
+			exp, getErr := s.getExpenseTx(tx, userID, existing.AdjustmentExpenseID)
+			if getErr != nil {
+				return ReconciliationApplyResult{}, getErr
+			}
+			if err := tx.Commit(); err != nil {
+				return ReconciliationApplyResult{}, err
+			}
+			return ReconciliationApplyResult{
+				Status:         "duplicate",
+				Expense:        exp,
+				CurrentBalance: currentBalance,
+				Difference:     difference,
+				Currency:       currency,
+			}, nil
+		}
+		if !errors.Is(findErr, sql.ErrNoRows) {
+			return ReconciliationApplyResult{}, findErr
+		}
+	}
+
+	flow := "expense"
+	if difference > 0 {
+		flow = "income"
+	}
+	adjustment := Expense{
+		ID:           uuid.New().String(),
+		Name:         "Ajuste conciliacion CA",
+		Category:     "_Conciliacion",
+		Amount:       difference,
+		Currency:     currency,
+		Source:       "CA",
+		Card:         "",
+		Flow:         flow,
+		Date:         now,
+		SystemOrigin: systemOriginReconciliationAdjustment,
+		SystemLocked: true,
+	}
+	if err := adjustment.Validate(); err != nil {
+		return ReconciliationApplyResult{}, err
+	}
+	if err := s.insertSystemExpenseTx(tx, userID, adjustment); err != nil {
+		return ReconciliationApplyResult{}, err
+	}
+
+	recID := uuid.New().String()
+	_, err = tx.Exec(`
+		INSERT INTO reconciliations (id, user_id, adjustment_expense_id, target_balance, app_balance_before, delta_amount, currency, note, idempotency_key, status, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, NULLIF($8, ''), NULLIF($9, ''), 'applied', $10)
+	`, recID, userID, adjustment.ID, input.TargetBalance, currentBalance, difference, currency, strings.TrimSpace(input.Note), idempotencyKey, now)
+	if err != nil {
+		var pgErr *pq.Error
+		if errors.As(err, &pgErr) && string(pgErr.Code) == "23505" && strings.Contains(strings.ToLower(pgErr.Constraint), "reconciliations_user_idempotency_key") {
+			existing, findErr := s.getReconciliationByIdempotencyTx(tx, userID, idempotencyKey)
+			if findErr != nil {
+				return ReconciliationApplyResult{}, err
+			}
+			exp, getErr := s.getExpenseTx(tx, userID, existing.AdjustmentExpenseID)
+			if getErr != nil {
+				return ReconciliationApplyResult{}, getErr
+			}
+			if err := tx.Commit(); err != nil {
+				return ReconciliationApplyResult{}, err
+			}
+			return ReconciliationApplyResult{
+				Status:         "duplicate",
+				Expense:        exp,
+				CurrentBalance: currentBalance,
+				Difference:     difference,
+				Currency:       currency,
+			}, nil
+		}
+		return ReconciliationApplyResult{}, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return ReconciliationApplyResult{}, err
+	}
+
+	return ReconciliationApplyResult{
+		Status:         "applied",
+		Expense:        adjustment,
+		CurrentBalance: currentBalance,
+		Difference:     difference,
+		Currency:       currency,
+	}, nil
+}
+
+func (s *databaseStore) GetReconciliationHistory(userID string) ([]ReconciliationRecord, error) {
+	rows, err := s.db.Query(`
+		SELECT id, user_id, adjustment_expense_id, reversal_expense_id, target_balance, app_balance_before, delta_amount, currency, note, idempotency_key, status, created_at, reverted_at
+		FROM reconciliations
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := make([]ReconciliationRecord, 0)
+	for rows.Next() {
+		rec, scanErr := scanReconciliationRecord(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		items = append(items, rec)
+	}
+	return items, nil
+}
+
+func (s *databaseStore) RevertReconciliation(userID, adjustmentExpenseID string, now time.Time) (Expense, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return Expense{}, err
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	if now.IsZero() {
+		now = time.Now()
+	}
+
+	rec, err := scanReconciliationRecord(tx.QueryRow(`
+		SELECT id, user_id, adjustment_expense_id, reversal_expense_id, target_balance, app_balance_before, delta_amount, currency, note, idempotency_key, status, created_at, reverted_at
+		FROM reconciliations
+		WHERE user_id = $1 AND adjustment_expense_id = $2
+		LIMIT 1
+	`, userID, adjustmentExpenseID))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Expense{}, ErrReconciliationNotFound
+		}
+		return Expense{}, err
+	}
+	if strings.EqualFold(rec.Status, "reverted") || strings.TrimSpace(rec.ReversalExpenseID) != "" {
+		return Expense{}, ErrReconciliationAlreadyReverted
+	}
+
+	adjustment, err := s.getExpenseTx(tx, userID, rec.AdjustmentExpenseID)
+	if err != nil {
+		return Expense{}, err
+	}
+
+	reversalAmount := -adjustment.Amount
+	flow := "expense"
+	if reversalAmount > 0 {
+		flow = "income"
+	}
+	reversal := Expense{
+		ID:           uuid.New().String(),
+		Name:         "Reversion ajuste conciliacion CA",
+		Category:     "_Conciliacion",
+		Amount:       reversalAmount,
+		Currency:     normalizeCurrencyCode(adjustment.Currency),
+		Source:       "CA",
+		Flow:         flow,
+		Date:         now,
+		SystemOrigin: systemOriginReconciliationReversal,
+		SystemLocked: true,
+	}
+	if err := reversal.Validate(); err != nil {
+		return Expense{}, err
+	}
+	if err := s.insertSystemExpenseTx(tx, userID, reversal); err != nil {
+		return Expense{}, err
+	}
+
+	_, err = tx.Exec(`
+		UPDATE reconciliations
+		SET reversal_expense_id = $1, status = 'reverted', reverted_at = $2
+		WHERE id = $3
+	`, reversal.ID, now, rec.ID)
+	if err != nil {
+		return Expense{}, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return Expense{}, err
+	}
+	return reversal, nil
 }
 
 func scanRecurringExpense(scanner interface{ Scan(...any) error }) (RecurringExpense, error) {

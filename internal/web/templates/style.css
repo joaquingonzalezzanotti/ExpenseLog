@@ -531,6 +531,91 @@ html[data-theme='light'] #nextMonth {
     font-weight: 700;
 }
 
+.quick-action[data-action="reconcile"] {
+    border-color: rgba(20, 184, 166, 0.45);
+}
+
+.reconciliation-container {
+    margin-top: 0.75rem;
+    border: 1px solid var(--border);
+    background-color: var(--bg-secondary);
+    border-radius: 10px;
+    padding: 0.9rem;
+}
+
+.reconciliation-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.reconciliation-close {
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: var(--radius-pill);
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+}
+
+.reconciliation-help {
+    margin: 0.5rem 0 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.reconciliation-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.reconciliation-metric {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.45rem 0.6rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.reconciliation-metric span {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.reconciliation-metric strong {
+    font-size: 1rem;
+}
+
+#reconciliationDifference.positive {
+    color: var(--success);
+}
+
+#reconciliationDifference.negative {
+    color: var(--danger);
+}
+
+.reconciliation-form {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.reconciliation-form input {
+    padding: 0.56rem 0.7rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background-color: transparent;
+    color: var(--text-primary);
+}
+
+.reconciliation-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
 #toggleExpenseFormBtn {
     font-size: 1.04rem;
     letter-spacing: 0.01em;
@@ -707,6 +792,12 @@ html[data-theme='light'] #nextMonth {
     position: relative;
     align-items: center;
     justify-content: flex-end;
+}
+
+.muted-text {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
 }
 
 .row-menu-toggle {
@@ -1543,6 +1634,44 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     opacity: 0.9;
 }
 
+.app-modal {
+    backdrop-filter: blur(2px);
+}
+
+.app-modal-content {
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.22);
+}
+
+.app-modal-content h3 {
+    margin-bottom: 0.45rem;
+    color: var(--text-primary);
+}
+
+.app-modal-content p {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+.app-modal-confirm {
+    background-color: var(--accent) !important;
+    border-color: var(--accent) !important;
+    color: var(--accent-contrast) !important;
+}
+
+.app-success-content {
+    border-color: rgba(22, 163, 74, 0.22);
+    background: linear-gradient(180deg, var(--bg-primary) 0%, var(--success-soft) 150%);
+}
+
+.app-success-confirm {
+    background-color: var(--success) !important;
+    border-color: var(--success) !important;
+    color: #fff !important;
+}
+
 .categories-list {
     display: flex;
     flex-direction: column;
@@ -1659,6 +1788,44 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     align-items: center;
 }
 
+
+.category-item-system {
+    border-style: dashed;
+}
+
+.category-system-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 0.74rem;
+}
+
+.category-system-lock {
+    color: var(--text-secondary);
+    font-size: 0.86rem;
+}
+
+.settings-divider {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.settings-reconciliation-panel {
+    margin-top: 0.35rem;
+}
+
+.settings-reconciliation-shortcuts {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.settings-reconciliation-impact {
+    font-size: 0.86rem;
+    color: var(--text-secondary);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 0.45rem 0.6rem;
+}
 .category-edit-input {
     width: 100%;
     padding: 0.4rem 0.5rem;
@@ -2097,6 +2264,105 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
 .recurring-table-box .expense-table {
     min-width: 680px;
+}
+
+.reconciliation-history-table {
+    min-width: 760px;
+}
+
+.history-type-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 88px;
+    border-radius: 9999px;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border: 1px solid transparent;
+}
+
+.history-type-adjustment {
+    background-color: var(--accent-soft);
+    color: var(--accent);
+    border-color: rgba(37, 99, 235, 0.25);
+}
+
+.history-type-reversal {
+    background-color: var(--danger-soft);
+    color: var(--danger);
+    border-color: rgba(220, 38, 38, 0.25);
+}
+
+.history-amount {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+.history-amount.positive {
+    color: var(--success);
+}
+
+.history-amount.negative {
+    color: var(--danger);
+}
+
+.history-detail-main {
+    line-height: 1.35;
+}
+
+.history-detail-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+}
+
+.history-status-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    padding: 0.14rem 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border: 1px solid transparent;
+}
+
+.history-status-active {
+    background-color: var(--warning-soft);
+    color: var(--warning);
+    border-color: rgba(180, 83, 9, 0.24);
+}
+
+.history-status-reverted {
+    background-color: var(--text-soft, rgba(100, 116, 139, 0.14));
+    color: var(--text-secondary);
+    border-color: var(--border);
+}
+
+.history-status-applied {
+    background-color: var(--success-soft);
+    color: var(--success);
+    border-color: rgba(22, 163, 74, 0.24);
+}
+
+.history-id-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    padding: 0.14rem 0.5rem;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    background-color: var(--bg-secondary);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+.history-action-btn {
+    min-height: 34px;
+    padding-inline: 0.85rem;
 }
 
 .form-container.half-width {
@@ -2641,6 +2907,10 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
     .recurring-table-box .expense-table {
         min-width: 560px;
+    }
+
+    .reconciliation-history-table {
+        min-width: 620px;
     }
 
     .recurring-table-box th.recurring-col-secondary,

@@ -256,6 +256,7 @@
     </div>
 
     <script src="/alerts_ui.js"></script>
+    <script src="/cashflow_ui.js"></script>
     <script src="/functions.js"></script>
     <script>
         let currentCurrency = 'usd';
@@ -622,6 +623,13 @@
             });
         }
 
+        function formatCategoryLabel(category) {
+            const raw = (category || '').trim();
+            if (!raw) return '-';
+            if (raw.toLowerCase() === '_conciliacion') return 'Conciliacion';
+            return raw;
+        }
+
         function calculateCategoryBreakdown(expenses) {
             const categoryTotals = {};
             let totalAmount = 0;
@@ -755,13 +763,15 @@
                 const source = (exp.source || '').toUpperCase();
                 return source === '' || source === 'CA';
             });
-            const byCurrency = cashflowExpenses.reduce((acc, exp) => {
-                const cur = exp.currency || baseCurrency;
-                acc[cur] = acc[cur] || { income: 0, expense: 0 };
-                if (exp.amount > 0) acc[cur].income += exp.amount;
-                else acc[cur].expense += Math.abs(exp.amount);
-                return acc;
-            }, {});
+            const byCurrency = window.ExpenseLogCashflow && typeof window.ExpenseLogCashflow.calculateCashflowBuckets === 'function'
+                ? window.ExpenseLogCashflow.calculateCashflowBuckets(cashflowExpenses, baseCurrency)
+                : cashflowExpenses.reduce((acc, exp) => {
+                    const cur = exp.currency || baseCurrency;
+                    acc[cur] = acc[cur] || { income: 0, expense: 0 };
+                    if (exp.amount > 0) acc[cur].income += exp.amount;
+                    else acc[cur].expense += Math.abs(exp.amount);
+                    return acc;
+                }, {});
             const carryover = carryoverByCurrency || {};
 
             const baseData = byCurrency[baseCurrency];
@@ -842,7 +852,7 @@
             container.style.display = 'block';
             list.innerHTML = recent.map(item => `
                 <div class="recent-item">
-                    <span><strong>${escapeHTML(item.name)}</strong> • ${escapeHTML(item.category)}</span>
+                    <span><strong>${escapeHTML(item.name)}</strong> • ${escapeHTML(formatCategoryLabel(item.category))}</span>
                     <span>${formatCurrencyWithCurrency(item.amount, item.currency || baseCurrency)}</span>
                 </div>
             `).join('');
@@ -1255,6 +1265,7 @@
                 showToast('No se pudo agregar el gasto', 'error');
             }
         });
+
         document.addEventListener('DOMContentLoaded', guardAppInit(initialize));
 
         document.getElementById('name').addEventListener('click', (e) => {
@@ -1376,3 +1387,4 @@
     </script>
 </body>
 </html>
+

@@ -56,7 +56,10 @@
         </div>
         
         <div class="table-controls">
-            <button id="toggleTableExpenseFormBtn" class="nav-button button-primary mobile-only" type="button">Agregar gasto</button>
+            <button id="toggleTableExpenseFormBtn" class="nav-button button-primary mobile-only" type="button">
+                <i class="fa-solid fa-plus"></i>
+                <span>Agregar gasto</span>
+            </button>
             <div class="table-view-switch" role="tablist" aria-label="Vista de movimientos">
                 <button id="viewTableBtn" class="table-view-tab active" type="button" role="tab" aria-selected="true">Tabla</button>
                 <button id="viewCalendarBtn" class="table-view-tab" type="button" role="tab" aria-selected="false">Calendario</button>
@@ -361,13 +364,17 @@
             return window.innerWidth <= MOBILE_TABLE_BREAKPOINT;
         }
 
+        function getTableFormToggleButtonHTML() {
+            return '<i class="fa-solid fa-plus"></i><span>Agregar gasto</span>';
+        }
+
         function setTableFormExpanded(expanded) {
             if (!tableFormContainer) return;
             tableFormContainer.dataset.expanded = expanded ? 'true' : 'false';
             const shouldShow = !isMobileTableView() || expanded;
             tableFormContainer.style.display = shouldShow ? 'block' : 'none';
             if (toggleTableExpenseFormBtn) {
-                toggleTableExpenseFormBtn.textContent = 'Agregar gasto';
+                toggleTableExpenseFormBtn.innerHTML = getTableFormToggleButtonHTML();
                 toggleTableExpenseFormBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
                 const hideToggle = isMobileTableView() && expanded;
                 toggleTableExpenseFormBtn.style.display = hideToggle ? 'none' : '';

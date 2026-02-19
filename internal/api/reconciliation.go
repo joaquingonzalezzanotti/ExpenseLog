@@ -24,6 +24,7 @@ type reconciliationHistoryItem struct {
 	Amount         float64   `json:"amount"`
 	Currency       string    `json:"currency"`
 	Type           string    `json:"type"`
+	AdjustmentID   string    `json:"adjustmentExpenseId,omitempty"`
 	TargetBalance  *float64  `json:"targetBalance,omitempty"`
 	AppBalancePrev *float64  `json:"appBalanceBefore,omitempty"`
 	Reversed       bool      `json:"reversed"`
@@ -77,6 +78,7 @@ func buildHistoryItems(records []storage.ReconciliationRecord) []reconciliationH
 			Amount:         rec.DeltaAmount,
 			Currency:       rec.Currency,
 			Type:           "adjustment",
+			AdjustmentID:   rec.AdjustmentExpenseID,
 			TargetBalance:  rec.TargetBalance,
 			AppBalancePrev: rec.AppBalanceBefore,
 			Reversed:       strings.EqualFold(rec.Status, "reverted") || strings.TrimSpace(rec.ReversalExpenseID) != "",
@@ -90,12 +92,13 @@ func buildHistoryItems(records []storage.ReconciliationRecord) []reconciliationH
 				reversalDate = *rec.RevertedAt
 			}
 			items = append(items, reconciliationHistoryItem{
-				ID:       rec.ReversalExpenseID,
-				Date:     reversalDate,
-				Name:     "Reversion ajuste conciliacion CA",
-				Amount:   -rec.DeltaAmount,
-				Currency: rec.Currency,
-				Type:     "reversal",
+				ID:           rec.ReversalExpenseID,
+				Date:         reversalDate,
+				Name:         "Reversion ajuste conciliacion CA",
+				Amount:       -rec.DeltaAmount,
+				Currency:     rec.Currency,
+				Type:         "reversal",
+				AdjustmentID: rec.AdjustmentExpenseID,
 			})
 		}
 	}

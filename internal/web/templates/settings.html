@@ -1287,28 +1287,52 @@ async function saveCategoriesList(nextCategories) {
             return { appBalance, difference, currency };
         }
 
+        function shortReconciliationID(id) {
+            const raw = String(id || '').trim();
+            if (!raw) return '-';
+            if (raw.length <= 12) return raw;
+            return `${raw.slice(0, 8)}...${raw.slice(-4)}`;
+        }
+
         function buildReconciliationHistoryRows(items) {
             if (!items || items.length === 0) {
                 return '<div class="no-data">Sin conciliaciones aplicadas todavia.</div>';
             }
             return `
-                <table class="expense-table">
-                    <thead><tr><th class="col-left">Fecha</th><th class="col-left">Tipo</th><th class="col-right">Monto</th><th class="col-left">Detalle</th><th class="actions-col col-center"></th></tr></thead>
+                <table class="expense-table reconciliation-history-table">
+                    <thead><tr><th class="col-left">Fecha</th><th class="col-left">Tipo</th><th class="col-right">Monto</th><th class="col-left">Detalle</th><th class="actions-col col-center">Accion</th></tr></thead>
                     <tbody>
                         ${items.map(item => {
-                            const canRevert = item.type === 'adjustment' && !item.reversed;
+                            const isAdjustment = item.type === 'adjustment';
+                            const canRevert = isAdjustment && !item.reversed;
                             const date = item.date ? new Date(item.date).toLocaleString('es-AR') : '-';
-                            const detail = item.type === 'adjustment'
-                                ? `Objetivo: ${item.targetBalance != null ? formatCurrency(item.targetBalance, item.currency || currentCurrency) : '-'} • Balance previo: ${item.appBalanceBefore != null ? formatCurrency(item.appBalanceBefore, item.currency || currentCurrency) : '-'}`
-                                : `Revierte ajuste ${item.id}`;
+                            const amount = Number(item.amount || 0);
+                            const amountClass = amount >= 0 ? 'positive' : 'negative';
+                            const detailMain = isAdjustment
+                                ? `Objetivo: ${item.targetBalance != null ? formatCurrency(item.targetBalance, item.currency || currentCurrency) : '-'} � Balance previo: ${item.appBalanceBefore != null ? formatCurrency(item.appBalanceBefore, item.currency || currentCurrency) : '-'}`
+                                : `Revierte ajuste ${shortReconciliationID(item.adjustmentExpenseId)}`;
+                            const statusBadge = isAdjustment
+                                ? (item.reversed
+                                    ? '<span class="history-status-badge history-status-reverted">Revertido</span>'
+                                    : '<span class="history-status-badge history-status-active">Activo</span>')
+                                : '<span class="history-status-badge history-status-applied">Aplicada</span>';
+                            const typeChip = isAdjustment
+                                ? '<span class="history-type-chip history-type-adjustment">Ajuste</span>'
+                                : '<span class="history-type-chip history-type-reversal">Reversion</span>';
                             return `
                                 <tr>
                                     <td class="col-left">${date}</td>
-                                    <td class="col-left">${item.type === 'adjustment' ? 'Ajuste' : 'Reversion'}</td>
-                                    <td class="col-right">${formatSignedCurrency(item.amount || 0, item.currency || currentCurrency)}</td>
-                                    <td class="col-left">${detail}${item.reversed ? ' • Revertido' : ''}</td>
+                                    <td class="col-left">${typeChip}</td>
+                                    <td class="col-right"><span class="history-amount ${amountClass}">${formatSignedCurrency(amount, item.currency || currentCurrency)}</span></td>
+                                    <td class="col-left">
+                                        <div class="history-detail-main">${detailMain}</div>
+                                        <div class="history-detail-meta">
+                                            ${statusBadge}
+                                            <span class="history-id-chip">ID ${shortReconciliationID(item.id)}</span>
+                                        </div>
+                                    </td>
                                     <td class="actions-col col-center">
-                                        ${canRevert ? `<button class="nav-button button-secondary" data-revert-reconciliation-id="${item.id}">Revertir</button>` : '-'}
+                                        ${canRevert ? `<button class="nav-button button-secondary history-action-btn" data-revert-reconciliation-id="${item.id}">Revertir</button>` : ''}
                                     </td>
                                 </tr>
                             `;
@@ -1683,6 +1707,7 @@ async function saveCategoriesList(nextCategories) {
     </script>
 </body>
 </html>
+
 
 
 

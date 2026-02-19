@@ -434,8 +434,8 @@
                                 <td>
                                     <div class="expense-name-cell">
                                         <span class="expense-name-text">${highlightText(expense.name, searchQuery)}</span>
-                                        ${expense.recurringID ? '<span class="recurring-badge">🔁 Recurrente</span>' : ''}
-                                        ${expense.systemLocked ? '<span class="recurring-badge">🔒 Sistema</span>' : ''}
+                                        ${expense.recurringID ? '<span class="recurring-badge">Recurrente</span>' : ''}
+                                        ${expense.systemLocked ? '<span class="recurring-badge">Sistema</span>' : ''}
                                     </div>
                                     <div class="expense-meta-mobile">
                                         <span>${highlightText(formatCategoryLabel(expense.category), searchQuery)}</span>
@@ -466,8 +466,8 @@
                                     </div>
                                     <div class="row-actions-mobile">
                                         ${expense.systemLocked ? `
-                                            <button type="button" class="row-menu-item" data-row-action="manage-reconciliation">
-                                                <i class="fa-solid fa-sliders"></i> Gestionar en Ajustes
+                                            <button type="button" class="row-menu-toggle" data-row-action="manage-reconciliation" aria-label="Gestionar conciliacion">
+                                                <i class="fa-solid fa-sliders"></i>
                                             </button>
                                         ` : `
                                             <button type="button" class="row-menu-toggle" data-row-menu-toggle aria-label="Acciones del movimiento" aria-expanded="false">
@@ -1170,3 +1170,4 @@
     </script>
 </body>
 </html>
+

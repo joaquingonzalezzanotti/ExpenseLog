@@ -34,6 +34,9 @@ func TestBuildHistoryItemsIncludesAdjustmentAndReversal(t *testing.T) {
 	if items[0].Type != "reversal" || items[0].ID != "rev-1" {
 		t.Fatalf("expected first item to be reversal rev-1, got %s/%s", items[0].Type, items[0].ID)
 	}
+	if items[0].AdjustmentID != "adj-1" {
+		t.Fatalf("expected reversal to reference adjustment adj-1, got %s", items[0].AdjustmentID)
+	}
 	if items[1].Type != "adjustment" || items[1].ID != "adj-1" {
 		t.Fatalf("expected second item to be adjustment adj-1, got %s/%s", items[1].Type, items[1].ID)
 	}

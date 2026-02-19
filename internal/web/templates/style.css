@@ -2266,6 +2266,105 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     min-width: 680px;
 }
 
+.reconciliation-history-table {
+    min-width: 760px;
+}
+
+.history-type-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 88px;
+    border-radius: 9999px;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border: 1px solid transparent;
+}
+
+.history-type-adjustment {
+    background-color: var(--accent-soft);
+    color: var(--accent);
+    border-color: rgba(37, 99, 235, 0.25);
+}
+
+.history-type-reversal {
+    background-color: var(--danger-soft);
+    color: var(--danger);
+    border-color: rgba(220, 38, 38, 0.25);
+}
+
+.history-amount {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+.history-amount.positive {
+    color: var(--success);
+}
+
+.history-amount.negative {
+    color: var(--danger);
+}
+
+.history-detail-main {
+    line-height: 1.35;
+}
+
+.history-detail-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+}
+
+.history-status-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    padding: 0.14rem 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border: 1px solid transparent;
+}
+
+.history-status-active {
+    background-color: var(--warning-soft);
+    color: var(--warning);
+    border-color: rgba(180, 83, 9, 0.24);
+}
+
+.history-status-reverted {
+    background-color: var(--text-soft, rgba(100, 116, 139, 0.14));
+    color: var(--text-secondary);
+    border-color: var(--border);
+}
+
+.history-status-applied {
+    background-color: var(--success-soft);
+    color: var(--success);
+    border-color: rgba(22, 163, 74, 0.24);
+}
+
+.history-id-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    padding: 0.14rem 0.5rem;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    background-color: var(--bg-secondary);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+.history-action-btn {
+    min-height: 34px;
+    padding-inline: 0.85rem;
+}
+
 .form-container.half-width {
     flex: 1;
 }
@@ -2808,6 +2907,10 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
     .recurring-table-box .expense-table {
         min-width: 560px;
+    }
+
+    .reconciliation-history-table {
+        min-width: 620px;
     }
 
     .recurring-table-box th.recurring-col-secondary,

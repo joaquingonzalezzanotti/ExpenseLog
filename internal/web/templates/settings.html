@@ -1309,7 +1309,7 @@ async function saveCategoriesList(nextCategories) {
                             const amount = Number(item.amount || 0);
                             const amountClass = amount >= 0 ? 'positive' : 'negative';
                             const detailMain = isAdjustment
-                                ? `Objetivo: ${item.targetBalance != null ? formatCurrency(item.targetBalance, item.currency || currentCurrency) : '-'} • Balance previo: ${item.appBalanceBefore != null ? formatCurrency(item.appBalanceBefore, item.currency || currentCurrency) : '-'}`
+                                ? `Objetivo: ${item.targetBalance != null ? formatCurrency(item.targetBalance, item.currency || currentCurrency) : '-'} â€¢ Balance previo: ${item.appBalanceBefore != null ? formatCurrency(item.appBalanceBefore, item.currency || currentCurrency) : '-'}`
                                 : `Revierte ajuste ${shortReconciliationID(item.adjustmentExpenseId)}`;
                             const statusBadge = isAdjustment
                                 ? (item.reversed

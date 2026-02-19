@@ -64,6 +64,7 @@ func runServer(port int) {
 	http.HandleFunc("/sitemap.xml", handler.ServeStaticFile)
 	http.HandleFunc("/functions.js", handler.ServeStaticFile)
 	http.HandleFunc("/alerts_ui.js", handler.ServeStaticFile)
+	http.HandleFunc("/cashflow_ui.js", handler.ServeStaticFile)
 	http.HandleFunc("/manifest.json", handler.ServeStaticFile)
 	http.HandleFunc("/sw.js", handler.ServeStaticFile)
 	http.HandleFunc("/pwa/", handler.ServeStaticFile)

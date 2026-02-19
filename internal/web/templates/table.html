@@ -378,6 +378,12 @@
             return `${day}/${month}/${year}`;
         }
 
+        function formatCategoryLabel(category) {
+            const raw = (category || '').trim();
+            if (raw.toLowerCase() === '_conciliacion') return 'Conciliacion';
+            return raw || '-';
+        }
+
         function computeRunningBalances(expenses) {
             const sortedAsc = expenses.slice().sort((a, b) => {
                 const aTime = new Date(a.date).getTime();
@@ -432,13 +438,13 @@
                                         ${expense.systemLocked ? '<span class="recurring-badge">🔒 Sistema</span>' : ''}
                                     </div>
                                     <div class="expense-meta-mobile">
-                                        <span>${highlightText(expense.category, searchQuery)}</span>
+                                        <span>${highlightText(formatCategoryLabel(expense.category), searchQuery)}</span>
                                         <span>${expense.source ? escapeHTML(expense.source) : 'CA'}</span>
                                         <span>${(expense.currency || currentCurrency).toUpperCase()}</span>
                                         <span>${formatDateDDMMYYYY(expense.date)}</span>
                                     </div>
                                 </td>
-                                <td class="secondary-col col-left"><span class="${expense.systemLocked ? '' : 'editable'}" data-edit="category" data-id="${expense.id}">${highlightText(expense.category, searchQuery)}</span></td>
+                                <td class="secondary-col col-left"><span class="${expense.systemLocked ? '' : 'editable'}" data-edit="category" data-id="${expense.id}">${highlightText(formatCategoryLabel(expense.category), searchQuery)}</span></td>
                                 <td class="amount amount-value col-right"><span class="${expense.systemLocked ? '' : 'editable'}" data-edit="amount" data-id="${expense.id}">${formatCurrencyWithCurrency(expense.amount, expense.currency || currentCurrency, compactAmounts)}</span></td>
                                 <td class="amount amount-balance col-right">${runningBalances[expense.id] ? formatCurrencyWithCurrency(runningBalances[expense.id].amount, runningBalances[expense.id].currency, compactAmounts) : '-'}</td>
                                 <td class="secondary-col col-center">${expense.source ? escapeHTML(expense.source) : '-'}</td>
@@ -448,7 +454,7 @@
                                 <td class="actions-col col-center">
                                     <div class="row-actions-desktop">
                                         ${expense.systemLocked ? `
-                                            <span class="muted-text">Sistema</span>
+                                            <button class="nav-button button-secondary" type="button" onclick="goToReconciliationSettings()">Gestionar en Ajustes</button>
                                         ` : `
                                             <button class="edit-button" onclick="editExpenseByIndex(${index})">
                                                 <i class="fa-solid fa-pen-to-square"></i>
@@ -460,7 +466,9 @@
                                     </div>
                                     <div class="row-actions-mobile">
                                         ${expense.systemLocked ? `
-                                            <span class="muted-text">Sistema</span>
+                                            <button type="button" class="row-menu-item" data-row-action="manage-reconciliation">
+                                                <i class="fa-solid fa-sliders"></i> Gestionar en Ajustes
+                                            </button>
                                         ` : `
                                             <button type="button" class="row-menu-toggle" data-row-menu-toggle aria-label="Acciones del movimiento" aria-expanded="false">
                                                 <i class="fa-solid fa-ellipsis-vertical"></i>
@@ -503,7 +511,8 @@
 
             if (searchQuery) {
                 expensesForTable = expensesForTable.filter(exp => {
-                    const haystack = `${exp.name} ${exp.category} ${(exp.tags || []).join(' ')}`.toLowerCase();
+                    const categoryLabel = formatCategoryLabel(exp.category);
+                    const haystack = `${exp.name} ${exp.category} ${categoryLabel} ${(exp.tags || []).join(' ')}`.toLowerCase();
                     return haystack.includes(searchQuery.toLowerCase());
                 });
             }
@@ -728,7 +737,7 @@
             const categorySelect = document.getElementById('category');
             categories = Array.isArray(config?.categories) ? config.categories : [];
             categorySelect.innerHTML = categories.map(cat =>
-                `<option value="${cat}">${cat}</option>`
+                `<option value="${cat}">${formatCategoryLabel(cat)}</option>`
             ).join('');
             currentCurrency = (config?.currency || 'ars').toLowerCase();
             if (!supportedCurrencies.includes(currentCurrency)) {
@@ -1077,24 +1086,26 @@
                 return;
             }
 
-            const rowAction = e.target.closest('[data-row-action]');
-            if (rowAction) {
-                const action = rowAction.dataset.rowAction;
-                if (action === 'edit') {
-                    const index = Number(rowAction.dataset.rowIndex);
+                const rowAction = e.target.closest('[data-row-action]');
+                if (rowAction) {
+                    const action = rowAction.dataset.rowAction;
+                    if (action === 'edit') {
+                        const index = Number(rowAction.dataset.rowIndex);
                     if (!Number.isNaN(index)) {
                         editExpenseByIndex(index);
                     }
-                } else if (action === 'delete') {
-                    const expenseId = rowAction.dataset.rowId;
-                    if (expenseId) {
-                        showDeleteModal(expenseId);
+                    } else if (action === 'delete') {
+                        const expenseId = rowAction.dataset.rowId;
+                        if (expenseId) {
+                            showDeleteModal(expenseId);
+                        }
+                    } else if (action === 'manage-reconciliation') {
+                        goToReconciliationSettings();
                     }
+                    closeAllRowMenus();
+                    e.stopPropagation();
+                    return;
                 }
-                closeAllRowMenus();
-                e.stopPropagation();
-                return;
-            }
 
             const target = e.target.closest('.editable');
             if (!target) return;
@@ -1129,7 +1140,7 @@
                 categories.forEach(cat => {
                     const option = document.createElement('option');
                     option.value = cat;
-                    option.textContent = cat;
+                    option.textContent = formatCategoryLabel(cat);
                     if (cat === exp.category) option.selected = true;
                     select.appendChild(option);
                 });
@@ -1150,6 +1161,10 @@
         document.addEventListener('click', () => {
             closeAllRowMenus();
         });
+
+        function goToReconciliationSettings() {
+            window.location.href = '/settings?section=reconciliation';
+        }
         
         window.editExpenseByIndex = editExpenseByIndex;
     </script>

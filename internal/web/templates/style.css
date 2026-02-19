@@ -1634,6 +1634,44 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     opacity: 0.9;
 }
 
+.app-modal {
+    backdrop-filter: blur(2px);
+}
+
+.app-modal-content {
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.22);
+}
+
+.app-modal-content h3 {
+    margin-bottom: 0.45rem;
+    color: var(--text-primary);
+}
+
+.app-modal-content p {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+.app-modal-confirm {
+    background-color: var(--accent) !important;
+    border-color: var(--accent) !important;
+    color: var(--accent-contrast) !important;
+}
+
+.app-success-content {
+    border-color: rgba(22, 163, 74, 0.22);
+    background: linear-gradient(180deg, var(--bg-primary) 0%, var(--success-soft) 150%);
+}
+
+.app-success-confirm {
+    background-color: var(--success) !important;
+    border-color: var(--success) !important;
+    color: #fff !important;
+}
+
 .categories-list {
     display: flex;
     flex-direction: column;

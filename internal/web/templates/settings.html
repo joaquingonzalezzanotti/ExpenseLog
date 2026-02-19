@@ -99,10 +99,10 @@
         </section>
 
         <section class="form-container settings-section">
-            <h2>Gestion 🛠️</h2>
+            <h2>Gestión 🛠️</h2>
             <div class="settings-nav-list">
                 <button class="settings-nav-item" id="openCategoriesSection" type="button" data-settings-section="categoriesSection" aria-expanded="false">
-                    <span>🏷️ Categorias</span>
+                    <span>🏷️ Categorías</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
                 <button class="settings-nav-item" id="openRecurringSection" type="button" data-settings-section="recurringSection" aria-expanded="false">
@@ -110,7 +110,7 @@
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
                 <button class="settings-nav-item" id="openReconciliationSection" type="button" data-settings-section="reconciliationSection" aria-expanded="false">
-                    <span>🧮 Conciliacion CA</span>
+                    <span>🧮 Conciliación CA</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
             </div>
@@ -118,7 +118,7 @@
 
         <section id="categoriesSection" class="form-container settings-section settings-detail-section" hidden>
             <div class="settings-detail-header">
-                <h2>🏷️ Categorias</h2>
+                <h2>🏷️ Categorías</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="categoriesSection" aria-label="Cerrar categorias" title="Cerrar categorias">
                     <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
                 </button>
@@ -140,11 +140,11 @@
                 </div>
                 <div id="categories-list" class="categories-list"></div>
                 <div id="categories-empty" class="empty-state" style="display: none;">
-                    📭 No hay categorias guardadas. Agrega la primera.
+                    📭 No hay categorías guardadas. Agrega la primera.
                 </div>
                 <div class="category-input-container">
                     <input type="text" id="newCategory" placeholder="Agregar categoria">
-                    <button id="addCategory" class="nav-button" type="button">➕ Agregar</button>
+                    <button id="addCategory" class="nav-button" type="button">Agregar</button>
                 </div>
                 <div id="categoriesMessage" class="form-message"></div>
             </div>
@@ -159,7 +159,7 @@
             </div>
             <h3 class="settings-subtitle">📋 Transacciones recurrentes existentes</h3>
             <div id="recurring-expenses-list" class="recurring-table-box"></div>
-            <button id="toggleRecurringCreateBtn" class="nav-button button-primary settings-recurring-toggle" type="button" aria-expanded="false">➕ Agregar transaccion recurrente</button>
+            <button id="toggleRecurringCreateBtn" class="nav-button button-primary settings-recurring-toggle" type="button" aria-expanded="false">Agregar transaccion recurrente</button>
             <div id="recurringFormWrap" hidden>
                 <form id="recurringExpenseForm" class="expense-form recurring-expense-form">
                     <div class="form-group">
@@ -224,13 +224,13 @@
 
         <section id="reconciliationSection" class="form-container settings-section settings-detail-section" hidden>
             <div class="settings-detail-header">
-                <h2>🧮 Conciliacion CA</h2>
+                <h2>🧮 Conciliación CA</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="reconciliationSection" aria-label="Cerrar conciliacion" title="Cerrar conciliacion">
                     <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="settings-divider"></div>
-            <h3 class="settings-subtitle">🧮 Conciliacion rapida de Caja de Ahorro</h3>
+            <h3 class="settings-subtitle">🧮 Conciliación rápida de Caja de Ahorro</h3>
             <p class="settings-helper-text">Ingresa el saldo real de tu CA para crear un ajuste automatico sin buscar el origen de la diferencia.</p>
             <div id="settingsReconciliationPanel" class="reconciliation-container settings-reconciliation-panel">
                 <div class="reconciliation-metrics">
@@ -336,6 +336,27 @@
         </div>
     </div>
 
+    <div id="appConfirmModal" class="modal app-modal" role="dialog" aria-modal="true" aria-labelledby="appConfirmTitle">
+        <div class="modal-content app-modal-content">
+            <h3 id="appConfirmTitle">Confirmar accion</h3>
+            <p id="appConfirmMessage">¿Continuar?</p>
+            <div class="modal-buttons">
+                <button id="appConfirmCancel" class="modal-button" type="button">Cancelar</button>
+                <button id="appConfirmAccept" class="modal-button confirm app-modal-confirm" type="button">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="appSuccessModal" class="modal app-modal" role="dialog" aria-modal="true" aria-labelledby="appSuccessTitle">
+        <div class="modal-content app-modal-content app-success-content">
+            <h3 id="appSuccessTitle">Operacion completada</h3>
+            <p id="appSuccessMessage">Se aplico correctamente.</p>
+            <div class="modal-buttons">
+                <button id="appSuccessAccept" class="modal-button confirm app-success-confirm" type="button">Entendido</button>
+            </div>
+        </div>
+    </div>
+
     <div id="authOverlay" class="auth-overlay hidden" aria-hidden="true">
         <div class="auth-panel">
             <div class="auth-header">
@@ -371,7 +392,7 @@
                     <input type="checkbox" id="authLoginRemember" class="styled-checkbox">
                     Recordarme
                 </label>
-                <button type="button" class="auth-link" data-auth-link="reset">Olvide mi contraseña</button>
+                <button type="button" class="auth-link" data-auth-link="reset">Olvidé mi contraseña</button>
                 <button type="submit" class="nav-button">Ingresar</button>
             </form>
             <form id="authRegisterForm" class="auth-form" data-auth-form="register">
@@ -441,6 +462,8 @@
         let recurringExpenseToDelete = null;
         let recurringExpenseToEdit = null;
         let reconciliationSubmitInFlight = false;
+        let pendingConfirmResolver = null;
+        let pendingSuccessResolver = null;
         const SHARED_CONFIG_CACHE_KEY = 'expenselog_config_cache_v1';
         const settingsSectionButtons = Array.from(document.querySelectorAll('[data-settings-section]'));
         const settingsCloseButtons = Array.from(document.querySelectorAll('[data-settings-close]'));
@@ -450,6 +473,8 @@
         const settingsEditNameBtn = document.getElementById('settingsEditNameBtn');
         const recurringFormWrap = document.getElementById('recurringFormWrap');
         const toggleRecurringCreateBtn = document.getElementById('toggleRecurringCreateBtn');
+        const appConfirmModal = document.getElementById('appConfirmModal');
+        const appSuccessModal = document.getElementById('appSuccessModal');
 
         function setSettingsSection(sectionId, expanded) {
             const section = document.getElementById(sectionId);
@@ -482,7 +507,7 @@
             if (!recurringFormWrap) return;
             recurringFormWrap.hidden = !visible;
             if (toggleRecurringCreateBtn) {
-                toggleRecurringCreateBtn.textContent = visible ? '🫣 Ocultar formulario' : '➕ Agregar transaccion recurrente';
+                toggleRecurringCreateBtn.textContent = visible ? 'Ocultar formulario' : 'Agregar transaccion recurrente';
                 toggleRecurringCreateBtn.setAttribute('aria-expanded', visible ? 'true' : 'false');
             }
         }
@@ -581,6 +606,60 @@
             }, 3000);
         }
 
+        function openModal(modal) {
+            if (!modal) return;
+            modal.classList.add('active');
+        }
+
+        function closeModal(modal) {
+            if (!modal) return;
+            modal.classList.remove('active');
+        }
+
+        function showAppConfirmModal(title, message, acceptLabel = 'Aceptar', cancelLabel = 'Cancelar') {
+            return new Promise((resolve) => {
+                pendingConfirmResolver = resolve;
+                const titleEl = document.getElementById('appConfirmTitle');
+                const messageEl = document.getElementById('appConfirmMessage');
+                const acceptBtn = document.getElementById('appConfirmAccept');
+                const cancelBtn = document.getElementById('appConfirmCancel');
+                if (titleEl) titleEl.textContent = title;
+                if (messageEl) messageEl.textContent = message;
+                if (acceptBtn) acceptBtn.textContent = acceptLabel;
+                if (cancelBtn) cancelBtn.textContent = cancelLabel;
+                openModal(appConfirmModal);
+            });
+        }
+
+        function resolveAppConfirmModal(accepted) {
+            closeModal(appConfirmModal);
+            if (pendingConfirmResolver) {
+                pendingConfirmResolver(accepted);
+                pendingConfirmResolver = null;
+            }
+        }
+
+        function showAppSuccessModal(title, message, acceptLabel = 'Entendido') {
+            return new Promise((resolve) => {
+                pendingSuccessResolver = resolve;
+                const titleEl = document.getElementById('appSuccessTitle');
+                const messageEl = document.getElementById('appSuccessMessage');
+                const acceptBtn = document.getElementById('appSuccessAccept');
+                if (titleEl) titleEl.textContent = title;
+                if (messageEl) messageEl.textContent = message;
+                if (acceptBtn) acceptBtn.textContent = acceptLabel;
+                openModal(appSuccessModal);
+            });
+        }
+
+        function resolveAppSuccessModal() {
+            closeModal(appSuccessModal);
+            if (pendingSuccessResolver) {
+                pendingSuccessResolver();
+                pendingSuccessResolver = null;
+            }
+        }
+
         // --- Category Management ---
 function syncCategoriesLower() {
     categoriesLower = new Set(categories.map(c => c.toLowerCase()));
@@ -644,7 +723,7 @@ function renderCategories() {
                 <span class="category-name">${category}${isSystem ? ' <small class="category-system-label">(sistema)</small>' : ''}</span>
             </div>
             <div class="category-actions">
-                ${isSystem ? '<span class="category-system-lock" title="Categoria protegida">🔒</span>' : `
+                ${isSystem ? '<span class="category-system-lock" title="Categoría protegida">🔒</span>' : `
                 <button class="edit-button" data-action="edit" data-index="${index}">
                     <i class="fa-solid fa-pen-to-square"></i>
                 </button>
@@ -1275,7 +1354,8 @@ async function saveCategoriesList(nextCategories) {
                 return;
             }
             const confirmText = `Vas a aplicar un ${preview.difference > 0 ? 'ingreso' : 'gasto'} de ajuste por ${formatCurrency(Math.abs(preview.difference), preview.currency)}. ¿Confirmas?`;
-            if (!window.confirm(confirmText)) {
+            const confirmed = await showAppConfirmModal('Confirmar conciliacion', confirmText, 'Aplicar', 'Cancelar');
+            if (!confirmed) {
                 return;
             }
 
@@ -1306,7 +1386,13 @@ async function saveCategoriesList(nextCategories) {
                     showMessage('settingsReconciliationMessage', 'No se realizaron cambios: la app ya coincide con tu CA.', true);
                 } else {
                     const amountLabel = formatCurrency(Math.abs(preview.difference), preview.currency);
-                    showMessage('settingsReconciliationMessage', `Conciliacion aplicada. Se registro ${preview.difference > 0 ? 'un ingreso' : 'un gasto'} de ajuste por ${amountLabel}.`, true);
+                    const successText = `Se registro ${preview.difference > 0 ? 'un ingreso' : 'un gasto'} de ajuste por ${amountLabel}.`;
+                    showMessage('settingsReconciliationMessage', `Conciliacion aplicada. ${successText}`, true);
+                    await showAppSuccessModal('✅ Conciliación aplicada', successText, 'Cerrar');
+                    hideSettingsSection('reconciliationSection');
+                    if (targetInput) targetInput.value = '';
+                    if (noteInput) noteInput.value = '';
+                    renderSettingsReconciliationPreview();
                 }
                 await refreshExpensesCache();
                 await fetchAndRenderReconciliationHistory();
@@ -1321,9 +1407,13 @@ async function saveCategoriesList(nextCategories) {
 
         async function revertReconciliationByID(id) {
             if (!id) return;
-            if (!window.confirm('Se va a crear un movimiento inverso para deshacer esta conciliacion. ¿Continuar?')) {
-                return;
-            }
+            const confirmed = await showAppConfirmModal(
+                'Revertir conciliacion',
+                'Se va a crear un movimiento inverso para deshacer esta conciliacion. ¿Continuar?',
+                'Revertir',
+                'Cancelar'
+            );
+            if (!confirmed) return;
             try {
                 const response = await fetch(`/reconciliation/revert?id=${encodeURIComponent(id)}`, { method: 'POST' });
                 const result = await response.json().catch(() => ({}));
@@ -1334,6 +1424,23 @@ async function saveCategoriesList(nextCategories) {
             } catch (error) {
                 console.error('Error revirtiendo conciliacion:', error);
                 showMessage('settingsReconciliationMessage', error.message || 'No se pudo revertir la conciliacion.', false);
+            }
+        }
+
+        function openSectionFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            const section = (params.get('section') || '').toLowerCase();
+            const hash = (window.location.hash || '').toLowerCase();
+            if (section === 'reconciliation' || hash === '#reconciliation') {
+                showOnlySettingsSection('reconciliationSection');
+                return;
+            }
+            if (section === 'categories' || hash === '#categories') {
+                showOnlySettingsSection('categoriesSection');
+                return;
+            }
+            if (section === 'recurring' || hash === '#recurring') {
+                showOnlySettingsSection('recurringSection');
             }
         }
 
@@ -1389,6 +1496,7 @@ async function saveCategoriesList(nextCategories) {
                 hideSettingsSection('recurringSection');
                 hideSettingsSection('reconciliationSection');
                 setRecurringComposerVisible(false);
+                openSectionFromURL();
                 renderSettingsReconciliationPreview();
                 await fetchAndRenderReconciliationHistory();
 
@@ -1496,6 +1604,25 @@ async function saveCategoriesList(nextCategories) {
             e.preventDefault();
             await submitSettingsReconciliation();
         });
+        document.getElementById('appConfirmAccept')?.addEventListener('click', () => resolveAppConfirmModal(true));
+        document.getElementById('appConfirmCancel')?.addEventListener('click', () => resolveAppConfirmModal(false));
+        document.getElementById('appConfirmModal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'appConfirmModal') resolveAppConfirmModal(false);
+        });
+        document.getElementById('appSuccessAccept')?.addEventListener('click', resolveAppSuccessModal);
+        document.getElementById('appSuccessModal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'appSuccessModal') resolveAppSuccessModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            if (appConfirmModal?.classList.contains('active')) {
+                resolveAppConfirmModal(false);
+                return;
+            }
+            if (appSuccessModal?.classList.contains('active')) {
+                resolveAppSuccessModal();
+            }
+        });
         document.getElementById('reconciliation-history-list')?.addEventListener('click', async (e) => {
             const button = e.target.closest('[data-revert-reconciliation-id]');
             if (!button) return;
@@ -1556,5 +1683,6 @@ async function saveCategoriesList(nextCategories) {
     </script>
 </body>
 </html>
+
 
 

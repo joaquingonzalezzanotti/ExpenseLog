@@ -1,0 +1,12 @@
+Codigo de recuperacion de {{ .Brand.AppName }}
+
+Tu codigo para recuperar el acceso es:
+{{ .Code }}
+
+{{ .ExpiryText }}
+Si no solicitaste este cambio, puedes ignorar este correo.
+
+Abrir {{ .Brand.AppName }}:
+{{ .AppURL }}/app
+
+Soporte: {{ .Brand.SupportEmail }}

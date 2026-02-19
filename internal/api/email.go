@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"html"
 	"net/http"
 	"net/smtp"
 	"os"
@@ -14,10 +15,15 @@ import (
 )
 
 type smtpConfig struct {
+	from     string
+	fromName string
 	host     string
 	port     int
 	user     string
 	password string
+}
+
+type senderConfig struct {
 	from     string
 	fromName string
 }
@@ -29,7 +35,22 @@ type brevoEmailPayload struct {
 	} `json:"sender"`
 	To      []map[string]string `json:"to"`
 	Subject string              `json:"subject"`
-	Text    string              `json:"textContent"`
+	Text    string              `json:"textContent,omitempty"`
+	HTML    string              `json:"htmlContent,omitempty"`
+}
+
+func loadSenderConfig() (senderConfig, error) {
+	cfg := senderConfig{
+		from:     strings.TrimSpace(os.Getenv("SMTP_FROM")),
+		fromName: strings.TrimSpace(os.Getenv("SMTP_FROM_NAME")),
+	}
+	if cfg.fromName == "" {
+		cfg.fromName = "ExpenseLog"
+	}
+	if cfg.from == "" {
+		return senderConfig{}, fmt.Errorf("missing SMTP_FROM")
+	}
+	return cfg, nil
 }
 
 func loadSMTPConfig() (smtpConfig, error) {
@@ -37,48 +58,50 @@ func loadSMTPConfig() (smtpConfig, error) {
 	if err != nil || port == 0 {
 		return smtpConfig{}, fmt.Errorf("invalid SMTP_PORT")
 	}
+	sender, err := loadSenderConfig()
+	if err != nil {
+		return smtpConfig{}, err
+	}
 	cfg := smtpConfig{
+		from:     sender.from,
+		fromName: sender.fromName,
 		host:     strings.TrimSpace(os.Getenv("SMTP_HOST")),
 		port:     port,
 		user:     strings.TrimSpace(os.Getenv("SMTP_USER")),
 		password: strings.TrimSpace(os.Getenv("SMTP_PASS")),
-		from:     strings.TrimSpace(os.Getenv("SMTP_FROM")),
-		fromName: strings.TrimSpace(os.Getenv("SMTP_FROM_NAME")),
 	}
-	if cfg.fromName == "" {
-		cfg.fromName = "ExpenseLog"
-	}
-	if cfg.host == "" || cfg.user == "" || cfg.password == "" || cfg.from == "" {
+	if cfg.host == "" || cfg.user == "" || cfg.password == "" {
 		return smtpConfig{}, fmt.Errorf("missing SMTP config")
 	}
 	return cfg, nil
 }
 
-func loadBrevoConfig() (smtpConfig, string, error) {
+func loadBrevoConfig() (senderConfig, string, error) {
 	apiKey := strings.TrimSpace(os.Getenv("BREVO_API_KEY"))
 	if apiKey == "" {
-		return smtpConfig{}, "", fmt.Errorf("missing BREVO_API_KEY")
+		return senderConfig{}, "", fmt.Errorf("missing BREVO_API_KEY")
 	}
-	cfg, err := loadSMTPConfig()
+	sender, err := loadSenderConfig()
 	if err != nil {
-		return smtpConfig{}, "", err
+		return senderConfig{}, "", err
 	}
-	return cfg, apiKey, nil
+	return sender, apiKey, nil
 }
 
-func sendBrevoEmail(toEmail, subject, body string) error {
-	cfg, apiKey, err := loadBrevoConfig()
+func sendBrevoEmail(toEmail, subject, textBody, htmlBody string) error {
+	sender, apiKey, err := loadBrevoConfig()
 	if err != nil {
 		return err
 	}
 	var payload brevoEmailPayload
-	payload.Sender.Email = cfg.from
-	if cfg.fromName != "" {
-		payload.Sender.Name = cfg.fromName
+	payload.Sender.Email = sender.from
+	if sender.fromName != "" {
+		payload.Sender.Name = sender.fromName
 	}
 	payload.To = []map[string]string{{"email": toEmail}}
 	payload.Subject = subject
-	payload.Text = body
+	payload.Text = textBody
+	payload.HTML = htmlBody
 
 	raw, err := json.Marshal(payload)
 	if err != nil {
@@ -105,9 +128,18 @@ func sendBrevoEmail(toEmail, subject, body string) error {
 	return nil
 }
 
-func sendSMTPEmail(toEmail, subject, body string) error {
+func ensureHTMLBody(textBody, htmlBody string) string {
+	htmlBody = strings.TrimSpace(htmlBody)
+	if htmlBody != "" {
+		return htmlBody
+	}
+	return "<pre style=\"font-family:Arial,sans-serif;white-space:pre-wrap;\">" + html.EscapeString(textBody) + "</pre>"
+}
+
+func sendSMTPEmail(toEmail, subject, textBody, htmlBody string) error {
+	htmlBody = ensureHTMLBody(textBody, htmlBody)
 	if strings.TrimSpace(os.Getenv("BREVO_API_KEY")) != "" {
-		if err := sendBrevoEmail(toEmail, subject, body); err == nil {
+		if err := sendBrevoEmail(toEmail, subject, textBody, htmlBody); err == nil {
 			return nil
 		}
 	}
@@ -119,14 +151,25 @@ func sendSMTPEmail(toEmail, subject, body string) error {
 	if cfg.fromName != "" {
 		fromHeader = fmt.Sprintf("%s <%s>", cfg.fromName, cfg.from)
 	}
+	boundary := "expenselog-boundary-" + strconv.FormatInt(time.Now().UnixNano(), 10)
 	msg := strings.Join([]string{
 		"From: " + fromHeader,
 		"To: " + toEmail,
 		"Subject: " + subject,
 		"MIME-Version: 1.0",
+		"Content-Type: multipart/alternative; boundary=" + boundary,
+		"",
+		"--" + boundary,
 		"Content-Type: text/plain; charset=UTF-8",
 		"",
-		body,
+		textBody,
+		"",
+		"--" + boundary,
+		"Content-Type: text/html; charset=UTF-8",
+		"",
+		htmlBody,
+		"",
+		"--" + boundary + "--",
 	}, "\r\n")
 
 	addr := fmt.Sprintf("%s:%d", cfg.host, cfg.port)
@@ -166,14 +209,26 @@ func sendSMTPEmail(toEmail, subject, body string) error {
 	return smtp.SendMail(addr, auth, cfg.from, []string{toEmail}, []byte(msg))
 }
 
-func sendResetCodeEmail(toEmail, code string) error {
-	subject := "ExpenseLog - Codigo de recuperacion"
-	body := fmt.Sprintf("Hola,\n\nTu codigo de recuperacion de ExpenseLog es: %s\n\nEste codigo expira en 15 minutos.\nSi no pediste este codigo, podes ignorar este mensaje.\n\nGracias,\nEquipo ExpenseLog\n", code)
-	return sendSMTPEmail(toEmail, subject, body)
+func sendResetCodeEmail(toEmail, code, appURL string) error {
+	email, err := buildResetCodeEmail(code, appURL)
+	if err != nil {
+		return err
+	}
+	return sendSMTPEmail(toEmail, email.Subject, email.Text, email.HTML)
 }
 
 func sendVerificationEmail(toEmail, verifyURL string) error {
-	subject := "ExpenseLog - Verifica tu email"
-	body := fmt.Sprintf("Hola,\n\nPara verificar tu cuenta de ExpenseLog, hace click en este enlace:\n%s\n\nEste enlace expira en 24 horas.\nSi no pediste esta cuenta, podes ignorar este mensaje.\n\nGracias,\nEquipo ExpenseLog\n", verifyURL)
-	return sendSMTPEmail(toEmail, subject, body)
+	email, err := buildVerificationEmail(verifyURL)
+	if err != nil {
+		return err
+	}
+	return sendSMTPEmail(toEmail, email.Subject, email.Text, email.HTML)
+}
+
+func sendPasswordChangedEmail(toEmail, appURL string) error {
+	email, err := buildPasswordChangedEmail(appURL)
+	if err != nil {
+		return err
+	}
+	return sendSMTPEmail(toEmail, email.Subject, email.Text, email.HTML)
 }

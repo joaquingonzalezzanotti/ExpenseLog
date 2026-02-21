@@ -726,7 +726,9 @@
                         </tr>
                     </thead>
                     <tbody>
-                        ${expenses.map((expense, index) => `
+                        ${expenses.map((expense, index) => {
+                            const amountFlowClass = resolveFlow(expense) === 'expense' ? 'is-expense' : 'is-income';
+                            return `
                             <tr>
                                 <td>
                                     <div class="expense-name-cell">
@@ -742,7 +744,7 @@
                                     </div>
                                 </td>
                                 <td class="secondary-col col-left"><span class="${expense.systemLocked ? '' : 'editable'}" data-edit="category" data-id="${expense.id}">${highlightText(formatCategoryLabel(expense.category), searchQuery)}</span></td>
-                                <td class="amount amount-value col-right"><span class="${expense.systemLocked ? '' : 'editable'}" data-edit="amount" data-id="${expense.id}">${formatCurrencyWithCurrency(expense.amount, expense.currency || currentCurrency, compactAmounts)}</span></td>
+                                <td class="amount amount-value ${amountFlowClass} col-right"><span class="${expense.systemLocked ? '' : 'editable'}" data-edit="amount" data-id="${expense.id}">${formatCurrencyWithCurrency(expense.amount, expense.currency || currentCurrency, compactAmounts)}</span></td>
                                 <td class="amount amount-balance col-right">${runningBalances[expense.id] ? formatCurrencyWithCurrency(runningBalances[expense.id].amount, runningBalances[expense.id].currency, compactAmounts) : '-'}</td>
                                 <td class="secondary-col col-center">${expense.source ? escapeHTML(expense.source) : '-'}</td>
                                 <td class="secondary-col col-center">${expense.source === 'TARJETA' ? escapeHTML(expense.card || '-') : '-'}</td>
@@ -782,7 +784,8 @@
                                     </div>
                                 </td>
                             </tr>
-                        `).join('')}
+                        `;
+                        }).join('')}
                     </tbody>
                 </table>
             `;

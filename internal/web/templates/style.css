@@ -1512,6 +1512,22 @@ html[data-theme='dark'] #tableContainer {
     font-weight: 700;
 }
 
+.expense-table td.amount-value.is-expense {
+    color: #b42318;
+}
+
+.expense-table td.amount-value.is-income {
+    color: #027a48;
+}
+
+html[data-theme='dark'] .expense-table td.amount-value.is-expense {
+    color: #f97066;
+}
+
+html[data-theme='dark'] .expense-table td.amount-value.is-income {
+    color: #32d583;
+}
+
 .expense-table td.amount-balance {
     color: var(--text-secondary);
     font-weight: 600;

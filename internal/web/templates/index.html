@@ -1181,6 +1181,7 @@
             const baseContainer = document.getElementById('baseSummary');
             container.innerHTML = '';
             baseContainer.innerHTML = '';
+            const baseCurrencyLabelSuffix = baseCurrency === 'ars' ? '' : ` ${baseCurrency.toUpperCase()}`;
             // Balance disponible: mantiene origen bancario (o legacy vacio) y excluye EFECTIVO/TARJETA.
             const cashflowExpenses = expenses.filter(exp => {
                 const source = (exp.source || '').toUpperCase();
@@ -1208,19 +1209,19 @@
                 const balance = baseCarryover + baseIncome - baseExpense;
                 baseWrapper.innerHTML = `
                     <div class="cashflow-item carryover">
-                        <div class="cashflow-label">Saldo inicial ${baseCurrency.toUpperCase()}</div>
+                        <div class="cashflow-label">Saldo inicial${baseCurrencyLabelSuffix}</div>
                         <div class="cashflow-value ${baseCarryover >= 0 ? 'positive' : 'negative'}">${formatCurrencyWithCurrency(baseCarryover, baseCurrency)}</div>
                     </div>
                     <div class="cashflow-item income">
-                        <div class="cashflow-label">Ingresos ${baseCurrency.toUpperCase()}</div>
+                        <div class="cashflow-label">Ingresos${baseCurrencyLabelSuffix}</div>
                         <div class="cashflow-value">${formatCurrencyWithCurrency(baseIncome, baseCurrency)}</div>
                     </div>
                     <div class="cashflow-item expenses">
-                        <div class="cashflow-label">Gastos ${baseCurrency.toUpperCase()}</div>
+                        <div class="cashflow-label">Gastos${baseCurrencyLabelSuffix}</div>
                         <div class="cashflow-value">${formatCurrencyWithCurrency(baseExpense, baseCurrency)}</div>
                     </div>
                     <div class="cashflow-item balance">
-                        <div class="cashflow-label">Balance ${baseCurrency.toUpperCase()}</div>
+                        <div class="cashflow-label">Balance${baseCurrencyLabelSuffix}</div>
                         <div class="cashflow-value ${balance >= 0 ? 'positive' : 'negative'}">${formatCurrencyWithCurrency(balance, baseCurrency)}</div>
                     </div>
                 `;

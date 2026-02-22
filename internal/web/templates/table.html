@@ -100,7 +100,7 @@
                     <select id="sourceSelect">
                         <option value="CA">Transferencia o debito</option>
                         <option value="EFECTIVO">Efectivo (registro)</option>
-                        <option value="TARJETA">Tarjeta credito</option>
+                        <option value="TARJETA">Tarjeta de credito</option>
                     </select>
                     <div id="sourceImpactHint" class="form-help-text" aria-live="polite"></div>
                 </div>
@@ -1085,7 +1085,7 @@
                 return;
             }
             if (source === 'TARJETA') {
-                sourceImpactHint.textContent = 'Gasto en tarjeta credito: no descuenta Balance ahora. Suma a Tarjeta por pagar.';
+                sourceImpactHint.textContent = 'Gasto en tarjeta de credito: no descuenta Balance ahora. Suma a Tarjeta por pagar.';
                 return;
             }
             if (source === 'EFECTIVO') {

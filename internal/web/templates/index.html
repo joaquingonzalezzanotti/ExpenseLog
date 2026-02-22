@@ -81,69 +81,19 @@
 
         <div id="baseSummary" class="cashflow-container"></div>
 
-        <div id="addExpenseContainer" style="display: none;">
-            <div class="form-container home-expense-form-container">
-                <form id="expenseForm" class="expense-form home-expense-form">
-                    <div class="form-group">
-                        <label for="name">Nombre</label>
-                        <input type="text" id="name" placeholder="Ej. Supermercado" required>
+        <div id="addExpenseContainer" class="entry-modal-overlay" hidden aria-hidden="true">
+            <div class="entry-modal-backdrop" data-expense-close></div>
+            <div class="entry-modal-card" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle">
+                <div class="entry-modal-header">
+                    <div class="entry-modal-title-wrap">
+                        <h3 id="expenseModalTitle">Registrar movimiento</h3>
+                        <p>Carga un ingreso, gasto o reintegro sin salir del dashboard.</p>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="category">Categoria</label>
-                        <select id="category" required>
-                            <option value="">categorias</option>
-                        </select>
-                    </div>
-    
-                    <div class="form-group">
-                        <label for="tags-input">Etiquetas</label>
-                        <div id="tags-input-container" class="tags-input-container">
-                            <div id="selected-tags" class="selected-tags"></div>
-                            <input type="text" id="tags-input" placeholder="(opcional)">
-                        </div>
-                        <div id="tags-dropdown" class="tags-dropdown"></div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="amount">Monto</label>
-                        <input type="number" id="amount" step="0.01" min="0.01" max="9000000000000000" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="currencySelectForm">Moneda</label>
-                        <select id="currencySelectForm" required></select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="sourceSelect">Metodo</label>
-                        <select id="sourceSelect">
-                            <option value="CA">Transferencia / Debito</option>
-                            <option value="EFECTIVO">Efectivo (registro)</option>
-                            <option value="TARJETA">Tarjeta credito</option>
-                        </select>
-                        <div id="sourceImpactHint" class="form-help-text" aria-live="polite"></div>
-                    </div>
-
-                    <div class="form-group" id="cardGroup" style="display:none;">
-                        <label for="cardInput">Tarjeta</label>
-                        <input type="text" id="cardInput" placeholder="Ej: Visa, Amex">
-                        <div id="cardError" class="form-error"></div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="date">Fecha</label>
-                        <input type="date" id="date" required>
-                        <script>
-                            const today = new Date();
-                            const year = today.getFullYear();
-                            const month = String(today.getMonth() + 1).padStart(2, '0');
-                            const day = String(today.getDate()).padStart(2, '0');
-                            const formattedDate = `${year}-${month}-${day}`;
-                            document.getElementById('date').value = formattedDate;
-                        </script>
-                    </div>
-
+                    <button type="button" id="closeExpenseFormBtn" class="entry-modal-close" aria-label="Cerrar formulario">
+                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <form id="expenseForm" class="expense-form expense-modal-form">
                     <div class="form-group">
                         <label for="movementType">Tipo</label>
                         <select id="movementType">
@@ -151,6 +101,61 @@
                             <option value="income">Ingreso</option>
                             <option value="refund">Reintegro</option>
                         </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sourceSelect">Metodo</label>
+                        <select id="sourceSelect">
+                            <option value="CA">Transferencia / Debito</option>
+                            <option value="EFECTIVO">Efectivo (solo registro)</option>
+                            <option value="TARJETA">Tarjeta de credito</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group form-group-span-2">
+                        <label for="name">Descripcion</label>
+                        <input type="text" id="name" placeholder="Ej. Supermercado, alquiler, sueldo..." required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="amount">Monto</label>
+                        <input type="number" id="amount" step="0.01" min="0.01" max="9000000000000000" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="date">Fecha</label>
+                        <input type="date" id="date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category">Categoria</label>
+                        <select id="category" required>
+                            <option value="">Selecciona categoria</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="currencySelectForm">Moneda</label>
+                        <select id="currencySelectForm" required></select>
+                    </div>
+
+                    <div class="form-group form-group-span-2">
+                        <label for="tags-input">Etiquetas</label>
+                        <div id="tags-input-container" class="tags-input-container">
+                            <div id="selected-tags" class="selected-tags"></div>
+                            <input type="text" id="tags-input" placeholder="Opcional">
+                        </div>
+                        <div id="tags-dropdown" class="tags-dropdown"></div>
+                    </div>
+
+                    <div class="form-group form-group-span-2" id="cardGroup" style="display:none;">
+                        <label for="cardInput">Tarjeta</label>
+                        <input type="text" id="cardInput" placeholder="Ej: Visa, Amex">
+                        <div id="cardError" class="form-error"></div>
+                    </div>
+
+                    <div class="form-group form-group-span-2">
+                        <div id="sourceImpactHint" class="form-help-text" aria-live="polite"></div>
                     </div>
 
                     <div class="form-actions">
@@ -198,7 +203,7 @@
         </div>
 
         <section id="cardPaymentModule" class="card-payment-module" style="display: none;">
-            <button id="cardPaymentToggle" class="card-payment-toggle" type="button" aria-expanded="false" aria-controls="cardPaymentFormWrap">
+            <div class="card-payment-head">
                 <div class="card-payment-toggle-copy">
                     <span class="card-payment-title">Tarjeta por pagar</span>
                     <span id="cardPaymentStatus" class="card-payment-status">Registra pagos para bajar el saldo pendiente.</span>
@@ -207,12 +212,25 @@
                     <span id="cardPayableValue" class="card-payment-value">$0.00</span>
                     <span id="cardPayableSub" class="card-payment-sub"></span>
                 </div>
-                <span class="card-payment-chevron" aria-hidden="true">
-                    <i class="fa-solid fa-chevron-down"></i>
-                </span>
-            </button>
-            <div id="cardPaymentFormWrap" class="card-payment-form-wrap" hidden>
-                <form id="cardPaymentForm" class="card-payment-form">
+            </div>
+            <div class="card-payment-actions">
+                <button id="openCardPaymentModalBtn" type="button" class="nav-button button-primary">Registrar pago</button>
+            </div>
+        </section>
+
+        <div id="cardPaymentOverlay" class="entry-modal-overlay" hidden aria-hidden="true">
+            <div class="entry-modal-backdrop" data-cardpayment-close></div>
+            <div class="entry-modal-card card-payment-modal-card" role="dialog" aria-modal="true" aria-labelledby="cardPaymentModalTitle">
+                <div class="entry-modal-header">
+                    <div class="entry-modal-title-wrap">
+                        <h3 id="cardPaymentModalTitle">Pago de tarjeta</h3>
+                        <p>Registra un pago propio o marca pago por tercero para no afectar tu balance.</p>
+                    </div>
+                    <button type="button" id="closeCardPaymentModalBtn" class="entry-modal-close" aria-label="Cerrar pago de tarjeta">
+                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <form id="cardPaymentForm" class="expense-form card-payment-modal-form">
                     <div class="form-group">
                         <label for="cardPaymentAmount">Monto a registrar</label>
                         <input type="number" id="cardPaymentAmount" step="0.01" min="0.01" placeholder="Ej: 25000" required>
@@ -221,18 +239,18 @@
                         <label for="cardPaymentCurrency">Moneda</label>
                         <select id="cardPaymentCurrency" required></select>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group form-group-span-2">
                         <label for="cardPaymentCard">Tarjeta (opcional)</label>
                         <input type="text" id="cardPaymentCard" placeholder="Ej: Visa banco">
                     </div>
+                    <div id="cardPaymentMessage" class="form-help-text form-group-span-2"></div>
                     <div class="form-actions">
-                        <button type="button" id="cardPayOwnBtn" class="nav-button button-primary">Pagar tarjeta</button>
                         <button type="button" id="cardPayThirdBtn" class="nav-button button-secondary">Pago por tercero</button>
+                        <button type="button" id="cardPayOwnBtn" class="nav-button button-primary">Pagar tarjeta</button>
                     </div>
-                    <div id="cardPaymentMessage" class="form-help-text"></div>
                 </form>
             </div>
-        </section>
+        </div>
 
         <div id="cashflow-section" class="cashflow-container"></div>
     </div>
@@ -312,9 +330,12 @@
         const cardGroup = document.getElementById('cardGroup');
         const movementTypeSelect = document.getElementById('movementType');
         const sourceImpactHint = document.getElementById('sourceImpactHint');
+        const addExpenseContainer = document.getElementById('addExpenseContainer');
+        const closeExpenseFormBtn = document.getElementById('closeExpenseFormBtn');
         const cardPaymentModule = document.getElementById('cardPaymentModule');
-        const cardPaymentToggle = document.getElementById('cardPaymentToggle');
-        const cardPaymentFormWrap = document.getElementById('cardPaymentFormWrap');
+        const openCardPaymentModalBtn = document.getElementById('openCardPaymentModalBtn');
+        const cardPaymentOverlay = document.getElementById('cardPaymentOverlay');
+        const closeCardPaymentModalBtn = document.getElementById('closeCardPaymentModalBtn');
         const cardPayableValue = document.getElementById('cardPayableValue');
         const cardPayableSub = document.getElementById('cardPayableSub');
         const cardPaymentStatus = document.getElementById('cardPaymentStatus');
@@ -329,7 +350,7 @@
         let categories = [];
         let chartExpanded = false;
         let cardPayableByCurrency = {};
-        let cardPaymentExpanded = false;
+        let cardPaymentModalVisible = false;
         const expenseForm = document.getElementById('expenseForm');
         const expenseSubmitButton = expenseForm ? expenseForm.querySelector('button[type="submit"]') : null;
         const movementTypeGroup = movementTypeSelect ? movementTypeSelect.closest('.form-group') : null;
@@ -785,17 +806,32 @@
             }
         }
 
-        function setCardPaymentExpanded(expanded) {
-            cardPaymentExpanded = !!expanded;
-            if (cardPaymentFormWrap) {
-                cardPaymentFormWrap.hidden = !cardPaymentExpanded;
+        function syncBodyModalLock() {
+            const expenseOpen = addExpenseContainer && !addExpenseContainer.hidden;
+            const cardOpen = cardPaymentOverlay && !cardPaymentOverlay.hidden;
+            document.body.classList.toggle('modal-open', !!(expenseOpen || cardOpen));
+        }
+
+        function setCardPaymentModalVisible(visible) {
+            cardPaymentModalVisible = !!visible;
+            if (cardPaymentOverlay) {
+                cardPaymentOverlay.hidden = !cardPaymentModalVisible;
+                cardPaymentOverlay.setAttribute('aria-hidden', cardPaymentModalVisible ? 'false' : 'true');
             }
-            if (cardPaymentToggle) {
-                cardPaymentToggle.setAttribute('aria-expanded', cardPaymentExpanded ? 'true' : 'false');
+            if (openCardPaymentModalBtn) {
+                openCardPaymentModalBtn.setAttribute('aria-expanded', cardPaymentModalVisible ? 'true' : 'false');
             }
-            if (cardPaymentModule) {
-                cardPaymentModule.classList.toggle('expanded', cardPaymentExpanded);
+            if (cardPaymentModalVisible) {
+                updateCardPaymentMessage('');
+                window.setTimeout(() => {
+                    if (cardPaymentAmountInput) cardPaymentAmountInput.focus();
+                }, 0);
+            } else {
+                if (cardPaymentAmountInput) cardPaymentAmountInput.value = '';
+                if (cardPaymentCardInput) cardPaymentCardInput.value = '';
+                updateCardPaymentMessage('');
             }
+            syncBodyModalLock();
         }
 
         function renderCardPaymentModule() {
@@ -829,7 +865,13 @@
                     cardPaymentStatus.textContent = 'No hay consumos pendientes de tarjeta en este periodo.';
                 }
             }
-            setCardPaymentExpanded(cardPaymentExpanded);
+            if (openCardPaymentModalBtn) {
+                openCardPaymentModalBtn.disabled = !hasPending;
+                openCardPaymentModalBtn.textContent = hasPending ? 'Registrar pago' : 'Sin saldo pendiente';
+            }
+            if (!hasPending) {
+                setCardPaymentModalVisible(false);
+            }
         }
 
         function setCardPaymentPendingState(pending) {
@@ -890,6 +932,7 @@
                 if (cardPaymentCardInput) cardPaymentCardInput.value = '';
                 await initialize();
                 showToast('Tarjeta actualizada', 'success');
+                setCardPaymentModalVisible(false);
             } catch (error) {
                 updateCardPaymentMessage(error.message || 'No se pudo guardar el pago.', 'error');
             } finally {
@@ -1453,14 +1496,45 @@
             updateSourceImpactHint();
         }
 
+        function setDateToToday() {
+            const dateInput = document.getElementById('date');
+            if (!dateInput) return;
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}`;
+        }
+
+        function resetExpenseFormState() {
+            const form = document.getElementById('expenseForm');
+            if (form) form.reset();
+            const selectedTagsEl = document.getElementById('selected-tags');
+            if (selectedTagsEl) selectedTagsEl.innerHTML = '';
+            selectedTags.clear();
+            populateFormCurrency();
+            if (sourceSelect) sourceSelect.value = 'CA';
+            if (movementTypeSelect) movementTypeSelect.value = 'expense';
+            refreshSourceUX();
+            syncExpenseSubmitButtonLabel();
+            setDateToToday();
+        }
+
         function setExpenseFormVisible(visible) {
-            const formContainer = document.getElementById('addExpenseContainer');
-            formContainer.style.display = visible ? 'block' : 'none';
+            if (!addExpenseContainer) return;
+            addExpenseContainer.hidden = !visible;
+            addExpenseContainer.setAttribute('aria-hidden', visible ? 'false' : 'true');
             const openFormButton = document.getElementById('toggleExpenseFormBtn');
             if (openFormButton) {
-                openFormButton.style.display = visible ? 'none' : '';
                 openFormButton.setAttribute('aria-expanded', visible ? 'true' : 'false');
             }
+            if (visible) {
+                window.setTimeout(() => {
+                    const nameInput = document.getElementById('name');
+                    if (nameInput) nameInput.focus();
+                }, 0);
+            }
+            syncBodyModalLock();
         }
 
         function getCreateSubmitLabelByMovementType(movementType) {
@@ -1512,20 +1586,9 @@
                 messageDiv.textContent = '';
                 messageDiv.className = 'form-message';
                 showToast('Gasto agregado con exito', 'success');
-                document.getElementById('expenseForm').reset();
-                document.getElementById('selected-tags').innerHTML = '';
-                selectedTags.clear();
-                populateFormCurrency();
-                sourceSelect.value = 'CA';
-                if (movementTypeSelect) movementTypeSelect.value = 'expense';
-                refreshSourceUX();
+                resetExpenseFormState();
                 setExpenseFormVisible(false);
                 await initialize();
-                    const today = new Date();
-                    const year = today.getFullYear();
-                    const month = String(today.getMonth() + 1).padStart(2, '0');
-                    const day = String(today.getDate()).padStart(2, '0');
-                    document.getElementById('date').value = `${year}-${month}-${day}`;
                 } else {
                     const error = await response.json();
                     messageDiv.textContent = '';
@@ -1605,18 +1668,13 @@
 
         document.querySelectorAll('.quick-action').forEach(btn => {
             btn.addEventListener('click', () => {
-                const formContainer = document.getElementById('addExpenseContainer');
                 const action = btn.dataset.action;
                 if (action === 'open-form') {
-                    const isHidden = formContainer.style.display === 'none' || formContainer.style.display === '';
-                    if (isHidden) {
-                        if (movementTypeSelect) movementTypeSelect.value = 'expense';
-                        sourceSelect.value = 'CA';
-                        refreshSourceUX();
-                        syncExpenseSubmitButtonLabel();
-                    }
+                    if (movementTypeSelect) movementTypeSelect.value = 'expense';
+                    sourceSelect.value = 'CA';
+                    refreshSourceUX();
+                    syncExpenseSubmitButtonLabel();
                     setExpenseFormVisible(true);
-                    document.getElementById('name').focus();
                     return;
                 }
                 setExpenseFormVisible(true);
@@ -1632,32 +1690,51 @@
                 }
                 refreshSourceUX();
                 syncExpenseSubmitButtonLabel();
-                formContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
         });
 
-        document.getElementById('cancelExpenseFormBtn').addEventListener('click', () => {
-            document.getElementById('expenseForm').reset();
-            document.getElementById('selected-tags').innerHTML = '';
-            selectedTags.clear();
-            populateFormCurrency();
-            sourceSelect.value = 'CA';
-            if (movementTypeSelect) movementTypeSelect.value = 'expense';
-            refreshSourceUX();
-            syncExpenseSubmitButtonLabel();
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            document.getElementById('date').value = `${year}-${month}-${day}`;
+        function closeAndResetExpenseForm() {
+            resetExpenseFormState();
             setExpenseFormVisible(false);
-        });
+            const formMessage = document.getElementById('formMessage');
+            if (formMessage) {
+                formMessage.textContent = '';
+                formMessage.className = 'form-message';
+            }
+        }
 
-        if (cardPaymentToggle) {
-            cardPaymentToggle.addEventListener('click', () => {
-                setCardPaymentExpanded(!cardPaymentExpanded);
+        document.getElementById('cancelExpenseFormBtn').addEventListener('click', closeAndResetExpenseForm);
+        if (closeExpenseFormBtn) {
+            closeExpenseFormBtn.addEventListener('click', closeAndResetExpenseForm);
+        }
+        if (addExpenseContainer) {
+            addExpenseContainer.addEventListener('click', (event) => {
+                if (event.target === addExpenseContainer || event.target.hasAttribute('data-expense-close')) {
+                    closeAndResetExpenseForm();
+                }
             });
         }
+
+        if (openCardPaymentModalBtn) {
+            openCardPaymentModalBtn.addEventListener('click', () => {
+                if (!openCardPaymentModalBtn.disabled) {
+                    setCardPaymentModalVisible(true);
+                }
+            });
+        }
+        if (closeCardPaymentModalBtn) {
+            closeCardPaymentModalBtn.addEventListener('click', () => {
+                setCardPaymentModalVisible(false);
+            });
+        }
+        if (cardPaymentOverlay) {
+            cardPaymentOverlay.addEventListener('click', (event) => {
+                if (event.target === cardPaymentOverlay || event.target.hasAttribute('data-cardpayment-close')) {
+                    setCardPaymentModalVisible(false);
+                }
+            });
+        }
+
         if (cardPaymentCurrencySelect) {
             cardPaymentCurrencySelect.addEventListener('change', () => {
                 renderCardPaymentModule();
@@ -1675,11 +1752,24 @@
             });
         }
 
+        document.addEventListener('keydown', (event) => {
+            if (event.key !== 'Escape') return;
+            if (addExpenseContainer && !addExpenseContainer.hidden) {
+                closeAndResetExpenseForm();
+                return;
+            }
+            if (cardPaymentOverlay && !cardPaymentOverlay.hidden) {
+                setCardPaymentModalVisible(false);
+            }
+        });
+
         window.addEventListener('resize', () => {
             updateCompactHomeFilterLabels();
         });
 
         setExpenseFormVisible(false);
+        setCardPaymentModalVisible(false);
+        setDateToToday();
         refreshSourceUX();
         syncExpenseSubmitButtonLabel();
     </script>

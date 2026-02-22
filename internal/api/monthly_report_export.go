@@ -48,6 +48,18 @@ func (h *Handler) ExportMonthlyXLSX(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	isPremium, err := h.isPremiumUser(userID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to validate plan"})
+		return
+	}
+	if !isPremium {
+		writeJSON(w, http.StatusForbidden, map[string]any{
+			"error":   "La exportacion mensual es una funcion Premium.",
+			"feature": "premium_required",
+		})
+		return
+	}
 
 	query, err := h.parseMonthlyReportQuery(r, userID)
 	if err != nil {
@@ -86,6 +98,18 @@ func (h *Handler) ExportMonthlyPDF(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := requireUserID(w, r)
 	if !ok {
+		return
+	}
+	isPremium, err := h.isPremiumUser(userID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to validate plan"})
+		return
+	}
+	if !isPremium {
+		writeJSON(w, http.StatusForbidden, map[string]any{
+			"error":   "La exportacion mensual es una funcion Premium.",
+			"feature": "premium_required",
+		})
 		return
 	}
 
@@ -167,6 +191,14 @@ func (h *Handler) parseMonthlyReportQuery(r *http.Request, userID string) (month
 		Start:    start,
 		End:      end,
 	}, nil
+}
+
+func (h *Handler) isPremiumUser(userID string) (bool, error) {
+	config, err := h.storage.GetConfig(userID)
+	if err != nil {
+		return false, err
+	}
+	return storage.NormalizePlanTier(config.PlanTier) == storage.PlanTierPremium, nil
 }
 
 func filterExpensesForMonthlyReport(expenses []storage.Expense, query monthlyReportQuery) []storage.Expense {

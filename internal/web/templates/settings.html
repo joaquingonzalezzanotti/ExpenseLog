@@ -498,6 +498,7 @@
         let addFormSelectedTags = new Set();
         let editFormSelectedTags = new Set();
         let currentCurrency = "usd";
+        let currentPlanTier = "free";
         let recurringExpenses = [];
         let reconciliationHistoryItems = [];
         let allExpensesCache = [];
@@ -653,6 +654,29 @@
             }, 3000);
         }
 
+        function normalizePlanTier(value) {
+            return String(value || '').trim().toLowerCase() === 'premium' ? 'premium' : 'free';
+        }
+
+        function renderReportAccessState() {
+            const isPremium = currentPlanTier === 'premium';
+            if (downloadMonthlyXLSXBtn) downloadMonthlyXLSXBtn.disabled = !isPremium;
+            if (downloadMonthlyPDFBtn) downloadMonthlyPDFBtn.disabled = !isPremium;
+            const messageDiv = document.getElementById('reportExportMessage');
+            if (!messageDiv) return;
+            if (isPremium) {
+                if (messageDiv.dataset.locked === '1') {
+                    messageDiv.textContent = '';
+                    messageDiv.className = 'form-message';
+                    messageDiv.dataset.locked = '0';
+                }
+                return;
+            }
+            messageDiv.textContent = 'Disponible en Premium: exporta tus movimientos mensuales en Excel y PDF.';
+            messageDiv.className = 'form-message error';
+            messageDiv.dataset.locked = '1';
+        }
+
         function populateReportPeriodControls() {
             if (reportMonthSelect && reportMonthSelect.options.length === 0) {
                 const months = [
@@ -674,6 +698,7 @@
             if (reportCurrencySelect) {
                 reportCurrencySelect.value = currentCurrency || 'ars';
             }
+            renderReportAccessState();
         }
 
         function parseAttachmentFilename(contentDisposition, fallbackName) {
@@ -698,6 +723,10 @@
         }
 
         async function downloadMonthlyReport(format) {
+            if (currentPlanTier !== 'premium') {
+                showMessage('reportExportMessage', 'La exportacion mensual es una funcion Premium.', false);
+                return;
+            }
             const month = parseInt(reportMonthSelect?.value || '', 10);
             const year = parseInt(reportYearInput?.value || '', 10);
             const currency = (reportCurrencySelect?.value || currentCurrency || 'ars').toLowerCase();
@@ -1662,6 +1691,7 @@ async function saveCategoriesList(nextCategories) {
                 recurringExpenses = await recurringExpensesResponse.json() || [];
 
                 currentCurrency = (config.currency || 'ars').toLowerCase();
+                currentPlanTier = normalizePlanTier(config.planTier);
                 allTags.clear();
                 (allExpensesCache || []).forEach(exp => (exp.tags || []).forEach(tag => allTags.add(tag)));
                 (recurringExpenses || []).forEach(exp => (exp.tags || []).forEach(tag => allTags.add(tag)));
@@ -1702,6 +1732,7 @@ async function saveCategoriesList(nextCategories) {
                 console.error('No se pudo inicializar la configuracion:', error);
                 categoriesLoading = false;
                 renderCategories();
+                populateReportPeriodControls();
                 showMessage('categoriesMessage', 'No se pudo cargar la configuracion', false);
             }
         }

@@ -81,7 +81,8 @@ const (
 	CREATE TABLE IF NOT EXISTS user_config (
 		user_id VARCHAR(36) PRIMARY KEY,
 		currency VARCHAR(255) NOT NULL,
-		start_date INTEGER NOT NULL
+		start_date INTEGER NOT NULL,
+		plan_tier VARCHAR(20) NOT NULL DEFAULT 'free'
 	);`
 
 	createExpensesTableSQL = `
@@ -221,6 +222,7 @@ func createTables(db *sql.DB) error {
 		"ALTER TABLE reconciliations ADD COLUMN IF NOT EXISTS reverted_at TIMESTAMPTZ",
 		"ALTER TABLE password_resets ADD COLUMN IF NOT EXISTS attempts INTEGER NOT NULL DEFAULT 0",
 		"ALTER TABLE password_resets ADD COLUMN IF NOT EXISTS max_attempts INTEGER NOT NULL DEFAULT 5",
+		"ALTER TABLE user_config ADD COLUMN IF NOT EXISTS plan_tier VARCHAR(20) NOT NULL DEFAULT 'free'",
 	}
 	for _, stmt := range alterStmts {
 		if _, err := db.Exec(stmt); err != nil {
@@ -285,6 +287,9 @@ func createTables(db *sql.DB) error {
 		return err
 	}
 	if err := updateDefaultCategoriesToSpanish(db); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`UPDATE user_config SET plan_tier = 'free' WHERE plan_tier IS NULL OR TRIM(plan_tier) = ''`); err != nil {
 		return err
 	}
 	if err := ensureForeignKeys(db); err != nil {
@@ -662,7 +667,7 @@ func ensureUserConfig(db *sql.DB, userID string, defaults *Config) error {
 	} else {
 		config.SetBaseConfig()
 	}
-	_, err := db.Exec(`INSERT INTO user_config (user_id, currency, start_date) VALUES ($1, $2, $3)`, userID, config.Currency, config.StartDate)
+	_, err := db.Exec(`INSERT INTO user_config (user_id, currency, start_date, plan_tier) VALUES ($1, $2, $3, $4)`, userID, config.Currency, config.StartDate, NormalizePlanTier(config.PlanTier))
 	return err
 }
 
@@ -1020,7 +1025,7 @@ func (s *databaseStore) MarkEmailVerificationUsed(verificationID string) error {
 }
 
 func (s *databaseStore) GetConfig(userID string) (*Config, error) {
-	currency, startDate, err := s.getOrCreateUserConfig(userID)
+	currency, startDate, planTier, err := s.getOrCreateUserConfig(userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user config: %v", err)
 	}
@@ -1037,26 +1042,28 @@ func (s *databaseStore) GetConfig(userID string) (*Config, error) {
 		Categories:        categories,
 		Currency:          currency,
 		StartDate:         startDate,
+		PlanTier:          planTier,
 		RecurringExpenses: recurring,
 	}, nil
 }
 
-func (s *databaseStore) getOrCreateUserConfig(userID string) (string, int, error) {
+func (s *databaseStore) getOrCreateUserConfig(userID string) (string, int, string, error) {
 	var currency string
 	var startDate int
-	err := s.db.QueryRow(`SELECT currency, start_date FROM user_config WHERE user_id = $1`, userID).Scan(&currency, &startDate)
+	var planTier string
+	err := s.db.QueryRow(`SELECT currency, start_date, COALESCE(plan_tier, 'free') FROM user_config WHERE user_id = $1`, userID).Scan(&currency, &startDate, &planTier)
 	if err == nil {
-		return currency, startDate, nil
+		return currency, startDate, NormalizePlanTier(planTier), nil
 	}
 	if err != sql.ErrNoRows {
-		return "", 0, err
+		return "", 0, "", err
 	}
 	config := Config{}
 	config.SetBaseConfig()
-	if _, err := s.db.Exec(`INSERT INTO user_config (user_id, currency, start_date) VALUES ($1, $2, $3)`, userID, config.Currency, config.StartDate); err != nil {
-		return "", 0, err
+	if _, err := s.db.Exec(`INSERT INTO user_config (user_id, currency, start_date, plan_tier) VALUES ($1, $2, $3, $4)`, userID, config.Currency, config.StartDate, NormalizePlanTier(config.PlanTier)); err != nil {
+		return "", 0, "", err
 	}
-	return config.Currency, config.StartDate, nil
+	return config.Currency, config.StartDate, NormalizePlanTier(config.PlanTier), nil
 }
 
 func (s *databaseStore) GetCategories(userID string) ([]string, error) {
@@ -1161,7 +1168,7 @@ func (s *databaseStore) updateCategoriesTable(userID string, categories []string
 }
 
 func (s *databaseStore) GetCurrency(userID string) (string, error) {
-	currency, _, err := s.getOrCreateUserConfig(userID)
+	currency, _, _, err := s.getOrCreateUserConfig(userID)
 	if err != nil {
 		return "", err
 	}
@@ -1172,21 +1179,21 @@ func (s *databaseStore) UpdateCurrency(userID string, currency string) error {
 	if !slices.Contains(SupportedCurrencies, currency) {
 		return fmt.Errorf("invalid currency: %s", currency)
 	}
-	_, startDate, err := s.getOrCreateUserConfig(userID)
+	_, startDate, planTier, err := s.getOrCreateUserConfig(userID)
 	if err != nil {
 		return err
 	}
 	_, err = s.db.Exec(
-		`INSERT INTO user_config (user_id, currency, start_date)
-		 VALUES ($1, $2, $3)
+		`INSERT INTO user_config (user_id, currency, start_date, plan_tier)
+		 VALUES ($1, $2, $3, $4)
 		 ON CONFLICT (user_id) DO UPDATE SET currency = EXCLUDED.currency`,
-		userID, currency, startDate,
+		userID, currency, startDate, planTier,
 	)
 	return err
 }
 
 func (s *databaseStore) GetStartDate(userID string) (int, error) {
-	_, startDate, err := s.getOrCreateUserConfig(userID)
+	_, startDate, _, err := s.getOrCreateUserConfig(userID)
 	if err != nil {
 		return 0, err
 	}
@@ -1197,15 +1204,15 @@ func (s *databaseStore) UpdateStartDate(userID string, startDate int) error {
 	if startDate < 1 || startDate > 31 {
 		return fmt.Errorf("invalid start date: %d", startDate)
 	}
-	currency, _, err := s.getOrCreateUserConfig(userID)
+	currency, _, planTier, err := s.getOrCreateUserConfig(userID)
 	if err != nil {
 		return err
 	}
 	_, err = s.db.Exec(
-		`INSERT INTO user_config (user_id, currency, start_date)
-		 VALUES ($1, $2, $3)
+		`INSERT INTO user_config (user_id, currency, start_date, plan_tier)
+		 VALUES ($1, $2, $3, $4)
 		 ON CONFLICT (user_id) DO UPDATE SET start_date = EXCLUDED.start_date`,
-		userID, currency, startDate,
+		userID, currency, startDate, planTier,
 	)
 	return err
 }

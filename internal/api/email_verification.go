@@ -56,7 +56,7 @@ func buildVerificationURL(r *http.Request, token string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s/auth/verify?token=%s", base, url.QueryEscape(token)), nil
+	return fmt.Sprintf("%s/api/auth/verify?token=%s", base, url.QueryEscape(token)), nil
 }
 
 func baseURLFromRequest(r *http.Request) string {

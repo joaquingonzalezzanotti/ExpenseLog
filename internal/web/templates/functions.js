@@ -32,6 +32,17 @@ let currentVisibleNotificationItems = [];
 let notificationCenterDisabled = false;
 let notificationCenterFetchWarned = false;
 
+const API_ROUTE_REGEX = /^\/(auth|config|categories|currency|startdate|reconciliation|expense|expenses|recurring-expense|recurring-expenses|alerts|export|import|version)(\/|$)/;
+const originalFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : null;
+if (originalFetch) {
+    window.fetch = (input, init) => {
+        if (typeof input === 'string' && API_ROUTE_REGEX.test(input) && !input.startsWith('/api/')) {
+            return originalFetch(`/api${input}`, init);
+        }
+        return originalFetch(input, init);
+    };
+}
+
 function setAuthPending(pending) {
     if (!document.body || !document.getElementById('authOverlay')) return;
     document.body.classList.toggle('auth-pending', !!pending);

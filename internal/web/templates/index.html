@@ -86,6 +86,7 @@
             <div class="entry-modal-card" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle">
                 <div class="entry-modal-header">
                     <div class="entry-modal-title-wrap">
+                        <span class="entry-modal-eyebrow">✨ Carga rapida</span>
                         <h3 id="expenseModalTitle">Registrar movimiento</h3>
                         <p>Carga un ingreso, gasto o reintegro sin salir del dashboard.</p>
                     </div>
@@ -94,9 +95,14 @@
                     </button>
                 </div>
                 <form id="expenseForm" class="expense-form expense-modal-form">
-                    <div class="form-group">
+                    <div class="form-group form-group-span-2 movement-type-group">
                         <label for="movementType">Tipo</label>
-                        <select id="movementType">
+                        <div id="movementTypePills" class="movement-pill-group" role="group" aria-label="Tipo de movimiento">
+                            <button type="button" class="movement-pill active" data-movement-pill="expense">💸 Gasto</button>
+                            <button type="button" class="movement-pill" data-movement-pill="income">💰 Ingreso</button>
+                            <button type="button" class="movement-pill" data-movement-pill="refund">↩️ Reintegro</button>
+                        </div>
+                        <select id="movementType" class="select-assist">
                             <option value="expense">Gasto</option>
                             <option value="income">Ingreso</option>
                             <option value="refund">Reintegro</option>
@@ -205,6 +211,7 @@
         <section id="cardPaymentModule" class="card-payment-module" style="display: none;">
             <div class="card-payment-head">
                 <div class="card-payment-toggle-copy">
+                    <span class="card-payment-eyebrow">💳 Resumen de credito</span>
                     <span class="card-payment-title">Tarjeta por pagar</span>
                     <span id="cardPaymentStatus" class="card-payment-status">Registra pagos para bajar el saldo pendiente.</span>
                 </div>
@@ -213,6 +220,7 @@
                     <span id="cardPayableSub" class="card-payment-sub"></span>
                 </div>
             </div>
+            <div id="cardPayableBreakdown" class="card-payment-breakdown"></div>
             <div class="card-payment-actions">
                 <button id="openCardPaymentModalBtn" type="button" class="nav-button button-primary">Registrar pago</button>
             </div>
@@ -223,6 +231,7 @@
             <div class="entry-modal-card card-payment-modal-card" role="dialog" aria-modal="true" aria-labelledby="cardPaymentModalTitle">
                 <div class="entry-modal-header">
                     <div class="entry-modal-title-wrap">
+                        <span class="entry-modal-eyebrow">💳 Gestion de pago</span>
                         <h3 id="cardPaymentModalTitle">Pago de tarjeta</h3>
                         <p>Registra un pago propio o marca pago por tercero para no afectar tu balance.</p>
                     </div>
@@ -231,6 +240,13 @@
                     </button>
                 </div>
                 <form id="cardPaymentForm" class="expense-form card-payment-modal-form">
+                    <div class="form-group form-group-span-2">
+                        <label>Quien paga</label>
+                        <div id="cardPaymentModeGroup" class="payment-mode-group" role="group" aria-label="Modo de pago">
+                            <button type="button" class="payment-mode-pill active" data-card-pay-mode="self">🧾 Pago propio</button>
+                            <button type="button" class="payment-mode-pill" data-card-pay-mode="third_party">🤝 Pago por tercero</button>
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label for="cardPaymentAmount">Monto a registrar</label>
                         <input type="number" id="cardPaymentAmount" step="0.01" min="0.01" placeholder="Ej: 25000" required>
@@ -245,8 +261,7 @@
                     </div>
                     <div id="cardPaymentMessage" class="form-help-text form-group-span-2"></div>
                     <div class="form-actions">
-                        <button type="button" id="cardPayThirdBtn" class="nav-button button-secondary">Pago por tercero</button>
-                        <button type="button" id="cardPayOwnBtn" class="nav-button button-primary">Pagar tarjeta</button>
+                        <button type="button" id="cardPaySubmitBtn" class="nav-button button-primary">Registrar pago propio</button>
                     </div>
                 </form>
             </div>
@@ -329,10 +344,12 @@
         const sourceSelect = document.getElementById('sourceSelect');
         const cardGroup = document.getElementById('cardGroup');
         const movementTypeSelect = document.getElementById('movementType');
+        const movementTypePills = document.querySelectorAll('[data-movement-pill]');
         const sourceImpactHint = document.getElementById('sourceImpactHint');
         const addExpenseContainer = document.getElementById('addExpenseContainer');
         const closeExpenseFormBtn = document.getElementById('closeExpenseFormBtn');
         const cardPaymentModule = document.getElementById('cardPaymentModule');
+        const cardPayableBreakdown = document.getElementById('cardPayableBreakdown');
         const openCardPaymentModalBtn = document.getElementById('openCardPaymentModalBtn');
         const cardPaymentOverlay = document.getElementById('cardPaymentOverlay');
         const closeCardPaymentModalBtn = document.getElementById('closeCardPaymentModalBtn');
@@ -343,14 +360,15 @@
         const cardPaymentCurrencySelect = document.getElementById('cardPaymentCurrency');
         const cardPaymentCardInput = document.getElementById('cardPaymentCard');
         const cardPaymentMessage = document.getElementById('cardPaymentMessage');
-        const cardPayOwnBtn = document.getElementById('cardPayOwnBtn');
-        const cardPayThirdBtn = document.getElementById('cardPayThirdBtn');
+        const cardPaySubmitBtn = document.getElementById('cardPaySubmitBtn');
+        const cardPaymentModeButtons = document.querySelectorAll('[data-card-pay-mode]');
         let filterCurrency = 'all';
         let filterSource = 'all';
         let categories = [];
         let chartExpanded = false;
         let cardPayableByCurrency = {};
         let cardPaymentModalVisible = false;
+        let cardPaymentMode = 'self';
         const expenseForm = document.getElementById('expenseForm');
         const expenseSubmitButton = expenseForm ? expenseForm.querySelector('button[type="submit"]') : null;
         const movementTypeGroup = movementTypeSelect ? movementTypeSelect.closest('.form-group') : null;
@@ -806,6 +824,32 @@
             }
         }
 
+        function syncMovementTypePills() {
+            if (!movementTypePills || movementTypePills.length === 0 || !movementTypeSelect) return;
+            const current = movementTypeSelect.value || 'expense';
+            movementTypePills.forEach((button) => {
+                const selected = button.dataset.movementPill === current;
+                button.classList.toggle('active', selected);
+                button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+            });
+        }
+
+        function setCardPaymentMode(mode) {
+            cardPaymentMode = mode === 'third_party' ? 'third_party' : 'self';
+            if (cardPaymentModeButtons && cardPaymentModeButtons.length > 0) {
+                cardPaymentModeButtons.forEach((button) => {
+                    const selected = button.dataset.cardPayMode === cardPaymentMode;
+                    button.classList.toggle('active', selected);
+                    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+                });
+            }
+            if (cardPaySubmitBtn) {
+                cardPaySubmitBtn.textContent = cardPaymentMode === 'third_party'
+                    ? 'Registrar pago por tercero'
+                    : 'Registrar pago propio';
+            }
+        }
+
         function syncBodyModalLock() {
             const expenseOpen = addExpenseContainer && !addExpenseContainer.hidden;
             const cardOpen = cardPaymentOverlay && !cardPaymentOverlay.hidden;
@@ -823,6 +867,7 @@
             }
             if (cardPaymentModalVisible) {
                 updateCardPaymentMessage('');
+                setCardPaymentMode('self');
                 window.setTimeout(() => {
                     if (cardPaymentAmountInput) cardPaymentAmountInput.focus();
                 }, 0);
@@ -850,6 +895,19 @@
                 .filter(cur => (cardPayableByCurrency[cur] || 0) > 0)
                 .map(cur => `${cur.toUpperCase()}: ${formatCurrencyWithCurrency(cardPayableByCurrency[cur], cur)}`);
 
+            if (cardPayableBreakdown) {
+                const breakdownItems = supportedCurrencies
+                    .filter(cur => (cardPayableByCurrency[cur] || 0) > 0)
+                    .map(cur => `
+                        <span class="card-breakdown-chip">
+                            <strong>${cur.toUpperCase()}</strong>
+                            <span>${formatCurrencyWithCurrency(cardPayableByCurrency[cur], cur)}</span>
+                        </span>
+                    `);
+                cardPayableBreakdown.innerHTML = breakdownItems.join('');
+                cardPayableBreakdown.style.display = breakdownItems.length ? 'flex' : 'none';
+            }
+
             if (pendingLines.length > 1) {
                 cardPayableSub.textContent = pendingLines.join(' | ');
             } else if (pendingLines.length === 1) {
@@ -876,14 +934,18 @@
 
         function setCardPaymentPendingState(pending) {
             const disabled = !!pending;
-            if (cardPayOwnBtn) cardPayOwnBtn.disabled = disabled;
-            if (cardPayThirdBtn) cardPayThirdBtn.disabled = disabled;
+            if (cardPaySubmitBtn) cardPaySubmitBtn.disabled = disabled;
+            if (cardPaymentModeButtons && cardPaymentModeButtons.length > 0) {
+                cardPaymentModeButtons.forEach((button) => {
+                    button.disabled = disabled;
+                });
+            }
             if (cardPaymentAmountInput) cardPaymentAmountInput.disabled = disabled;
             if (cardPaymentCurrencySelect) cardPaymentCurrencySelect.disabled = disabled;
             if (cardPaymentCardInput) cardPaymentCardInput.disabled = disabled;
         }
 
-        async function submitCardPayment(paidBy) {
+        async function submitCardPayment(paidBy = cardPaymentMode) {
             if (!cardPaymentAmountInput || !cardPaymentCurrencySelect) return;
             const amount = Number(cardPaymentAmountInput.value);
             const currency = (cardPaymentCurrencySelect.value || baseCurrency).toLowerCase();
@@ -1494,6 +1556,7 @@
             syncSourceOptionsByFlow();
             toggleCardInput();
             updateSourceImpactHint();
+            syncMovementTypePills();
         }
 
         function setDateToToday() {
@@ -1615,6 +1678,16 @@
             movementTypeSelect.addEventListener('change', () => {
                 syncExpenseSubmitButtonLabel();
                 refreshSourceUX();
+            });
+        }
+        if (movementTypePills && movementTypePills.length > 0 && movementTypeSelect) {
+            movementTypePills.forEach((button) => {
+                button.addEventListener('click', () => {
+                    const next = button.dataset.movementPill || 'expense';
+                    movementTypeSelect.value = next;
+                    syncExpenseSubmitButtonLabel();
+                    refreshSourceUX();
+                });
             });
         }
 
@@ -1741,14 +1814,16 @@
                 updateCardPaymentMessage('');
             });
         }
-        if (cardPayOwnBtn) {
-            cardPayOwnBtn.addEventListener('click', () => {
-                submitCardPayment('self');
+        if (cardPaymentModeButtons && cardPaymentModeButtons.length > 0) {
+            cardPaymentModeButtons.forEach((button) => {
+                button.addEventListener('click', () => {
+                    setCardPaymentMode(button.dataset.cardPayMode || 'self');
+                });
             });
         }
-        if (cardPayThirdBtn) {
-            cardPayThirdBtn.addEventListener('click', () => {
-                submitCardPayment('third_party');
+        if (cardPaySubmitBtn) {
+            cardPaySubmitBtn.addEventListener('click', () => {
+                submitCardPayment(cardPaymentMode);
             });
         }
 
@@ -1770,9 +1845,12 @@
         setExpenseFormVisible(false);
         setCardPaymentModalVisible(false);
         setDateToToday();
+        setCardPaymentMode('self');
         refreshSourceUX();
         syncExpenseSubmitButtonLabel();
     </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+    <script defer src="/_vercel/speed-insights/script.js"></script>
 </body>
 </html>
 

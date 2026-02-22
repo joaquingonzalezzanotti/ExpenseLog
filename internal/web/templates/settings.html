@@ -56,12 +56,12 @@
             </aside>
         </header>
 
-        <nav class="mobile-bottom-nav" aria-label="Navegacion principal">
-                    <a href="/app" class="mobile-nav-item"><i class="fa-solid fa-house"></i><span>Inicio</span></a>
-                    <a href="/app/table" class="mobile-nav-item"><i class="fa-solid fa-table"></i><span>Tabla</span></a>
-                    <a href="/app/table?view=calendar" class="mobile-nav-item"><i class="fa-regular fa-calendar-days"></i><span>Calendario</span></a>
+        <nav class="mobile-bottom-nav" aria-label="Modulos de configuracion">
+                    <a id="mobileNavProfile" href="/app/settings" class="mobile-nav-item active" aria-current="page"><i class="fa-regular fa-user"></i><span>Perfil</span></a>
+                    <a id="mobileNavCategories" href="/app/settings?section=categories" class="mobile-nav-item"><i class="fa-solid fa-tags"></i><span>Categorias</span></a>
+                    <a id="mobileNavRecurring" href="/app/settings?section=recurring" class="mobile-nav-item"><i class="fa-solid fa-repeat"></i><span>Recurrentes</span></a>
+                    <a id="mobileNavReconciliation" href="/app/settings?section=reconciliation" class="mobile-nav-item"><i class="fa-solid fa-scale-balanced"></i><span>Conciliar</span></a>
                     <a id="mobileNavReports" href="/app/settings?section=reports" class="mobile-nav-item"><i class="fa-regular fa-file-lines"></i><span>Reportes</span></a>
-                    <a id="mobileNavUser" href="/app/settings" class="mobile-nav-item active" aria-current="page"><i class="fa-regular fa-user"></i><span>Usuario</span></a>
         </nav>
 
         <section class="form-container settings-section settings-profile">
@@ -1676,20 +1676,32 @@ async function saveCategoriesList(nextCategories) {
             const params = new URLSearchParams(window.location.search);
             const section = (params.get('section') || '').toLowerCase();
             const hash = (window.location.hash || '').toLowerCase();
-            const mobileNavReports = document.getElementById('mobileNavReports');
-            const mobileNavUser = document.getElementById('mobileNavUser');
-            const reportsActive = section === 'reports' || hash === '#reports';
-            if (mobileNavReports && mobileNavUser) {
-                mobileNavReports.classList.toggle('active', reportsActive);
-                mobileNavUser.classList.toggle('active', !reportsActive);
-                if (reportsActive) {
-                    mobileNavReports.setAttribute('aria-current', 'page');
-                    mobileNavUser.removeAttribute('aria-current');
+            const activeSection = (() => {
+                if (section === 'reconciliation' || hash === '#reconciliation') return 'reconciliation';
+                if (section === 'categories' || hash === '#categories') return 'categories';
+                if (section === 'recurring' || hash === '#recurring') return 'recurring';
+                if (section === 'reports' || hash === '#reports') return 'reports';
+                return 'profile';
+            })();
+
+            const mobileNavMap = {
+                profile: document.getElementById('mobileNavProfile'),
+                categories: document.getElementById('mobileNavCategories'),
+                recurring: document.getElementById('mobileNavRecurring'),
+                reconciliation: document.getElementById('mobileNavReconciliation'),
+                reports: document.getElementById('mobileNavReports'),
+            };
+            Object.entries(mobileNavMap).forEach(([key, node]) => {
+                if (!node) return;
+                const isActive = key === activeSection;
+                node.classList.toggle('active', isActive);
+                if (isActive) {
+                    node.setAttribute('aria-current', 'page');
                 } else {
-                    mobileNavUser.setAttribute('aria-current', 'page');
-                    mobileNavReports.removeAttribute('aria-current');
+                    node.removeAttribute('aria-current');
                 }
-            }
+            });
+
             if (section === 'reconciliation' || hash === '#reconciliation') {
                 showOnlySettingsSection('reconciliationSection');
                 return;

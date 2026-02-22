@@ -1163,7 +1163,7 @@
             const baseContainer = document.getElementById('baseSummary');
             container.innerHTML = '';
             baseContainer.innerHTML = '';
-            // Bank balance only: keep CA (or empty legacy source), exclude EFECTIVO/TARJETA.
+            // Balance disponible: mantiene origen bancario (o legacy vacio) y excluye EFECTIVO/TARJETA.
             const cashflowExpenses = expenses.filter(exp => {
                 const source = (exp.source || '').toUpperCase();
                 return source === '' || source === 'CA';
@@ -1190,7 +1190,7 @@
                 const balance = baseCarryover + baseIncome - baseExpense;
                 baseWrapper.innerHTML = `
                     <div class="cashflow-item carryover">
-                        <div class="cashflow-label">Saldo inicial (CA) ${baseCurrency.toUpperCase()}</div>
+                        <div class="cashflow-label">Saldo inicial ${baseCurrency.toUpperCase()}</div>
                         <div class="cashflow-value ${baseCarryover >= 0 ? 'positive' : 'negative'}">${formatCurrencyWithCurrency(baseCarryover, baseCurrency)}</div>
                     </div>
                     <div class="cashflow-item income">
@@ -1224,7 +1224,7 @@
                         <div class="cashflow-label">Balance ${cur.toUpperCase()}</div>
                         <div class="cashflow-value ${balance >=0 ? 'positive' : 'negative'}">${formatCurrencyWithCurrency(balance, cur)}</div>
                         <div class="cashflow-sub">
-                            <span>Saldo inicial (CA): ${formatCurrencyWithCurrency(carry, cur)}</span>
+                            <span>Saldo inicial: ${formatCurrencyWithCurrency(carry, cur)}</span>
                             <span>Ingresos: ${formatCurrencyWithCurrency(income, cur)}</span>
                             <span>Gastos: ${formatCurrencyWithCurrency(expense, cur)}</span>
                         </div>

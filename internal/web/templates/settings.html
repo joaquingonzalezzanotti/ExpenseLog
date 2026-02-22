@@ -82,7 +82,7 @@
                             <option value="eur">EUR (EUR)</option>
                         </select>
                     </div>
-                    <!-- Esta moneda define la referencia principal de Caja de Ahorro (CA), balance y calculos por defecto. -->
+                    <!-- Esta moneda define la referencia principal del balance y calculos por defecto. -->
                     <div id="currencyMessage" class="form-message"></div>
                 </div>
                 <div class="settings-preference-item">
@@ -110,7 +110,7 @@
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
                 <button class="settings-nav-item" id="openReconciliationSection" type="button" data-settings-section="reconciliationSection" aria-expanded="false">
-                    <span>🧮 Conciliación CA</span>
+                    <span>🧮 Conciliacion de balance</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
             </div>
@@ -224,18 +224,18 @@
 
         <section id="reconciliationSection" class="form-container settings-section settings-detail-section" hidden>
             <div class="settings-detail-header">
-                <h2>🧮 Conciliación CA</h2>
+                <h2>🧮 Conciliacion de balance</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="reconciliationSection" aria-label="Cerrar conciliacion" title="Cerrar conciliacion">
                     <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="settings-divider"></div>
-            <h3 class="settings-subtitle">🧮 Conciliación rápida de Caja de Ahorro</h3>
-            <p class="settings-helper-text">Ingresa el saldo real de tu CA para crear un ajuste automatico sin buscar el origen de la diferencia.</p>
+            <h3 class="settings-subtitle">🧮 Conciliacion rapida de balance</h3>
+            <p class="settings-helper-text">Ingresa el saldo real para crear un ajuste automatico sin buscar el origen de la diferencia.</p>
             <div id="settingsReconciliationPanel" class="reconciliation-container settings-reconciliation-panel">
                 <div class="reconciliation-metrics">
                     <div class="reconciliation-metric">
-                        <span>Balance app (CA)</span>
+                        <span>Balance app</span>
                         <strong id="settingsReconciliationAppBalance">-</strong>
                     </div>
                     <div class="reconciliation-metric">
@@ -244,7 +244,7 @@
                     </div>
                 </div>
                 <form id="settingsReconciliationForm" class="reconciliation-form">
-                    <label for="settingsReconciliationTarget">Saldo real CA (<span id="settingsReconciliationCurrency">ARS</span>)</label>
+                    <label for="settingsReconciliationTarget">Saldo real (<span id="settingsReconciliationCurrency">ARS</span>)</label>
                     <input type="number" id="settingsReconciliationTarget" step="0.01" placeholder="Ej: 154230.35" required>
                     <div class="settings-reconciliation-shortcuts">
                         <button type="button" id="settingsReconciliationUseCurrent" class="nav-button button-secondary">Usar balance app</button>
@@ -1062,7 +1062,7 @@ async function saveCategoriesList(nextCategories) {
                     body: JSON.stringify(currencyCode)
                 });
                 if (response.ok) {
-                    showMessage('currencyMessage', 'Moneda principal actualizada. Se usara como referencia para Caja de Ahorro (CA), balance y vistas por defecto.', true);
+                    showMessage('currencyMessage', 'Moneda principal actualizada. Se usara como referencia para balance y vistas por defecto.', true);
                     currentCurrency = currencyCode;
                     invalidateSharedConfigCache();
                 } else {
@@ -1407,7 +1407,7 @@ async function saveCategoriesList(nextCategories) {
                 if (!response.ok) throw new Error(result.error || 'No se pudo aplicar la conciliacion');
 
                 if (result.status === 'noop') {
-                    showMessage('settingsReconciliationMessage', 'No se realizaron cambios: la app ya coincide con tu CA.', true);
+                    showMessage('settingsReconciliationMessage', 'No se realizaron cambios: la app ya coincide con tu balance real.', true);
                 } else {
                     const amountLabel = formatCurrency(Math.abs(preview.difference), preview.currency);
                     const successText = `Se registro ${preview.difference > 0 ? 'un ingreso' : 'un gasto'} de ajuste por ${amountLabel}.`;

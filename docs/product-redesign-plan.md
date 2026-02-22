@@ -29,22 +29,6 @@ Este documento es la fuente de verdad para avanzar en `dev`.
    - consumos en `TARJETA`,
    - reintegros en `TARJETA`,
    - pagos propios registrados por el nuevo endpoint.
-5. Formulario principal de movimientos rediseniado en modal (desktop/mobile) con:
-   - layout mas compacto,
-   - copy de impacto por metodo,
-   - estados visuales consistentes con el resto del dashboard.
-6. Modulo `Tarjeta por pagar` mejorado en UX:
-   - estado vacio visual (`is-empty`),
-   - moneda de pago auto-seleccionada segun pendiente disponible,
-   - selector de moneda simplificado para evitar overflow.
-7. Flujo de cuotas/recurrentes visible en UI:
-   - tabla muestra badge `Cuota X/Y` cuando hay `recurringID`,
-   - calendario financiero muestra `Cuota X/Y` en el detalle diario,
-   - home (`Ultimos 3 movimientos`) incluye sufijo de cuota.
-8. Copy visible en UI limpiado para evitar `CA` en textos de usuario:
-   - dashboard (`Saldo inicial`),
-   - settings (conciliacion de balance),
-   - mensajes de ayuda y estados.
 
 ## Prioridad #1 (cerrada): Arquitectura de rutas
 
@@ -145,7 +129,7 @@ Que el usuario entienda el impacto antes de guardar.
 
 ### Requisitos funcionales UX
 
-1. Campo `Medio de pago` solo en gasto.
+1. Campo `Como lo pagaste` solo en gasto.
 2. Mensaje dinamico por medio:
    - Transferencia/Debito: impacta balance.
    - Credito: no impacta balance, suma tarjeta por pagar.

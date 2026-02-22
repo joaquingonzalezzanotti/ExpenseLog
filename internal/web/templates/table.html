@@ -100,11 +100,11 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="sourceSelect">Medio de pago</label>
+                    <label for="sourceSelect">Metodo</label>
                     <select id="sourceSelect">
-                        <option value="CA">Transferencia o debito</option>
+                        <option value="CA">Transferencia / Debito</option>
                         <option value="EFECTIVO">Efectivo (registro)</option>
-                        <option value="TARJETA">Tarjeta de credito</option>
+                        <option value="TARJETA">Tarjeta credito</option>
                     </select>
                     <div id="sourceImpactHint" class="form-help-text" aria-live="polite"></div>
                 </div>
@@ -171,7 +171,7 @@
                 </select>
             </div>
             <div class="filter-group">
-                <span class="filter-label">Forma de pago</span>
+                <span class="filter-label">Medio de pago</span>
                 <select id="tableFilterSource" class="filter-select">
                     <option value="all">Todos</option>
                 </select>
@@ -313,7 +313,6 @@
         let currentCurrency = 'usd';
         let currentDate = new Date();
         let allExpenses = [];
-        let recurringProgressByExpense = {};
         let expensesForTable = [];
         let startDate = 1;
         let allTags = new Set();
@@ -570,14 +569,12 @@
                     const flow = resolveFlow(exp);
                     const flowClass = flow === 'expense' ? 'negative' : 'positive';
                     const sourceLabel = formatSourceLabel(exp.source || 'CA');
-                    const recurringProgress = formatRecurringProgress(exp, recurringProgressByExpense);
-                    const recurringSuffix = recurringProgress ? ` | Cuota ${escapeHTML(recurringProgress)}` : '';
                     const amountText = formatCurrencyWithCurrency(exp.amount, exp.currency || currentCurrency);
                     return `
                         <li class="financial-calendar-movement ${flowClass}">
                             <div class="financial-calendar-movement-main">
                                 <strong>${escapeHTML(exp.name || '-')}</strong>
-                                <span>${escapeHTML(formatCategoryLabel(exp.category))} - ${escapeHTML(sourceLabel)}${recurringSuffix}</span>
+                                <span>${escapeHTML(formatCategoryLabel(exp.category))} - ${escapeHTML(sourceLabel)}</span>
                             </div>
                             <div class="financial-calendar-movement-amount">${amountText}</div>
                         </li>
@@ -728,7 +725,7 @@
                             <th class="secondary-col col-left">Categoria</th>
                             <th class="col-right">Valor</th>
                             <th class="col-right">Balance</th>
-                            <th class="secondary-col col-center">Medio de pago</th>
+                            <th class="secondary-col col-center">Metodo</th>
                             <th class="secondary-col col-center">Tarjeta</th>
                             <th class="secondary-col col-center">Moneda</th>
                             <th class="date-header secondary-col col-center">Fecha</th>
@@ -740,14 +737,12 @@
                             const amountFlowClass = resolveFlow(expense) === 'expense' ? 'is-expense' : 'is-income';
                             const sourceCode = normalizeSourceCode(expense.source || 'CA');
                             const sourceLabel = formatSourceLabel(sourceCode);
-                            const recurringProgress = formatRecurringProgress(expense, recurringProgressByExpense);
                             return `
                             <tr>
                                 <td>
                                     <div class="expense-name-cell">
                                         <span class="expense-name-text">${highlightText(expense.name, searchQuery)}</span>
                                         ${expense.recurringID ? '<span class="recurring-badge">Recurrente</span>' : ''}
-                                        ${recurringProgress ? `<span class="recurring-badge quota-badge">Cuota ${recurringProgress}</span>` : ''}
                                         ${expense.systemLocked ? '<span class="recurring-badge">Sistema</span>' : ''}
                                     </div>
                                     <div class="expense-meta-mobile">
@@ -826,9 +821,6 @@
                 : expensesForTable;
             
             const tableContainer = document.getElementById('tableContainer');
-            recurringProgressByExpense = typeof buildRecurringProgressMap === 'function'
-                ? buildRecurringProgressMap(allExpenses)
-                : {};
             const runningBalances = computeRunningBalances(allExpenses);
             tableContainer.innerHTML = createTable(limitedExpenses, runningBalances);
             updateMobilePager(totalFiltered, limitedExpenses.length, mobileView);
@@ -1070,14 +1062,8 @@
             const cardOption = sourceSelect.querySelector('option[value="TARJETA"]');
             const cashOption = sourceSelect.querySelector('option[value="EFECTIVO"]');
             const isIncome = movementType === 'income';
-            if (cardOption) {
-                cardOption.disabled = isIncome;
-                cardOption.hidden = isIncome;
-            }
-            if (cashOption) {
-                cashOption.disabled = isIncome;
-                cashOption.hidden = isIncome;
-            }
+            if (cardOption) cardOption.disabled = isIncome;
+            if (cashOption) cashOption.disabled = isIncome;
             if (isIncome && (sourceSelect.value === 'TARJETA' || sourceSelect.value === 'EFECTIVO')) {
                 sourceSelect.value = 'CA';
             }
@@ -1088,7 +1074,7 @@
             const movementType = movementTypeSelect ? movementTypeSelect.value : 'expense';
             const source = sourceSelect ? sourceSelect.value : 'CA';
             if (movementType === 'income') {
-                sourceImpactHint.textContent = 'Ingreso: suma Balance ahora. Medio disponible: Transferencia o debito.';
+                sourceImpactHint.textContent = 'Ingreso: suma Balance ahora. Medio disponible: Transferencia / Debito.';
                 return;
             }
             if (movementType === 'refund') {
@@ -1096,14 +1082,14 @@
                 return;
             }
             if (source === 'TARJETA') {
-                sourceImpactHint.textContent = 'Gasto en tarjeta de credito: no descuenta Balance ahora. Suma a Tarjeta por pagar.';
+                sourceImpactHint.textContent = 'Gasto en tarjeta credito: no descuenta Balance ahora. Suma a Tarjeta por pagar.';
                 return;
             }
             if (source === 'EFECTIVO') {
                 sourceImpactHint.textContent = 'Gasto en efectivo: queda registrado y no descuenta Balance en el modo actual.';
                 return;
             }
-            sourceImpactHint.textContent = 'Gasto por Transferencia o debito: descuenta Balance ahora.';
+            sourceImpactHint.textContent = 'Gasto por Transferencia / Debito: descuenta Balance ahora.';
         }
 
         function refreshSourceUX() {
@@ -1565,26 +1551,10 @@
         }
 
         openTableReportsBtn?.addEventListener('click', goToReportsSettings);
-        
+
         window.editExpenseByIndex = editExpenseByIndex;
 </script>
-<script>
-    (function loadVercelTelemetry() {
-        const host = window.location.hostname;
-        const isVercelHost = host.endsWith('.vercel.app');
-        const isPrimaryHost = host === 'expenselog.com.ar' || host === 'www.expenselog.com.ar';
-        if (!isVercelHost && !isPrimaryHost) return;
-
-        const addScript = (src) => {
-            const script = document.createElement('script');
-            script.defer = true;
-            script.src = src;
-            document.body.appendChild(script);
-        };
-
-        addScript('/_vercel/insights/script.js');
-        addScript('/_vercel/speed-insights/script.js');
-    })();
-</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
 </body>
 </html>

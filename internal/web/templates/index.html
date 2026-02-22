@@ -835,7 +835,7 @@
             const title = container.querySelector('h3');
             const futureView = isFuturePeriodSelected();
             if (title) {
-                title.textContent = futureView ? '🔮 Proximos 3 movimientos' : '🧾 Ultimos 3 movimientos';
+                title.textContent = futureView ? '�� Proximos 3 movimientos' : '🧾 Ultimos 3 movimientos';
             }
             const sorted = expenses.slice().sort((a, b) => {
                 if (futureView) {
@@ -1385,6 +1385,10 @@
         setExpenseFormVisible(false);
         syncExpenseSubmitButtonLabel();
     </script>
+    <script>
+        window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/speed-insights/script.js"></script>
 </body>
 </html>
 

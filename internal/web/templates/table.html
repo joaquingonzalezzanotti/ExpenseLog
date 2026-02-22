@@ -563,13 +563,13 @@
                 .map(exp => {
                     const flow = resolveFlow(exp);
                     const flowClass = flow === 'expense' ? 'negative' : 'positive';
-                    const source = (exp.source || 'CA').toUpperCase();
+                    const sourceLabel = formatSourceLabel(exp.source || 'CA');
                     const amountText = formatCurrencyWithCurrency(exp.amount, exp.currency || currentCurrency);
                     return `
                         <li class="financial-calendar-movement ${flowClass}">
                             <div class="financial-calendar-movement-main">
                                 <strong>${escapeHTML(exp.name || '-')}</strong>
-                                <span>${escapeHTML(formatCategoryLabel(exp.category))} - ${escapeHTML(source)}</span>
+                                <span>${escapeHTML(formatCategoryLabel(exp.category))} - ${escapeHTML(sourceLabel)}</span>
                             </div>
                             <div class="financial-calendar-movement-amount">${amountText}</div>
                         </li>
@@ -730,6 +730,8 @@
                     <tbody>
                         ${expenses.map((expense, index) => {
                             const amountFlowClass = resolveFlow(expense) === 'expense' ? 'is-expense' : 'is-income';
+                            const sourceCode = normalizeSourceCode(expense.source || 'CA');
+                            const sourceLabel = formatSourceLabel(sourceCode);
                             return `
                             <tr>
                                 <td>
@@ -740,7 +742,7 @@
                                     </div>
                                     <div class="expense-meta-mobile">
                                         <span>${highlightText(formatCategoryLabel(expense.category), searchQuery)}</span>
-                                        <span>${expense.source ? escapeHTML(expense.source) : 'CA'}</span>
+                                        <span>${escapeHTML(sourceLabel)}</span>
                                         <span>${(expense.currency || currentCurrency).toUpperCase()}</span>
                                         <span>${formatDateDDMMYYYY(expense.date)}</span>
                                     </div>
@@ -748,8 +750,8 @@
                                 <td class="secondary-col col-left"><span class="${expense.systemLocked ? '' : 'editable'}" data-edit="category" data-id="${expense.id}">${highlightText(formatCategoryLabel(expense.category), searchQuery)}</span></td>
                                 <td class="amount amount-value ${amountFlowClass} col-right"><span class="${expense.systemLocked ? '' : 'editable'}" data-edit="amount" data-id="${expense.id}">${formatCurrencyWithCurrency(expense.amount, expense.currency || currentCurrency, compactAmounts)}</span></td>
                                 <td class="amount amount-balance col-right">${runningBalances[expense.id] ? formatCurrencyWithCurrency(runningBalances[expense.id].amount, runningBalances[expense.id].currency, compactAmounts) : '-'}</td>
-                                <td class="secondary-col col-center">${expense.source ? escapeHTML(expense.source) : '-'}</td>
-                                <td class="secondary-col col-center">${expense.source === 'TARJETA' ? escapeHTML(expense.card || '-') : '-'}</td>
+                                <td class="secondary-col col-center">${escapeHTML(sourceLabel)}</td>
+                                <td class="secondary-col col-center">${sourceCode === 'TARJETA' ? escapeHTML(expense.card || '-') : '-'}</td>
                                 <td class="secondary-col col-center">${(expense.currency || currentCurrency).toUpperCase()}</td>
                                 <td class="date-column secondary-col col-center">${formatDateDDMMYYYY(expense.date)}</td>
                                 <td class="actions-col col-center">
@@ -988,9 +990,9 @@
             const sourceFilterSelect = document.getElementById('tableFilterSource');
             sourceFilterSelect.innerHTML = `
                 <option value="all">Todos</option>
-                <option value="CA">CA</option>
-                <option value="EFECTIVO">Efectivo</option>
-                <option value="TARJETA">Tarjeta</option>
+                <option value="CA">${formatSourceLabel('CA')}</option>
+                <option value="EFECTIVO">${formatSourceLabel('EFECTIVO')}</option>
+                <option value="TARJETA">${formatSourceLabel('TARJETA')}</option>
             `;
             sourceFilterSelect.value = ['all', 'CA', 'EFECTIVO', 'TARJETA'].includes(filterSource) ? filterSource : 'all';
         }

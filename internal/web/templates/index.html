@@ -81,42 +81,9 @@
 
         <div id="baseSummary" class="cashflow-container"></div>
 
-        <section id="cardPaymentModule" class="card-payment-module" style="display: none;">
-            <div class="card-payment-head">
-                <h3>Tarjeta por pagar</h3>
-                <p id="cardPaymentStatus">Registra pagos para bajar el saldo pendiente.</p>
-            </div>
-            <div class="card-payment-kpis">
-                <div class="cashflow-item card-payable">
-                    <div class="cashflow-label">Pendiente actual</div>
-                    <div id="cardPayableValue" class="cashflow-value">$0.00</div>
-                    <div id="cardPayableSub" class="cashflow-sub"></div>
-                </div>
-            </div>
-            <form id="cardPaymentForm" class="card-payment-form">
-                <div class="form-group">
-                    <label for="cardPaymentAmount">Monto a registrar</label>
-                    <input type="number" id="cardPaymentAmount" step="0.01" min="0.01" placeholder="Ej: 25000" required>
-                </div>
-                <div class="form-group">
-                    <label for="cardPaymentCurrency">Moneda</label>
-                    <select id="cardPaymentCurrency" required></select>
-                </div>
-                <div class="form-group">
-                    <label for="cardPaymentCard">Tarjeta (opcional)</label>
-                    <input type="text" id="cardPaymentCard" placeholder="Ej: Visa banco">
-                </div>
-                <div class="form-actions">
-                    <button type="button" id="cardPayOwnBtn" class="nav-button button-primary">Pagar tarjeta</button>
-                    <button type="button" id="cardPayThirdBtn" class="nav-button button-secondary">Pago por tercero</button>
-                </div>
-                <div id="cardPaymentMessage" class="form-help-text"></div>
-            </form>
-        </section>
-
         <div id="addExpenseContainer" style="display: none;">
-            <div class="form-container">
-                <form id="expenseForm" class="expense-form">
+            <div class="form-container home-expense-form-container">
+                <form id="expenseForm" class="expense-form home-expense-form">
                     <div class="form-group">
                         <label for="name">Nombre</label>
                         <input type="text" id="name" placeholder="Ej. Supermercado" required>
@@ -230,6 +197,43 @@
             </div>
         </div>
 
+        <section id="cardPaymentModule" class="card-payment-module" style="display: none;">
+            <button id="cardPaymentToggle" class="card-payment-toggle" type="button" aria-expanded="false" aria-controls="cardPaymentFormWrap">
+                <div class="card-payment-toggle-copy">
+                    <span class="card-payment-title">Tarjeta por pagar</span>
+                    <span id="cardPaymentStatus" class="card-payment-status">Registra pagos para bajar el saldo pendiente.</span>
+                </div>
+                <div class="card-payment-toggle-kpi">
+                    <span id="cardPayableValue" class="card-payment-value">$0.00</span>
+                    <span id="cardPayableSub" class="card-payment-sub"></span>
+                </div>
+                <span class="card-payment-chevron" aria-hidden="true">
+                    <i class="fa-solid fa-chevron-down"></i>
+                </span>
+            </button>
+            <div id="cardPaymentFormWrap" class="card-payment-form-wrap" hidden>
+                <form id="cardPaymentForm" class="card-payment-form">
+                    <div class="form-group">
+                        <label for="cardPaymentAmount">Monto a registrar</label>
+                        <input type="number" id="cardPaymentAmount" step="0.01" min="0.01" placeholder="Ej: 25000" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cardPaymentCurrency">Moneda</label>
+                        <select id="cardPaymentCurrency" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="cardPaymentCard">Tarjeta (opcional)</label>
+                        <input type="text" id="cardPaymentCard" placeholder="Ej: Visa banco">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="cardPayOwnBtn" class="nav-button button-primary">Pagar tarjeta</button>
+                        <button type="button" id="cardPayThirdBtn" class="nav-button button-secondary">Pago por tercero</button>
+                    </div>
+                    <div id="cardPaymentMessage" class="form-help-text"></div>
+                </form>
+            </div>
+        </section>
+
         <div id="cashflow-section" class="cashflow-container"></div>
     </div>
     <div id="toastContainer" class="toast-container"></div>
@@ -309,6 +313,8 @@
         const movementTypeSelect = document.getElementById('movementType');
         const sourceImpactHint = document.getElementById('sourceImpactHint');
         const cardPaymentModule = document.getElementById('cardPaymentModule');
+        const cardPaymentToggle = document.getElementById('cardPaymentToggle');
+        const cardPaymentFormWrap = document.getElementById('cardPaymentFormWrap');
         const cardPayableValue = document.getElementById('cardPayableValue');
         const cardPayableSub = document.getElementById('cardPayableSub');
         const cardPaymentStatus = document.getElementById('cardPaymentStatus');
@@ -323,6 +329,7 @@
         let categories = [];
         let chartExpanded = false;
         let cardPayableByCurrency = {};
+        let cardPaymentExpanded = false;
         const expenseForm = document.getElementById('expenseForm');
         const expenseSubmitButton = expenseForm ? expenseForm.querySelector('button[type="submit"]') : null;
         const movementTypeGroup = movementTypeSelect ? movementTypeSelect.closest('.form-group') : null;
@@ -778,6 +785,19 @@
             }
         }
 
+        function setCardPaymentExpanded(expanded) {
+            cardPaymentExpanded = !!expanded;
+            if (cardPaymentFormWrap) {
+                cardPaymentFormWrap.hidden = !cardPaymentExpanded;
+            }
+            if (cardPaymentToggle) {
+                cardPaymentToggle.setAttribute('aria-expanded', cardPaymentExpanded ? 'true' : 'false');
+            }
+            if (cardPaymentModule) {
+                cardPaymentModule.classList.toggle('expanded', cardPaymentExpanded);
+            }
+        }
+
         function renderCardPaymentModule() {
             if (!cardPaymentModule || !cardPayableValue || !cardPayableSub) return;
             const selectedCurrency = (cardPaymentCurrencySelect && cardPaymentCurrencySelect.value)
@@ -809,6 +829,7 @@
                     cardPaymentStatus.textContent = 'No hay consumos pendientes de tarjeta en este periodo.';
                 }
             }
+            setCardPaymentExpanded(cardPaymentExpanded);
         }
 
         function setCardPaymentPendingState(pending) {
@@ -1349,9 +1370,9 @@
             const sourceFilterSelect = document.getElementById('filterSource');
             sourceFilterSelect.innerHTML = `
                 <option value="all">Todos</option>
-                <option value="CA">CA</option>
-                <option value="EFECTIVO">Efectivo</option>
-                <option value="TARJETA">Tarjeta</option>
+                <option value="CA">${formatSourceLabel('CA')}</option>
+                <option value="EFECTIVO">${formatSourceLabel('EFECTIVO')}</option>
+                <option value="TARJETA">${formatSourceLabel('TARJETA')}</option>
             `;
             updateCompactHomeFilterLabels();
             updateHomeFilterControls();
@@ -1632,6 +1653,11 @@
             setExpenseFormVisible(false);
         });
 
+        if (cardPaymentToggle) {
+            cardPaymentToggle.addEventListener('click', () => {
+                setCardPaymentExpanded(!cardPaymentExpanded);
+            });
+        }
         if (cardPaymentCurrencySelect) {
             cardPaymentCurrencySelect.addEventListener('change', () => {
                 renderCardPaymentModule();

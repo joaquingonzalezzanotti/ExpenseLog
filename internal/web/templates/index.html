@@ -971,6 +971,7 @@
             const pendingSelected = cardPayableByCurrency[selectedCurrency] || 0;
 
             cardPaymentModule.style.display = '';
+            cardPaymentModule.classList.toggle('is-empty', !hasPending);
             cardPayableValue.textContent = formatCurrencyWithCurrency(pendingSelected, selectedCurrency);
 
             const pendingLines = supportedCurrencies

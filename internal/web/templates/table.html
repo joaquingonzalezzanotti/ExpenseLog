@@ -98,7 +98,7 @@
                 <div class="form-group">
                     <label for="sourceSelect">Metodo</label>
                     <select id="sourceSelect">
-                        <option value="CA">Transferencia / Debito</option>
+                        <option value="CA">Transferencia o debito</option>
                         <option value="EFECTIVO">Efectivo (registro)</option>
                         <option value="TARJETA">Tarjeta credito</option>
                     </select>
@@ -1069,7 +1069,7 @@
             const movementType = movementTypeSelect ? movementTypeSelect.value : 'expense';
             const source = sourceSelect ? sourceSelect.value : 'CA';
             if (movementType === 'income') {
-                sourceImpactHint.textContent = 'Ingreso: suma Balance ahora. Medio disponible: Transferencia / Debito.';
+                sourceImpactHint.textContent = 'Ingreso: suma Balance ahora. Medio disponible: Transferencia o debito.';
                 return;
             }
             if (movementType === 'refund') {
@@ -1084,7 +1084,7 @@
                 sourceImpactHint.textContent = 'Gasto en efectivo: queda registrado y no descuenta Balance en el modo actual.';
                 return;
             }
-            sourceImpactHint.textContent = 'Gasto por Transferencia / Debito: descuenta Balance ahora.';
+            sourceImpactHint.textContent = 'Gasto por Transferencia o debito: descuenta Balance ahora.';
         }
 
         function refreshSourceUX() {

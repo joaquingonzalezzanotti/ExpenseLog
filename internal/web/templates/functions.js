@@ -26,7 +26,7 @@ function normalizeSourceCode(source) {
 
 function formatSourceLabel(source) {
     const code = normalizeSourceCode(source);
-    if (code === 'CA') return 'Transferencia / Debito';
+    if (code === 'CA') return 'Transferencia o debito';
     if (code === 'TARJETA') return 'Tarjeta credito';
     if (code === 'EFECTIVO') return 'Efectivo (registro)';
     return code || '-';

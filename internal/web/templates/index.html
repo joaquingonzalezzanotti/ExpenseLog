@@ -109,16 +109,16 @@
                         </select>
                     </div>
 
-                    <div class="form-group form-group-span-2 method-group">
+                    <div class="form-group method-group">
                         <label for="sourceSelect">Metodo</label>
                         <select id="sourceSelect">
-                            <option value="CA">Transferencia / Debito</option>
+                            <option value="CA">Transferencia o debito</option>
                             <option value="EFECTIVO">Efectivo (solo registro)</option>
                             <option value="TARJETA">Tarjeta de credito</option>
                         </select>
                     </div>
 
-                    <div class="form-group form-group-span-2">
+                    <div class="form-group">
                         <label for="name">Descripcion</label>
                         <input type="text" id="name" placeholder="Ej. Supermercado, alquiler, sueldo..." required>
                     </div>
@@ -217,10 +217,15 @@
                 </div>
             </div>
             <div class="card-payment-toggle-kpi card-payment-kpi-panel">
+                <span class="card-payment-kpi-label">Pendiente total</span>
                 <span id="cardPayableValue" class="card-payment-value">$0.00</span>
                 <span id="cardPayableSub" class="card-payment-sub"></span>
             </div>
             <div id="cardPayableBreakdown" class="card-payment-breakdown"></div>
+            <div class="card-payment-meta">
+                <span class="card-payment-meta-item">Pago propio: descuenta balance</span>
+                <span class="card-payment-meta-item">Pago por tercero: solo baja pendiente</span>
+            </div>
             <div class="card-payment-actions">
                 <button id="openCardPaymentModalBtn" type="button" class="nav-button button-primary">Registrar pago</button>
             </div>
@@ -813,11 +818,7 @@
         function populateCardPaymentCurrencyOptions(selectedCurrency) {
             if (!cardPaymentCurrencySelect) return;
             const options = supportedCurrencies.map(code => {
-                const pending = cardPayableByCurrency[code] || 0;
-                const suffix = pending > 0
-                    ? ` (${formatCurrencyWithCurrency(pending, code)} pendiente)`
-                    : '';
-                return `<option value="${code}" ${code === selectedCurrency ? 'selected' : ''}>${code.toUpperCase()}${suffix}</option>`;
+                return `<option value="${code}" ${code === selectedCurrency ? 'selected' : ''}>${code.toUpperCase()}</option>`;
             }).join('');
             cardPaymentCurrencySelect.innerHTML = options;
         }
@@ -1604,7 +1605,7 @@
             const movementType = movementTypeSelect ? movementTypeSelect.value : 'expense';
             const source = sourceSelect ? sourceSelect.value : 'CA';
             if (movementType === 'income') {
-                sourceImpactHint.textContent = 'Ingreso: suma Balance ahora. Medio disponible: Transferencia / Debito.';
+                sourceImpactHint.textContent = 'Ingreso: suma Balance ahora. Medio disponible: Transferencia o debito.';
                 return;
             }
             if (movementType === 'refund') {
@@ -1619,7 +1620,7 @@
                 sourceImpactHint.textContent = 'Gasto en efectivo: queda registrado y no descuenta Balance en el modo actual.';
                 return;
             }
-            sourceImpactHint.textContent = 'Gasto por Transferencia / Debito: descuenta Balance ahora.';
+            sourceImpactHint.textContent = 'Gasto por Transferencia o debito: descuenta Balance ahora.';
         }
 
         function refreshSourceUX() {

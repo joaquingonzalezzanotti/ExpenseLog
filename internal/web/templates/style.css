@@ -2052,6 +2052,12 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     font-weight: 600;
 }
 
+.expense-modal-form .method-group #sourceSelect {
+    max-width: 100%;
+    min-width: 0;
+    font-size: 0.96rem;
+}
+
 .expense-modal-form .form-actions {
     margin-top: 0.15rem;
 }
@@ -2072,6 +2078,13 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     max-width: 920px;
     width: 100%;
     box-sizing: border-box;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+    grid-template-areas:
+        "head kpi"
+        "breakdown actions";
+    gap: 0.75rem 1rem;
+    align-items: center;
     background:
         radial-gradient(circle at 93% 12%, rgba(37, 99, 235, 0.12), transparent 38%),
         linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 125%);
@@ -2089,10 +2102,10 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 }
 
 .card-payment-head {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.9rem;
-    align-items: end;
+    grid-area: head;
+    display: flex;
+    align-items: flex-start;
+    min-width: 0;
 }
 
 .card-payment-toggle-copy {
@@ -2121,6 +2134,17 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     min-width: 0;
 }
 
+.card-payment-kpi-panel {
+    grid-area: kpi;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg-primary);
+    padding: 0.8rem 0.9rem;
+    align-items: flex-end;
+    justify-content: center;
+    min-height: 96px;
+}
+
 .card-payment-value {
     font-size: 1.55rem;
     font-weight: 800;
@@ -2134,10 +2158,11 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 }
 
 .card-payment-breakdown {
+    grid-area: breakdown;
     display: flex;
     flex-wrap: wrap;
     gap: 0.45rem;
-    margin-top: 0.72rem;
+    margin-top: 0.15rem;
 }
 
 .card-breakdown-chip {
@@ -2158,13 +2183,17 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 }
 
 .card-payment-actions {
-    margin-top: 0.85rem;
+    grid-area: actions;
+    margin-top: 0;
     display: flex;
     justify-content: flex-end;
+    align-items: center;
 }
 
 .card-payment-actions .nav-button {
     min-width: 180px;
+    width: 100%;
+    max-width: 240px;
 }
 
 .card-payment-modal-card {
@@ -3059,7 +3088,9 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
     .entry-modal-card {
         width: min(680px, 100%);
-        padding: 1rem;
+        max-height: calc(100dvh - 0.75rem);
+        padding: 0.88rem;
+        border-radius: 14px;
     }
 
     .entry-modal-header {
@@ -3074,18 +3105,52 @@ html[data-theme='dark'] .expense-table td.amount-balance {
         grid-template-columns: 1fr;
     }
 
+    .movement-pill {
+        min-height: 40px;
+        font-size: 0.95rem;
+    }
+
+    .expense-modal-form {
+        grid-template-columns: 1fr !important;
+        gap: 0.72rem;
+    }
+
+    .expense-modal-form .form-group-span-2 {
+        grid-column: auto;
+    }
+
+    .expense-modal-form .method-group #sourceSelect {
+        width: 100%;
+        font-size: 0.95rem;
+    }
+
+    .expense-modal-form #sourceImpactHint {
+        font-size: 0.92rem;
+        line-height: 1.35;
+    }
+
     .card-payment-module {
         max-width: none;
         padding: 0.8rem;
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "head"
+            "kpi"
+            "breakdown"
+            "actions";
     }
 
     .card-payment-head {
-        grid-template-columns: 1fr;
+        display: block;
         gap: 0.45rem;
     }
 
     .card-payment-toggle-kpi {
         text-align: left;
+    }
+
+    .card-payment-kpi-panel {
+        align-items: flex-start;
     }
 
     .card-payment-actions {

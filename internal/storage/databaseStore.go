@@ -1309,7 +1309,10 @@ func (s *databaseStore) AddExpense(userID string, expense Expense) error {
 	if expense.Date.IsZero() {
 		expense.Date = time.Now()
 	}
-	expense.SystemOrigin = systemOriginUser
+	expense.SystemOrigin = strings.ToLower(strings.TrimSpace(expense.SystemOrigin))
+	if expense.SystemOrigin == "" {
+		expense.SystemOrigin = systemOriginUser
+	}
 	expense.SystemLocked = false
 	tagsJSON, err := json.Marshal(expense.Tags)
 	if err != nil {

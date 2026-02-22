@@ -1903,6 +1903,38 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     margin-bottom: 1rem;
 }
 
+.card-payment-module {
+    border: 1px solid var(--cash-card-border);
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: var(--bg-secondary);
+}
+
+.card-payment-head {
+    margin-bottom: 0.75rem;
+}
+
+.card-payment-head h3 {
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+.card-payment-head p {
+    margin: 0.3rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.card-payment-kpis {
+    margin-bottom: 0.85rem;
+}
+
+.card-payment-form {
+    display: grid;
+    gap: 0.85rem;
+}
+
 .cashflow-row {
     display: flex;
     justify-content: space-between;
@@ -1943,6 +1975,10 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     background-color: var(--cash-carryover-bg);
 }
 
+.cashflow-item.card-payable {
+    background-color: var(--cash-expense-bg);
+}
+
 .cashflow-label {
     font-size: 0.9rem;
     color: var(--cash-label);
@@ -1961,6 +1997,13 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
 .cashflow-value.negative {
     color: var(--danger);
+}
+
+.cashflow-sub {
+    margin-top: 0.45rem;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    line-height: 1.35;
 }
 
 .import-section {
@@ -2393,6 +2436,14 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     font-size: 0.85rem;
     color: var(--text-secondary);
     margin-top: 0.5rem;
+}
+
+.form-help-text.error {
+    color: var(--danger);
+}
+
+.form-help-text.success {
+    color: var(--success);
 }
 
 .info-field {

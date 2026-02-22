@@ -114,19 +114,23 @@
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
                 <button class="settings-nav-item" id="openReportsSection" type="button" data-settings-section="reportsSection" aria-expanded="false">
-                    <span>Reportes mensuales</span>
+                    <span>🧾 Reportes mensuales</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
             </div>
         </section>
-        <section id="reportsSection" class="form-container settings-section settings-detail-section" hidden>
+        <section id="reportsSection" class="form-container settings-section settings-detail-section settings-reports-section" hidden>
             <div class="settings-detail-header">
-                <h2>Reportes mensuales</h2>
+                <h2>🧾 Reportes mensuales</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="reportsSection" aria-label="Cerrar reportes" title="Cerrar reportes">
                     <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
                 </button>
             </div>
-            <p class="settings-helper-text">Genera y descarga tu reporte mensual en el momento. Los archivos no se guardan en el servidor.</p>
+            <p class="settings-helper-text settings-reports-helper">Genera y descarga tu reporte mensual en el momento. Los archivos no se guardan en el servidor.</p>
+            <div class="settings-reports-highlight" role="note">
+                <span class="settings-reports-badge">Premium</span>
+                <span>Incluye resumen ejecutivo, desglose por categoria y detalle completo de movimientos.</span>
+            </div>
             <div class="settings-export-grid">
                 <div class="settings-preference-item">
                     <label for="reportMonthSelect">Mes</label>
@@ -135,7 +139,7 @@
                     </div>
                 </div>
                 <div class="settings-preference-item">
-                    <label for="reportYearInput">Anio</label>
+                    <label for="reportYearInput">A&ntilde;o</label>
                     <div class="settings-preference-control">
                         <input id="reportYearInput" type="number" min="2000" max="2100" step="1">
                     </div>
@@ -155,6 +159,7 @@
                 <button id="downloadMonthlyXLSXBtn" class="nav-button button-secondary" type="button">Descargar Excel (.xlsx)</button>
                 <button id="downloadMonthlyPDFBtn" class="nav-button button-primary" type="button">Descargar PDF (.pdf)</button>
             </div>
+            <p class="settings-reports-caption">Sugerencia: usa el mismo mes y moneda de tu analisis para compartir resultados claros.</p>
             <div id="reportExportMessage" class="form-message"></div>
         </section>
         <section id="categoriesSection" class="form-container settings-section settings-detail-section" hidden>
@@ -677,6 +682,28 @@
             messageDiv.dataset.locked = '1';
         }
 
+        function applyReportContextFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            const monthParam = parseInt(params.get('month') || '', 10);
+            const yearParam = parseInt(params.get('year') || '', 10);
+            const currencyParam = String(params.get('currency') || '').trim().toLowerCase();
+
+            if (reportMonthSelect && Number.isInteger(monthParam) && monthParam >= 1 && monthParam <= 12) {
+                reportMonthSelect.value = String(monthParam);
+            }
+            if (reportYearInput && Number.isInteger(yearParam) && yearParam >= 2000 && yearParam <= 2100) {
+                reportYearInput.value = String(yearParam);
+            }
+            if (reportCurrencySelect && currencyParam) {
+                const hasCurrencyOption = Array.from(reportCurrencySelect.options || []).some(
+                    (option) => String(option.value || '').toLowerCase() === currencyParam
+                );
+                if (hasCurrencyOption) {
+                    reportCurrencySelect.value = currencyParam;
+                }
+            }
+        }
+
         function populateReportPeriodControls() {
             if (reportMonthSelect && reportMonthSelect.options.length === 0) {
                 const months = [
@@ -698,6 +725,7 @@
             if (reportCurrencySelect) {
                 reportCurrencySelect.value = currentCurrency || 'ars';
             }
+            applyReportContextFromURL();
             renderReportAccessState();
         }
 
@@ -736,7 +764,7 @@
                 return;
             }
             if (!Number.isInteger(year) || year < 2000 || year > 2100) {
-                showMessage('reportExportMessage', 'Anio invalido para exportacion.', false);
+                showMessage('reportExportMessage', 'A\u00f1o invalido para exportacion.', false);
                 return;
             }
 

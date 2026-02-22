@@ -278,14 +278,120 @@ func buildMonthlyReportXLSX(expenses []storage.Expense, query monthlyReportQuery
 	_, _ = file.NewSheet(summarySheet)
 	_, _ = file.NewSheet(categoriesSheet)
 
+	titleStyle, _ := file.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true, Color: "#0F172A", Size: 16},
+		Fill: excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"#E0E7FF"}},
+		Alignment: &excelize.Alignment{
+			Horizontal: "left",
+			Vertical:   "center",
+		},
+	})
+	subtitleStyle, _ := file.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Color: "#334155", Size: 10},
+		Fill: excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"#EEF2FF"}},
+		Alignment: &excelize.Alignment{
+			Horizontal: "left",
+			Vertical:   "center",
+		},
+	})
+	headerStyle, _ := file.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true, Color: "#FFFFFF", Size: 10},
+		Fill: excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"#1D4ED8"}},
+		Alignment: &excelize.Alignment{
+			Horizontal: "center",
+			Vertical:   "center",
+		},
+		Border: []excelize.Border{
+			{Type: "left", Color: "#BFDBFE", Style: 1},
+			{Type: "right", Color: "#BFDBFE", Style: 1},
+			{Type: "top", Color: "#BFDBFE", Style: 1},
+			{Type: "bottom", Color: "#BFDBFE", Style: 1},
+		},
+	})
+	bodyStyle, _ := file.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Color: "#0F172A", Size: 10},
+		Fill: excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"#FFFFFF"}},
+		Alignment: &excelize.Alignment{
+			Horizontal: "left",
+			Vertical:   "center",
+		},
+		Border: []excelize.Border{
+			{Type: "left", Color: "#E2E8F0", Style: 1},
+			{Type: "right", Color: "#E2E8F0", Style: 1},
+			{Type: "top", Color: "#E2E8F0", Style: 1},
+			{Type: "bottom", Color: "#E2E8F0", Style: 1},
+		},
+	})
+	oddRowStyle, _ := file.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Color: "#0F172A", Size: 10},
+		Fill: excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"#F8FAFC"}},
+		Alignment: &excelize.Alignment{
+			Horizontal: "left",
+			Vertical:   "center",
+		},
+		Border: []excelize.Border{
+			{Type: "left", Color: "#E2E8F0", Style: 1},
+			{Type: "right", Color: "#E2E8F0", Style: 1},
+			{Type: "top", Color: "#E2E8F0", Style: 1},
+			{Type: "bottom", Color: "#E2E8F0", Style: 1},
+		},
+	})
+	amountStyle, _ := file.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Color: "#0F172A", Size: 10},
+		Alignment: &excelize.Alignment{
+			Horizontal: "right",
+			Vertical:   "center",
+		},
+		NumFmt: 4,
+		Border: []excelize.Border{
+			{Type: "left", Color: "#E2E8F0", Style: 1},
+			{Type: "right", Color: "#E2E8F0", Style: 1},
+			{Type: "top", Color: "#E2E8F0", Style: 1},
+			{Type: "bottom", Color: "#E2E8F0", Style: 1},
+		},
+	})
+	amountOddStyle, _ := file.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Color: "#0F172A", Size: 10},
+		Fill: excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"#F8FAFC"}},
+		Alignment: &excelize.Alignment{
+			Horizontal: "right",
+			Vertical:   "center",
+		},
+		NumFmt: 4,
+		Border: []excelize.Border{
+			{Type: "left", Color: "#E2E8F0", Style: 1},
+			{Type: "right", Color: "#E2E8F0", Style: 1},
+			{Type: "top", Color: "#E2E8F0", Style: 1},
+			{Type: "bottom", Color: "#E2E8F0", Style: 1},
+		},
+	})
+
+	periodLabel := fmt.Sprintf("%s %d", monthlyReportMonthName(query.Month), query.Year)
+	metadata := fmt.Sprintf("Moneda: %s | Emitido: %s UTC", strings.ToUpper(query.Currency), time.Now().UTC().Format("2006-01-02 15:04"))
+
+	_ = file.SetCellValue(movementsSheet, "A1", "ExpenseLog | Reporte mensual profesional")
+	_ = file.MergeCell(movementsSheet, "A1", "J1")
+	_ = file.SetCellStyle(movementsSheet, "A1", "J1", titleStyle)
+	_ = file.SetRowHeight(movementsSheet, 1, 28)
+
+	_ = file.SetCellValue(movementsSheet, "A2", fmt.Sprintf("Periodo: %s", periodLabel))
+	_ = file.SetCellValue(movementsSheet, "A3", metadata)
+	_ = file.MergeCell(movementsSheet, "A2", "J2")
+	_ = file.MergeCell(movementsSheet, "A3", "J3")
+	_ = file.SetCellStyle(movementsSheet, "A2", "J3", subtitleStyle)
+
 	headers := []string{"Fecha", "Nombre", "Tipo", "Categoria", "Monto", "Moneda", "Medio de pago", "Tarjeta", "Etiquetas", "Origen"}
+	headerRow := 5
 	for idx, header := range headers {
-		cell, _ := excelize.CoordinatesToCellName(idx+1, 1)
+		cell, _ := excelize.CoordinatesToCellName(idx+1, headerRow)
 		_ = file.SetCellValue(movementsSheet, cell, header)
 	}
+	headerRangeEnd, _ := excelize.CoordinatesToCellName(len(headers), headerRow)
+	_ = file.SetCellStyle(movementsSheet, "A5", headerRangeEnd, headerStyle)
 
+	dataStartRow := headerRow + 1
 	for idx, exp := range expenses {
-		row := idx + 2
+		row := idx + dataStartRow
 		values := []any{
 			exp.Date.UTC().Format("2006-01-02"),
 			exp.Name,
@@ -302,41 +408,140 @@ func buildMonthlyReportXLSX(expenses []storage.Expense, query monthlyReportQuery
 			cell, _ := excelize.CoordinatesToCellName(colIdx+1, row)
 			_ = file.SetCellValue(movementsSheet, cell, value)
 		}
+
+		rowStart, _ := excelize.CoordinatesToCellName(1, row)
+		rowEnd, _ := excelize.CoordinatesToCellName(len(headers), row)
+		amountCell, _ := excelize.CoordinatesToCellName(5, row)
+		if idx%2 == 0 {
+			_ = file.SetCellStyle(movementsSheet, rowStart, rowEnd, bodyStyle)
+			_ = file.SetCellStyle(movementsSheet, amountCell, amountCell, amountStyle)
+		} else {
+			_ = file.SetCellStyle(movementsSheet, rowStart, rowEnd, oddRowStyle)
+			_ = file.SetCellStyle(movementsSheet, amountCell, amountCell, amountOddStyle)
+		}
 	}
 
-	_ = file.SetColWidth(movementsSheet, "A", "A", 14)
-	_ = file.SetColWidth(movementsSheet, "B", "D", 24)
-	_ = file.SetColWidth(movementsSheet, "E", "G", 18)
-	_ = file.SetColWidth(movementsSheet, "H", "J", 22)
+	lastDataRow := headerRow
+	if len(expenses) > 0 {
+		lastDataRow = dataStartRow + len(expenses) - 1
+	}
+	_ = file.AutoFilter(movementsSheet, fmt.Sprintf("A%d:J%d", headerRow, lastDataRow), nil)
+	_ = file.SetPanes(movementsSheet, &excelize.Panes{
+		Freeze:      true,
+		Split:       false,
+		XSplit:      0,
+		YSplit:      headerRow,
+		TopLeftCell: fmt.Sprintf("A%d", dataStartRow),
+		ActivePane:  "bottomLeft",
+	})
 
-	summaryRows := [][]any{
-		{"Periodo", fmt.Sprintf("%04d-%02d", query.Year, query.Month)},
-		{"Moneda", strings.ToUpper(query.Currency)},
-		{"Movimientos", metrics.TransactionCount},
-		{"Ingresos", metrics.Income},
-		{"Egresos", metrics.Expense},
-		{"Balance neto del periodo", metrics.NetBalance},
-		{"Tarjeta por pagar (periodo)", metrics.CardPending},
+	_ = file.SetColWidth(movementsSheet, "A", "A", 13)
+	_ = file.SetColWidth(movementsSheet, "B", "B", 29)
+	_ = file.SetColWidth(movementsSheet, "C", "C", 12)
+	_ = file.SetColWidth(movementsSheet, "D", "D", 20)
+	_ = file.SetColWidth(movementsSheet, "E", "E", 14)
+	_ = file.SetColWidth(movementsSheet, "F", "F", 10)
+	_ = file.SetColWidth(movementsSheet, "G", "G", 24)
+	_ = file.SetColWidth(movementsSheet, "H", "H", 18)
+	_ = file.SetColWidth(movementsSheet, "I", "I", 24)
+	_ = file.SetColWidth(movementsSheet, "J", "J", 23)
+
+	summaryTitleStyle, _ := file.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true, Color: "#0F172A", Size: 14},
+		Fill: excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"#DBEAFE"}},
+		Alignment: &excelize.Alignment{
+			Horizontal: "left",
+			Vertical:   "center",
+		},
+	})
+	summaryLabelStyle, _ := file.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true, Color: "#1E3A8A", Size: 10},
+		Fill: excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"#EFF6FF"}},
+		Border: []excelize.Border{
+			{Type: "left", Color: "#BFDBFE", Style: 1},
+			{Type: "right", Color: "#BFDBFE", Style: 1},
+			{Type: "top", Color: "#BFDBFE", Style: 1},
+			{Type: "bottom", Color: "#BFDBFE", Style: 1},
+		},
+	})
+	summaryValueTextStyle, _ := file.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true, Color: "#0F172A", Size: 11},
+		Fill: excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"#FFFFFF"}},
+		Alignment: &excelize.Alignment{
+			Horizontal: "right",
+			Vertical:   "center",
+		},
+		Border: []excelize.Border{
+			{Type: "left", Color: "#BFDBFE", Style: 1},
+			{Type: "right", Color: "#BFDBFE", Style: 1},
+			{Type: "top", Color: "#BFDBFE", Style: 1},
+			{Type: "bottom", Color: "#BFDBFE", Style: 1},
+		},
+	})
+	summaryValueMoneyStyle, _ := file.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true, Color: "#0F172A", Size: 11},
+		Fill: excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"#FFFFFF"}},
+		Alignment: &excelize.Alignment{
+			Horizontal: "right",
+			Vertical:   "center",
+		},
+		NumFmt: 4,
+		Border: []excelize.Border{
+			{Type: "left", Color: "#BFDBFE", Style: 1},
+			{Type: "right", Color: "#BFDBFE", Style: 1},
+			{Type: "top", Color: "#BFDBFE", Style: 1},
+			{Type: "bottom", Color: "#BFDBFE", Style: 1},
+		},
+	})
+
+	_ = file.SetCellValue(summarySheet, "A1", "Resumen ejecutivo mensual")
+	_ = file.MergeCell(summarySheet, "A1", "D1")
+	_ = file.SetCellStyle(summarySheet, "A1", "D1", summaryTitleStyle)
+	_ = file.SetRowHeight(summarySheet, 1, 24)
+	_ = file.SetCellValue(summarySheet, "A2", fmt.Sprintf("Periodo: %s", periodLabel))
+	_ = file.SetCellValue(summarySheet, "C2", fmt.Sprintf("Moneda: %s", strings.ToUpper(query.Currency)))
+
+	summaryRows := []struct {
+		Label   string
+		Value   any
+		IsMoney bool
+	}{
+		{Label: "Movimientos", Value: metrics.TransactionCount, IsMoney: false},
+		{Label: "Ingresos", Value: metrics.Income, IsMoney: true},
+		{Label: "Egresos", Value: metrics.Expense, IsMoney: true},
+		{Label: "Balance neto del periodo", Value: metrics.NetBalance, IsMoney: true},
+		{Label: "Tarjeta por pagar (periodo)", Value: metrics.CardPending, IsMoney: true},
 	}
-	for idx, values := range summaryRows {
-		row := idx + 1
-		cellA, _ := excelize.CoordinatesToCellName(1, row)
-		cellB, _ := excelize.CoordinatesToCellName(2, row)
-		_ = file.SetCellValue(summarySheet, cellA, values[0])
-		_ = file.SetCellValue(summarySheet, cellB, values[1])
+	for idx, row := range summaryRows {
+		r := idx + 4
+		labelCell := fmt.Sprintf("A%d", r)
+		valueCell := fmt.Sprintf("B%d", r)
+		_ = file.SetCellValue(summarySheet, labelCell, row.Label)
+		_ = file.SetCellValue(summarySheet, valueCell, row.Value)
+		_ = file.SetCellStyle(summarySheet, labelCell, labelCell, summaryLabelStyle)
+		if row.IsMoney {
+			_ = file.SetCellStyle(summarySheet, valueCell, valueCell, summaryValueMoneyStyle)
+		} else {
+			_ = file.SetCellStyle(summarySheet, valueCell, valueCell, summaryValueTextStyle)
+		}
 	}
-	_ = file.SetColWidth(summarySheet, "A", "A", 30)
-	_ = file.SetColWidth(summarySheet, "B", "B", 24)
+	_ = file.SetColWidth(summarySheet, "A", "A", 34)
+	_ = file.SetColWidth(summarySheet, "B", "B", 20)
+	_ = file.SetColWidth(summarySheet, "C", "D", 20)
 
 	categoryTotals := map[string]struct {
 		Count int
 		Net   float64
 	}{}
 	for _, exp := range expenses {
-		item := categoryTotals[exp.Category]
+		key := strings.TrimSpace(exp.Category)
+		if key == "" {
+			key = "Sin categoria"
+		}
+		item := categoryTotals[key]
 		item.Count++
 		item.Net += exp.Amount
-		categoryTotals[exp.Category] = item
+		categoryTotals[key] = item
 	}
 	type categoryRow struct {
 		Name  string
@@ -348,23 +553,42 @@ func buildMonthlyReportXLSX(expenses []storage.Expense, query monthlyReportQuery
 		categoryRows = append(categoryRows, categoryRow{Name: name, Count: values.Count, Net: values.Net})
 	}
 	sort.Slice(categoryRows, func(i, j int) bool {
-		if categoryRows[i].Net == categoryRows[j].Net {
+		if math.Abs(categoryRows[i].Net) == math.Abs(categoryRows[j].Net) {
 			return categoryRows[i].Name < categoryRows[j].Name
 		}
-		return categoryRows[i].Net > categoryRows[j].Net
+		return math.Abs(categoryRows[i].Net) > math.Abs(categoryRows[j].Net)
 	})
 
-	_ = file.SetCellValue(categoriesSheet, "A1", "Categoria")
-	_ = file.SetCellValue(categoriesSheet, "B1", "Cantidad")
-	_ = file.SetCellValue(categoriesSheet, "C1", "Monto neto")
+	_ = file.SetCellValue(categoriesSheet, "A1", "Categorias destacadas")
+	_ = file.MergeCell(categoriesSheet, "A1", "C1")
+	_ = file.SetCellStyle(categoriesSheet, "A1", "C1", summaryTitleStyle)
+
+	_ = file.SetCellValue(categoriesSheet, "A3", "Categoria")
+	_ = file.SetCellValue(categoriesSheet, "B3", "Cantidad")
+	_ = file.SetCellValue(categoriesSheet, "C3", "Monto neto")
+	_ = file.SetCellStyle(categoriesSheet, "A3", "C3", headerStyle)
+
 	for idx, row := range categoryRows {
-		r := idx + 2
+		r := idx + 4
 		_ = file.SetCellValue(categoriesSheet, fmt.Sprintf("A%d", r), row.Name)
 		_ = file.SetCellValue(categoriesSheet, fmt.Sprintf("B%d", r), row.Count)
 		_ = file.SetCellValue(categoriesSheet, fmt.Sprintf("C%d", r), row.Net)
+		startCell := fmt.Sprintf("A%d", r)
+		endCell := fmt.Sprintf("C%d", r)
+		amountCell := fmt.Sprintf("C%d", r)
+		if idx%2 == 0 {
+			_ = file.SetCellStyle(categoriesSheet, startCell, endCell, bodyStyle)
+			_ = file.SetCellStyle(categoriesSheet, amountCell, amountCell, amountStyle)
+		} else {
+			_ = file.SetCellStyle(categoriesSheet, startCell, endCell, oddRowStyle)
+			_ = file.SetCellStyle(categoriesSheet, amountCell, amountCell, amountOddStyle)
+		}
 	}
-	_ = file.SetColWidth(categoriesSheet, "A", "A", 24)
-	_ = file.SetColWidth(categoriesSheet, "B", "C", 18)
+	_ = file.SetColWidth(categoriesSheet, "A", "A", 30)
+	_ = file.SetColWidth(categoriesSheet, "B", "B", 14)
+	_ = file.SetColWidth(categoriesSheet, "C", "C", 18)
+
+	file.SetActiveSheet(1)
 
 	buffer, err := file.WriteToBuffer()
 	if err != nil {
@@ -377,50 +601,109 @@ func buildMonthlyReportPDF(expenses []storage.Expense, query monthlyReportQuery,
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.SetMargins(10, 10, 10)
 	pdf.SetAutoPageBreak(true, 10)
+	pdf.AliasNbPages("")
+	pdf.SetFooterFunc(func() {
+		pdf.SetY(-9)
+		pdf.SetFont("Arial", "", 8)
+		pdf.SetTextColor(100, 116, 139)
+		pdf.CellFormat(0, 5, fmt.Sprintf("ExpenseLog | Pagina %d/{nb}", pdf.PageNo()), "", 0, "R", false, 0, "")
+	})
 	pdf.AddPage()
 
-	pdf.SetFont("Arial", "B", 14)
-	pdf.CellFormat(0, 8, "ExpenseLog - Reporte mensual", "", 1, "L", false, 0, "")
+	pageLeft := 10.0
+	pageWidth := 190.0
+	topY := 10.0
 
+	pdf.SetFillColor(29, 78, 216)
+	pdf.Rect(pageLeft, topY, pageWidth, 16, "F")
+	pdf.SetXY(pageLeft+3, topY+3.5)
+	pdf.SetFont("Arial", "B", 15)
+	pdf.SetTextColor(255, 255, 255)
+	pdf.CellFormat(120, 6, "ExpenseLog | Reporte mensual", "", 0, "L", false, 0, "")
+	pdf.SetFont("Arial", "", 9)
+	pdf.CellFormat(65, 6, fmt.Sprintf("%s %d", monthlyReportMonthName(query.Month), query.Year), "", 1, "R", false, 0, "")
+
+	pdf.SetTextColor(51, 65, 85)
+	pdf.SetXY(pageLeft+3, topY+18)
 	pdf.SetFont("Arial", "", 10)
-	pdf.CellFormat(0, 6, fmt.Sprintf("Periodo: %04d-%02d | Moneda: %s", query.Year, query.Month, strings.ToUpper(query.Currency)), "", 1, "L", false, 0, "")
-	pdf.CellFormat(0, 6, fmt.Sprintf("Emitido: %s UTC", time.Now().UTC().Format("2006-01-02 15:04")), "", 1, "L", false, 0, "")
+	pdf.CellFormat(0, 5, fmt.Sprintf("Moneda: %s | Emitido: %s UTC", strings.ToUpper(query.Currency), time.Now().UTC().Format("2006-01-02 15:04")), "", 1, "L", false, 0, "")
 
-	pdf.Ln(2)
-	pdf.SetFont("Arial", "B", 10)
-	pdf.CellFormat(0, 6, "Resumen", "", 1, "L", false, 0, "")
-	pdf.SetFont("Arial", "", 10)
-	pdf.CellFormat(0, 5, fmt.Sprintf("Movimientos: %d", metrics.TransactionCount), "", 1, "L", false, 0, "")
-	pdf.CellFormat(0, 5, fmt.Sprintf("Ingresos: %.2f", metrics.Income), "", 1, "L", false, 0, "")
-	pdf.CellFormat(0, 5, fmt.Sprintf("Egresos: %.2f", metrics.Expense), "", 1, "L", false, 0, "")
-	pdf.CellFormat(0, 5, fmt.Sprintf("Balance neto del periodo: %.2f", metrics.NetBalance), "", 1, "L", false, 0, "")
-	pdf.CellFormat(0, 5, fmt.Sprintf("Tarjeta por pagar (periodo): %.2f", metrics.CardPending), "", 1, "L", false, 0, "")
-
-	pdf.Ln(2)
-	pdf.SetFont("Arial", "B", 9)
-	headers := []string{"Fecha", "Nombre", "Tipo", "Categoria", "Monto", "Medio"}
-	widths := []float64{22, 48, 16, 36, 26, 28}
-	for idx, header := range headers {
-		pdf.CellFormat(widths[idx], 6, header, "1", 0, "L", false, 0, "")
+	cards := []struct {
+		Title string
+		Value string
+	}{
+		{Title: "Movimientos", Value: fmt.Sprintf("%d", metrics.TransactionCount)},
+		{Title: "Ingresos", Value: formatReportAmount(metrics.Income, query.Currency)},
+		{Title: "Egresos", Value: formatReportAmount(-metrics.Expense, query.Currency)},
+		{Title: "Balance neto", Value: formatReportAmount(metrics.NetBalance, query.Currency)},
+		{Title: "Tarjeta por pagar", Value: formatReportAmount(-metrics.CardPending, query.Currency)},
 	}
-	pdf.Ln(-1)
 
-	pdf.SetFont("Arial", "", 8)
-	for _, exp := range expenses {
-		cells := []string{
-			exp.Date.UTC().Format("2006-01-02"),
-			trimForPDF(exp.Name, 28),
-			trimForPDF(formatFlowLabel(exp.Flow), 12),
-			trimForPDF(exp.Category, 22),
-			fmt.Sprintf("%.2f", exp.Amount),
-			trimForPDF(formatSourceLabel(exp.Source), 16),
+	cardW := 91.0
+	cardH := 16.0
+	cardGap := 8.0
+	startCardY := 31.0
+	for idx, card := range cards {
+		col := idx % 2
+		row := idx / 2
+		x := pageLeft + float64(col)*(cardW+cardGap)
+		y := startCardY + float64(row)*(cardH+5)
+		pdf.SetDrawColor(191, 219, 254)
+		pdf.SetFillColor(239, 246, 255)
+		pdf.RoundedRect(x, y, cardW, cardH, 2, "1234", "DF")
+		pdf.SetXY(x+3, y+3)
+		pdf.SetTextColor(30, 64, 175)
+		pdf.SetFont("Arial", "B", 9)
+		pdf.CellFormat(cardW-6, 4, card.Title, "", 2, "L", false, 0, "")
+		pdf.SetX(x + 3)
+		pdf.SetTextColor(15, 23, 42)
+		pdf.SetFont("Arial", "B", 11)
+		pdf.CellFormat(cardW-6, 5, card.Value, "", 0, "L", false, 0, "")
+	}
+
+	pdf.SetY(startCardY + 3*(cardH+5))
+	pdf.Ln(1)
+	pdf.SetTextColor(15, 23, 42)
+	pdf.SetFont("Arial", "B", 11)
+	pdf.CellFormat(0, 7, "Detalle de movimientos", "", 1, "L", false, 0, "")
+
+	headers := []string{"Fecha", "Nombre", "Tipo", "Categoria", "Monto", "Medio de pago"}
+	widths := []float64{21, 52, 18, 30, 34, 35}
+	drawPDFReportTableHeader(pdf, headers, widths)
+
+	if len(expenses) == 0 {
+		pdf.SetFont("Arial", "I", 9)
+		pdf.SetTextColor(71, 85, 105)
+		pdf.CellFormat(0, 8, "No hay movimientos para el periodo seleccionado.", "1", 1, "L", false, 0, "")
+	}
+
+	pdf.SetFont("Arial", "", 8.5)
+	for idx, exp := range expenses {
+		if pdf.GetY()+6 > 285 {
+			pdf.AddPage()
+			drawPDFReportTableHeader(pdf, headers, widths)
+			pdf.SetFont("Arial", "", 8.5)
 		}
-		for idx, value := range cells {
+		if idx%2 == 0 {
+			pdf.SetFillColor(255, 255, 255)
+		} else {
+			pdf.SetFillColor(248, 250, 252)
+		}
+		pdf.SetTextColor(15, 23, 42)
+		row := []string{
+			exp.Date.UTC().Format("2006-01-02"),
+			trimForPDF(exp.Name, 34),
+			trimForPDF(formatFlowLabel(exp.Flow), 14),
+			trimForPDF(exp.Category, 18),
+			formatReportAmount(exp.Amount, query.Currency),
+			trimForPDF(formatSourceLabel(exp.Source), 20),
+		}
+		for col, value := range row {
 			align := "L"
-			if idx == 4 {
+			if col == 4 {
 				align = "R"
 			}
-			pdf.CellFormat(widths[idx], 6, value, "1", 0, align, false, 0, "")
+			pdf.CellFormat(widths[col], 6, value, "1", 0, align, true, 0, "")
 		}
 		pdf.Ln(-1)
 	}
@@ -430,6 +713,62 @@ func buildMonthlyReportPDF(expenses []storage.Expense, query monthlyReportQuery,
 		return nil, err
 	}
 	return buffer, nil
+}
+
+func monthlyReportMonthName(month int) string {
+	names := []string{
+		"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+		"Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+	}
+	if month < 1 || month > len(names) {
+		return fmt.Sprintf("Mes %d", month)
+	}
+	return names[month-1]
+}
+
+func drawPDFReportTableHeader(pdf *gofpdf.Fpdf, headers []string, widths []float64) {
+	pdf.SetFont("Arial", "B", 8.8)
+	pdf.SetTextColor(255, 255, 255)
+	pdf.SetFillColor(30, 64, 175)
+	for idx, header := range headers {
+		align := "L"
+		if idx == 4 {
+			align = "R"
+		}
+		pdf.CellFormat(widths[idx], 6, header, "1", 0, align, true, 0, "")
+	}
+	pdf.Ln(-1)
+}
+
+func formatReportAmount(amount float64, currency string) string {
+	code := strings.ToUpper(strings.TrimSpace(currency))
+	if code == "" {
+		code = "ARS"
+	}
+	sign := ""
+	if amount < 0 {
+		sign = "-"
+	}
+	return fmt.Sprintf("%s%s %s", sign, code, formatReportNumber(math.Abs(amount)))
+}
+
+func formatReportNumber(value float64) string {
+	base := fmt.Sprintf("%.2f", value)
+	parts := strings.SplitN(base, ".", 2)
+	intPart := parts[0]
+	decPart := "00"
+	if len(parts) == 2 {
+		decPart = parts[1]
+	}
+	var groups []string
+	for len(intPart) > 3 {
+		groups = append([]string{intPart[len(intPart)-3:]}, groups...)
+		intPart = intPart[:len(intPart)-3]
+	}
+	if intPart != "" {
+		groups = append([]string{intPart}, groups...)
+	}
+	return strings.Join(groups, ".") + "," + decPart
 }
 
 func buildMonthlyReportFilename(ext string, query monthlyReportQuery) string {

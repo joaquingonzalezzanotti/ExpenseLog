@@ -60,10 +60,6 @@
                 <i class="fa-solid fa-plus"></i>
                 <span>Agregar gasto</span>
             </button>
-            <button id="openTableReportsBtn" class="nav-button button-secondary" type="button">
-                <i class="fa-solid fa-file-arrow-down"></i>
-                <span>Reporte mensual</span>
-            </button>
         </div>
 
         <div id="tableExpenseFormContainer" class="form-container" data-expanded="false">
@@ -336,7 +332,6 @@
 
         const tableFormContainer = document.getElementById('tableExpenseFormContainer');
         const toggleTableExpenseFormBtn = document.getElementById('toggleTableExpenseFormBtn');
-        const openTableReportsBtn = document.getElementById('openTableReportsBtn');
         const mobileTablePager = document.getElementById('mobileTablePager');
         const mobileTablePagerInfo = document.getElementById('mobileTablePagerInfo');
         const toggleMobileRowsBtn = document.getElementById('toggleMobileRows');
@@ -1539,18 +1534,6 @@
         function goToReconciliationSettings() {
             window.location.href = '/app/settings?section=reconciliation';
         }
-
-        function goToReportsSettings() {
-            const params = new URLSearchParams({
-                section: 'reports',
-                month: String(currentDate.getMonth() + 1),
-                year: String(currentDate.getFullYear()),
-                currency: String(currentCurrency || 'ars').toLowerCase(),
-            });
-            window.location.href = `/app/settings?${params.toString()}`;
-        }
-
-        openTableReportsBtn?.addEventListener('click', goToReportsSettings);
 
         window.editExpenseByIndex = editExpenseByIndex;
 </script>

@@ -629,14 +629,47 @@ func buildMonthlyReportPDF(expenses []storage.Expense, query monthlyReportQuery,
 	pdf.CellFormat(0, 5, fmt.Sprintf("Moneda: %s | Emitido: %s UTC", strings.ToUpper(query.Currency), time.Now().UTC().Format("2006-01-02 15:04")), "", 1, "L", false, 0, "")
 
 	cards := []struct {
-		Title string
-		Value string
+		Title      string
+		Value      string
+		FillColor  [3]int
+		LineColor  [3]int
+		TitleColor [3]int
 	}{
-		{Title: "Movimientos", Value: fmt.Sprintf("%d", metrics.TransactionCount)},
-		{Title: "Ingresos", Value: formatReportAmount(metrics.Income, query.Currency)},
-		{Title: "Egresos", Value: formatReportAmount(-metrics.Expense, query.Currency)},
-		{Title: "Balance neto", Value: formatReportAmount(metrics.NetBalance, query.Currency)},
-		{Title: "Tarjeta por pagar", Value: formatReportAmount(-metrics.CardPending, query.Currency)},
+		{
+			Title:      "Movimientos",
+			Value:      fmt.Sprintf("%d", metrics.TransactionCount),
+			FillColor:  [3]int{239, 246, 255},
+			LineColor:  [3]int{147, 197, 253},
+			TitleColor: [3]int{30, 64, 175},
+		},
+		{
+			Title:      "Ingresos",
+			Value:      formatReportAmount(metrics.Income, query.Currency),
+			FillColor:  [3]int{236, 253, 245},
+			LineColor:  [3]int{110, 231, 183},
+			TitleColor: [3]int{6, 95, 70},
+		},
+		{
+			Title:      "Egresos",
+			Value:      formatReportAmount(metrics.Expense, query.Currency),
+			FillColor:  [3]int{254, 242, 242},
+			LineColor:  [3]int{252, 165, 165},
+			TitleColor: [3]int{153, 27, 27},
+		},
+		{
+			Title:      "Balance neto",
+			Value:      formatReportAmount(metrics.NetBalance, query.Currency),
+			FillColor:  [3]int{255, 251, 235},
+			LineColor:  [3]int{253, 186, 116},
+			TitleColor: [3]int{146, 64, 14},
+		},
+		{
+			Title:      "Tarjeta por pagar",
+			Value:      formatReportAmount(metrics.CardPending, query.Currency),
+			FillColor:  [3]int{238, 242, 255},
+			LineColor:  [3]int{165, 180, 252},
+			TitleColor: [3]int{55, 48, 163},
+		},
 	}
 
 	cardW := 91.0
@@ -644,21 +677,32 @@ func buildMonthlyReportPDF(expenses []storage.Expense, query monthlyReportQuery,
 	cardGap := 8.0
 	startCardY := 31.0
 	for idx, card := range cards {
-		col := idx % 2
-		row := idx / 2
-		x := pageLeft + float64(col)*(cardW+cardGap)
-		y := startCardY + float64(row)*(cardH+5)
-		pdf.SetDrawColor(191, 219, 254)
-		pdf.SetFillColor(239, 246, 255)
-		pdf.RoundedRect(x, y, cardW, cardH, 2, "1234", "DF")
+		x := pageLeft
+		y := startCardY
+		width := cardW
+		if idx < 4 {
+			col := idx % 2
+			row := idx / 2
+			x = pageLeft + float64(col)*(cardW+cardGap)
+			y = startCardY + float64(row)*(cardH+5)
+		} else {
+			// Last card spans full width to avoid awkward empty space.
+			x = pageLeft
+			y = startCardY + 2*(cardH+5)
+			width = pageWidth
+		}
+
+		pdf.SetDrawColor(card.LineColor[0], card.LineColor[1], card.LineColor[2])
+		pdf.SetFillColor(card.FillColor[0], card.FillColor[1], card.FillColor[2])
+		pdf.RoundedRect(x, y, width, cardH, 2, "1234", "DF")
 		pdf.SetXY(x+3, y+3)
-		pdf.SetTextColor(30, 64, 175)
+		pdf.SetTextColor(card.TitleColor[0], card.TitleColor[1], card.TitleColor[2])
 		pdf.SetFont("Arial", "B", 9)
-		pdf.CellFormat(cardW-6, 4, card.Title, "", 2, "L", false, 0, "")
+		pdf.CellFormat(width-6, 4, card.Title, "", 2, "L", false, 0, "")
 		pdf.SetX(x + 3)
 		pdf.SetTextColor(15, 23, 42)
 		pdf.SetFont("Arial", "B", 11)
-		pdf.CellFormat(cardW-6, 5, card.Value, "", 0, "L", false, 0, "")
+		pdf.CellFormat(width-6, 5, card.Value, "", 0, "L", false, 0, "")
 	}
 
 	pdf.SetY(startCardY + 3*(cardH+5))

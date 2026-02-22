@@ -2643,6 +2643,29 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     color: var(--text-primary);
 }
 
+.settings-preference-control input {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font: inherit;
+}
+
+.settings-preference-control input:focus,
+.settings-preference-control select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+#reportYearInput {
+    text-align: left;
+}
+
 .settings-helper-text {
     margin: 0.35rem 0 0;
     font-size: 0.82rem;
@@ -4091,17 +4114,6 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
 .table-controls #toggleTableExpenseFormBtn i {
     font-size: 0.9rem;
-}
-
-.table-controls #openTableReportsBtn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.45rem;
-}
-
-.table-controls #openTableReportsBtn i {
-    font-size: 0.86rem;
 }
 
 #tableDataModule,

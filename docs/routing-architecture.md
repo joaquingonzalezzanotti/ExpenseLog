@@ -64,3 +64,4 @@ Replace `<railway-host>` with your real Railway domain.
 1. Keep legacy routes enabled during transition.
 2. Update external integrations to `/api/*` gradually.
 3. After production stabilization, remove legacy routes in a separate hardening pass.
+4. Note: a no-op docs commit can be used to force CI/CD auto-deploy detection when branch tracking is delayed.

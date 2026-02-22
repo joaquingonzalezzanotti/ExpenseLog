@@ -1065,8 +1065,14 @@
             const cardOption = sourceSelect.querySelector('option[value="TARJETA"]');
             const cashOption = sourceSelect.querySelector('option[value="EFECTIVO"]');
             const isIncome = movementType === 'income';
-            if (cardOption) cardOption.disabled = isIncome;
-            if (cashOption) cashOption.disabled = isIncome;
+            if (cardOption) {
+                cardOption.disabled = isIncome;
+                cardOption.hidden = isIncome;
+            }
+            if (cashOption) {
+                cashOption.disabled = isIncome;
+                cashOption.hidden = isIncome;
+            }
             if (isIncome && (sourceSelect.value === 'TARJETA' || sourceSelect.value === 'EFECTIVO')) {
                 sourceSelect.value = 'CA';
             }

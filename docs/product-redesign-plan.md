@@ -15,6 +15,21 @@ Este documento es la fuente de verdad para avanzar en `dev`.
 2. Es el momento ideal para cambios estructurales.
 3. Prioridad #1 acordada: reorganizar rutas y arquitectura web.
 
+## Estado de implementacion en dev (22 Feb 2026)
+
+1. Ya existe endpoint `POST /api/card/payment` para registrar pagos de tarjeta.
+2. Se guardan dos variantes:
+   - `paidBy=self` -> movimiento en `CA` con `systemOrigin=card_payment_owner`.
+   - `paidBy=third_party` -> movimiento en `TARJETA` con `systemOrigin=card_payment_third_party`.
+3. Home (`/app`) ya muestra modulo `Tarjeta por pagar` con:
+   - saldo pendiente por moneda,
+   - boton `Pagar tarjeta`,
+   - boton `Pago por tercero`.
+4. El pendiente de tarjeta considera:
+   - consumos en `TARJETA`,
+   - reintegros en `TARJETA`,
+   - pagos propios registrados por el nuevo endpoint.
+
 ## Prioridad #1 (cerrada): Arquitectura de rutas
 
 ### Objetivo

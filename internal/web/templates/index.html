@@ -81,6 +81,39 @@
 
         <div id="baseSummary" class="cashflow-container"></div>
 
+        <section id="cardPaymentModule" class="card-payment-module" style="display: none;">
+            <div class="card-payment-head">
+                <h3>Tarjeta por pagar</h3>
+                <p id="cardPaymentStatus">Registra pagos para bajar el saldo pendiente.</p>
+            </div>
+            <div class="card-payment-kpis">
+                <div class="cashflow-item card-payable">
+                    <div class="cashflow-label">Pendiente actual</div>
+                    <div id="cardPayableValue" class="cashflow-value">$0.00</div>
+                    <div id="cardPayableSub" class="cashflow-sub"></div>
+                </div>
+            </div>
+            <form id="cardPaymentForm" class="card-payment-form">
+                <div class="form-group">
+                    <label for="cardPaymentAmount">Monto a registrar</label>
+                    <input type="number" id="cardPaymentAmount" step="0.01" min="0.01" placeholder="Ej: 25000" required>
+                </div>
+                <div class="form-group">
+                    <label for="cardPaymentCurrency">Moneda</label>
+                    <select id="cardPaymentCurrency" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="cardPaymentCard">Tarjeta (opcional)</label>
+                    <input type="text" id="cardPaymentCard" placeholder="Ej: Visa banco">
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cardPayOwnBtn" class="nav-button button-primary">Pagar tarjeta</button>
+                    <button type="button" id="cardPayThirdBtn" class="nav-button button-secondary">Pago por tercero</button>
+                </div>
+                <div id="cardPaymentMessage" class="form-help-text"></div>
+            </form>
+        </section>
+
         <div id="addExpenseContainer" style="display: none;">
             <div class="form-container">
                 <form id="expenseForm" class="expense-form">
@@ -275,13 +308,25 @@
         const cardGroup = document.getElementById('cardGroup');
         const movementTypeSelect = document.getElementById('movementType');
         const sourceImpactHint = document.getElementById('sourceImpactHint');
+        const cardPaymentModule = document.getElementById('cardPaymentModule');
+        const cardPayableValue = document.getElementById('cardPayableValue');
+        const cardPayableSub = document.getElementById('cardPayableSub');
+        const cardPaymentStatus = document.getElementById('cardPaymentStatus');
+        const cardPaymentAmountInput = document.getElementById('cardPaymentAmount');
+        const cardPaymentCurrencySelect = document.getElementById('cardPaymentCurrency');
+        const cardPaymentCardInput = document.getElementById('cardPaymentCard');
+        const cardPaymentMessage = document.getElementById('cardPaymentMessage');
+        const cardPayOwnBtn = document.getElementById('cardPayOwnBtn');
+        const cardPayThirdBtn = document.getElementById('cardPayThirdBtn');
         let filterCurrency = 'all';
         let filterSource = 'all';
         let categories = [];
         let chartExpanded = false;
+        let cardPayableByCurrency = {};
         const expenseForm = document.getElementById('expenseForm');
         const expenseSubmitButton = expenseForm ? expenseForm.querySelector('button[type="submit"]') : null;
         const movementTypeGroup = movementTypeSelect ? movementTypeSelect.closest('.form-group') : null;
+        const cardPaymentOwnerOrigin = 'card_payment_owner';
         const LIQUIDITY_RULES = Object.freeze({
             currency: 'ars',
             windowDays: 7,
@@ -676,6 +721,161 @@
             }, {});
         }
 
+        function getDashboardCutoffDate() {
+            const now = new Date();
+            const monthBounds = getMonthBounds(currentDate);
+            return monthBounds.end < now ? monthBounds.end : now;
+        }
+
+        function calculateCardPayableByCurrency(expenses, cutoffDate) {
+            const rawCardTotals = {};
+            const ownerPayments = {};
+            (expenses || []).forEach(exp => {
+                const expDate = getComparableExpenseDate(exp);
+                if (expDate > cutoffDate) return;
+                const currency = (exp.currency || baseCurrency).toLowerCase();
+                const source = (exp.source || '').toUpperCase();
+                const systemOrigin = String(exp.systemOrigin || '').toLowerCase();
+                const amount = Number(exp.amount) || 0;
+                if (source === 'TARJETA') {
+                    rawCardTotals[currency] = (rawCardTotals[currency] || 0) + amount;
+                }
+                if (systemOrigin === cardPaymentOwnerOrigin && amount < 0) {
+                    ownerPayments[currency] = (ownerPayments[currency] || 0) + Math.abs(amount);
+                }
+            });
+
+            const byCurrency = {};
+            supportedCurrencies.forEach(cur => {
+                const rawDebt = Math.max(0, -(rawCardTotals[cur] || 0));
+                const paidByOwner = ownerPayments[cur] || 0;
+                byCurrency[cur] = Math.max(0, rawDebt - paidByOwner);
+            });
+            return byCurrency;
+        }
+
+        function populateCardPaymentCurrencyOptions(selectedCurrency) {
+            if (!cardPaymentCurrencySelect) return;
+            const options = supportedCurrencies.map(code => {
+                const pending = cardPayableByCurrency[code] || 0;
+                const suffix = pending > 0
+                    ? ` (${formatCurrencyWithCurrency(pending, code)} pendiente)`
+                    : '';
+                return `<option value="${code}" ${code === selectedCurrency ? 'selected' : ''}>${code.toUpperCase()}${suffix}</option>`;
+            }).join('');
+            cardPaymentCurrencySelect.innerHTML = options;
+        }
+
+        function updateCardPaymentMessage(message, type) {
+            if (!cardPaymentMessage) return;
+            cardPaymentMessage.textContent = message || '';
+            cardPaymentMessage.className = 'form-help-text';
+            if (type === 'error') {
+                cardPaymentMessage.className += ' error';
+            }
+            if (type === 'success') {
+                cardPaymentMessage.className += ' success';
+            }
+        }
+
+        function renderCardPaymentModule() {
+            if (!cardPaymentModule || !cardPayableValue || !cardPayableSub) return;
+            const selectedCurrency = (cardPaymentCurrencySelect && cardPaymentCurrencySelect.value)
+                ? cardPaymentCurrencySelect.value
+                : baseCurrency;
+            const pendingBase = cardPayableByCurrency[baseCurrency] || 0;
+            const pendingSelected = cardPayableByCurrency[selectedCurrency] || 0;
+            const hasPending = Object.values(cardPayableByCurrency).some(value => value > 0);
+
+            cardPaymentModule.style.display = '';
+            cardPayableValue.textContent = formatCurrencyWithCurrency(pendingSelected, selectedCurrency);
+
+            const pendingLines = supportedCurrencies
+                .filter(cur => (cardPayableByCurrency[cur] || 0) > 0)
+                .map(cur => `${cur.toUpperCase()}: ${formatCurrencyWithCurrency(cardPayableByCurrency[cur], cur)}`);
+
+            if (pendingLines.length > 1) {
+                cardPayableSub.textContent = pendingLines.join(' | ');
+            } else if (pendingLines.length === 1) {
+                cardPayableSub.textContent = pendingLines[0];
+            } else {
+                cardPayableSub.textContent = 'Sin consumos pendientes.';
+            }
+
+            if (cardPaymentStatus) {
+                if (hasPending) {
+                    cardPaymentStatus.textContent = `Balance pendiente en ${baseCurrency.toUpperCase()}: ${formatCurrencyWithCurrency(pendingBase, baseCurrency)}.`;
+                } else {
+                    cardPaymentStatus.textContent = 'No hay consumos pendientes de tarjeta en este periodo.';
+                }
+            }
+        }
+
+        function setCardPaymentPendingState(pending) {
+            const disabled = !!pending;
+            if (cardPayOwnBtn) cardPayOwnBtn.disabled = disabled;
+            if (cardPayThirdBtn) cardPayThirdBtn.disabled = disabled;
+            if (cardPaymentAmountInput) cardPaymentAmountInput.disabled = disabled;
+            if (cardPaymentCurrencySelect) cardPaymentCurrencySelect.disabled = disabled;
+            if (cardPaymentCardInput) cardPaymentCardInput.disabled = disabled;
+        }
+
+        async function submitCardPayment(paidBy) {
+            if (!cardPaymentAmountInput || !cardPaymentCurrencySelect) return;
+            const amount = Number(cardPaymentAmountInput.value);
+            const currency = (cardPaymentCurrencySelect.value || baseCurrency).toLowerCase();
+            const pending = Number(cardPayableByCurrency[currency] || 0);
+
+            if (!Number.isFinite(amount) || amount <= 0) {
+                updateCardPaymentMessage('Ingresa un monto valido mayor a 0.', 'error');
+                return;
+            }
+            if (pending <= 0) {
+                updateCardPaymentMessage('No hay saldo pendiente para esa moneda.', 'error');
+                return;
+            }
+            if (amount > pending) {
+                updateCardPaymentMessage(`El monto supera el pendiente actual (${formatCurrencyWithCurrency(pending, currency)}).`, 'error');
+                return;
+            }
+
+            const payload = {
+                amount,
+                currency,
+                card: cardPaymentCardInput ? cardPaymentCardInput.value : '',
+                paidBy,
+                date: new Date().toISOString(),
+            };
+
+            setCardPaymentPendingState(true);
+            updateCardPaymentMessage('Guardando pago de tarjeta...');
+            try {
+                const response = await fetch('/api/card/payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'No se pudo guardar el pago');
+                }
+                updateCardPaymentMessage(
+                    paidBy === 'third_party'
+                        ? 'Pago por tercero registrado.'
+                        : 'Pago de tarjeta registrado.',
+                    'success'
+                );
+                if (cardPaymentAmountInput) cardPaymentAmountInput.value = '';
+                if (cardPaymentCardInput) cardPaymentCardInput.value = '';
+                await initialize();
+                showToast('Tarjeta actualizada', 'success');
+            } catch (error) {
+                updateCardPaymentMessage(error.message || 'No se pudo guardar el pago.', 'error');
+            } finally {
+                setCardPaymentPendingState(false);
+            }
+        }
+
         function getVisiblePeriodExpenses(expenses) {
             const monthExpenses = getMonthExpenses(expenses);
             const now = new Date();
@@ -686,7 +886,13 @@
             const monthExpensesAll = getVisiblePeriodExpenses(allExpenses);
             const monthExpenses = getFilteredMonthExpenses(monthExpensesAll);
             const monthBounds = getMonthBounds(currentDate);
-            const carryoverByCurrency = calculateCarryoverByCurrency(allExpenses, monthBounds.start, new Date());
+            const dashboardCutoffDate = getDashboardCutoffDate();
+            const carryoverByCurrency = calculateCarryoverByCurrency(allExpenses, monthBounds.start, dashboardCutoffDate);
+            cardPayableByCurrency = calculateCardPayableByCurrency(allExpenses, dashboardCutoffDate);
+            const previousCurrency = cardPaymentCurrencySelect ? cardPaymentCurrencySelect.value : '';
+            const defaultCurrency = previousCurrency || baseCurrency;
+            populateCardPaymentCurrencyOptions(defaultCurrency);
+            renderCardPaymentModule();
             const hasCarryover = Object.values(carryoverByCurrency).some(amount => amount !== 0);
             const chartContainer = document.querySelector('.chart-container');
             const chartBox = document.querySelector('.chart-box');
@@ -1210,7 +1416,7 @@
                 return;
             }
             if (source === 'TARJETA') {
-                sourceImpactHint.textContent = 'Gasto en tarjeta credito: no descuenta Balance ahora. Suma a Tarjeta por pagar.';
+                sourceImpactHint.textContent = 'Gasto en tarjeta credito: no descuenta Balance ahora. Suma a Tarjeta por pagar (usa el modulo para registrar pagos).';
                 return;
             }
             if (source === 'EFECTIVO') {
@@ -1425,6 +1631,23 @@
             document.getElementById('date').value = `${year}-${month}-${day}`;
             setExpenseFormVisible(false);
         });
+
+        if (cardPaymentCurrencySelect) {
+            cardPaymentCurrencySelect.addEventListener('change', () => {
+                renderCardPaymentModule();
+                updateCardPaymentMessage('');
+            });
+        }
+        if (cardPayOwnBtn) {
+            cardPayOwnBtn.addEventListener('click', () => {
+                submitCardPayment('self');
+            });
+        }
+        if (cardPayThirdBtn) {
+            cardPayThirdBtn.addEventListener('click', () => {
+                submitCardPayment('third_party');
+            });
+        }
 
         window.addEventListener('resize', () => {
             updateCompactHomeFilterLabels();

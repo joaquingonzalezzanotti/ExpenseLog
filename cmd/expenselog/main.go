@@ -135,6 +135,7 @@ func runServer(port int) {
 	registerAPI("/expense/edit", handler.RequireAuth(handler.EditExpense))               // PUT for edit
 	registerAPI("/expense/delete", handler.RequireAuth(handler.DeleteExpense))           // DELETE for single
 	registerAPI("/expenses/delete", handler.RequireAuth(handler.DeleteMultipleExpenses)) // DELETE for multiple
+	registerAPI("/card/payment", handler.RequireAuth(handler.AddCardPayment))            // POST for card payment events
 
 	// Recurring Expenses
 	registerAPI("/recurring-expense", handler.RequireAuth(handler.AddRecurringExpense))           // PUT for add

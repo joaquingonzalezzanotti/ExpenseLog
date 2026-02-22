@@ -26,52 +26,10 @@ function normalizeSourceCode(source) {
 
 function formatSourceLabel(source) {
     const code = normalizeSourceCode(source);
-    if (code === 'CA') return 'Transferencia o debito';
-    if (code === 'TARJETA') return 'Tarjeta de credito';
+    if (code === 'CA') return 'Transferencia / Debito';
+    if (code === 'TARJETA') return 'Tarjeta credito';
     if (code === 'EFECTIVO') return 'Efectivo (registro)';
     return code || '-';
-}
-
-function buildRecurringProgressMap(expenses) {
-    const rows = Array.isArray(expenses) ? expenses : [];
-    const groups = {};
-    const progress = {};
-
-    rows.forEach((exp) => {
-        const recurringID = String(exp && exp.recurringID ? exp.recurringID : '').trim();
-        const id = String(exp && exp.id ? exp.id : '').trim();
-        if (!recurringID || !id) return;
-        if (!groups[recurringID]) groups[recurringID] = [];
-        groups[recurringID].push(exp);
-    });
-
-    Object.keys(groups).forEach((recurringID) => {
-        const ordered = groups[recurringID].slice().sort((a, b) => {
-            const aTime = new Date(a && a.date ? a.date : 0).getTime();
-            const bTime = new Date(b && b.date ? b.date : 0).getTime();
-            const safeATime = Number.isFinite(aTime) ? aTime : 0;
-            const safeBTime = Number.isFinite(bTime) ? bTime : 0;
-            if (safeATime !== safeBTime) return safeATime - safeBTime;
-            return String(a && a.id ? a.id : '').localeCompare(String(b && b.id ? b.id : ''));
-        });
-        const total = ordered.length;
-        if (total <= 1) return;
-        ordered.forEach((exp, index) => {
-            const id = String(exp && exp.id ? exp.id : '').trim();
-            if (!id) return;
-            progress[id] = { current: index + 1, total };
-        });
-    });
-
-    return progress;
-}
-
-function formatRecurringProgress(expense, progressMap) {
-    const id = String(expense && expense.id ? expense.id : '').trim();
-    if (!id || !progressMap || !progressMap[id]) return '';
-    const item = progressMap[id];
-    if (!item || !item.current || !item.total) return '';
-    return `${item.current}/${item.total}`;
 }
 
 let authChecked = false;

@@ -872,11 +872,6 @@ html[data-theme='light'] #nextMonth {
     line-height: 1.25;
 }
 
-.quota-badge {
-    background-color: rgba(16, 185, 129, 0.14);
-    border-color: rgba(16, 185, 129, 0.36);
-}
-
 .editable:hover {
     background-color: var(--accent-soft);
 }
@@ -1905,13 +1900,6 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     text-decoration: none;
 }
 
-.settings-export-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 0.85rem;
-    margin-top: 0.7rem;
-}
-
 .settings-reports-section {
     border: 1px solid rgba(37, 99, 235, 0.24);
     background:
@@ -1950,6 +1938,13 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     text-transform: uppercase;
     padding: 0.2rem 0.52rem;
     white-space: nowrap;
+}
+
+.settings-export-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.85rem;
+    margin-top: 0.7rem;
 }
 
 .settings-export-actions {
@@ -2138,9 +2133,9 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 .expense-modal-form .method-group #sourceSelect {
     max-width: 100%;
     min-width: 0;
-    font-size: 0.92rem;
+    font-size: 0.96rem;
     min-height: 42px;
-    padding-right: 2.3rem;
+    padding-right: 2.1rem;
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
@@ -2161,37 +2156,21 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 .card-payment-module {
     border: 1px solid rgba(37, 99, 235, 0.18);
     border-radius: 16px;
-    padding: 1.05rem;
+    padding: 1rem;
     margin: 0 auto 1rem;
     max-width: 920px;
     width: 100%;
     box-sizing: border-box;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(250px, 300px);
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
     grid-template-areas:
         "head kpi"
-        "breakdown kpi"
-        "meta actions";
-    gap: 0.72rem 1rem;
+        "breakdown actions";
+    gap: 0.75rem 1rem;
     align-items: center;
     background:
-        radial-gradient(circle at 94% 11%, rgba(37, 99, 235, 0.15), transparent 40%),
-        radial-gradient(circle at 12% 88%, rgba(16, 185, 129, 0.1), transparent 44%),
+        radial-gradient(circle at 93% 12%, rgba(37, 99, 235, 0.12), transparent 38%),
         linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 125%);
-}
-
-.card-payment-module.is-empty {
-    border-color: var(--border);
-    background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
-}
-
-.card-payment-module.is-empty .card-payment-kpi-panel {
-    border-color: var(--border);
-    box-shadow: none;
-}
-
-.card-payment-module.is-empty .card-payment-meta {
-    opacity: 0.7;
 }
 
 .card-payment-eyebrow {
@@ -2240,22 +2219,13 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
 .card-payment-kpi-panel {
     grid-area: kpi;
-    border-radius: 14px;
-    border: 1px solid rgba(37, 99, 235, 0.2);
+    border-radius: 12px;
+    border: 1px solid var(--border);
     background: var(--bg-primary);
-    padding: 0.85rem 0.95rem;
+    padding: 0.8rem 0.9rem;
     align-items: flex-end;
     justify-content: center;
-    min-height: 108px;
-    box-shadow: 0 12px 20px rgba(10, 24, 54, 0.08);
-}
-
-.card-payment-kpi-label {
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--text-secondary);
+    min-height: 96px;
 }
 
 .card-payment-value {
@@ -2275,25 +2245,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     display: flex;
     flex-wrap: wrap;
     gap: 0.45rem;
-    margin-top: 0;
-}
-
-.card-payment-meta {
-    grid-area: meta;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-}
-
-.card-payment-meta-item {
-    display: inline-flex;
-    align-items: center;
-    border-radius: 999px;
-    padding: 0.2rem 0.58rem;
-    border: 1px dashed rgba(37, 99, 235, 0.24);
-    background: rgba(37, 99, 235, 0.05);
-    font-size: 0.76rem;
-    color: var(--text-secondary);
+    margin-top: 0.15rem;
 }
 
 .card-breakdown-chip {
@@ -2325,8 +2277,6 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     min-width: 180px;
     width: 100%;
     max-width: 240px;
-    border-color: rgba(37, 99, 235, 0.52);
-    box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
 }
 
 .card-payment-modal-card {
@@ -3244,14 +3194,14 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     }
 
     .entry-modal-overlay {
-        padding: 0.9rem 0.85rem;
+        padding: 0.5rem;
     }
 
     .entry-modal-card {
-        width: min(392px, calc(100vw - 1.7rem));
-        max-height: min(86dvh, 760px);
-        padding: 0.88rem;
-        border-radius: 16px;
+        width: min(410px, calc(100vw - 1rem));
+        max-height: calc(100dvh - 1rem);
+        padding: 0.82rem;
+        border-radius: 14px;
     }
 
     .entry-modal-header {
@@ -3279,9 +3229,9 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
     .expense-modal-form .method-group #sourceSelect {
         width: 100%;
-        font-size: 0.88rem;
+        font-size: 0.9rem;
         min-height: 40px;
-        padding-right: 2.2rem;
+        padding-right: 2rem;
     }
 
     .expense-modal-form #sourceImpactHint {
@@ -3298,7 +3248,6 @@ html[data-theme='dark'] .expense-table td.amount-balance {
             "head"
             "kpi"
             "breakdown"
-            "meta"
             "actions";
     }
 
@@ -3322,15 +3271,6 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     .card-payment-actions .nav-button {
         width: 100%;
         min-width: 0;
-    }
-
-    .card-payment-meta {
-        gap: 0.35rem;
-    }
-
-    .card-payment-meta-item {
-        width: 100%;
-        justify-content: center;
     }
 
     .card-payment-modal-form {
@@ -3365,7 +3305,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     }
 
     .card-payment-modal-card {
-        width: min(392px, calc(100vw - 1.7rem));
+        width: min(410px, calc(100vw - 1rem));
     }
 
     .settings-detail-section .recurring-expense-form {

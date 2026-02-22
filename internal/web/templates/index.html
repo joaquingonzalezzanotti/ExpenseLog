@@ -109,16 +109,16 @@
                         </select>
                     </div>
 
-                    <div class="form-group method-group">
-                        <label for="sourceSelect">Medio de pago</label>
+                    <div class="form-group form-group-span-2 method-group">
+                        <label for="sourceSelect">Metodo</label>
                         <select id="sourceSelect">
-                            <option value="CA">Transferencia o debito</option>
+                            <option value="CA">Transferencia / Debito</option>
                             <option value="EFECTIVO">Efectivo (solo registro)</option>
                             <option value="TARJETA">Tarjeta de credito</option>
                         </select>
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group form-group-span-2">
                         <label for="name">Descripcion</label>
                         <input type="text" id="name" placeholder="Ej. Supermercado, alquiler, sueldo..." required>
                     </div>
@@ -186,7 +186,7 @@
                 </select>
             </div>
             <div class="filter-group">
-                <span class="filter-label">Forma de pago</span>
+                <span class="filter-label">Medio de pago</span>
                 <select id="filterSource" class="filter-select">
                     <option value="all">Todos</option>
                 </select>
@@ -217,15 +217,10 @@
                 </div>
             </div>
             <div class="card-payment-toggle-kpi card-payment-kpi-panel">
-                <span class="card-payment-kpi-label">Pendiente total</span>
                 <span id="cardPayableValue" class="card-payment-value">$0.00</span>
                 <span id="cardPayableSub" class="card-payment-sub"></span>
             </div>
             <div id="cardPayableBreakdown" class="card-payment-breakdown"></div>
-            <div class="card-payment-meta">
-                <span class="card-payment-meta-item">Pago propio: descuenta balance</span>
-                <span class="card-payment-meta-item">Pago por tercero: solo baja pendiente</span>
-            </div>
             <div class="card-payment-actions">
                 <button id="openCardPaymentModalBtn" type="button" class="nav-button button-primary">Registrar pago</button>
             </div>
@@ -349,7 +344,6 @@
         let pieChart = null;
         let currentDate = new Date();
         let allExpenses = [];
-        let recurringProgressByExpense = {};
         let disabledCategories = new Set();
         let categoryColors = {};
         let allTags = new Set();
@@ -819,7 +813,11 @@
         function populateCardPaymentCurrencyOptions(selectedCurrency) {
             if (!cardPaymentCurrencySelect) return;
             const options = supportedCurrencies.map(code => {
-                return `<option value="${code}" ${code === selectedCurrency ? 'selected' : ''}>${code.toUpperCase()}</option>`;
+                const pending = cardPayableByCurrency[code] || 0;
+                const suffix = pending > 0
+                    ? ` (${formatCurrencyWithCurrency(pending, code)} pendiente)`
+                    : '';
+                return `<option value="${code}" ${code === selectedCurrency ? 'selected' : ''}>${code.toUpperCase()}${suffix}</option>`;
             }).join('');
             cardPaymentCurrencySelect.innerHTML = options;
         }
@@ -870,13 +868,6 @@
                 currency: currency.toLowerCase(),
                 pending: Number(cardPayableByCurrency[currency.toLowerCase()] || 0),
             };
-        }
-
-        function getPreferredCardPaymentCurrency(preferredCurrency) {
-            const fallback = String(preferredCurrency || baseCurrency || 'ars').toLowerCase();
-            if ((cardPayableByCurrency[fallback] || 0) > 0) return fallback;
-            const withPending = supportedCurrencies.find(cur => (cardPayableByCurrency[cur] || 0) > 0);
-            return withPending || fallback;
         }
 
         function formatInputAmount(amount) {
@@ -937,11 +928,7 @@
             if (cardPaymentModalVisible) {
                 updateCardPaymentMessage('');
                 setCardPaymentMode('self');
-                const preferredCurrency = getPreferredCardPaymentCurrency(cardPaymentCurrencySelect ? cardPaymentCurrencySelect.value : baseCurrency);
-                if (cardPaymentCurrencySelect) {
-                    cardPaymentCurrencySelect.value = preferredCurrency;
-                }
-                const pending = Number(cardPayableByCurrency[preferredCurrency] || 0);
+                const { pending } = getSelectedCardPending();
                 setCardPaymentAmount(pending);
                 refreshCardPaymentPendingHint();
                 window.setTimeout(() => {
@@ -958,20 +945,14 @@
 
         function renderCardPaymentModule() {
             if (!cardPaymentModule || !cardPayableValue || !cardPayableSub) return;
-            const rawSelectedCurrency = (cardPaymentCurrencySelect && cardPaymentCurrencySelect.value)
+            const selectedCurrency = (cardPaymentCurrencySelect && cardPaymentCurrencySelect.value)
                 ? cardPaymentCurrencySelect.value
                 : baseCurrency;
-            const hasPending = Object.values(cardPayableByCurrency).some(value => value > 0);
-            const selectedCurrency = (!cardPaymentModalVisible && hasPending)
-                ? getPreferredCardPaymentCurrency(rawSelectedCurrency)
-                : String(rawSelectedCurrency || baseCurrency).toLowerCase();
-            if (!cardPaymentModalVisible && cardPaymentCurrencySelect && cardPaymentCurrencySelect.value !== selectedCurrency) {
-                cardPaymentCurrencySelect.value = selectedCurrency;
-            }
+            const pendingBase = cardPayableByCurrency[baseCurrency] || 0;
             const pendingSelected = cardPayableByCurrency[selectedCurrency] || 0;
+            const hasPending = Object.values(cardPayableByCurrency).some(value => value > 0);
 
             cardPaymentModule.style.display = '';
-            cardPaymentModule.classList.toggle('is-empty', !hasPending);
             cardPayableValue.textContent = formatCurrencyWithCurrency(pendingSelected, selectedCurrency);
 
             const pendingLines = supportedCurrencies
@@ -1001,7 +982,7 @@
 
             if (cardPaymentStatus) {
                 if (hasPending) {
-                    cardPaymentStatus.textContent = `Pendiente actual en ${selectedCurrency.toUpperCase()}: ${formatCurrencyWithCurrency(pendingSelected, selectedCurrency)}.`;
+                    cardPaymentStatus.textContent = `Balance pendiente en ${baseCurrency.toUpperCase()}: ${formatCurrencyWithCurrency(pendingBase, baseCurrency)}.`;
                 } else {
                     cardPaymentStatus.textContent = 'No hay consumos pendientes de tarjeta en este periodo.';
                 }
@@ -1181,8 +1162,7 @@
             const baseContainer = document.getElementById('baseSummary');
             container.innerHTML = '';
             baseContainer.innerHTML = '';
-            const baseCurrencyLabelSuffix = baseCurrency === 'ars' ? '' : ` ${baseCurrency.toUpperCase()}`;
-            // Balance disponible: mantiene origen bancario (o legacy vacio) y excluye EFECTIVO/TARJETA.
+            // Bank balance only: keep CA (or empty legacy source), exclude EFECTIVO/TARJETA.
             const cashflowExpenses = expenses.filter(exp => {
                 const source = (exp.source || '').toUpperCase();
                 return source === '' || source === 'CA';
@@ -1209,19 +1189,19 @@
                 const balance = baseCarryover + baseIncome - baseExpense;
                 baseWrapper.innerHTML = `
                     <div class="cashflow-item carryover">
-                        <div class="cashflow-label">Saldo inicial${baseCurrencyLabelSuffix}</div>
+                        <div class="cashflow-label">Saldo inicial (CA) ${baseCurrency.toUpperCase()}</div>
                         <div class="cashflow-value ${baseCarryover >= 0 ? 'positive' : 'negative'}">${formatCurrencyWithCurrency(baseCarryover, baseCurrency)}</div>
                     </div>
                     <div class="cashflow-item income">
-                        <div class="cashflow-label">Ingresos${baseCurrencyLabelSuffix}</div>
+                        <div class="cashflow-label">Ingresos ${baseCurrency.toUpperCase()}</div>
                         <div class="cashflow-value">${formatCurrencyWithCurrency(baseIncome, baseCurrency)}</div>
                     </div>
                     <div class="cashflow-item expenses">
-                        <div class="cashflow-label">Gastos${baseCurrencyLabelSuffix}</div>
+                        <div class="cashflow-label">Gastos ${baseCurrency.toUpperCase()}</div>
                         <div class="cashflow-value">${formatCurrencyWithCurrency(baseExpense, baseCurrency)}</div>
                     </div>
                     <div class="cashflow-item balance">
-                        <div class="cashflow-label">Balance${baseCurrencyLabelSuffix}</div>
+                        <div class="cashflow-label">Balance ${baseCurrency.toUpperCase()}</div>
                         <div class="cashflow-value ${balance >= 0 ? 'positive' : 'negative'}">${formatCurrencyWithCurrency(balance, baseCurrency)}</div>
                     </div>
                 `;
@@ -1243,7 +1223,7 @@
                         <div class="cashflow-label">Balance ${cur.toUpperCase()}</div>
                         <div class="cashflow-value ${balance >=0 ? 'positive' : 'negative'}">${formatCurrencyWithCurrency(balance, cur)}</div>
                         <div class="cashflow-sub">
-                            <span>Saldo inicial: ${formatCurrencyWithCurrency(carry, cur)}</span>
+                            <span>Saldo inicial (CA): ${formatCurrencyWithCurrency(carry, cur)}</span>
                             <span>Ingresos: ${formatCurrencyWithCurrency(income, cur)}</span>
                             <span>Gastos: ${formatCurrencyWithCurrency(expense, cur)}</span>
                         </div>
@@ -1274,16 +1254,12 @@
                 return;
             }
             container.style.display = 'block';
-            list.innerHTML = recent.map(item => {
-                const recurringProgress = formatRecurringProgress(item, recurringProgressByExpense);
-                const recurringSuffix = recurringProgress ? ` • Cuota ${escapeHTML(recurringProgress)}` : '';
-                return `
-                    <div class="recent-item">
-                        <span><strong>${escapeHTML(item.name)}</strong> • ${escapeHTML(formatCategoryLabel(item.category))}${recurringSuffix}</span>
-                        <span>${formatCurrencyWithCurrency(item.amount, item.currency || baseCurrency)}</span>
-                    </div>
-                `;
-            }).join('');
+            list.innerHTML = recent.map(item => `
+                <div class="recent-item">
+                    <span><strong>${escapeHTML(item.name)}</strong> • ${escapeHTML(formatCategoryLabel(item.category))}</span>
+                    <span>${formatCurrencyWithCurrency(item.amount, item.currency || baseCurrency)}</span>
+                </div>
+            `).join('');
         }
 
         function isFuturePeriodSelected() {
@@ -1438,9 +1414,6 @@
                     source: exp.source || '',
                     card: exp.card || '',
                 }));
-                recurringProgressByExpense = typeof buildRecurringProgressMap === 'function'
-                    ? buildRecurringProgressMap(allExpenses)
-                    : {};
 
                 allTags.clear();
                 allExpenses.forEach(exp => {
@@ -1619,14 +1592,8 @@
             const cardOption = sourceSelect.querySelector('option[value="TARJETA"]');
             const cashOption = sourceSelect.querySelector('option[value="EFECTIVO"]');
             const isIncome = movementType === 'income';
-            if (cardOption) {
-                cardOption.disabled = isIncome;
-                cardOption.hidden = isIncome;
-            }
-            if (cashOption) {
-                cashOption.disabled = isIncome;
-                cashOption.hidden = isIncome;
-            }
+            if (cardOption) cardOption.disabled = isIncome;
+            if (cashOption) cashOption.disabled = isIncome;
             if (isIncome && (sourceSelect.value === 'TARJETA' || sourceSelect.value === 'EFECTIVO')) {
                 sourceSelect.value = 'CA';
             }
@@ -1637,7 +1604,7 @@
             const movementType = movementTypeSelect ? movementTypeSelect.value : 'expense';
             const source = sourceSelect ? sourceSelect.value : 'CA';
             if (movementType === 'income') {
-                sourceImpactHint.textContent = 'Ingreso: suma Balance ahora. Medio disponible: Transferencia o debito.';
+                sourceImpactHint.textContent = 'Ingreso: suma Balance ahora. Medio disponible: Transferencia / Debito.';
                 return;
             }
             if (movementType === 'refund') {
@@ -1645,14 +1612,14 @@
                 return;
             }
             if (source === 'TARJETA') {
-                sourceImpactHint.textContent = 'Gasto en tarjeta de credito: no descuenta Balance ahora. Suma a Tarjeta por pagar (usa el modulo para registrar pagos).';
+                sourceImpactHint.textContent = 'Gasto en tarjeta credito: no descuenta Balance ahora. Suma a Tarjeta por pagar (usa el modulo para registrar pagos).';
                 return;
             }
             if (source === 'EFECTIVO') {
                 sourceImpactHint.textContent = 'Gasto en efectivo: queda registrado y no descuenta Balance en el modo actual.';
                 return;
             }
-            sourceImpactHint.textContent = 'Gasto por Transferencia o debito: descuenta Balance ahora.';
+            sourceImpactHint.textContent = 'Gasto por Transferencia / Debito: descuenta Balance ahora.';
         }
 
         function refreshSourceUX() {
@@ -1969,24 +1936,8 @@
         refreshSourceUX();
         syncExpenseSubmitButtonLabel();
     </script>
-    <script>
-        (function loadVercelTelemetry() {
-            const host = window.location.hostname;
-            const isVercelHost = host.endsWith('.vercel.app');
-            const isPrimaryHost = host === 'expenselog.com.ar' || host === 'www.expenselog.com.ar';
-            if (!isVercelHost && !isPrimaryHost) return;
-
-            const addScript = (src) => {
-                const script = document.createElement('script');
-                script.defer = true;
-                script.src = src;
-                document.body.appendChild(script);
-            };
-
-            addScript('/_vercel/insights/script.js');
-            addScript('/_vercel/speed-insights/script.js');
-        })();
-    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+    <script defer src="/_vercel/speed-insights/script.js"></script>
 </body>
 </html>
 

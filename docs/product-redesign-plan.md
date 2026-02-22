@@ -145,7 +145,7 @@ Que el usuario entienda el impacto antes de guardar.
 
 ### Requisitos funcionales UX
 
-1. Campo `Como lo pagaste` solo en gasto.
+1. Campo `Medio de pago` solo en gasto.
 2. Mensaje dinamico por medio:
    - Transferencia/Debito: impacta balance.
    - Credito: no impacta balance, suma tarjeta por pagar.

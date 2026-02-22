@@ -565,12 +565,14 @@
                     const flow = resolveFlow(exp);
                     const flowClass = flow === 'expense' ? 'negative' : 'positive';
                     const sourceLabel = formatSourceLabel(exp.source || 'CA');
+                    const recurringProgress = formatRecurringProgress(exp, recurringProgressByExpense);
+                    const recurringSuffix = recurringProgress ? ` | Cuota ${escapeHTML(recurringProgress)}` : '';
                     const amountText = formatCurrencyWithCurrency(exp.amount, exp.currency || currentCurrency);
                     return `
                         <li class="financial-calendar-movement ${flowClass}">
                             <div class="financial-calendar-movement-main">
                                 <strong>${escapeHTML(exp.name || '-')}</strong>
-                                <span>${escapeHTML(formatCategoryLabel(exp.category))} - ${escapeHTML(sourceLabel)}</span>
+                                <span>${escapeHTML(formatCategoryLabel(exp.category))} - ${escapeHTML(sourceLabel)}${recurringSuffix}</span>
                             </div>
                             <div class="financial-calendar-movement-amount">${amountText}</div>
                         </li>

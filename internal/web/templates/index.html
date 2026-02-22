@@ -872,6 +872,13 @@
             };
         }
 
+        function getPreferredCardPaymentCurrency(preferredCurrency) {
+            const fallback = String(preferredCurrency || baseCurrency || 'ars').toLowerCase();
+            if ((cardPayableByCurrency[fallback] || 0) > 0) return fallback;
+            const withPending = supportedCurrencies.find(cur => (cardPayableByCurrency[cur] || 0) > 0);
+            return withPending || fallback;
+        }
+
         function formatInputAmount(amount) {
             if (!Number.isFinite(amount) || amount <= 0) return '';
             return String(Math.round(amount * 100) / 100);
@@ -930,7 +937,11 @@
             if (cardPaymentModalVisible) {
                 updateCardPaymentMessage('');
                 setCardPaymentMode('self');
-                const { pending } = getSelectedCardPending();
+                const preferredCurrency = getPreferredCardPaymentCurrency(cardPaymentCurrencySelect ? cardPaymentCurrencySelect.value : baseCurrency);
+                if (cardPaymentCurrencySelect) {
+                    cardPaymentCurrencySelect.value = preferredCurrency;
+                }
+                const pending = Number(cardPayableByCurrency[preferredCurrency] || 0);
                 setCardPaymentAmount(pending);
                 refreshCardPaymentPendingHint();
                 window.setTimeout(() => {
@@ -947,12 +958,17 @@
 
         function renderCardPaymentModule() {
             if (!cardPaymentModule || !cardPayableValue || !cardPayableSub) return;
-            const selectedCurrency = (cardPaymentCurrencySelect && cardPaymentCurrencySelect.value)
+            const rawSelectedCurrency = (cardPaymentCurrencySelect && cardPaymentCurrencySelect.value)
                 ? cardPaymentCurrencySelect.value
                 : baseCurrency;
-            const pendingBase = cardPayableByCurrency[baseCurrency] || 0;
-            const pendingSelected = cardPayableByCurrency[selectedCurrency] || 0;
             const hasPending = Object.values(cardPayableByCurrency).some(value => value > 0);
+            const selectedCurrency = (!cardPaymentModalVisible && hasPending)
+                ? getPreferredCardPaymentCurrency(rawSelectedCurrency)
+                : String(rawSelectedCurrency || baseCurrency).toLowerCase();
+            if (!cardPaymentModalVisible && cardPaymentCurrencySelect && cardPaymentCurrencySelect.value !== selectedCurrency) {
+                cardPaymentCurrencySelect.value = selectedCurrency;
+            }
+            const pendingSelected = cardPayableByCurrency[selectedCurrency] || 0;
 
             cardPaymentModule.style.display = '';
             cardPayableValue.textContent = formatCurrencyWithCurrency(pendingSelected, selectedCurrency);
@@ -984,7 +1000,7 @@
 
             if (cardPaymentStatus) {
                 if (hasPending) {
-                    cardPaymentStatus.textContent = `Balance pendiente en ${baseCurrency.toUpperCase()}: ${formatCurrencyWithCurrency(pendingBase, baseCurrency)}.`;
+                    cardPaymentStatus.textContent = `Pendiente actual en ${selectedCurrency.toUpperCase()}: ${formatCurrencyWithCurrency(pendingSelected, selectedCurrency)}.`;
                 } else {
                     cardPaymentStatus.textContent = 'No hay consumos pendientes de tarjeta en este periodo.';
                 }

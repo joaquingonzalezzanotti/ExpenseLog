@@ -1005,6 +1005,97 @@ input:focus-visible {
     display: block;
 }
 
+.nav-logo-mobile-text {
+    display: none;
+    font-size: 1.8rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--text-primary);
+}
+
+.mobile-menu-toggle,
+.mobile-sidebar,
+.mobile-sidebar-overlay,
+.mobile-bottom-nav {
+    display: none;
+}
+
+.mobile-sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.36);
+    z-index: 80;
+}
+
+.mobile-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: min(280px, 82vw);
+    background: var(--bg-card);
+    border-right: 1px solid var(--border);
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.18);
+    z-index: 90;
+    padding: 1.15rem 0.8rem;
+}
+
+.mobile-sidebar-nav {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.mobile-sidebar-link {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 0.75rem 0.8rem;
+}
+
+.mobile-bottom-nav {
+    position: fixed;
+    left: 0.6rem;
+    right: 0.6rem;
+    bottom: 0.6rem;
+    border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--bg-card), transparent 8%);
+    border-radius: 14px;
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.16);
+    backdrop-filter: blur(8px);
+    z-index: 70;
+    padding: 0.35rem;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.25rem;
+}
+
+.mobile-nav-item {
+    display: grid;
+    place-items: center;
+    gap: 0.12rem;
+    text-decoration: none;
+    color: var(--text-secondary);
+    border-radius: 10px;
+    padding: 0.35rem 0.1rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+}
+
+.mobile-nav-item i {
+    font-size: 0.92rem;
+}
+
+.mobile-nav-item.active {
+    color: var(--accent-contrast);
+    background: var(--accent);
+}
+
+body.mobile-menu-open {
+    overflow: hidden;
+}
+
 .user-badge {
     width: 2.5rem;
     height: 2.5rem;
@@ -3050,7 +3141,40 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     }
 
     .nav-logo {
-        height: 42px;
+        display: none;
+    }
+
+    .nav-logo-mobile-text {
+        display: inline-block;
+        font-size: 2rem;
+        line-height: 1;
+    }
+
+    .nav-logo-link {
+        justify-self: center;
+    }
+
+    .mobile-menu-toggle {
+        display: inline-flex;
+        justify-self: start;
+    }
+
+    .nav-center-tabs {
+        display: none;
+    }
+
+    .mobile-sidebar,
+    .mobile-sidebar-overlay,
+    .mobile-bottom-nav {
+        display: block;
+    }
+
+    .mobile-bottom-nav {
+        display: grid;
+    }
+
+    .container {
+        padding-bottom: 5.6rem;
     }
 
     .nav-center-tabs {

@@ -118,10 +118,11 @@
                     <div class="form-group">
                         <label for="sourceSelect">Metodo</label>
                         <select id="sourceSelect">
-                            <option value="CA">CA</option>
-                            <option value="EFECTIVO">Efectivo</option>
-                            <option value="TARJETA">Tarjeta</option>
+                            <option value="CA">Transferencia / Debito</option>
+                            <option value="EFECTIVO">Efectivo (registro)</option>
+                            <option value="TARJETA">Tarjeta credito</option>
                         </select>
+                        <div id="sourceImpactHint" class="form-help-text" aria-live="polite"></div>
                     </div>
 
                     <div class="form-group" id="cardGroup" style="display:none;">
@@ -273,6 +274,7 @@
         const sourceSelect = document.getElementById('sourceSelect');
         const cardGroup = document.getElementById('cardGroup');
         const movementTypeSelect = document.getElementById('movementType');
+        const sourceImpactHint = document.getElementById('sourceImpactHint');
         let filterCurrency = 'all';
         let filterSource = 'all';
         let categories = [];
@@ -1182,6 +1184,48 @@
             document.getElementById('cardError').textContent = '';
         }
 
+        function syncSourceOptionsByFlow() {
+            if (!sourceSelect || !movementTypeSelect) return;
+            const movementType = movementTypeSelect.value || 'expense';
+            const cardOption = sourceSelect.querySelector('option[value="TARJETA"]');
+            const cashOption = sourceSelect.querySelector('option[value="EFECTIVO"]');
+            const isIncome = movementType === 'income';
+            if (cardOption) cardOption.disabled = isIncome;
+            if (cashOption) cashOption.disabled = isIncome;
+            if (isIncome && (sourceSelect.value === 'TARJETA' || sourceSelect.value === 'EFECTIVO')) {
+                sourceSelect.value = 'CA';
+            }
+        }
+
+        function updateSourceImpactHint() {
+            if (!sourceImpactHint) return;
+            const movementType = movementTypeSelect ? movementTypeSelect.value : 'expense';
+            const source = sourceSelect ? sourceSelect.value : 'CA';
+            if (movementType === 'income') {
+                sourceImpactHint.textContent = 'Ingreso: suma Balance ahora. Medio disponible: Transferencia / Debito.';
+                return;
+            }
+            if (movementType === 'refund') {
+                sourceImpactHint.textContent = 'Reintegro: suma Balance ahora en el modo actual.';
+                return;
+            }
+            if (source === 'TARJETA') {
+                sourceImpactHint.textContent = 'Gasto en tarjeta credito: no descuenta Balance ahora. Suma a Tarjeta por pagar.';
+                return;
+            }
+            if (source === 'EFECTIVO') {
+                sourceImpactHint.textContent = 'Gasto en efectivo: queda registrado y no descuenta Balance en el modo actual.';
+                return;
+            }
+            sourceImpactHint.textContent = 'Gasto por Transferencia / Debito: descuenta Balance ahora.';
+        }
+
+        function refreshSourceUX() {
+            syncSourceOptionsByFlow();
+            toggleCardInput();
+            updateSourceImpactHint();
+        }
+
         function setExpenseFormVisible(visible) {
             const formContainer = document.getElementById('addExpenseContainer');
             formContainer.style.display = visible ? 'block' : 'none';
@@ -1213,6 +1257,7 @@
             } else {
                 amount = Math.abs(amount);
             }
+            syncSourceOptionsByFlow();
             const sourceValue = sourceSelect.value || 'CA';
             if (sourceValue === 'TARJETA' && !document.getElementById('cardInput').value.trim()) {
                 document.getElementById('cardError').textContent = 'Especifica la tarjeta';
@@ -1246,7 +1291,7 @@
                 populateFormCurrency();
                 sourceSelect.value = 'CA';
                 if (movementTypeSelect) movementTypeSelect.value = 'expense';
-                toggleCardInput();
+                refreshSourceUX();
                 setExpenseFormVisible(false);
                 await initialize();
                     const today = new Date();
@@ -1274,10 +1319,13 @@
             }
         });
 
-        sourceSelect.addEventListener('change', toggleCardInput);
-        toggleCardInput();
+        sourceSelect.addEventListener('change', refreshSourceUX);
+        refreshSourceUX();
         if (movementTypeSelect) {
-            movementTypeSelect.addEventListener('change', syncExpenseSubmitButtonLabel);
+            movementTypeSelect.addEventListener('change', () => {
+                syncExpenseSubmitButtonLabel();
+                refreshSourceUX();
+            });
         }
 
         document.getElementById('filterCurrency').addEventListener('change', (e) => {
@@ -1337,7 +1385,7 @@
                     if (isHidden) {
                         if (movementTypeSelect) movementTypeSelect.value = 'expense';
                         sourceSelect.value = 'CA';
-                        toggleCardInput();
+                        refreshSourceUX();
                         syncExpenseSubmitButtonLabel();
                     }
                     setExpenseFormVisible(true);
@@ -1355,7 +1403,7 @@
                 if (movementTypeGroup) {
                     movementTypeGroup.style.display = '';
                 }
-                toggleCardInput();
+                refreshSourceUX();
                 syncExpenseSubmitButtonLabel();
                 formContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
@@ -1368,7 +1416,7 @@
             populateFormCurrency();
             sourceSelect.value = 'CA';
             if (movementTypeSelect) movementTypeSelect.value = 'expense';
-            toggleCardInput();
+            refreshSourceUX();
             syncExpenseSubmitButtonLabel();
             const today = new Date();
             const year = today.getFullYear();
@@ -1383,6 +1431,7 @@
         });
 
         setExpenseFormVisible(false);
+        refreshSourceUX();
         syncExpenseSubmitButtonLabel();
     </script>
     <script>

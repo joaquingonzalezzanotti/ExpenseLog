@@ -486,7 +486,6 @@ async function refreshNotificationCenter() {
             }
             latestNotificationPayload = { alerts: [] };
             renderNotificationCenter(latestNotificationPayload);
-            if (dom.slot) dom.slot.style.display = 'none';
             return;
         }
         if (!response.ok) throw new Error(`status ${response.status}`);
@@ -733,8 +732,8 @@ function setupMobileMenu() {
         link.addEventListener('click', closeMenu);
     });
 
-    window.addEventListener('resize', () => {
-        if (window.innerWidth > 768) {
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') {
             closeMenu();
         }
     });

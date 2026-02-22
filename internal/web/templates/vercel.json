@@ -38,15 +38,15 @@
     },
     {
       "source": "/app",
-      "destination": "https://expenselog-production.up.railway.app/app"
+      "destination": "https://expenselog-dev.up.railway.app/app"
     },
     {
       "source": "/app/:path*",
-      "destination": "https://expenselog-production.up.railway.app/app/:path*"
+      "destination": "https://expenselog-dev.up.railway.app/app/:path*"
     },
     {
       "source": "/api/:path*",
-      "destination": "https://expenselog-production.up.railway.app/api/:path*"
+      "destination": "https://expenselog-dev.up.railway.app/api/:path*"
     }
   ]
 }

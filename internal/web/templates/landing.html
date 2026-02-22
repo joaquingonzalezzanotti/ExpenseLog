@@ -6,18 +6,18 @@
     <meta name="description" content="ExpenseLog te ayuda a llevar el control de gastos e ingresos en segundos. Organiza tus movimientos, visualiza balances y toma mejores decisiones.">
     <meta name="keywords" content="control de gastos, finanzas personales, presupuesto, gastos, ingresos, ExpenseLog">
     <meta name="robots" content="index,follow">
-    <link rel="canonical" href="https://www.expenselog.com.ar/">
+    <link rel="canonical" href="https://expenselog.com.ar/">
     <meta property="og:title" content="ExpenseLog | Controla tus gastos en minutos">
     <meta property="og:description" content="Control de gastos e ingresos para ordenar tus finanzas personales.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://www.expenselog.com.ar/">
-    <meta property="og:image" content="https://www.expenselog.com.ar/pwa/icon-512.png">
+    <meta property="og:url" content="https://expenselog.com.ar/">
+    <meta property="og:image" content="https://expenselog.com.ar/pwa/icon-512.png">
     <meta property="og:site_name" content="ExpenseLog">
     <meta property="og:locale" content="es_AR">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="ExpenseLog | Controla tus gastos en minutos">
     <meta name="twitter:description" content="Control de gastos e ingresos para ordenar tus finanzas personales.">
-    <meta name="twitter:image" content="https://www.expenselog.com.ar/pwa/icon-512.png">
+    <meta name="twitter:image" content="https://expenselog.com.ar/pwa/icon-512.png">
     <meta name="theme-color" content="#0b1220">
     <meta name="application-name" content="ExpenseLog">
     <meta name="apple-mobile-web-app-title" content="ExpenseLog">
@@ -30,7 +30,7 @@
             "@context": "https://schema.org",
             "@type": "SoftwareApplication",
             "name": "ExpenseLog",
-            "url": "https://www.expenselog.com.ar/",
+            "url": "https://expenselog.com.ar/",
             "applicationCategory": "FinanceApplication",
             "operatingSystem": "Web",
             "description": "Control de gastos e ingresos para ordenar tus finanzas personales.",
@@ -38,13 +38,16 @@
             "publisher": {
                 "@type": "Organization",
                 "name": "ExpenseLog",
-                "url": "https://www.expenselog.com.ar/",
-                "logo": "https://www.expenselog.com.ar/pwa/icon-512.png"
+                "url": "https://expenselog.com.ar/",
+                "logo": "https://expenselog.com.ar/pwa/icon-512.png"
             }
         }
     </script>
     <script>
         (function() {
+            if (window.location.pathname === '/landing.html') {
+                window.history.replaceState({}, '', '/');
+            }
             const storedTheme = localStorage.getItem('theme');
             const theme = storedTheme === 'dark' ? 'dark' : 'light';
             document.documentElement.setAttribute('data-theme', theme);
@@ -535,14 +538,12 @@
             const sameOriginBackend = backendOrigin === window.location.origin;
             const appURL = sameOriginBackend ? '/app' : backendOrigin + '/app';
             const versionURL = backendOrigin + '/api/version';
-            const authMeURL = backendOrigin + '/api/auth/me';
 
             let backendReady = false;
             let warmupStarted = false;
             let waitingForAppOpen = false;
             let pollingInterval = null;
             let overlayStartAt = 0;
-            let authRedirectDone = false;
 
             function showStatus(text) {
                 if (!statusEl) return;
@@ -613,31 +614,6 @@
                 }
             }
 
-            async function checkAuthAndRedirectIfNeeded() {
-                if (authRedirectDone || !backendReady || waitingForAppOpen) {
-                    return;
-                }
-                authRedirectDone = true;
-                try {
-                    const guard = withTimeout(3000);
-                    const res = await fetch(authMeURL, {
-                        method: 'GET',
-                        cache: 'no-store',
-                        credentials: 'include',
-                        signal: guard.signal,
-                    });
-                    guard.clear();
-                    if (res.ok) {
-                        showStatus('Estamos iniciando tu espacio...');
-                        window.location.replace(appURL);
-                        return;
-                    }
-                } catch (_) {
-                    // silent
-                }
-                hideStatus();
-            }
-
             async function pollBackendState() {
                 if (backendReady) {
                     return;
@@ -670,8 +646,11 @@
                     window.location.assign(appURL);
                     return;
                 }
-
-                checkAuthAndRedirectIfNeeded();
+                setTimeout(() => {
+                    if (!waitingForAppOpen) {
+                        hideStatus();
+                    }
+                }, 1800);
             }
 
             function startWarmup() {

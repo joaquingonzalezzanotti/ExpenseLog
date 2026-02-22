@@ -21,8 +21,12 @@
     <div class="container">
         <header>
             <div class="nav-bar">
+                <button id="mobileMenuToggle" class="view-button mobile-menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobileSidebar">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
                 <a href="/app" class="nav-logo-link">
                     <img src="/app/pwa/icon-192.png" alt="ExpenseLog Logo" class="nav-logo">
+                    <span class="nav-logo-mobile-text" aria-hidden="true">EL</span>
                 </a>
                 <nav class="nav-center-tabs" aria-label="Secciones">
                     <a href="/app" class="view-button" data-tooltip="Panel">
@@ -46,7 +50,24 @@
                     </div>
                 </div>
             </div>
+            <div id="mobileSidebarOverlay" class="mobile-sidebar-overlay" hidden></div>
+            <aside id="mobileSidebar" class="mobile-sidebar" hidden aria-hidden="true">
+                <nav class="mobile-sidebar-nav" aria-label="Menu principal mobile">
+                    <a href="/app" class="mobile-sidebar-link">Dashboard</a>
+                    <a href="/app/table" class="mobile-sidebar-link">Movimientos</a>
+                    <a href="/app/settings" class="mobile-sidebar-link">Configuracion</a>
+                </nav>
+            </aside>
         </header>
+
+        <nav class="mobile-bottom-nav" aria-label="Acciones frecuentes">
+                    <a href="/app" class="mobile-nav-item"><i class="fa-solid fa-house"></i><span>Inicio</span></a>
+                    <a href="/app/table" class="mobile-nav-item"><i class="fa-solid fa-arrows-left-right"></i><span>Movs</span></a>
+                    <a href="/app" class="mobile-nav-item"><i class="fa-solid fa-chart-line"></i><span>Analisis</span></a>
+                    <a href="/app/settings" class="mobile-nav-item active" aria-current="page"><i class="fa-solid fa-bullseye"></i><span>Metas</span></a>
+                    <a href="/app/settings" class="mobile-nav-item"><i class="fa-solid fa-repeat"></i><span>Recurr.</span></a>
+                    <a href="/app/settings" class="mobile-nav-item"><i class="fa-regular fa-message"></i><span>Chat</span></a>
+        </nav>
 
         <section class="form-container settings-section settings-profile">
             <div class="settings-detail-header settings-profile-header">

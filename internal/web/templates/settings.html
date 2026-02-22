@@ -339,7 +339,7 @@
     <div id="appConfirmModal" class="modal app-modal" role="dialog" aria-modal="true" aria-labelledby="appConfirmTitle">
         <div class="modal-content app-modal-content">
             <h3 id="appConfirmTitle">Confirmar accion</h3>
-            <p id="appConfirmMessage">��Continuar?</p>
+            <p id="appConfirmMessage">¿Continuar?</p>
             <div class="modal-buttons">
                 <button id="appConfirmCancel" class="modal-button" type="button">Cancelar</button>
                 <button id="appConfirmAccept" class="modal-button confirm app-modal-confirm" type="button">Aceptar</button>
@@ -1705,9 +1705,7 @@ async function saveCategoriesList(nextCategories) {
         window.closeRecurringEditModal = closeRecurringEditModal;
         window.confirmRecurringUpdate = confirmRecurringUpdate;
     </script>
-    <script>
-        window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
-    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
     <script defer src="/_vercel/speed-insights/script.js"></script>
 </body>
 </html>

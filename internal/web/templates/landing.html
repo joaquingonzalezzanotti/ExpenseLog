@@ -7,7 +7,7 @@
     <meta name="keywords" content="control de gastos, finanzas personales, presupuesto, gastos, ingresos, ExpenseLog">
     <meta name="robots" content="index,follow">
     <link rel="canonical" href="https://expenselog.com.ar/">
-    <meta property="og:title" content="ExpenseLog | Controlá tus gastos en minutos">
+    <meta property="og:title" content="ExpenseLog | Controla tus gastos en minutos">
     <meta property="og:description" content="Control de gastos e ingresos para ordenar tus finanzas personales.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://expenselog.com.ar/">
@@ -15,7 +15,7 @@
     <meta property="og:site_name" content="ExpenseLog">
     <meta property="og:locale" content="es_AR">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="ExpenseLog | Controlá tus gastos en minutos">
+    <meta name="twitter:title" content="ExpenseLog | Controla tus gastos en minutos">
     <meta name="twitter:description" content="Control de gastos e ingresos para ordenar tus finanzas personales.">
     <meta name="twitter:image" content="https://expenselog.com.ar/pwa/icon-512.png">
     <meta name="theme-color" content="#0b1220">
@@ -24,7 +24,7 @@
     <meta name="expenselog-backend-origin" content="">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="manifest" href="/manifest.json">
-    <title>ExpenseLog | Controlá tus gastos en minutos</title>
+    <title>ExpenseLog | Controla tus gastos en minutos</title>
     <script type="application/ld+json">
         {
             "@context": "https://schema.org",
@@ -55,335 +55,250 @@
     </script>
     <style>
         :root {
-            --bg-primary: #f5f8ff;
+            --bg-primary: #f6f7f9;
             --bg-secondary: #ffffff;
-            --bg-muted: #eef3fd;
-            --text-primary: #121f35;
-            --text-secondary: #5a6b86;
-            --border: #d8e1f0;
-            --accent: #3b82f6;
-            --accent-strong: #215fce;
-            --success: #0f9d76;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --accent-soft: rgba(59, 130, 246, 0.14);
-            --accent-border: rgba(59, 130, 246, 0.36);
-            --card-shadow: 0 20px 44px rgba(15, 23, 42, 0.08);
-            --hero-glow: rgba(59, 130, 246, 0.16);
-            --footer-bg: rgba(255, 255, 255, 0.85);
-            --footer-text: #5a6b86;
+            --bg-tertiary: #eef2f8;
+            --text-primary: #1b2430;
+            --text-secondary: #5a6778;
+            --accent: #2563eb;
+            --accent-contrast: #ffffff;
+            --border: #d9e0e8;
+            --accent-soft: rgba(37, 99, 235, 0.16);
+            --accent-border: rgba(37, 99, 235, 0.4);
+            --warning: #d97706;
+            --brand-shadow: rgba(15, 23, 42, 0.12);
+            --footer-bg: rgba(255, 255, 255, 0.9);
+            --footer-text: #5a6778;
         }
 
         html[data-theme='dark'] {
-            --bg-primary: #08101f;
-            --bg-secondary: #0f1a31;
-            --bg-muted: #101f37;
-            --text-primary: #e8eef9;
-            --text-secondary: #9caecc;
-            --border: #243754;
-            --accent: #6cb5ff;
-            --accent-strong: #8bc7ff;
-            --success: #1ec997;
-            --warning: #fbbf24;
-            --danger: #fb7185;
-            --accent-soft: rgba(108, 181, 255, 0.18);
-            --accent-border: rgba(108, 181, 255, 0.4);
-            --card-shadow: 0 24px 50px rgba(0, 0, 0, 0.34);
-            --hero-glow: rgba(108, 181, 255, 0.22);
-            --footer-bg: rgba(8, 16, 31, 0.88);
-            --footer-text: #9caecc;
+            --bg-primary: #0b1220;
+            --bg-secondary: #121c2e;
+            --bg-tertiary: #0f192b;
+            --text-primary: #e6edf6;
+            --text-secondary: #9baac0;
+            --accent: #60a5fa;
+            --accent-contrast: #06203a;
+            --border: #253247;
+            --accent-soft: rgba(96, 165, 250, 0.2);
+            --accent-border: rgba(96, 165, 250, 0.45);
+            --warning: #f59e0b;
+            --brand-shadow: rgba(0, 0, 0, 0.35);
+            --footer-bg: rgba(15, 25, 43, 0.88);
+            --footer-text: #9baac0;
         }
 
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
 
         body {
             margin: 0;
             font-family: "Manrope", "Segoe UI", sans-serif;
             color: var(--text-primary);
             min-height: 100vh;
-            padding-bottom: calc(3.2rem + env(safe-area-inset-bottom));
+            padding-bottom: calc(3.3rem + env(safe-area-inset-bottom));
             background:
-                radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.12), transparent 37%),
-                radial-gradient(circle at 100% 8%, rgba(16, 185, 129, 0.11), transparent 33%),
+                radial-gradient(circle at 15% 10%, rgba(37, 99, 235, 0.18), transparent 35%),
+                radial-gradient(circle at 85% 18%, rgba(217, 119, 6, 0.12), transparent 35%),
                 var(--bg-primary);
         }
 
         .wrap {
-            max-width: 1160px;
+            max-width: 1080px;
             margin: 0 auto;
             min-height: 100dvh;
-            padding: 1.2rem 1rem 1.4rem;
+            padding: 1rem 1rem 1.4rem;
             display: flex;
             flex-direction: column;
-            gap: 1rem;
         }
 
         .topbar {
             display: flex;
-            align-items: center;
             justify-content: space-between;
+            align-items: center;
             gap: 1rem;
-            position: sticky;
-            top: 0.7rem;
-            z-index: 20;
-            padding: 0.65rem 0.8rem;
-            border-radius: 14px;
-            background: color-mix(in srgb, var(--bg-secondary) 84%, transparent);
-            border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
-            backdrop-filter: blur(10px);
+            margin-bottom: 2rem;
         }
 
         .brand {
             display: inline-flex;
             align-items: center;
             gap: 0.65rem;
-            color: var(--text-primary);
             text-decoration: none;
-            font-weight: 800;
-            letter-spacing: 0.01em;
+            color: var(--text-primary);
+            font-weight: 700;
+            font-size: 1.2rem;
         }
 
         .brand img {
-            width: 42px;
-            height: 42px;
-            border-radius: 11px;
-            box-shadow: var(--card-shadow);
-        }
-
-        .actions {
-            display: inline-flex;
-            gap: 0.55rem;
-            flex-wrap: wrap;
-            justify-content: flex-end;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            box-shadow: 0 8px 18px var(--brand-shadow);
         }
 
         .btn {
-            border-radius: 999px;
             border: 1px solid var(--border);
-            text-decoration: none;
+            border-radius: 999px;
+            padding: 0.65rem 1.15rem;
             font-weight: 700;
-            line-height: 1;
-            padding: 0.68rem 1.1rem;
+            text-decoration: none;
             display: inline-flex;
-            align-items: center;
             justify-content: center;
-            transition: transform 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+            align-items: center;
+            line-height: 1;
+            transition: all 0.2s ease;
             cursor: pointer;
         }
 
-        .btn:hover {
-            transform: translateY(-1px);
+        .btn-primary {
+            background: var(--accent);
+            color: var(--accent-contrast);
+            border-color: var(--accent);
         }
 
-        .btn-primary {
-            background: linear-gradient(120deg, var(--accent), var(--accent-strong));
-            color: #fff;
-            border-color: transparent;
+        .btn-primary:hover {
+            filter: brightness(1.05);
         }
 
         .btn-secondary {
+            background: var(--bg-tertiary);
             color: var(--text-primary);
-            background: var(--bg-muted);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            background: var(--bg-secondary);
         }
 
         .hero {
-            border-radius: 24px;
+            background: linear-gradient(155deg, var(--bg-secondary), var(--bg-tertiary));
             border: 1px solid var(--border);
-            background:
-                radial-gradient(circle at 24% 0%, var(--hero-glow), transparent 38%),
-                linear-gradient(160deg, var(--bg-secondary), var(--bg-muted));
-            box-shadow: var(--card-shadow);
-            padding: 2rem;
-            display: grid;
-            grid-template-columns: 1.1fr 0.9fr;
-            gap: 1rem;
+            border-radius: 18px;
+            padding: 2.2rem 1.2rem;
+            text-align: center;
         }
 
-        .eyebrow {
+        .hero-brand {
             display: inline-flex;
             align-items: center;
-            gap: 0.45rem;
-            width: fit-content;
-            border-radius: 999px;
-            border: 1px solid var(--accent-border);
-            background: var(--accent-soft);
-            padding: 0.34rem 0.75rem;
-            color: var(--accent-strong);
-            font-size: 0.82rem;
-            font-weight: 700;
-            letter-spacing: 0.01em;
+            gap: 0.7rem;
+            margin-bottom: 0.95rem;
+            font-size: 1.05rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+        }
+
+        .hero-brand img {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            box-shadow: 0 12px 24px var(--brand-shadow);
         }
 
         .hero h1 {
-            margin: 0.9rem 0 0;
-            font-size: clamp(2rem, 4vw, 3.2rem);
-            line-height: 1.07;
-            max-width: 14ch;
+            margin: 0;
+            font-size: clamp(1.7rem, 4vw, 2.7rem);
+            line-height: 1.15;
         }
 
         .hero p {
-            margin: 0.95rem 0 0;
+            margin: 0.8rem auto 0;
+            max-width: 700px;
             color: var(--text-secondary);
-            max-width: 58ch;
-            font-size: 1rem;
+            font-size: 1.02rem;
         }
 
         .hero-cta {
             margin-top: 1.3rem;
             display: flex;
-            gap: 0.65rem;
             flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.7rem;
         }
 
-        .mini-proof {
-            margin-top: 1.05rem;
-            color: var(--text-secondary);
+        .status {
+            margin: 1rem auto 0;
+            width: fit-content;
+            min-height: 1.5rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 999px;
             font-size: 0.9rem;
+            color: var(--text-primary);
+            background: var(--accent-soft);
+            border: 1px solid var(--accent-border);
+            opacity: 0;
+            transform: translateY(-4px);
+            transition: all 0.2s ease;
+            pointer-events: none;
         }
 
-        .mini-proof strong { color: var(--text-primary); }
+        .status.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
 
-        .hero-panel {
-            background: color-mix(in srgb, var(--bg-secondary) 88%, transparent);
-            border: 1px solid var(--border);
-            border-radius: 18px;
-            padding: 1.1rem;
+        .grid {
+            margin-top: 1.1rem;
             display: grid;
-            gap: 0.8rem;
-            align-content: start;
-        }
-
-        .metric {
-            border-radius: 14px;
-            border: 1px solid var(--border);
-            background: var(--bg-muted);
-            padding: 0.85rem;
-        }
-
-        .metric small {
-            display: block;
-            color: var(--text-secondary);
-            font-size: 0.8rem;
-            margin-bottom: 0.2rem;
-        }
-
-        .metric strong {
-            font-size: 1.2rem;
-            line-height: 1;
-        }
-
-        .metric .trend { font-size: 0.8rem; margin-top: 0.3rem; }
-        .metric .trend.up { color: var(--success); }
-        .metric .trend.warn { color: var(--warning); }
-        .metric .trend.down { color: var(--danger); }
-
-        .section {
-            border-radius: 18px;
-            border: 1px solid var(--border);
-            background: var(--bg-secondary);
-            padding: 1.15rem;
-        }
-
-        .section h2 {
-            margin: 0;
-            font-size: clamp(1.4rem, 3vw, 2rem);
-        }
-
-        .section-intro {
-            margin: 0.55rem 0 0;
-            color: var(--text-secondary);
-            max-width: 70ch;
-        }
-
-        .features {
-            margin-top: 1rem;
-            display: grid;
+            gap: 0.75rem;
             grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 0.8rem;
         }
 
-        .feature-card {
+        .card {
+            background: var(--bg-tertiary);
             border: 1px solid var(--border);
             border-radius: 14px;
-            background: var(--bg-muted);
             padding: 1rem;
         }
 
-        .feature-card h3 {
-            margin: 0 0 0.35rem;
-            font-size: 1.02rem;
+        .card h2 {
+            margin: 0 0 0.45rem 0;
+            font-size: 1.03rem;
         }
 
-        .feature-card p {
+        .card p {
             margin: 0;
             color: var(--text-secondary);
             font-size: 0.92rem;
-            line-height: 1.45;
         }
-
-        .steps {
-            margin-top: 1rem;
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 0.8rem;
-        }
-
-        .step {
-            border: 1px dashed var(--accent-border);
-            border-radius: 14px;
-            background: var(--bg-muted);
-            padding: 0.95rem;
-        }
-
-        .step .num {
-            display: inline-flex;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.85rem;
-            font-weight: 800;
-            color: #fff;
-            background: var(--accent);
-        }
-
-        .step h3 { margin: 0.55rem 0 0.35rem; font-size: 1rem; }
-        .step p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
 
         .faq {
-            margin-top: 1rem;
-            border-radius: 14px;
+            margin-top: 0.95rem;
+            background: var(--bg-tertiary);
             border: 1px solid var(--border);
-            background: var(--bg-muted);
+            border-radius: 14px;
             padding: 1rem;
+        }
+
+        .faq h2 {
+            margin: 0 0 0.6rem;
+            font-size: 1.1rem;
         }
 
         .faq details {
             border-top: 1px solid var(--border);
-            padding: 0.7rem 0;
+            padding: 0.65rem 0;
         }
 
         .faq details:first-of-type {
             border-top: 0;
-            padding-top: 0;
+            padding-top: 0.2rem;
         }
 
         .faq summary {
             cursor: pointer;
-            font-weight: 700;
+            font-weight: 600;
         }
 
         .faq p {
-            margin: 0.45rem 0 0;
             color: var(--text-secondary);
-            font-size: 0.92rem;
+            margin: 0.45rem 0 0;
         }
 
         main {
             flex: 1;
-            display: grid;
-            gap: 0.8rem;
         }
 
         footer {
@@ -391,19 +306,30 @@
             left: 0;
             right: 0;
             bottom: 0;
-            z-index: 30;
             border-top: 1px solid var(--border);
             background: var(--footer-bg);
-            backdrop-filter: blur(9px);
+            backdrop-filter: blur(8px);
+            z-index: 30;
             text-align: center;
             font-size: 0.86rem;
             color: var(--footer-text);
             padding: 0.55rem 1rem calc(0.55rem + env(safe-area-inset-bottom));
         }
 
-        .footer-inner { max-width: 1160px; margin: 0 auto; }
-        .footer-inner a { color: var(--accent); text-decoration: none; font-weight: 700; }
-        .footer-inner a:hover { text-decoration: underline; }
+        .footer-inner {
+            max-width: 1080px;
+            margin: 0 auto;
+        }
+
+        .footer-inner a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .footer-inner a:hover {
+            text-decoration: underline;
+        }
 
         .boot-overlay {
             position: fixed;
@@ -414,12 +340,14 @@
             justify-content: center;
             padding: 1rem;
             background:
-                linear-gradient(rgba(8, 16, 31, 0.9), rgba(8, 16, 31, 0.94)),
-                repeating-linear-gradient(0deg, transparent 0, transparent 51px, rgba(108, 181, 255, 0.08) 52px),
-                repeating-linear-gradient(90deg, transparent 0, transparent 51px, rgba(108, 181, 255, 0.08) 52px);
+                linear-gradient(rgba(11, 18, 32, 0.9), rgba(11, 18, 32, 0.92)),
+                repeating-linear-gradient(0deg, transparent 0, transparent 51px, rgba(96, 165, 250, 0.08) 52px),
+                repeating-linear-gradient(90deg, transparent 0, transparent 51px, rgba(96, 165, 250, 0.08) 52px);
         }
 
-        .boot-overlay.visible { display: flex; }
+        .boot-overlay.visible {
+            display: flex;
+        }
 
         .boot-card {
             width: 100%;
@@ -446,7 +374,10 @@
             border-radius: 10px;
         }
 
-        .boot-title { margin: 0; font-size: 1.18rem; }
+        .boot-title {
+            margin: 0;
+            font-size: 1.18rem;
+        }
 
         .boot-hint {
             margin: 0.55rem 0 0;
@@ -485,28 +416,35 @@
             width: 100%;
         }
 
-        .boot-retry.visible { display: inline-flex; }
-
-        @media (max-width: 980px) {
-            .hero {
-                grid-template-columns: 1fr;
-                padding: 1.5rem;
-            }
-
-            .features,
-            .steps {
-                grid-template-columns: 1fr 1fr;
-            }
+        .boot-retry.visible {
+            display: inline-flex;
         }
 
-        @media (max-width: 720px) {
-            .wrap { padding: 0.9rem 0.8rem 1.3rem; }
-            .topbar { top: 0.45rem; }
-            .features,
-            .steps { grid-template-columns: 1fr; }
-            .hero { padding: 1.15rem; }
-            .section { padding: 1rem; }
-            .brand span { display: none; }
+        @media (max-width: 860px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar {
+                margin-bottom: 1.3rem;
+            }
+
+            .brand {
+                font-size: 1.05rem;
+            }
+
+            .brand img {
+                width: 42px;
+                height: 42px;
+            }
+
+            .hero {
+                padding: 1.5rem 0.95rem;
+            }
+
+            .boot-card {
+                padding: 1.1rem;
+            }
         }
     </style>
 </head>
@@ -517,109 +455,52 @@
                 <img src="/pwa/icon-192.png" alt="ExpenseLog logo">
                 <span>ExpenseLog</span>
             </a>
-            <div class="actions">
-                <a class="btn btn-secondary" data-open-app="true" href="/app">Iniciar sesión</a>
-                <a class="btn btn-primary" data-open-app="true" href="/app">Probar gratis</a>
-            </div>
+            <a class="btn btn-secondary" data-open-app="true" href="/app">Iniciar sesion</a>
         </header>
 
         <main>
             <section class="hero">
-                <div>
-                    <span class="eyebrow">Control financiero personal sin fricción</span>
-                    <h1>Tu plata, ordenada en un solo lugar.</h1>
-                    <p>Registrá gastos e ingresos en segundos, seguí tu balance en tiempo real y tomá decisiones con información clara. ExpenseLog está pensado para Argentina: simple, rápido y sin vueltas.</p>
-                    <div class="hero-cta">
-                        <a class="btn btn-primary" data-open-app="true" href="/app">Empezar ahora</a>
-                        <a class="btn btn-secondary" href="#features">Ver funcionalidades</a>
-                    </div>
-                    <p class="mini-proof"><strong>Sin tarjeta de crédito.</strong> Acceso web + experiencia optimizada para celular y escritorio.</p>
+                <div class="hero-brand">
+                    <img src="/pwa/icon-192.png" alt="Logo de ExpenseLog">
+                    <span>ExpenseLog</span>
                 </div>
-                <aside class="hero-panel" aria-label="Vista de métricas de ejemplo">
-                    <div class="metric">
-                        <small>Vista de balance mensual</small>
-                        <strong>Ingresos vs. gastos</strong>
-                        <div class="trend up">Seguimiento claro por período</div>
-                    </div>
-                    <div class="metric">
-                        <small>Top de categorías</small>
-                        <strong>Resumen visual</strong>
-                        <div class="trend warn">Detectá en qué se va tu plata</div>
-                    </div>
-                    <div class="metric">
-                        <small>Comparativa mensual</small>
-                        <strong>Evolución de hábitos</strong>
-                        <div class="trend down">Revisá cambios y ajustá a tiempo</div>
-                    </div>
-                </aside>
+                <h1>Controla tus gastos e ingresos sin esfuerzo</h1>
+                <p>ExpenseLog te ayuda a llevar el control de gastos e ingresos, registrar movimientos y revisar balances en minutos.</p>
+                <div class="hero-cta">
+                    <a class="btn btn-primary" data-open-app="true" href="/app">Empezar gratis</a>
+                </div>
+                <div id="sessionStatus" class="status" role="status" aria-live="polite"></div>
             </section>
 
-            <section id="features" class="section">
-                <h2>Diseñado para que entiendas tus números de verdad</h2>
-                <p class="section-intro">Inspirado en una estética SaaS moderna y conversión-first, con jerarquía clara, llamados a la acción consistentes y bloques de valor bien definidos.</p>
-                <div class="features">
-                    <article class="feature-card">
-                        <h3>Carga súper rápida</h3>
-                        <p>Agregá movimientos con categoría, método de pago y notas en menos de 10 segundos.</p>
-                    </article>
-                    <article class="feature-card">
-                        <h3>Panel de control claro</h3>
-                        <p>Visualizá saldo, top de gastos y evolución mensual sin perderte en menús.</p>
-                    </article>
-                    <article class="feature-card">
-                        <h3>Acceso seguro</h3>
-                        <p>Entrá por email o Google. Tus datos quedan asociados a tu cuenta en forma segura.</p>
-                    </article>
-                    <article class="feature-card">
-                        <h3>Multi-dispositivo</h3>
-                        <p>Usalo desde el celu o la compu y seguí justo donde te quedaste.</p>
-                    </article>
-                    <article class="feature-card">
-                        <h3>Alertas útiles</h3>
-                        <p>Identificá desvíos y gastos frecuentes antes de que impacten en tu presupuesto.</p>
-                    </article>
-                    <article class="feature-card">
-                        <h3>Listo para crecer</h3>
-                        <p>Base sólida para sumar metas, proyecciones y más módulos de productividad financiera.</p>
-                    </article>
-                </div>
+            <section class="grid">
+                <article class="card">
+                    <h2>Registro rapido</h2>
+                    <p>Carga gastos e ingresos con categorias, etiquetas y metodo de pago.</p>
+                </article>
+                <article class="card">
+                    <h2>Visualizacion clara</h2>
+                    <p>Consulta balances por moneda y grafico de categorias en tiempo real.</p>
+                </article>
+                <article class="card">
+                    <h2>Acceso seguro</h2>
+                    <p>Inicia sesion por email o Google y continua donde te quedaste.</p>
+                </article>
             </section>
 
-            <section class="section">
-                <h2>Cómo empezás en 3 pasos</h2>
-                <p class="section-intro">El onboarding está optimizado para que puedas cargar tu primera semana de movimientos en minutos.</p>
-                <div class="steps">
-                    <article class="step">
-                        <span class="num">1</span>
-                        <h3>Creá tu cuenta</h3>
-                        <p>Entrás con email o Google y ya tenés tu espacio listo para usar.</p>
-                    </article>
-                    <article class="step">
-                        <span class="num">2</span>
-                        <h3>Registrá ingresos y gastos</h3>
-                        <p>Cargás movimientos diarios y ExpenseLog te organiza todo automáticamente.</p>
-                    </article>
-                    <article class="step">
-                        <span class="num">3</span>
-                        <h3>Tomá decisiones con data</h3>
-                        <p>Con los reportes visuales, sabés dónde ajustar para llegar a fin de mes más tranquilo.</p>
-                    </article>
-                </div>
-
-                <div class="faq">
-                    <details>
-                        <summary>¿Tengo que instalar algo?</summary>
-                        <p>No. Funciona directo desde el navegador y podés fijarla como app en la pantalla de inicio.</p>
-                    </details>
-                    <details>
-                        <summary>¿Funciona bien en móvil?</summary>
-                        <p>Sí, la landing y la app están pensadas mobile-first con experiencia fluida en pantallas chicas.</p>
-                    </details>
-                    <details>
-                        <summary>¿Puedo empezar gratis?</summary>
-                        <p>Sí. Podés crear tu cuenta y usar ExpenseLog sin pagar para validar que te sirva en el día a día.</p>
-                    </details>
-                </div>
+            <section class="faq">
+                <h2>Preguntas frecuentes</h2>
+                <details>
+                    <summary>Necesito instalar algo?</summary>
+                    <p>No. Puedes empezar desde el navegador y guardar la app en pantalla de inicio cuando quieras.</p>
+                </details>
+                <details>
+                    <summary>Puedo usar Google para entrar?</summary>
+                    <p>Si, ExpenseLog permite continuar con Google y vincula cuentas por email automaticamente.</p>
+                </details>
+                <details>
+                    <summary>La app funciona en movil?</summary>
+                    <p>Si, la experiencia esta optimizada para movil y escritorio.</p>
+                </details>
             </section>
         </main>
 
@@ -637,7 +518,7 @@
                 <span>ExpenseLog</span>
             </div>
             <h2 class="boot-title">Estamos preparando todo para vos...</h2>
-            <p id="bootHint" class="boot-hint">Preparando acceso</p>
+            <p id="bootHint" class="boot-hint">Iniciando servidor</p>
             <div class="boot-progress"><span></span></div>
             <button id="bootRetry" class="btn btn-secondary boot-retry" type="button">Reintentar</button>
         </div>
@@ -645,6 +526,7 @@
 
     <script>
         (function () {
+            const statusEl = document.getElementById('sessionStatus');
             const overlayEl = document.getElementById('bootOverlay');
             const bootHintEl = document.getElementById('bootHint');
             const bootRetryBtn = document.getElementById('bootRetry');
@@ -663,12 +545,24 @@
             let pollingInterval = null;
             let overlayStartAt = 0;
 
+            function showStatus(text) {
+                if (!statusEl) return;
+                statusEl.textContent = text;
+                statusEl.classList.add('visible');
+            }
+
+            function hideStatus() {
+                if (!statusEl) return;
+                statusEl.textContent = '';
+                statusEl.classList.remove('visible');
+            }
+
             function showOverlay(hintText) {
                 if (!overlayEl) return;
                 overlayEl.classList.add('visible');
                 overlayEl.setAttribute('aria-hidden', 'false');
                 overlayStartAt = Date.now();
-                setOverlayHint(hintText || 'Preparando acceso');
+                setOverlayHint(hintText || 'Iniciando servidor');
             }
 
             function hideOverlay() {
@@ -691,7 +585,7 @@
             function resetOpenAppState() {
                 waitingForAppOpen = false;
                 hideOverlay();
-                setOverlayHint('Preparando acceso');
+                setOverlayHint('Iniciando servidor');
             }
 
             function withTimeout(ms) {
@@ -730,7 +624,7 @@
                     if (waitingForAppOpen) {
                         const elapsed = Date.now() - overlayStartAt;
                         if (elapsed > 18000) {
-                            setOverlayHint('Todavía estamos preparando todo para vos...');
+                            setOverlayHint('Todavia estamos preparando todo para vos...');
                         }
                         if (elapsed > 45000) {
                             setRetryVisible(true);
@@ -740,16 +634,23 @@
                 }
 
                 backendReady = true;
+                showStatus('Servidor listo. Puedes entrar.');
+
                 if (pollingInterval) {
                     clearInterval(pollingInterval);
                     pollingInterval = null;
                 }
 
                 if (waitingForAppOpen) {
-                    setOverlayHint('¡Listo! Entrando a la app...');
+                    setOverlayHint('Listo! Entrando a la app...');
                     window.location.assign(appURL);
                     return;
                 }
+                setTimeout(() => {
+                    if (!waitingForAppOpen) {
+                        hideStatus();
+                    }
+                }, 1800);
             }
 
             function startWarmup() {
@@ -757,6 +658,9 @@
                     return;
                 }
                 warmupStarted = true;
+                showStatus('Activando servidor...');
+
+                // Primera senal para despertar Render apenas abre la landing.
                 fetch(versionURL, {
                     method: 'GET',
                     cache: 'no-store',
@@ -798,11 +702,17 @@
 
             window.addEventListener('load', function () {
                 startWarmup();
+
+                // Si la landing fue abierta desde navegacion atras y la app ya esta lista,
+                // limpiamos estados de carga para evitar overlays viejos.
                 resetOpenAppState();
             });
 
             window.addEventListener('pageshow', function () {
                 resetOpenAppState();
+                if (backendReady) {
+                    hideStatus();
+                }
             });
 
             window.addEventListener('pagehide', function () {
@@ -810,9 +720,7 @@
             });
         })();
     </script>
-    <script>
-        window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
-    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
     <script defer src="/_vercel/speed-insights/script.js"></script>
 </body>
 </html>

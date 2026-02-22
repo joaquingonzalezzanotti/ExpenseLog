@@ -1905,34 +1905,114 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
 .card-payment-module {
     border: 1px solid var(--cash-card-border);
-    border-radius: 10px;
-    padding: 1rem;
-    margin-bottom: 1rem;
+    border-radius: 12px;
+    padding: 0.9rem;
+    margin: 0 auto 1rem;
+    max-width: 760px;
+    width: 100%;
+    box-sizing: border-box;
     background: var(--bg-secondary);
 }
 
-.card-payment-head {
-    margin-bottom: 0.75rem;
+.card-payment-toggle {
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 0.75rem;
+    align-items: center;
+    text-align: left;
+    cursor: pointer;
 }
 
-.card-payment-head h3 {
-    margin: 0;
-    font-size: 1.05rem;
+.card-payment-toggle-copy {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 0.2rem;
 }
 
-.card-payment-head p {
-    margin: 0.3rem 0 0;
+.card-payment-title {
+    font-size: 1.08rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.card-payment-status {
+    font-size: 0.84rem;
     color: var(--text-secondary);
-    font-size: 0.9rem;
 }
 
-.card-payment-kpis {
-    margin-bottom: 0.85rem;
+.card-payment-toggle-kpi {
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.card-payment-value {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.card-payment-sub {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.card-payment-chevron {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    transition: transform 0.2s ease;
+}
+
+.card-payment-module.expanded .card-payment-chevron {
+    transform: rotate(180deg);
+}
+
+.card-payment-form-wrap {
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--border);
 }
 
 .card-payment-form {
     display: grid;
-    gap: 0.85rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem 0.95rem;
+    align-items: end;
+}
+
+.card-payment-form .form-group:nth-child(3) {
+    grid-column: 1 / -1;
+}
+
+.card-payment-form .form-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 0.65rem;
+    align-items: center;
+    justify-content: flex-start;
+    margin-top: 0.1rem;
+}
+
+.card-payment-form .form-actions .nav-button {
+    width: auto;
+    min-width: 170px;
+}
+
+.card-payment-form #cardPaymentMessage {
+    grid-column: 1 / -1;
 }
 
 .cashflow-row {
@@ -2769,6 +2849,39 @@ html[data-theme='dark'] .expense-table td.amount-balance {
         grid-template-columns: 1fr;
     }
 
+    .card-payment-module {
+        max-width: none;
+        padding: 0.8rem;
+    }
+
+    .card-payment-toggle {
+        grid-template-columns: 1fr auto;
+        gap: 0.55rem;
+    }
+
+    .card-payment-toggle-kpi {
+        grid-column: 1 / -1;
+        text-align: left;
+    }
+
+    .card-payment-form {
+        grid-template-columns: 1fr;
+    }
+
+    .card-payment-form .form-group:nth-child(3) {
+        grid-column: auto;
+    }
+
+    .card-payment-form .form-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .card-payment-form .form-actions .nav-button {
+        width: 100%;
+        min-width: 0;
+    }
+
     .settings-detail-section .recurring-expense-form {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -3254,11 +3367,44 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     margin-bottom: 1rem;
 }
 
+.home-expense-form-container {
+    max-width: 1040px;
+    margin-left: auto;
+    margin-right: auto;
+    border: 1px solid var(--border);
+}
+
 .expense-form {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 1rem;
     align-items: end;
+}
+
+.home-expense-form {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 220px));
+    justify-content: center;
+    gap: 0.85rem 1rem;
+}
+
+.home-expense-form .form-group {
+    max-width: 220px;
+}
+
+.home-expense-form .form-actions {
+    width: 100%;
+    max-width: 600px;
+    margin: 0.2rem auto 0;
+}
+
+@media (max-width: 900px) {
+    .home-expense-form-container {
+        padding: 1rem;
+    }
+
+    .home-expense-form .form-group {
+        max-width: none;
+    }
 }
 
 #tableExpenseFormContainer .table-expense-form .form-group label {

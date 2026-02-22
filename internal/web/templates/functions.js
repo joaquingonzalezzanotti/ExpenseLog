@@ -16,6 +16,22 @@ function resolveFlow(exp) {
     return exp.amount > 0 ? 'income' : 'expense';
 }
 
+function normalizeSourceCode(source) {
+    const code = String(source || '').trim().toUpperCase();
+    if (code === '' || code === 'CA') return 'CA';
+    if (code === 'TARJETA') return 'TARJETA';
+    if (code === 'EFECTIVO') return 'EFECTIVO';
+    return code;
+}
+
+function formatSourceLabel(source) {
+    const code = normalizeSourceCode(source);
+    if (code === 'CA') return 'Transferencia / Debito';
+    if (code === 'TARJETA') return 'Tarjeta credito';
+    if (code === 'EFECTIVO') return 'Efectivo (registro)';
+    return code || '-';
+}
+
 let authChecked = false;
 let currentUser = null;
 let pendingAuthErrorMessage = null;

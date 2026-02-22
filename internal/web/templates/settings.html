@@ -113,9 +113,50 @@
                     <span>🧮 Conciliacion de balance</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
+                <button class="settings-nav-item" id="openReportsSection" type="button" data-settings-section="reportsSection" aria-expanded="false">
+                    <span>Reportes mensuales</span>
+                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
             </div>
         </section>
-
+        <section id="reportsSection" class="form-container settings-section settings-detail-section" hidden>
+            <div class="settings-detail-header">
+                <h2>Reportes mensuales</h2>
+                <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="reportsSection" aria-label="Cerrar reportes" title="Cerrar reportes">
+                    <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
+                </button>
+            </div>
+            <p class="settings-helper-text">Genera y descarga tu reporte mensual en el momento. Los archivos no se guardan en el servidor.</p>
+            <div class="settings-export-grid">
+                <div class="settings-preference-item">
+                    <label for="reportMonthSelect">Mes</label>
+                    <div class="settings-preference-control">
+                        <select id="reportMonthSelect"></select>
+                    </div>
+                </div>
+                <div class="settings-preference-item">
+                    <label for="reportYearInput">Anio</label>
+                    <div class="settings-preference-control">
+                        <input id="reportYearInput" type="number" min="2000" max="2100" step="1">
+                    </div>
+                </div>
+                <div class="settings-preference-item">
+                    <label for="reportCurrencySelect">Moneda</label>
+                    <div class="settings-preference-control">
+                        <select id="reportCurrencySelect">
+                            <option value="ars">ARS</option>
+                            <option value="usd">USD</option>
+                            <option value="eur">EUR</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-export-actions">
+                <button id="downloadMonthlyXLSXBtn" class="nav-button button-secondary" type="button">Descargar Excel (.xlsx)</button>
+                <button id="downloadMonthlyPDFBtn" class="nav-button button-primary" type="button">Descargar PDF (.pdf)</button>
+            </div>
+            <div id="reportExportMessage" class="form-message"></div>
+        </section>
         <section id="categoriesSection" class="form-container settings-section settings-detail-section" hidden>
             <div class="settings-detail-header">
                 <h2>🏷️ Categorías</h2>
@@ -476,6 +517,11 @@
         const toggleRecurringCreateBtn = document.getElementById('toggleRecurringCreateBtn');
         const appConfirmModal = document.getElementById('appConfirmModal');
         const appSuccessModal = document.getElementById('appSuccessModal');
+        const reportMonthSelect = document.getElementById('reportMonthSelect');
+        const reportYearInput = document.getElementById('reportYearInput');
+        const reportCurrencySelect = document.getElementById('reportCurrencySelect');
+        const downloadMonthlyXLSXBtn = document.getElementById('downloadMonthlyXLSXBtn');
+        const downloadMonthlyPDFBtn = document.getElementById('downloadMonthlyPDFBtn');
 
         function setSettingsSection(sectionId, expanded) {
             const section = document.getElementById(sectionId);
@@ -488,7 +534,7 @@
         }
 
         function showOnlySettingsSection(sectionId) {
-            const targets = ['categoriesSection', 'recurringSection', 'reconciliationSection'];
+            const targets = ['categoriesSection', 'recurringSection', 'reconciliationSection', 'reportsSection'];
             targets.forEach((id) => setSettingsSection(id, id === sectionId));
             setRecurringComposerVisible(false);
             const targetNode = document.getElementById(sectionId);
@@ -605,6 +651,104 @@
                 messageDiv.textContent = '';
                 messageDiv.className = 'form-message';
             }, 3000);
+        }
+
+        function populateReportPeriodControls() {
+            if (reportMonthSelect && reportMonthSelect.options.length === 0) {
+                const months = [
+                    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+                ];
+                reportMonthSelect.innerHTML = months
+                    .map((name, idx) => `<option value="${idx + 1}">${name}</option>`)
+                    .join('');
+            }
+
+            const now = new Date();
+            if (reportMonthSelect && !reportMonthSelect.value) {
+                reportMonthSelect.value = String(now.getMonth() + 1);
+            }
+            if (reportYearInput && !reportYearInput.value) {
+                reportYearInput.value = String(now.getFullYear());
+            }
+            if (reportCurrencySelect) {
+                reportCurrencySelect.value = currentCurrency || 'ars';
+            }
+        }
+
+        function parseAttachmentFilename(contentDisposition, fallbackName) {
+            const fallback = fallbackName || 'reporte-mensual';
+            const header = String(contentDisposition || '');
+            const utf8Match = header.match(/filename\*=UTF-8''([^;]+)/i);
+            if (utf8Match && utf8Match[1]) {
+                try {
+                    return decodeURIComponent(utf8Match[1]);
+                } catch (_) {}
+            }
+            const basicMatch = header.match(/filename=\"?([^\";]+)\"?/i);
+            if (basicMatch && basicMatch[1]) {
+                return basicMatch[1];
+            }
+            return fallback;
+        }
+
+        function setReportDownloadButtonsDisabled(disabled) {
+            if (downloadMonthlyXLSXBtn) downloadMonthlyXLSXBtn.disabled = !!disabled;
+            if (downloadMonthlyPDFBtn) downloadMonthlyPDFBtn.disabled = !!disabled;
+        }
+
+        async function downloadMonthlyReport(format) {
+            const month = parseInt(reportMonthSelect?.value || '', 10);
+            const year = parseInt(reportYearInput?.value || '', 10);
+            const currency = (reportCurrencySelect?.value || currentCurrency || 'ars').toLowerCase();
+
+            if (!Number.isInteger(month) || month < 1 || month > 12) {
+                showMessage('reportExportMessage', 'Mes invalido para exportacion.', false);
+                return;
+            }
+            if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+                showMessage('reportExportMessage', 'Anio invalido para exportacion.', false);
+                return;
+            }
+
+            const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+            const params = new URLSearchParams({
+                year: String(year),
+                month: String(month),
+                currency,
+            });
+            const endpoint = `/api/export/monthly/${ext}?${params.toString()}`;
+
+            setReportDownloadButtonsDisabled(true);
+            showMessage('reportExportMessage', `Generando reporte ${ext.toUpperCase()}...`, true);
+
+            try {
+                const response = await fetch(endpoint, { method: 'GET', credentials: 'same-origin' });
+                if (!response.ok) {
+                    const payload = await response.json().catch(() => ({}));
+                    throw new Error(payload.error || `No se pudo generar el reporte (${response.status})`);
+                }
+
+                const blob = await response.blob();
+                const contentDisposition = response.headers.get('content-disposition');
+                const fallbackName = `expenselog-reporte-${year}-${String(month).padStart(2, '0')}-${currency}.${ext}`;
+                const filename = parseAttachmentFilename(contentDisposition, fallbackName);
+                const downloadURL = URL.createObjectURL(blob);
+                const anchor = document.createElement('a');
+                anchor.href = downloadURL;
+                anchor.download = filename;
+                document.body.appendChild(anchor);
+                anchor.click();
+                anchor.remove();
+                URL.revokeObjectURL(downloadURL);
+
+                showMessage('reportExportMessage', `Reporte ${ext.toUpperCase()} descargado.`, true);
+            } catch (error) {
+                console.error('Error descargando reporte mensual:', error);
+                showMessage('reportExportMessage', error.message || 'No se pudo descargar el reporte.', false);
+            } finally {
+                setReportDownloadButtonsDisabled(false);
+            }
         }
 
         function openModal(modal) {
@@ -1065,6 +1209,9 @@ async function saveCategoriesList(nextCategories) {
                 if (response.ok) {
                     showMessage('currencyMessage', 'Moneda principal actualizada. Se usara como referencia para balance y vistas por defecto.', true);
                     currentCurrency = currencyCode;
+                    if (reportCurrencySelect) {
+                        reportCurrencySelect.value = currencyCode;
+                    }
                     invalidateSharedConfigCache();
                 } else {
                     showMessage('currencyMessage', 'No se pudo guardar la moneda', false);
@@ -1466,6 +1613,10 @@ async function saveCategoriesList(nextCategories) {
             }
             if (section === 'recurring' || hash === '#recurring') {
                 showOnlySettingsSection('recurringSection');
+                return;
+            }
+            if (section === 'reports' || hash === '#reports') {
+                showOnlySettingsSection('reportsSection');
             }
         }
 
@@ -1516,10 +1667,12 @@ async function saveCategoriesList(nextCategories) {
                 (recurringExpenses || []).forEach(exp => (exp.tags || []).forEach(tag => allTags.add(tag)));
 
                 populateCurrencySelect();
+                populateReportPeriodControls();
                 renderRecurringExpenses(recurringExpenses);
                 hideSettingsSection('categoriesSection');
                 hideSettingsSection('recurringSection');
                 hideSettingsSection('reconciliationSection');
+                hideSettingsSection('reportsSection');
                 setRecurringComposerVisible(false);
                 openSectionFromURL();
                 renderSettingsReconciliationPreview();
@@ -1609,6 +1762,8 @@ async function saveCategoriesList(nextCategories) {
             }
         });
         document.getElementById('currencySelect').addEventListener('change', saveCurrency);
+        downloadMonthlyXLSXBtn?.addEventListener('click', () => downloadMonthlyReport('xlsx'));
+        downloadMonthlyPDFBtn?.addEventListener('click', () => downloadMonthlyReport('pdf'));
         toggleRecurringCreateBtn?.addEventListener('click', () => {
             setRecurringComposerVisible(recurringFormWrap?.hidden === true);
         });
@@ -1726,6 +1881,7 @@ async function saveCategoriesList(nextCategories) {
     </script>
 </body>
 </html>
+
 
 
 

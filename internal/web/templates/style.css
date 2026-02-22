@@ -1905,6 +1905,31 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     text-decoration: none;
 }
 
+.settings-export-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.85rem;
+    margin-top: 0.7rem;
+}
+
+.settings-export-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    margin-top: 0.85rem;
+}
+
+.settings-export-actions .nav-button {
+    min-width: 210px;
+}
+
+@media (max-width: 640px) {
+    .settings-export-actions .nav-button {
+        width: 100%;
+        min-width: 0;
+    }
+}
+
 .cashflow-container {
     display: flex;
     flex-direction: column;

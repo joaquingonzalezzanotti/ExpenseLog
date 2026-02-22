@@ -46,12 +46,6 @@
                     <a href="/app" class="view-button active" data-tooltip="Panel">
                         <i class="fa-solid fa-chart-pie"></i>
                     </a>
-                    <a href="/app/table" class="view-button" data-tooltip="Tabla">
-                        <i class="fa-solid fa-table"></i>
-                    </a>
-                    <a href="/app/settings" class="view-button" data-tooltip="Configuracion">
-                        <i class="fa-solid fa-gear"></i>
-                    </a>
                 </nav>
                 <div class="nav-right-slot">
                     <button id="notificationCenterButton" class="view-button notification-trigger" data-tooltip="Notificaciones" type="button" aria-label="Notificaciones" aria-expanded="false">
@@ -67,20 +61,21 @@
             <div id="mobileSidebarOverlay" class="mobile-sidebar-overlay" hidden></div>
             <aside id="mobileSidebar" class="mobile-sidebar" hidden aria-hidden="true">
                 <nav class="mobile-sidebar-nav" aria-label="Menu principal mobile">
-                    <a href="/app" class="mobile-sidebar-link">Dashboard</a>
-                    <a href="/app/table" class="mobile-sidebar-link">Movimientos</a>
-                    <a href="/app/settings" class="mobile-sidebar-link">Configuracion</a>
+                    <a href="/app" class="mobile-sidebar-link">Inicio</a>
+                    <a href="/app/table" class="mobile-sidebar-link">Tabla</a>
+                    <a href="/app/table?view=calendar" class="mobile-sidebar-link">Calendario</a>
+                    <a href="/app/settings?section=reports" class="mobile-sidebar-link">Reportes</a>
+                    <a href="/app/settings" class="mobile-sidebar-link">Usuario</a>
                 </nav>
             </aside>
         </header>
 
-        <nav class="mobile-bottom-nav" aria-label="Acciones frecuentes">
+        <nav class="mobile-bottom-nav" aria-label="Navegacion principal">
                     <a href="/app" class="mobile-nav-item active" aria-current="page"><i class="fa-solid fa-house"></i><span>Inicio</span></a>
-                    <a href="/app/table" class="mobile-nav-item"><i class="fa-solid fa-arrows-left-right"></i><span>Movs</span></a>
-                    <a href="/app" class="mobile-nav-item"><i class="fa-solid fa-chart-line"></i><span>Analisis</span></a>
-                    <a href="/app/settings" class="mobile-nav-item"><i class="fa-solid fa-bullseye"></i><span>Metas</span></a>
-                    <a href="/app/settings" class="mobile-nav-item"><i class="fa-solid fa-repeat"></i><span>Recurr.</span></a>
-                    <a href="/app/settings" class="mobile-nav-item"><i class="fa-regular fa-message"></i><span>Chat</span></a>
+                    <a href="/app/table" class="mobile-nav-item"><i class="fa-solid fa-table"></i><span>Tabla</span></a>
+                    <a href="/app/table?view=calendar" class="mobile-nav-item"><i class="fa-regular fa-calendar-days"></i><span>Calendario</span></a>
+                    <a href="/app/settings?section=reports" class="mobile-nav-item"><i class="fa-regular fa-file-lines"></i><span>Reportes</span></a>
+                    <a href="/app/settings" class="mobile-nav-item"><i class="fa-regular fa-user"></i><span>Usuario</span></a>
         </nav>
 
         <div id="homeGreeting" class="home-greeting"></div>

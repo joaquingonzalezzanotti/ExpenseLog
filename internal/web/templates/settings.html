@@ -29,12 +29,6 @@
                     <span class="nav-logo-mobile-text" aria-hidden="true">EL</span>
                 </a>
                 <nav class="nav-center-tabs" aria-label="Secciones">
-                    <a href="/app" class="view-button" data-tooltip="Panel">
-                        <i class="fa-solid fa-chart-pie"></i>
-                    </a>
-                    <a href="/app/table" class="view-button" data-tooltip="Tabla">
-                        <i class="fa-solid fa-table"></i>
-                    </a>
                     <a href="/app/settings" class="view-button active" data-tooltip="Configuracion">
                         <i class="fa-solid fa-gear"></i>
                     </a>
@@ -53,20 +47,21 @@
             <div id="mobileSidebarOverlay" class="mobile-sidebar-overlay" hidden></div>
             <aside id="mobileSidebar" class="mobile-sidebar" hidden aria-hidden="true">
                 <nav class="mobile-sidebar-nav" aria-label="Menu principal mobile">
-                    <a href="/app" class="mobile-sidebar-link">Dashboard</a>
-                    <a href="/app/table" class="mobile-sidebar-link">Movimientos</a>
-                    <a href="/app/settings" class="mobile-sidebar-link">Configuracion</a>
+                    <a href="/app" class="mobile-sidebar-link">Inicio</a>
+                    <a href="/app/table" class="mobile-sidebar-link">Tabla</a>
+                    <a href="/app/table?view=calendar" class="mobile-sidebar-link">Calendario</a>
+                    <a href="/app/settings?section=reports" class="mobile-sidebar-link">Reportes</a>
+                    <a href="/app/settings" class="mobile-sidebar-link">Usuario</a>
                 </nav>
             </aside>
         </header>
 
-        <nav class="mobile-bottom-nav" aria-label="Acciones frecuentes">
+        <nav class="mobile-bottom-nav" aria-label="Navegacion principal">
                     <a href="/app" class="mobile-nav-item"><i class="fa-solid fa-house"></i><span>Inicio</span></a>
-                    <a href="/app/table" class="mobile-nav-item"><i class="fa-solid fa-arrows-left-right"></i><span>Movs</span></a>
-                    <a href="/app" class="mobile-nav-item"><i class="fa-solid fa-chart-line"></i><span>Analisis</span></a>
-                    <a href="/app/settings" class="mobile-nav-item active" aria-current="page"><i class="fa-solid fa-bullseye"></i><span>Metas</span></a>
-                    <a href="/app/settings" class="mobile-nav-item"><i class="fa-solid fa-repeat"></i><span>Recurr.</span></a>
-                    <a href="/app/settings" class="mobile-nav-item"><i class="fa-regular fa-message"></i><span>Chat</span></a>
+                    <a href="/app/table" class="mobile-nav-item"><i class="fa-solid fa-table"></i><span>Tabla</span></a>
+                    <a href="/app/table?view=calendar" class="mobile-nav-item"><i class="fa-regular fa-calendar-days"></i><span>Calendario</span></a>
+                    <a id="mobileNavReports" href="/app/settings?section=reports" class="mobile-nav-item"><i class="fa-regular fa-file-lines"></i><span>Reportes</span></a>
+                    <a id="mobileNavUser" href="/app/settings" class="mobile-nav-item active" aria-current="page"><i class="fa-regular fa-user"></i><span>Usuario</span></a>
         </nav>
 
         <section class="form-container settings-section settings-profile">
@@ -1681,6 +1676,20 @@ async function saveCategoriesList(nextCategories) {
             const params = new URLSearchParams(window.location.search);
             const section = (params.get('section') || '').toLowerCase();
             const hash = (window.location.hash || '').toLowerCase();
+            const mobileNavReports = document.getElementById('mobileNavReports');
+            const mobileNavUser = document.getElementById('mobileNavUser');
+            const reportsActive = section === 'reports' || hash === '#reports';
+            if (mobileNavReports && mobileNavUser) {
+                mobileNavReports.classList.toggle('active', reportsActive);
+                mobileNavUser.classList.toggle('active', !reportsActive);
+                if (reportsActive) {
+                    mobileNavReports.setAttribute('aria-current', 'page');
+                    mobileNavUser.removeAttribute('aria-current');
+                } else {
+                    mobileNavUser.setAttribute('aria-current', 'page');
+                    mobileNavReports.removeAttribute('aria-current');
+                }
+            }
             if (section === 'reconciliation' || hash === '#reconciliation') {
                 showOnlySettingsSection('reconciliationSection');
                 return;

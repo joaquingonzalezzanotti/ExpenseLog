@@ -29,14 +29,8 @@
                     <span class="nav-logo-mobile-text" aria-hidden="true">EL</span>
                 </a>
                 <nav class="nav-center-tabs" aria-label="Secciones">
-                    <a href="/app" class="view-button" data-tooltip="Panel">
-                        <i class="fa-solid fa-chart-pie"></i>
-                    </a>
                     <a href="/app/table" class="view-button active" data-tooltip="Tabla">
                         <i class="fa-solid fa-table"></i>
-                    </a>
-                    <a href="/app/settings" class="view-button" data-tooltip="Configuracion">
-                        <i class="fa-solid fa-gear"></i>
                     </a>
                 </nav>
                 <div class="nav-right-slot">
@@ -53,20 +47,21 @@
             <div id="mobileSidebarOverlay" class="mobile-sidebar-overlay" hidden></div>
             <aside id="mobileSidebar" class="mobile-sidebar" hidden aria-hidden="true">
                 <nav class="mobile-sidebar-nav" aria-label="Menu principal mobile">
-                    <a href="/app" class="mobile-sidebar-link">Dashboard</a>
-                    <a href="/app/table" class="mobile-sidebar-link">Movimientos</a>
-                    <a href="/app/settings" class="mobile-sidebar-link">Configuracion</a>
+                    <a href="/app" class="mobile-sidebar-link">Inicio</a>
+                    <a href="/app/table" class="mobile-sidebar-link">Tabla</a>
+                    <a href="/app/table?view=calendar" class="mobile-sidebar-link">Calendario</a>
+                    <a href="/app/settings?section=reports" class="mobile-sidebar-link">Reportes</a>
+                    <a href="/app/settings" class="mobile-sidebar-link">Usuario</a>
                 </nav>
             </aside>
         </header>
 
-        <nav class="mobile-bottom-nav" aria-label="Acciones frecuentes">
+        <nav class="mobile-bottom-nav" aria-label="Navegacion principal">
                     <a href="/app" class="mobile-nav-item"><i class="fa-solid fa-house"></i><span>Inicio</span></a>
-                    <a href="/app/table" class="mobile-nav-item active" aria-current="page"><i class="fa-solid fa-arrows-left-right"></i><span>Movs</span></a>
-                    <a href="/app" class="mobile-nav-item"><i class="fa-solid fa-chart-line"></i><span>Analisis</span></a>
-                    <a href="/app/settings" class="mobile-nav-item"><i class="fa-solid fa-bullseye"></i><span>Metas</span></a>
-                    <a href="/app/settings" class="mobile-nav-item"><i class="fa-solid fa-repeat"></i><span>Recurr.</span></a>
-                    <a href="/app/settings" class="mobile-nav-item"><i class="fa-regular fa-message"></i><span>Chat</span></a>
+                    <a id="mobileNavTable" href="/app/table" class="mobile-nav-item active" aria-current="page"><i class="fa-solid fa-table"></i><span>Tabla</span></a>
+                    <a id="mobileNavCalendar" href="/app/table?view=calendar" class="mobile-nav-item"><i class="fa-regular fa-calendar-days"></i><span>Calendario</span></a>
+                    <a href="/app/settings?section=reports" class="mobile-nav-item"><i class="fa-regular fa-file-lines"></i><span>Reportes</span></a>
+                    <a href="/app/settings" class="mobile-nav-item"><i class="fa-regular fa-user"></i><span>Usuario</span></a>
         </nav>
 
         <div class="month-navigation">
@@ -353,6 +348,8 @@
 
         const tableFormContainer = document.getElementById('tableExpenseFormContainer');
         const toggleTableExpenseFormBtn = document.getElementById('toggleTableExpenseFormBtn');
+        const mobileNavTable = document.getElementById('mobileNavTable');
+        const mobileNavCalendar = document.getElementById('mobileNavCalendar');
         const mobileTablePager = document.getElementById('mobileTablePager');
         const mobileTablePagerInfo = document.getElementById('mobileTablePagerInfo');
         const toggleMobileRowsBtn = document.getElementById('toggleMobileRows');
@@ -464,6 +461,18 @@
 
         function setActiveDataView(view) {
             activeDataView = view === 'calendar' ? 'calendar' : 'table';
+            if (mobileNavTable && mobileNavCalendar) {
+                const isCalendar = activeDataView === 'calendar';
+                mobileNavTable.classList.toggle('active', !isCalendar);
+                mobileNavCalendar.classList.toggle('active', isCalendar);
+                if (isCalendar) {
+                    mobileNavTable.removeAttribute('aria-current');
+                    mobileNavCalendar.setAttribute('aria-current', 'page');
+                } else {
+                    mobileNavCalendar.removeAttribute('aria-current');
+                    mobileNavTable.setAttribute('aria-current', 'page');
+                }
+            }
             updateDataViewSwitchUI();
             if (activeDataView === 'calendar') {
                 closeAllRowMenus();
@@ -471,6 +480,16 @@
             } else {
                 updateTable();
             }
+        }
+
+        function getRequestedDataViewFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            const requested = String(params.get('view') || '').toLowerCase();
+            const hash = String(window.location.hash || '').toLowerCase();
+            if (requested === 'calendar' || hash === '#calendar') {
+                return 'calendar';
+            }
+            return 'table';
         }
 
         function applyCommonExpenseFilters(expenses) {
@@ -1197,10 +1216,9 @@
                     }
                 });
 
-                updateDataViewSwitchUI();
                 updateMonthDisplay();
                 updatePeriodModeBadge();
-                updateTable();
+                setActiveDataView(getRequestedDataViewFromURL());
                 setupTagInput();
             } catch (error) {
                 console.error('No se pudo inicializar la tabla:', error);

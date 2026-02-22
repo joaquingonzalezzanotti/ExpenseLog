@@ -2244,6 +2244,34 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     color: var(--success);
 }
 
+.card-payment-shortcuts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.card-shortcut-btn {
+    border: 1px solid var(--border);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    border-radius: 999px;
+    padding: 0.28rem 0.62rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.card-shortcut-btn:hover {
+    border-color: rgba(37, 99, 235, 0.42);
+    color: var(--accent);
+}
+
+.card-payment-modal-form #cardPaymentPendingHint {
+    margin-top: 0.36rem;
+    font-size: 0.82rem;
+}
+
 .card-payment-modal-form .form-group label {
     align-self: flex-start;
     font-weight: 600;
@@ -3177,6 +3205,15 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
     .payment-mode-group {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .card-payment-shortcuts {
+        gap: 0.35rem;
+    }
+
+    .card-shortcut-btn {
+        flex: 1 1 calc(50% - 0.35rem);
+        text-align: center;
     }
 
     .expense-modal-form .form-actions,

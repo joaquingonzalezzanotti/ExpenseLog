@@ -256,6 +256,14 @@
                         <select id="cardPaymentCurrency" required></select>
                     </div>
                     <div class="form-group form-group-span-2">
+                        <div class="card-payment-shortcuts" role="group" aria-label="Atajos de monto">
+                            <button type="button" class="card-shortcut-btn" data-card-pay-shortcut="full">Usar total pendiente</button>
+                            <button type="button" class="card-shortcut-btn" data-card-pay-shortcut="half">50%</button>
+                            <button type="button" class="card-shortcut-btn" data-card-pay-shortcut="clear">Limpiar</button>
+                        </div>
+                        <div id="cardPaymentPendingHint" class="form-help-text"></div>
+                    </div>
+                    <div class="form-group form-group-span-2">
                         <label for="cardPaymentCard">Tarjeta (opcional)</label>
                         <input type="text" id="cardPaymentCard" placeholder="Ej: Visa banco">
                     </div>
@@ -359,6 +367,8 @@
         const cardPaymentAmountInput = document.getElementById('cardPaymentAmount');
         const cardPaymentCurrencySelect = document.getElementById('cardPaymentCurrency');
         const cardPaymentCardInput = document.getElementById('cardPaymentCard');
+        const cardPaymentPendingHint = document.getElementById('cardPaymentPendingHint');
+        const cardPaymentShortcutButtons = document.querySelectorAll('[data-card-pay-shortcut]');
         const cardPaymentMessage = document.getElementById('cardPaymentMessage');
         const cardPaySubmitBtn = document.getElementById('cardPaySubmitBtn');
         const cardPaymentModeButtons = document.querySelectorAll('[data-card-pay-mode]');
@@ -850,6 +860,56 @@
             }
         }
 
+        function getSelectedCardPending() {
+            const currency = (cardPaymentCurrencySelect && cardPaymentCurrencySelect.value)
+                ? cardPaymentCurrencySelect.value
+                : baseCurrency;
+            return {
+                currency: currency.toLowerCase(),
+                pending: Number(cardPayableByCurrency[currency.toLowerCase()] || 0),
+            };
+        }
+
+        function formatInputAmount(amount) {
+            if (!Number.isFinite(amount) || amount <= 0) return '';
+            return String(Math.round(amount * 100) / 100);
+        }
+
+        function setCardPaymentAmount(amount) {
+            if (!cardPaymentAmountInput) return;
+            cardPaymentAmountInput.value = formatInputAmount(amount);
+        }
+
+        function refreshCardPaymentPendingHint() {
+            if (!cardPaymentPendingHint) return;
+            const { currency, pending } = getSelectedCardPending();
+            if (pending > 0) {
+                cardPaymentPendingHint.textContent = `Pendiente actual: ${formatCurrencyWithCurrency(pending, currency)}.`;
+                return;
+            }
+            cardPaymentPendingHint.textContent = 'No hay pendiente para la moneda seleccionada.';
+        }
+
+        function applyCardPaymentShortcut(kind) {
+            const { pending } = getSelectedCardPending();
+            if (kind === 'clear') {
+                setCardPaymentAmount(0);
+                updateCardPaymentMessage('');
+                return;
+            }
+            if (pending <= 0) {
+                updateCardPaymentMessage('No hay saldo pendiente para esa moneda.', 'error');
+                return;
+            }
+            if (kind === 'half') {
+                setCardPaymentAmount(pending / 2);
+            } else {
+                setCardPaymentAmount(pending);
+            }
+            updateCardPaymentMessage('');
+            if (cardPaymentAmountInput) cardPaymentAmountInput.focus();
+        }
+
         function syncBodyModalLock() {
             const expenseOpen = addExpenseContainer && !addExpenseContainer.hidden;
             const cardOpen = cardPaymentOverlay && !cardPaymentOverlay.hidden;
@@ -868,12 +928,16 @@
             if (cardPaymentModalVisible) {
                 updateCardPaymentMessage('');
                 setCardPaymentMode('self');
+                const { pending } = getSelectedCardPending();
+                setCardPaymentAmount(pending);
+                refreshCardPaymentPendingHint();
                 window.setTimeout(() => {
                     if (cardPaymentAmountInput) cardPaymentAmountInput.focus();
                 }, 0);
             } else {
                 if (cardPaymentAmountInput) cardPaymentAmountInput.value = '';
                 if (cardPaymentCardInput) cardPaymentCardInput.value = '';
+                if (cardPaymentPendingHint) cardPaymentPendingHint.textContent = '';
                 updateCardPaymentMessage('');
             }
             syncBodyModalLock();
@@ -927,6 +991,7 @@
                 openCardPaymentModalBtn.disabled = !hasPending;
                 openCardPaymentModalBtn.textContent = hasPending ? 'Registrar pago' : 'Sin saldo pendiente';
             }
+            refreshCardPaymentPendingHint();
             if (!hasPending) {
                 setCardPaymentModalVisible(false);
             }
@@ -947,16 +1012,21 @@
 
         async function submitCardPayment(paidBy = cardPaymentMode) {
             if (!cardPaymentAmountInput || !cardPaymentCurrencySelect) return;
-            const amount = Number(cardPaymentAmountInput.value);
             const currency = (cardPaymentCurrencySelect.value || baseCurrency).toLowerCase();
             const pending = Number(cardPayableByCurrency[currency] || 0);
-
+            const typedAmount = Number(cardPaymentAmountInput.value);
+            let amount = typedAmount;
             if (!Number.isFinite(amount) || amount <= 0) {
-                updateCardPaymentMessage('Ingresa un monto valido mayor a 0.', 'error');
-                return;
+                amount = pending;
+                setCardPaymentAmount(amount);
             }
+
             if (pending <= 0) {
                 updateCardPaymentMessage('No hay saldo pendiente para esa moneda.', 'error');
+                return;
+            }
+            if (!Number.isFinite(amount) || amount <= 0) {
+                updateCardPaymentMessage('No hay monto pendiente para registrar.', 'error');
                 return;
             }
             if (amount > pending) {
@@ -1811,7 +1881,24 @@
         if (cardPaymentCurrencySelect) {
             cardPaymentCurrencySelect.addEventListener('change', () => {
                 renderCardPaymentModule();
+                if (cardPaymentAmountInput && !cardPaymentAmountInput.value) {
+                    const { pending } = getSelectedCardPending();
+                    setCardPaymentAmount(pending);
+                }
+                refreshCardPaymentPendingHint();
                 updateCardPaymentMessage('');
+            });
+        }
+        if (cardPaymentAmountInput) {
+            cardPaymentAmountInput.addEventListener('input', () => {
+                updateCardPaymentMessage('');
+            });
+        }
+        if (cardPaymentShortcutButtons && cardPaymentShortcutButtons.length > 0) {
+            cardPaymentShortcutButtons.forEach((button) => {
+                button.addEventListener('click', () => {
+                    applyCardPaymentShortcut(button.dataset.cardPayShortcut || 'full');
+                });
             });
         }
         if (cardPaymentModeButtons && cardPaymentModeButtons.length > 0) {

@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lib/pq"
 	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/storage"
+	"github.com/lib/pq"
 )
 
 const (
@@ -213,7 +213,7 @@ func loadGoogleOAuthConfig(r *http.Request) (googleOAuthConfig, error) {
 		RedirectURL:  strings.TrimSpace(os.Getenv("GOOGLE_REDIRECT_URL")),
 	}
 	if cfg.RedirectURL == "" {
-		cfg.RedirectURL = strings.TrimRight(baseURLFromRequest(r), "/") + "/auth/google/callback"
+		cfg.RedirectURL = strings.TrimRight(baseURLFromRequest(r), "/") + "/api/auth/google/callback"
 	}
 	if cfg.ClientID == "" || cfg.ClientSecret == "" || cfg.RedirectURL == "" {
 		return googleOAuthConfig{}, fmt.Errorf("missing google oauth config")
@@ -245,7 +245,7 @@ func setGoogleOAuthStateCookie(w http.ResponseWriter, r *http.Request, state str
 	http.SetCookie(w, &http.Cookie{
 		Name:     googleOAuthStateCookieName,
 		Value:    state,
-		Path:     "/auth/google/callback",
+		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 		Secure:   isSecureRequest(r),
@@ -257,7 +257,7 @@ func clearGoogleOAuthStateCookie(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     googleOAuthStateCookieName,
 		Value:    "",
-		Path:     "/auth/google/callback",
+		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 		Secure:   isSecureRequest(r),
@@ -343,4 +343,3 @@ func redirectAuthError(w http.ResponseWriter, r *http.Request, message string) {
 	target := "/app?auth_error=" + url.QueryEscape(strings.TrimSpace(message))
 	http.Redirect(w, r, target, http.StatusFound)
 }
-

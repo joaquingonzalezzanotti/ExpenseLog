@@ -164,7 +164,7 @@ func buildPasswordChangedEmail(appURL string) (renderedEmail, error) {
 		Title:     "Tu contrasena fue actualizada",
 		Preheader: "Confirmacion de seguridad de tu cuenta.",
 		Message:   "Este email confirma que la contrasena de tu cuenta fue cambiada recientemente. Si no fuiste vos, te recomendamos recuperar el acceso de inmediato.",
-		CTAURL:    strings.TrimRight(appURL, "/") + "/settings",
+		CTAURL:    strings.TrimRight(appURL, "/") + "/app/settings",
 		CTALabel:  "Revisar seguridad",
 	}
 	text, html, err := renderTemplatePair("password_changed", data)
@@ -177,4 +177,3 @@ func buildPasswordChangedEmail(appURL string) (renderedEmail, error) {
 		HTML:    html,
 	}, nil
 }
-

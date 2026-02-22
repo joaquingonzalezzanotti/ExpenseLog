@@ -6,7 +6,7 @@ import (
 )
 
 func TestBuildVerificationEmail(t *testing.T) {
-	verifyURL := "https://www.expenselog.com.ar/auth/verify?token=abc"
+	verifyURL := "https://www.expenselog.com.ar/api/auth/verify?token=abc"
 	email, err := buildVerificationEmail(verifyURL)
 	if err != nil {
 		t.Fatalf("buildVerificationEmail returned error: %v", err)
@@ -51,10 +51,10 @@ func TestBuildPasswordChangedEmail(t *testing.T) {
 	if !strings.Contains(email.Subject, "Contrasena actualizada") {
 		t.Fatalf("unexpected subject: %q", email.Subject)
 	}
-	if !strings.Contains(email.Text, appURL+"/settings") {
+	if !strings.Contains(email.Text, appURL+"/app/settings") {
 		t.Fatalf("settings URL missing in plain text body")
 	}
-	if !strings.Contains(email.HTML, appURL+"/settings") {
+	if !strings.Contains(email.HTML, appURL+"/app/settings") {
 		t.Fatalf("settings URL missing in html body")
 	}
 }

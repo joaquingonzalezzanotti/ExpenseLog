@@ -534,8 +534,8 @@
             const backendOrigin = (configuredBackendOrigin || window.location.origin).replace(/\/+$/, '');
             const sameOriginBackend = backendOrigin === window.location.origin;
             const appURL = sameOriginBackend ? '/app' : backendOrigin + '/app';
-            const versionURL = backendOrigin + '/version';
-            const authMeURL = backendOrigin + '/auth/me';
+            const versionURL = backendOrigin + '/api/version';
+            const authMeURL = backendOrigin + '/api/auth/me';
 
             let backendReady = false;
             let warmupStarted = false;

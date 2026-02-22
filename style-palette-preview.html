@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExpenseLog - Visual Lab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f2f6ff;
+            --bg-noise: radial-gradient(circle at 10% 10%, rgba(37, 99, 235, 0.18), transparent 28%),
+                        radial-gradient(circle at 88% 15%, rgba(6, 182, 212, 0.16), transparent 30%),
+                        radial-gradient(circle at 65% 85%, rgba(79, 70, 229, 0.12), transparent 28%);
+            --surface: #ffffff;
+            --surface-soft: #f7faff;
+            --surface-glass: rgba(255, 255, 255, 0.72);
+            --text: #0f172a;
+            --text-muted: #5d6a82;
+            --primary: #2563eb;
+            --primary-strong: #1d4ed8;
+            --accent: #06b6d4;
+            --success: #16a34a;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #d9e3f5;
+            --hero-grad: linear-gradient(136deg, #2f6df1 0%, #1fb6d4 100%);
+            --cta-grad: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+            --glow: 0 22px 40px rgba(37, 99, 235, 0.2);
+            --shadow-soft: 0 12px 32px rgba(15, 23, 42, 0.09);
+        }
+
+        html[data-theme="dark"] {
+            color-scheme: dark;
+            --bg: #070c17;
+            --bg-noise: radial-gradient(circle at 12% 8%, rgba(59, 130, 246, 0.3), transparent 34%),
+                        radial-gradient(circle at 82% 12%, rgba(34, 211, 238, 0.22), transparent 28%),
+                        radial-gradient(circle at 50% 92%, rgba(79, 70, 229, 0.24), transparent 32%);
+            --surface: #0f1728;
+            --surface-soft: #131f35;
+            --surface-glass: rgba(15, 23, 40, 0.74);
+            --text: #e8eefb;
+            --text-muted: #9caaca;
+            --primary: #3b82f6;
+            --primary-strong: #2563eb;
+            --accent: #22d3ee;
+            --success: #22c55e;
+            --warning: #fbbf24;
+            --danger: #f87171;
+            --border: #223454;
+            --hero-grad: linear-gradient(136deg, #2f6df1 0%, #14b8a6 100%);
+            --cta-grad: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+            --glow: 0 26px 48px rgba(2, 8, 23, 0.6);
+            --shadow-soft: 0 16px 38px rgba(0, 0, 0, 0.45);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Inter", system-ui, sans-serif;
+            background: var(--bg-noise), var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        .shell {
+            width: min(1200px, calc(100% - 2rem));
+            margin: 1rem auto 2.2rem;
+            display: grid;
+            gap: 1rem;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            padding: 0.95rem 1rem;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--surface-glass);
+            backdrop-filter: blur(12px);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .brand-mark {
+            width: 42px;
+            height: 42px;
+            border-radius: 13px;
+            display: grid;
+            place-items: center;
+            font-weight: 800;
+            color: #fff;
+            background: var(--hero-grad);
+            box-shadow: var(--glow);
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-family: "Manrope", sans-serif;
+            font-size: 1.2rem;
+            letter-spacing: 0.01em;
+        }
+
+        .brand p {
+            margin: 0.1rem 0 0;
+            color: var(--text-muted);
+            font-size: 0.86rem;
+        }
+
+        .switch {
+            display: inline-flex;
+            gap: 0.32rem;
+            border: 1px solid var(--border);
+            background: var(--surface-soft);
+            border-radius: 999px;
+            padding: 0.24rem;
+        }
+
+        .switch button {
+            border: 0;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: 700;
+            border-radius: 999px;
+            padding: 0.45rem 0.72rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .switch button.active {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: 1.25fr 0.9fr;
+            gap: 1rem;
+        }
+
+        .hero-card {
+            border-radius: 26px;
+            padding: 1.2rem 1.2rem 1.3rem;
+            border: 1px solid var(--border);
+            background: var(--surface-glass);
+            backdrop-filter: blur(12px);
+            box-shadow: var(--shadow-soft);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-card::after {
+            content: "";
+            position: absolute;
+            right: -45px;
+            top: -45px;
+            width: 150px;
+            height: 150px;
+            border-radius: 30px;
+            background: color-mix(in srgb, var(--primary), transparent 82%);
+            transform: rotate(18deg);
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            border: 1px solid color-mix(in srgb, var(--primary), white 52%);
+            color: var(--primary);
+            background: color-mix(in srgb, var(--primary), transparent 88%);
+            border-radius: 999px;
+            padding: 0.34rem 0.72rem;
+            font-weight: 700;
+            font-size: 0.84rem;
+        }
+
+        .hero h2 {
+            margin: 0.9rem 0 0.55rem;
+            line-height: 1.04;
+            font-family: "Manrope", sans-serif;
+            font-size: clamp(1.65rem, 4.5vw, 2.9rem);
+        }
+
+        .hero p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 1.02rem;
+            max-width: 56ch;
+        }
+
+        .chips {
+            margin-top: 1rem;
+            display: flex;
+            gap: 0.55rem;
+            flex-wrap: wrap;
+        }
+
+        .chip {
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            padding: 0.45rem 0.8rem;
+            background: var(--surface-soft);
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .cta {
+            margin-top: 1.05rem;
+            display: flex;
+            gap: 0.55rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            border: 1px solid transparent;
+            border-radius: 13px;
+            padding: 0.7rem 1rem;
+            font-size: 0.96rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: transform 0.16s ease, box-shadow 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            color: #fff;
+            background: var(--cta-grad);
+            box-shadow: var(--glow);
+        }
+
+        .btn-ghost {
+            color: var(--primary);
+            background: var(--surface-soft);
+            border-color: color-mix(in srgb, var(--primary), transparent 50%);
+        }
+
+        .phone-card {
+            display: grid;
+            gap: 0.75rem;
+            align-content: start;
+        }
+
+        .phone {
+            border-radius: 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-soft);
+            overflow: hidden;
+        }
+
+        .phone-head {
+            height: 52px;
+            background: var(--hero-grad);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 800;
+        }
+
+        .phone-body {
+            padding: 0.85rem;
+            display: grid;
+            gap: 0.7rem;
+            background: var(--surface);
+        }
+
+        .mini-line {
+            height: 10px;
+            border-radius: 999px;
+            background: var(--surface-soft);
+            border: 1px solid var(--border);
+        }
+
+        .mini-line.short {
+            width: 58%;
+        }
+
+        .mini-button {
+            height: 34px;
+            border-radius: 999px;
+            background: var(--cta-grad);
+            box-shadow: var(--glow);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .card {
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--surface-glass);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow-soft);
+            padding: 1rem;
+        }
+
+        .stats {
+            grid-column: span 7;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+
+        .stat {
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            padding: 0.75rem;
+        }
+
+        .stat small {
+            display: block;
+            color: var(--text-muted);
+            margin-bottom: 0.3rem;
+        }
+
+        .stat strong {
+            font-size: 1.42rem;
+            font-family: "Manrope", sans-serif;
+        }
+
+        .stat.income {
+            background: color-mix(in srgb, var(--success), transparent 88%);
+        }
+
+        .stat.expense {
+            background: color-mix(in srgb, var(--danger), transparent 90%);
+        }
+
+        .stat.balance {
+            background: color-mix(in srgb, var(--warning), transparent 88%);
+        }
+
+        .palette {
+            grid-column: span 5;
+            display: grid;
+            gap: 0.7rem;
+        }
+
+        .swatches {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.6rem;
+        }
+
+        .sw {
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            padding: 0.5rem;
+        }
+
+        .sw-color {
+            height: 34px;
+            border-radius: 8px;
+            border: 1px solid color-mix(in srgb, var(--border), black 10%);
+            margin-bottom: 0.3rem;
+        }
+
+        .sw strong {
+            font-size: 0.84rem;
+        }
+
+        .sw code {
+            display: block;
+            color: var(--text-muted);
+            font-size: 0.76rem;
+        }
+
+        .table {
+            margin-top: 0.25rem;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        table {
+            width: 100%;
+            min-width: 640px;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            white-space: nowrap;
+            text-align: left;
+            padding: 0.72rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            color: var(--text-muted);
+            font-size: 0.84rem;
+            letter-spacing: 0.01em;
+            background: var(--surface-soft);
+        }
+
+        .pos {
+            color: var(--success);
+            font-weight: 700;
+        }
+
+        .neg {
+            color: var(--danger);
+            font-weight: 700;
+        }
+
+        .float {
+            animation: floatUp 4.6s ease-in-out infinite;
+        }
+
+        @keyframes floatUp {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+
+        @media (max-width: 1040px) {
+            .hero {
+                grid-template-columns: 1fr;
+            }
+
+            .stats,
+            .palette {
+                grid-column: span 12;
+            }
+        }
+
+        @media (max-width: 620px) {
+            .shell {
+                width: calc(100% - 1rem);
+            }
+
+            .topbar {
+                border-radius: 15px;
+                padding: 0.75rem;
+            }
+
+            .hero-card,
+            .card {
+                border-radius: 15px;
+                padding: 0.8rem;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .swatches {
+                grid-template-columns: 1fr;
+            }
+
+            .brand h1 {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <section class="topbar">
+            <div class="brand">
+                <div class="brand-mark float">EL</div>
+                <div>
+                    <h1>ExpenseLog Visual Lab</h1>
+                    <p id="themeInfo">Tema actual: -</p>
+                </div>
+            </div>
+            <div class="switch" role="group" aria-label="Seleccion de tema">
+                <button type="button" data-theme-btn="light">Claro</button>
+                <button type="button" data-theme-btn="dark">Oscuro</button>
+                <button type="button" data-theme-btn="system">Sistema</button>
+            </div>
+        </section>
+
+        <section class="hero">
+            <article class="hero-card">
+                <span class="pill">Finanzas claras, interfaz moderna</span>
+                <h2>La paleta ya se siente producto premium</h2>
+                <p>Probá cómo responde la identidad visual entre modo claro y oscuro, con cards, jerarquía tipográfica y contraste listo para escalar al producto real.</p>
+                <div class="chips">
+                    <span class="chip">Bento cards</span>
+                    <span class="chip">Glass surfaces</span>
+                    <span class="chip">Buttons con gradiente</span>
+                </div>
+                <div class="cta">
+                    <button class="btn btn-primary">Comenzar diseño</button>
+                    <button class="btn btn-ghost">Ver tokens</button>
+                </div>
+            </article>
+            <aside class="phone-card">
+                <div class="phone">
+                    <div class="phone-head">Preview Mobile</div>
+                    <div class="phone-body">
+                        <div class="mini-line short"></div>
+                        <div class="mini-line"></div>
+                        <div class="mini-button"></div>
+                        <div class="mini-line"></div>
+                        <div class="mini-line short"></div>
+                    </div>
+                </div>
+                <small style="color: var(--text-muted);">Referencia visual para mobile sin tocar tus vistas reales.</small>
+            </aside>
+        </section>
+
+        <section class="grid">
+            <article class="card stats">
+                <div class="stat">
+                    <small>Saldo inicial</small>
+                    <strong class="pos">$13.250,00</strong>
+                </div>
+                <div class="stat income">
+                    <small>Ingresos</small>
+                    <strong>$190.000,00</strong>
+                </div>
+                <div class="stat expense">
+                    <small>Gastos</small>
+                    <strong>$99.017,33</strong>
+                </div>
+                <div class="stat balance">
+                    <small>Balance</small>
+                    <strong class="pos">$104.232,67</strong>
+                </div>
+            </article>
+
+            <article class="card palette">
+                <h3 style="margin: 0; font-family: Manrope, sans-serif;">Paleta activa</h3>
+                <div class="swatches">
+                    <div class="sw">
+                        <div class="sw-color" style="background:#2563eb;"></div>
+                        <strong>Primary</strong>
+                        <code>#2563EB</code>
+                    </div>
+                    <div class="sw">
+                        <div class="sw-color" style="background:#06b6d4;"></div>
+                        <strong>Accent</strong>
+                        <code>#06B6D4</code>
+                    </div>
+                    <div class="sw">
+                        <div class="sw-color" style="background:#16a34a;"></div>
+                        <strong>Success</strong>
+                        <code>#16A34A</code>
+                    </div>
+                    <div class="sw">
+                        <div class="sw-color" style="background:#ef4444;"></div>
+                        <strong>Danger</strong>
+                        <code>#EF4444</code>
+                    </div>
+                </div>
+            </article>
+        </section>
+
+        <section class="card table">
+            <h3 style="margin: 0 0 0.75rem; font-family: Manrope, sans-serif;">Tabla de referencia</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Valor</th>
+                            <th>Balance</th>
+                            <th>Método</th>
+                            <th>Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Mentoplus</td>
+                            <td>Gastos diarios</td>
+                            <td class="neg">-$1.000,00</td>
+                            <td>$104.232,67</td>
+                            <td>CA</td>
+                            <td>17/02/2026</td>
+                        </tr>
+                        <tr>
+                            <td>Mensualidad</td>
+                            <td>Ingresos</td>
+                            <td class="pos">$170.000,00</td>
+                            <td>$175.699,67</td>
+                            <td>CA</td>
+                            <td>09/02/2026</td>
+                        </tr>
+                        <tr>
+                            <td>Pago Cuota</td>
+                            <td>Compras</td>
+                            <td class="neg">-$31.250,00</td>
+                            <td>$144.449,67</td>
+                            <td>Tarjeta</td>
+                            <td>10/02/2026</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        (function () {
+            const STORAGE_KEY = "theme";
+            const buttons = Array.from(document.querySelectorAll("[data-theme-btn]"));
+            const info = document.getElementById("themeInfo");
+            const query = window.matchMedia("(prefers-color-scheme: dark)");
+
+            function getStoredTheme() {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                return saved === "light" || saved === "dark" || saved === "system" ? saved : "system";
+            }
+
+            function resolveTheme(mode) {
+                if (mode === "light" || mode === "dark") return mode;
+                return query.matches ? "dark" : "light";
+            }
+
+            function apply(mode) {
+                const effective = resolveTheme(mode);
+                document.documentElement.setAttribute("data-theme", effective);
+                info.textContent = "Tema actual: " + mode + " (aplicado: " + effective + ")";
+                buttons.forEach((btn) => btn.classList.toggle("active", btn.dataset.themeBtn === mode));
+            }
+
+            buttons.forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    const mode = btn.dataset.themeBtn;
+                    localStorage.setItem(STORAGE_KEY, mode);
+                    apply(mode);
+                });
+            });
+
+            function onSystemThemeChange() {
+                if (getStoredTheme() === "system") {
+                    apply("system");
+                }
+            }
+
+            if (typeof query.addEventListener === "function") {
+                query.addEventListener("change", onSystemThemeChange);
+            } else if (typeof query.addListener === "function") {
+                query.addListener(onSystemThemeChange);
+            }
+
+            apply(getStoredTheme());
+        })();
+    </script>
+</body>
+</html>

@@ -690,7 +690,11 @@ func (h *Handler) ServeStaticFile(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{Error: "Method not allowed"})
 		return
 	}
-	if err := web.ServeStatic(w, r.URL.Path); err != nil {
+	staticPath := r.URL.Path
+	if strings.HasPrefix(staticPath, "/app/") {
+		staticPath = strings.TrimPrefix(staticPath, "/app")
+	}
+	if err := web.ServeStatic(w, staticPath); err != nil {
 		http.Error(w, "Failed to serve static file", http.StatusInternalServerError)
 	}
 }

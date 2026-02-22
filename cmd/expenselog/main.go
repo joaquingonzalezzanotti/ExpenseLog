@@ -23,15 +23,22 @@ func runServer(port int) {
 	defer storage.Close()
 	handler := api.NewHandler(storage)
 
+	registerAPI := func(path string, h http.HandlerFunc) {
+		http.HandleFunc(path, h)
+		http.HandleFunc("/api"+path, h)
+	}
+
 	// Version Handler
-	http.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
+	versionHandler := func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 		w.Header().Set("Content-Type", "text/plain")
 		w.Write([]byte(version))
-	})
+	}
+	http.HandleFunc("/version", versionHandler)
+	http.HandleFunc("/api/version", versionHandler)
 
 	// UI Handlers
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -58,75 +65,90 @@ func runServer(port int) {
 			return
 		}
 	})
+	http.HandleFunc("/app/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/app/" || r.URL.Path == "/app/index" || r.URL.Path == "/app/index.html" {
+			http.Redirect(w, r, "/app", http.StatusPermanentRedirect)
+			return
+		}
+		http.NotFound(w, r)
+	})
+	http.HandleFunc("/app/table", handler.ServeTableView)
+	http.HandleFunc("/app/settings", handler.ServeSettingsPage)
 	http.HandleFunc("/table", handler.ServeTableView)
 	http.HandleFunc("/settings", handler.ServeSettingsPage)
 
 	// Static File Handlers
-	http.HandleFunc("/robots.txt", handler.ServeStaticFile)
-	http.HandleFunc("/sitemap.xml", handler.ServeStaticFile)
-	http.HandleFunc("/functions.js", handler.ServeStaticFile)
-	http.HandleFunc("/alerts_ui.js", handler.ServeStaticFile)
-	http.HandleFunc("/cashflow_ui.js", handler.ServeStaticFile)
-	http.HandleFunc("/manifest.json", handler.ServeStaticFile)
-	http.HandleFunc("/sw.js", handler.ServeStaticFile)
-	http.HandleFunc("/pwa/", handler.ServeStaticFile)
-	http.HandleFunc("/style.css", handler.ServeStaticFile)
-	http.HandleFunc("/favicon.ico", handler.ServeStaticFile)
-	http.HandleFunc("/chart.min.js", handler.ServeStaticFile)
-	http.HandleFunc("/fa.min.css", handler.ServeStaticFile)
-	http.HandleFunc("/webfonts/", handler.ServeStaticFile)
+	staticPaths := []string{
+		"/robots.txt",
+		"/sitemap.xml",
+		"/functions.js",
+		"/alerts_ui.js",
+		"/cashflow_ui.js",
+		"/manifest.json",
+		"/sw.js",
+		"/pwa/",
+		"/style.css",
+		"/favicon.ico",
+		"/chart.min.js",
+		"/fa.min.css",
+		"/webfonts/",
+	}
+	for _, path := range staticPaths {
+		http.HandleFunc(path, handler.ServeStaticFile)
+		http.HandleFunc("/app"+path, handler.ServeStaticFile)
+	}
 
 	// Auth
-	http.HandleFunc("/auth/register", handler.AuthRegister)
-	http.HandleFunc("/auth/login", handler.AuthLogin)
-	http.HandleFunc("/auth/logout", handler.AuthLogout)
-	http.HandleFunc("/auth/me", handler.RequireAuth(handler.AuthMe))
-	http.HandleFunc("/auth/profile", handler.RequireAuth(handler.AuthUpdateProfile))
-	http.HandleFunc("/auth/reset/request", handler.AuthResetRequest)
-	http.HandleFunc("/auth/reset/confirm", handler.AuthResetConfirm)
-	http.HandleFunc("/auth/verify", handler.AuthVerifyEmail)
-	http.HandleFunc("/auth/google", handler.AuthGoogleStart)
-	http.HandleFunc("/auth/google/callback", handler.AuthGoogleCallback)
+	registerAPI("/auth/register", handler.AuthRegister)
+	registerAPI("/auth/login", handler.AuthLogin)
+	registerAPI("/auth/logout", handler.AuthLogout)
+	registerAPI("/auth/me", handler.RequireAuth(handler.AuthMe))
+	registerAPI("/auth/profile", handler.RequireAuth(handler.AuthUpdateProfile))
+	registerAPI("/auth/reset/request", handler.AuthResetRequest)
+	registerAPI("/auth/reset/confirm", handler.AuthResetConfirm)
+	registerAPI("/auth/verify", handler.AuthVerifyEmail)
+	registerAPI("/auth/google", handler.AuthGoogleStart)
+	registerAPI("/auth/google/callback", handler.AuthGoogleCallback)
 
 	// Config
-	http.HandleFunc("/config", handler.RequireAuth(handler.GetConfig))
-	http.HandleFunc("/categories", handler.RequireAuth(handler.GetCategories))
-	http.HandleFunc("/categories/edit", handler.RequireAuth(handler.UpdateCategories))
-	http.HandleFunc("/categories/add", handler.RequireAuth(handler.AddCategory))
-	http.HandleFunc("/categories/rename", handler.RequireAuth(handler.RenameCategory))
-	http.HandleFunc("/categories/delete", handler.RequireAuth(handler.DeleteCategory))
-	http.HandleFunc("/currency", handler.RequireAuth(handler.GetCurrency))
-	http.HandleFunc("/currency/edit", handler.RequireAuth(handler.UpdateCurrency))
-	http.HandleFunc("/startdate", handler.RequireAuth(handler.GetStartDate))
-	http.HandleFunc("/startdate/edit", handler.RequireAuth(handler.UpdateStartDate))
+	registerAPI("/config", handler.RequireAuth(handler.GetConfig))
+	registerAPI("/categories", handler.RequireAuth(handler.GetCategories))
+	registerAPI("/categories/edit", handler.RequireAuth(handler.UpdateCategories))
+	registerAPI("/categories/add", handler.RequireAuth(handler.AddCategory))
+	registerAPI("/categories/rename", handler.RequireAuth(handler.RenameCategory))
+	registerAPI("/categories/delete", handler.RequireAuth(handler.DeleteCategory))
+	registerAPI("/currency", handler.RequireAuth(handler.GetCurrency))
+	registerAPI("/currency/edit", handler.RequireAuth(handler.UpdateCurrency))
+	registerAPI("/startdate", handler.RequireAuth(handler.GetStartDate))
+	registerAPI("/startdate/edit", handler.RequireAuth(handler.UpdateStartDate))
 	// http.HandleFunc("/tags", handler.GetTags)
 	// http.HandleFunc("/tags/edit", handler.UpdateTags)
 
 	// Reconciliation
-	http.HandleFunc("/reconciliation/apply", handler.RequireAuth(handler.ReconcileBalance))
-	http.HandleFunc("/reconciliation/history", handler.RequireAuth(handler.GetReconciliationHistory))
-	http.HandleFunc("/reconciliation/revert", handler.RequireAuth(handler.RevertReconciliation))
+	registerAPI("/reconciliation/apply", handler.RequireAuth(handler.ReconcileBalance))
+	registerAPI("/reconciliation/history", handler.RequireAuth(handler.GetReconciliationHistory))
+	registerAPI("/reconciliation/revert", handler.RequireAuth(handler.RevertReconciliation))
 
 	// Expenses
-	http.HandleFunc("/expense", handler.RequireAuth(handler.AddExpense))                     // PUT for add
-	http.HandleFunc("/expenses", handler.RequireAuth(handler.GetExpenses))                   // GET all
-	http.HandleFunc("/expense/edit", handler.RequireAuth(handler.EditExpense))               // PUT for edit
-	http.HandleFunc("/expense/delete", handler.RequireAuth(handler.DeleteExpense))           // DELETE for single
-	http.HandleFunc("/expenses/delete", handler.RequireAuth(handler.DeleteMultipleExpenses)) // DELETE for multiple
+	registerAPI("/expense", handler.RequireAuth(handler.AddExpense))                     // PUT for add
+	registerAPI("/expenses", handler.RequireAuth(handler.GetExpenses))                   // GET all
+	registerAPI("/expense/edit", handler.RequireAuth(handler.EditExpense))               // PUT for edit
+	registerAPI("/expense/delete", handler.RequireAuth(handler.DeleteExpense))           // DELETE for single
+	registerAPI("/expenses/delete", handler.RequireAuth(handler.DeleteMultipleExpenses)) // DELETE for multiple
 
 	// Recurring Expenses
-	http.HandleFunc("/recurring-expense", handler.RequireAuth(handler.AddRecurringExpense))           // PUT for add
-	http.HandleFunc("/recurring-expenses", handler.RequireAuth(handler.GetRecurringExpenses))         // GET all
-	http.HandleFunc("/recurring-expense/edit", handler.RequireAuth(handler.UpdateRecurringExpense))   // PUT for edit
-	http.HandleFunc("/recurring-expense/delete", handler.RequireAuth(handler.DeleteRecurringExpense)) // DELETE
+	registerAPI("/recurring-expense", handler.RequireAuth(handler.AddRecurringExpense))           // PUT for add
+	registerAPI("/recurring-expenses", handler.RequireAuth(handler.GetRecurringExpenses))         // GET all
+	registerAPI("/recurring-expense/edit", handler.RequireAuth(handler.UpdateRecurringExpense))   // PUT for edit
+	registerAPI("/recurring-expense/delete", handler.RequireAuth(handler.DeleteRecurringExpense)) // DELETE
 
 	// Alerts
-	http.HandleFunc("/alerts/liquidity", handler.RequireAuth(handler.GetLiquidityAlerts))
+	registerAPI("/alerts/liquidity", handler.RequireAuth(handler.GetLiquidityAlerts))
 
 	// Import/Export
-	http.HandleFunc("/export/csv", handler.RequireAuth(handler.CSVFeatureDisabled))
-	http.HandleFunc("/import/csv", handler.RequireAuth(handler.CSVFeatureDisabled))
-	http.HandleFunc("/import/csvold", handler.RequireAuth(handler.CSVFeatureDisabled))
+	registerAPI("/export/csv", handler.RequireAuth(handler.CSVFeatureDisabled))
+	registerAPI("/import/csv", handler.RequireAuth(handler.CSVFeatureDisabled))
+	registerAPI("/import/csvold", handler.RequireAuth(handler.CSVFeatureDisabled))
 
 	server := &http.Server{
 		Addr:              fmt.Sprint(":", port),

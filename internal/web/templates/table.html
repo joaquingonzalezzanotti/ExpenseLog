@@ -309,6 +309,7 @@
         let currentCurrency = 'usd';
         let currentDate = new Date();
         let allExpenses = [];
+        let recurringProgressByExpense = {};
         let expensesForTable = [];
         let startDate = 1;
         let allTags = new Set();
@@ -732,12 +733,14 @@
                             const amountFlowClass = resolveFlow(expense) === 'expense' ? 'is-expense' : 'is-income';
                             const sourceCode = normalizeSourceCode(expense.source || 'CA');
                             const sourceLabel = formatSourceLabel(sourceCode);
+                            const recurringProgress = formatRecurringProgress(expense, recurringProgressByExpense);
                             return `
                             <tr>
                                 <td>
                                     <div class="expense-name-cell">
                                         <span class="expense-name-text">${highlightText(expense.name, searchQuery)}</span>
                                         ${expense.recurringID ? '<span class="recurring-badge">Recurrente</span>' : ''}
+                                        ${recurringProgress ? `<span class="recurring-badge quota-badge">Cuota ${recurringProgress}</span>` : ''}
                                         ${expense.systemLocked ? '<span class="recurring-badge">Sistema</span>' : ''}
                                     </div>
                                     <div class="expense-meta-mobile">
@@ -816,6 +819,9 @@
                 : expensesForTable;
             
             const tableContainer = document.getElementById('tableContainer');
+            recurringProgressByExpense = typeof buildRecurringProgressMap === 'function'
+                ? buildRecurringProgressMap(allExpenses)
+                : {};
             const runningBalances = computeRunningBalances(allExpenses);
             tableContainer.innerHTML = createTable(limitedExpenses, runningBalances);
             updateMobilePager(totalFiltered, limitedExpenses.length, mobileView);

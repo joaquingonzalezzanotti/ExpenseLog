@@ -349,6 +349,7 @@
         let pieChart = null;
         let currentDate = new Date();
         let allExpenses = [];
+        let recurringProgressByExpense = {};
         let disabledCategories = new Set();
         let categoryColors = {};
         let allTags = new Set();
@@ -1255,12 +1256,16 @@
                 return;
             }
             container.style.display = 'block';
-            list.innerHTML = recent.map(item => `
-                <div class="recent-item">
-                    <span><strong>${escapeHTML(item.name)}</strong> • ${escapeHTML(formatCategoryLabel(item.category))}</span>
-                    <span>${formatCurrencyWithCurrency(item.amount, item.currency || baseCurrency)}</span>
-                </div>
-            `).join('');
+            list.innerHTML = recent.map(item => {
+                const recurringProgress = formatRecurringProgress(item, recurringProgressByExpense);
+                const recurringSuffix = recurringProgress ? ` • Cuota ${escapeHTML(recurringProgress)}` : '';
+                return `
+                    <div class="recent-item">
+                        <span><strong>${escapeHTML(item.name)}</strong> • ${escapeHTML(formatCategoryLabel(item.category))}${recurringSuffix}</span>
+                        <span>${formatCurrencyWithCurrency(item.amount, item.currency || baseCurrency)}</span>
+                    </div>
+                `;
+            }).join('');
         }
 
         function isFuturePeriodSelected() {
@@ -1415,6 +1420,9 @@
                     source: exp.source || '',
                     card: exp.card || '',
                 }));
+                recurringProgressByExpense = typeof buildRecurringProgressMap === 'function'
+                    ? buildRecurringProgressMap(allExpenses)
+                    : {};
 
                 allTags.clear();
                 allExpenses.forEach(exp => {

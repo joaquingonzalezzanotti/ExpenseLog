@@ -1,6 +1,11 @@
 {
   "redirects": [
     {
+      "source": "/",
+      "destination": "/landing.html",
+      "permanent": false
+    },
+    {
       "source": "/index",
       "destination": "/",
       "permanent": true
@@ -32,10 +37,6 @@
     }
   ],
   "rewrites": [
-    {
-      "source": "/",
-      "destination": "/landing.html"
-    },
     {
       "source": "/app",
       "destination": "https://expenselog-dev.up.railway.app/app"

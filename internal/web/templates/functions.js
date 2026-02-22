@@ -707,7 +707,7 @@ function setupMobileMenu() {
         sidebar.hidden = true;
         sidebar.setAttribute('aria-hidden', 'true');
         overlay.hidden = true;
-        document.body.classList.remove('mobile-menu-open');
+        document.body.classList.remove('mobile-menu-open', 'sidebar-open');
     };
 
     const openMenu = () => {
@@ -715,7 +715,7 @@ function setupMobileMenu() {
         sidebar.hidden = false;
         sidebar.setAttribute('aria-hidden', 'false');
         overlay.hidden = false;
-        document.body.classList.add('mobile-menu-open');
+        document.body.classList.add('mobile-menu-open', 'sidebar-open');
     };
 
     toggle.addEventListener('click', () => {
@@ -737,6 +737,9 @@ function setupMobileMenu() {
             closeMenu();
         }
     });
+
+    // Ensure deterministic initial state even if cached DOM/state leaks.
+    closeMenu();
 }
 
 document.addEventListener('DOMContentLoaded', () => {

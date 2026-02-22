@@ -1571,7 +1571,23 @@
 
         window.editExpenseByIndex = editExpenseByIndex;
 </script>
-<script defer src="/_vercel/insights/script.js"></script>
-<script defer src="/_vercel/speed-insights/script.js"></script>
+<script>
+    (function loadVercelTelemetry() {
+        const host = window.location.hostname;
+        const isVercelHost = host.endsWith('.vercel.app');
+        const isPrimaryHost = host === 'expenselog.com.ar' || host === 'www.expenselog.com.ar';
+        if (!isVercelHost && !isPrimaryHost) return;
+
+        const addScript = (src) => {
+            const script = document.createElement('script');
+            script.defer = true;
+            script.src = src;
+            document.body.appendChild(script);
+        };
+
+        addScript('/_vercel/insights/script.js');
+        addScript('/_vercel/speed-insights/script.js');
+    })();
+</script>
 </body>
 </html>

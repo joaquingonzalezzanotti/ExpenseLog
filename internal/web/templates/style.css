@@ -1117,6 +1117,11 @@ body.mobile-menu-open {
     overflow: hidden;
 }
 
+body.sidebar-open .mobile-sidebar,
+body.sidebar-open .mobile-sidebar-overlay {
+    display: block !important;
+}
+
 .user-badge {
     width: 2.5rem;
     height: 2.5rem;

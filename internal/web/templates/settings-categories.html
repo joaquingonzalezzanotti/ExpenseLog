@@ -579,10 +579,12 @@
             });
         }
 
-        function showOnlySettingsSection(sectionId) {
+        function showOnlySettingsSection(sectionId, options = {}) {
             const targets = ['categoriesSection', 'recurringSection', 'reconciliationSection', 'reportsSection'];
             targets.forEach((id) => setSettingsSection(id, id === sectionId));
             setRecurringComposerVisible(false);
+            const shouldScroll = options.scroll !== false;
+            if (!shouldScroll) return;
             const targetNode = document.getElementById(sectionId);
             if (targetNode) {
                 targetNode.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1768,19 +1770,19 @@ async function saveCategoriesList(nextCategories) {
             setActiveMobilePrimaryNav(activeSection === 'reports' ? 'reports' : 'user');
 
             if (activeSection === 'reconciliation') {
-                showOnlySettingsSection('reconciliationSection');
+                showOnlySettingsSection('reconciliationSection', { scroll: false });
                 return;
             }
             if (activeSection === 'categories') {
-                showOnlySettingsSection('categoriesSection');
+                showOnlySettingsSection('categoriesSection', { scroll: false });
                 return;
             }
             if (activeSection === 'recurring') {
-                showOnlySettingsSection('recurringSection');
+                showOnlySettingsSection('recurringSection', { scroll: false });
                 return;
             }
             if (activeSection === 'reports') {
-                showOnlySettingsSection('reportsSection');
+                showOnlySettingsSection('reportsSection', { scroll: false });
                 return;
             }
 
@@ -2066,6 +2068,7 @@ async function saveCategoriesList(nextCategories) {
     </script>
 </body>
 </html>
+
 
 
 

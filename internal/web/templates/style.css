@@ -111,6 +111,11 @@ body.settings-page .container {
 header {
     margin-bottom: 1rem;
     border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 72;
+    background: color-mix(in srgb, var(--bg-primary), transparent 2%);
+    backdrop-filter: blur(6px);
 }
 
 .month-navigation {

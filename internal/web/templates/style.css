@@ -30,7 +30,7 @@
     --radius-pill: 9999px;
     --radius-card: 14px;
     --control-min-height: 42px;
-    --mobile-bottom-nav-reserve: calc(6.8rem + env(safe-area-inset-bottom, 0px));
+    --mobile-bottom-nav-reserve: calc(8rem + env(safe-area-inset-bottom, 0px));
 }
 
 /* Dark theme override */
@@ -2866,6 +2866,20 @@ body.settings-module-mode .settings-detail-header {
     margin-bottom: 1rem;
 }
 
+html[data-settings-route='categories'] body.settings-page .settings-shell-section,
+html[data-settings-route='recurring'] body.settings-page .settings-shell-section,
+html[data-settings-route='reconciliation'] body.settings-page .settings-shell-section,
+html[data-settings-route='reports'] body.settings-page .settings-shell-section {
+    display: none !important;
+}
+
+html[data-settings-route='categories'] body.settings-page #categoriesSection[hidden],
+html[data-settings-route='recurring'] body.settings-page #recurringSection[hidden],
+html[data-settings-route='reconciliation'] body.settings-page #reconciliationSection[hidden],
+html[data-settings-route='reports'] body.settings-page #reportsSection[hidden] {
+    display: block !important;
+}
+
 .settings-subtitle {
     margin-top: 1.25rem;
     margin-bottom: 0.55rem;
@@ -3301,6 +3315,13 @@ body.settings-module-mode .settings-detail-header {
 
     .container {
         padding: 0.5rem 0.5rem var(--mobile-bottom-nav-reserve);
+    }
+
+    .container::after {
+        content: "";
+        display: block;
+        height: calc(var(--mobile-bottom-nav-reserve) * 0.85);
+        pointer-events: none;
     }
 
     .chart-container {

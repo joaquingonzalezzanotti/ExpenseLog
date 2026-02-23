@@ -702,7 +702,7 @@ function setupMobileMenu() {
     const overlay = document.getElementById('mobileSidebarOverlay');
     if (!toggle || !sidebar || !overlay) return;
 
-    const desktopQuery = window.matchMedia('(min-width: 901px)');
+    const desktopQuery = window.matchMedia('(min-width: 1024px)');
     let desktopSidebarOpen = true;
 
     const isDesktop = () => desktopQuery.matches;
@@ -717,9 +717,8 @@ function setupMobileMenu() {
 
     const applyMobileState = (open) => {
         toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-        sidebar.hidden = !open;
         sidebar.setAttribute('aria-hidden', open ? 'false' : 'true');
-        overlay.hidden = !open;
+        overlay.setAttribute('aria-hidden', open ? 'false' : 'true');
         document.body.classList.toggle('mobile-menu-open', open);
         document.body.classList.toggle('sidebar-open', open);
         document.body.classList.remove('desktop-sidebar-open');
@@ -728,9 +727,8 @@ function setupMobileMenu() {
     const applyDesktopState = (open) => {
         desktopSidebarOpen = !!open;
         toggle.setAttribute('aria-expanded', desktopSidebarOpen ? 'true' : 'false');
-        sidebar.hidden = !desktopSidebarOpen;
         sidebar.setAttribute('aria-hidden', desktopSidebarOpen ? 'false' : 'true');
-        overlay.hidden = true;
+        overlay.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('mobile-menu-open', 'sidebar-open');
         document.body.classList.toggle('desktop-sidebar-open', desktopSidebarOpen);
         updateSidebarTopOffset();
@@ -803,6 +801,9 @@ function setupMobileMenu() {
             updateSidebarTopOffset();
         }
     }, { passive: true });
+
+    sidebar.hidden = false;
+    overlay.hidden = false;
 
     // Desktop: abierta por defecto. Mobile: cerrada.
     applyResponsiveState(true);

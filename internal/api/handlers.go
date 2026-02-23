@@ -13,6 +13,14 @@ import (
 	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/web"
 )
 
+var settingsSectionQueryMap = map[string]string{
+	"profile":        "",
+	"categories":     "categories",
+	"recurring":      "recurring",
+	"reconciliation": "reconciliation",
+	"reports":        "reports",
+}
+
 // Handler holds the storage interface
 type Handler struct {
 	storage storage.Storage
@@ -675,8 +683,49 @@ func (h *Handler) ServeTableView(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ServeSettingsPage(w http.ResponseWriter, r *http.Request) {
+	h.serveSettingsPageWithSection(w, r, "profile")
+}
+
+func (h *Handler) ServeSettingsCategoriesPage(w http.ResponseWriter, r *http.Request) {
+	h.serveSettingsPageWithSection(w, r, "categories")
+}
+
+func (h *Handler) ServeSettingsRecurringPage(w http.ResponseWriter, r *http.Request) {
+	h.serveSettingsPageWithSection(w, r, "recurring")
+}
+
+func (h *Handler) ServeSettingsReconciliationPage(w http.ResponseWriter, r *http.Request) {
+	h.serveSettingsPageWithSection(w, r, "reconciliation")
+}
+
+func (h *Handler) ServeSettingsReportsPage(w http.ResponseWriter, r *http.Request) {
+	h.serveSettingsPageWithSection(w, r, "reports")
+}
+
+func (h *Handler) serveSettingsPageWithSection(w http.ResponseWriter, r *http.Request, section string) {
 	if r.Method != http.MethodGet {
 		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{Error: "Method not allowed"})
+		return
+	}
+	normalizedSection := strings.ToLower(strings.TrimSpace(section))
+	querySection, ok := settingsSectionQueryMap[normalizedSection]
+	if !ok {
+		querySection = ""
+	}
+	requestedSection := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("section")))
+	if querySection != requestedSection {
+		targetPath := r.URL.Path
+		targetQuery := r.URL.Query()
+		if querySection == "" {
+			targetQuery.Del("section")
+		} else {
+			targetQuery.Set("section", querySection)
+		}
+		target := targetPath
+		if encoded := targetQuery.Encode(); encoded != "" {
+			target += "?" + encoded
+		}
+		http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html")

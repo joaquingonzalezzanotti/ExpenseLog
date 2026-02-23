@@ -74,8 +74,18 @@ func runServer(port int) {
 	})
 	http.HandleFunc("/app/table", handler.ServeTableView)
 	http.HandleFunc("/app/settings", handler.ServeSettingsPage)
+	http.HandleFunc("/app/perfil", handler.ServeSettingsPage)
+	http.HandleFunc("/app/categorias", handler.ServeSettingsCategoriesPage)
+	http.HandleFunc("/app/recurrentes", handler.ServeSettingsRecurringPage)
+	http.HandleFunc("/app/conciliacion", handler.ServeSettingsReconciliationPage)
+	http.HandleFunc("/app/reportes", handler.ServeSettingsReportsPage)
 	http.HandleFunc("/table", handler.ServeTableView)
 	http.HandleFunc("/settings", handler.ServeSettingsPage)
+	http.HandleFunc("/perfil", handler.ServeSettingsPage)
+	http.HandleFunc("/categorias", handler.ServeSettingsCategoriesPage)
+	http.HandleFunc("/recurrentes", handler.ServeSettingsRecurringPage)
+	http.HandleFunc("/conciliacion", handler.ServeSettingsReconciliationPage)
+	http.HandleFunc("/reportes", handler.ServeSettingsReportsPage)
 
 	// Static File Handlers
 	staticPaths := []string{

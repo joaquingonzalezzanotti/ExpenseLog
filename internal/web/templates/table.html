@@ -45,8 +45,8 @@
                     <a href="/app" class="mobile-sidebar-link">Inicio</a>
                     <a href="/app/table" class="mobile-sidebar-link">Tabla</a>
                     <a href="/app/table?view=calendar" class="mobile-sidebar-link">Calendario</a>
-                    <a href="/app/settings?section=reports" class="mobile-sidebar-link">Reportes</a>
-                    <a href="/app/settings" class="mobile-sidebar-link">Usuario</a>
+                    <a href="/app/reportes" class="mobile-sidebar-link">Reportes</a>
+                    <a href="/app/perfil" class="mobile-sidebar-link">Usuario</a>
                 </nav>
             </aside>
         </header>
@@ -55,8 +55,8 @@
                     <a href="/app" class="mobile-nav-item"><i class="fa-solid fa-house"></i><span>Inicio</span></a>
                     <a id="mobileNavTable" href="/app/table" class="mobile-nav-item active" aria-current="page"><i class="fa-solid fa-table"></i><span>Tabla</span></a>
                     <a id="mobileNavCalendar" href="/app/table?view=calendar" class="mobile-nav-item"><i class="fa-regular fa-calendar-days"></i><span>Calendario</span></a>
-                    <a href="/app/settings?section=reports" class="mobile-nav-item"><i class="fa-regular fa-file-lines"></i><span>Reportes</span></a>
-                    <a href="/app/settings" class="mobile-nav-item"><i class="fa-regular fa-user"></i><span>Usuario</span></a>
+                    <a href="/app/reportes" class="mobile-nav-item"><i class="fa-regular fa-file-lines"></i><span>Reportes</span></a>
+                    <a href="/app/perfil" class="mobile-nav-item"><i class="fa-regular fa-user"></i><span>Usuario</span></a>
         </nav>
 
         <div class="month-navigation">
@@ -1566,7 +1566,7 @@
         });
 
         function goToReconciliationSettings() {
-            window.location.href = '/app/settings?section=reconciliation';
+            window.location.href = '/app/conciliacion';
         }
 
         window.editExpenseByIndex = editExpenseByIndex;

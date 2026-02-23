@@ -45,18 +45,18 @@
                     <a href="/app" class="mobile-sidebar-link">Inicio</a>
                     <a href="/app/table" class="mobile-sidebar-link">Tabla</a>
                     <a href="/app/table?view=calendar" class="mobile-sidebar-link">Calendario</a>
-                    <a href="/app/settings?section=reports" class="mobile-sidebar-link">Reportes</a>
-                    <a href="/app/settings" class="mobile-sidebar-link">Usuario</a>
+                    <a href="/app/reportes" class="mobile-sidebar-link">Reportes</a>
+                    <a href="/app/perfil" class="mobile-sidebar-link">Usuario</a>
                 </nav>
             </aside>
         </header>
 
         <nav class="mobile-bottom-nav" aria-label="Modulos de configuracion">
-                    <a id="mobileNavProfile" href="/app/settings" class="mobile-nav-item active" aria-current="page"><i class="fa-regular fa-user"></i><span>Perfil</span></a>
-                    <a id="mobileNavCategories" href="/app/settings?section=categories" class="mobile-nav-item"><i class="fa-solid fa-tags"></i><span>Categorias</span></a>
-                    <a id="mobileNavRecurring" href="/app/settings?section=recurring" class="mobile-nav-item"><i class="fa-solid fa-repeat"></i><span>Recurrentes</span></a>
-                    <a id="mobileNavReconciliation" href="/app/settings?section=reconciliation" class="mobile-nav-item"><i class="fa-solid fa-scale-balanced"></i><span>Conciliar</span></a>
-                    <a id="mobileNavReports" href="/app/settings?section=reports" class="mobile-nav-item"><i class="fa-regular fa-file-lines"></i><span>Reportes</span></a>
+                    <a id="mobileNavProfile" href="/app/perfil" class="mobile-nav-item active" aria-current="page"><i class="fa-regular fa-user"></i><span>Perfil</span></a>
+                    <a id="mobileNavCategories" href="/app/categorias" class="mobile-nav-item"><i class="fa-solid fa-tags"></i><span>Categorias</span></a>
+                    <a id="mobileNavRecurring" href="/app/recurrentes" class="mobile-nav-item"><i class="fa-solid fa-repeat"></i><span>Recurrentes</span></a>
+                    <a id="mobileNavReconciliation" href="/app/conciliacion" class="mobile-nav-item"><i class="fa-solid fa-scale-balanced"></i><span>Conciliar</span></a>
+                    <a id="mobileNavReports" href="/app/reportes" class="mobile-nav-item"><i class="fa-regular fa-file-lines"></i><span>Reportes</span></a>
         </nav>
 
         <section class="form-container settings-section settings-profile">
@@ -112,19 +112,19 @@
         <section class="form-container settings-section">
             <h2>Gestión 🛠️</h2>
             <div class="settings-nav-list">
-                <button class="settings-nav-item" id="openCategoriesSection" type="button" data-settings-section="categoriesSection" aria-expanded="false">
+                <button class="settings-nav-item" id="openCategoriesSection" type="button" data-settings-section="categoriesSection" data-settings-route="/app/categorias" aria-expanded="false">
                     <span>🏷️ Categorías</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
-                <button class="settings-nav-item" id="openRecurringSection" type="button" data-settings-section="recurringSection" aria-expanded="false">
+                <button class="settings-nav-item" id="openRecurringSection" type="button" data-settings-section="recurringSection" data-settings-route="/app/recurrentes" aria-expanded="false">
                     <span>🔁 Transacciones recurrentes</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
-                <button class="settings-nav-item" id="openReconciliationSection" type="button" data-settings-section="reconciliationSection" aria-expanded="false">
+                <button class="settings-nav-item" id="openReconciliationSection" type="button" data-settings-section="reconciliationSection" data-settings-route="/app/conciliacion" aria-expanded="false">
                     <span>🧮 Conciliacion de balance</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
-                <button class="settings-nav-item" id="openReportsSection" type="button" data-settings-section="reportsSection" aria-expanded="false">
+                <button class="settings-nav-item" id="openReportsSection" type="button" data-settings-section="reportsSection" data-settings-route="/app/reportes" aria-expanded="false">
                     <span>🧾 Reportes mensuales</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
@@ -1667,17 +1667,43 @@ async function saveCategoriesList(nextCategories) {
             }
         }
 
+        function normalizeSettingsSection(value) {
+            const normalized = String(value || '').trim().toLowerCase();
+            if (normalized === 'categories' || normalized === 'categorias') return 'categories';
+            if (normalized === 'recurring' || normalized === 'recurrentes') return 'recurring';
+            if (normalized === 'reconciliation' || normalized === 'conciliacion') return 'reconciliation';
+            if (normalized === 'reports' || normalized === 'reportes') return 'reports';
+            if (normalized === 'profile' || normalized === 'perfil' || normalized === 'settings') return 'profile';
+            return '';
+        }
+
+        function sectionFromPath(pathname) {
+            const normalizedPath = String(pathname || '')
+                .trim()
+                .toLowerCase()
+                .replace(/\/+$/, '');
+
+            if (normalizedPath === '/app/categorias' || normalizedPath === '/categorias') return 'categories';
+            if (normalizedPath === '/app/recurrentes' || normalizedPath === '/recurrentes') return 'recurring';
+            if (normalizedPath === '/app/conciliacion' || normalizedPath === '/conciliacion') return 'reconciliation';
+            if (normalizedPath === '/app/reportes' || normalizedPath === '/reportes') return 'reports';
+            if (
+                normalizedPath === '/app/perfil' ||
+                normalizedPath === '/perfil' ||
+                normalizedPath === '/app/settings' ||
+                normalizedPath === '/settings'
+            ) {
+                return 'profile';
+            }
+            return '';
+        }
+
         function openSectionFromURL() {
             const params = new URLSearchParams(window.location.search);
-            const section = (params.get('section') || '').toLowerCase();
-            const hash = (window.location.hash || '').toLowerCase();
-            const activeSection = (() => {
-                if (section === 'reconciliation' || hash === '#reconciliation') return 'reconciliation';
-                if (section === 'categories' || hash === '#categories') return 'categories';
-                if (section === 'recurring' || hash === '#recurring') return 'recurring';
-                if (section === 'reports' || hash === '#reports') return 'reports';
-                return 'profile';
-            })();
+            const querySection = normalizeSettingsSection(params.get('section') || '');
+            const hashSection = normalizeSettingsSection((window.location.hash || '').replace(/^#/, ''));
+            const pathSection = sectionFromPath(window.location.pathname);
+            const activeSection = querySection || hashSection || pathSection || 'profile';
 
             const mobileNavMap = {
                 profile: document.getElementById('mobileNavProfile'),
@@ -1697,19 +1723,19 @@ async function saveCategoriesList(nextCategories) {
                 }
             });
 
-            if (section === 'reconciliation' || hash === '#reconciliation') {
+            if (activeSection === 'reconciliation') {
                 showOnlySettingsSection('reconciliationSection');
                 return;
             }
-            if (section === 'categories' || hash === '#categories') {
+            if (activeSection === 'categories') {
                 showOnlySettingsSection('categoriesSection');
                 return;
             }
-            if (section === 'recurring' || hash === '#recurring') {
+            if (activeSection === 'recurring') {
                 showOnlySettingsSection('recurringSection');
                 return;
             }
-            if (section === 'reports' || hash === '#reports') {
+            if (activeSection === 'reports') {
                 showOnlySettingsSection('reportsSection');
             }
         }
@@ -1822,6 +1848,11 @@ async function saveCategoriesList(nextCategories) {
         // --- Event Listeners ---
         settingsSectionButtons.forEach((button) => {
             button.addEventListener('click', () => {
+                const route = button.dataset.settingsRoute;
+                if (route) {
+                    window.location.href = route;
+                    return;
+                }
                 const sectionId = button.dataset.settingsSection;
                 if (sectionId) showOnlySettingsSection(sectionId);
             });
@@ -1829,7 +1860,13 @@ async function saveCategoriesList(nextCategories) {
         settingsCloseButtons.forEach((button) => {
             button.addEventListener('click', () => {
                 const sectionId = button.dataset.settingsClose;
-                if (sectionId) hideSettingsSection(sectionId);
+                if (!sectionId) return;
+                const routeSection = sectionFromPath(window.location.pathname);
+                if (routeSection && routeSection !== 'profile') {
+                    window.location.href = '/app/settings';
+                    return;
+                }
+                hideSettingsSection(sectionId);
             });
         });
         document.getElementById('settingsLogoutBtn')?.addEventListener('click', () => {

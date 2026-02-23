@@ -26,6 +26,31 @@
       "permanent": true
     },
     {
+      "source": "/perfil",
+      "destination": "/app/perfil",
+      "permanent": true
+    },
+    {
+      "source": "/categorias",
+      "destination": "/app/categorias",
+      "permanent": true
+    },
+    {
+      "source": "/recurrentes",
+      "destination": "/app/recurrentes",
+      "permanent": true
+    },
+    {
+      "source": "/conciliacion",
+      "destination": "/app/conciliacion",
+      "permanent": true
+    },
+    {
+      "source": "/reportes",
+      "destination": "/app/reportes",
+      "permanent": true
+    },
+    {
       "source": "/app/index",
       "destination": "/app",
       "permanent": true

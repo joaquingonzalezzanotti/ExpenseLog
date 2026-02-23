@@ -2856,6 +2856,16 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     display: none !important;
 }
 
+body.settings-module-mode .settings-detail-section {
+    max-width: 980px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+body.settings-module-mode .settings-detail-header {
+    margin-bottom: 1rem;
+}
+
 .settings-subtitle {
     margin-top: 1.25rem;
     margin-bottom: 0.55rem;
@@ -3290,7 +3300,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     }
 
     .container {
-        padding: 0.5rem;
+        padding: 0.5rem 0.5rem var(--mobile-bottom-nav-reserve);
     }
 
     .chart-container {

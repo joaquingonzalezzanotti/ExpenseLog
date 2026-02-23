@@ -15,6 +15,35 @@
             document.documentElement.setAttribute('data-theme', theme);
         })();
     </script>
+    <script>
+        (function() {
+            const normalizeSection = (value) => {
+                const normalized = String(value || '').trim().toLowerCase();
+                if (normalized === 'categories' || normalized === 'categorias') return 'categories';
+                if (normalized === 'recurring' || normalized === 'recurrentes') return 'recurring';
+                if (normalized === 'reconciliation' || normalized === 'conciliacion') return 'reconciliation';
+                if (normalized === 'reports' || normalized === 'reportes') return 'reports';
+                if (normalized === 'profile' || normalized === 'perfil' || normalized === 'settings') return 'profile';
+                return '';
+            };
+
+            const path = String(window.location.pathname || '').trim().toLowerCase().replace(/\/+$/, '');
+            const query = new URLSearchParams(window.location.search || '');
+            const hashSection = normalizeSection((window.location.hash || '').replace(/^#/, ''));
+            const querySection = normalizeSection(query.get('section') || '');
+            const pathSection = (() => {
+                if (path === '/app/categorias' || path === '/categorias') return 'categories';
+                if (path === '/app/recurrentes' || path === '/recurrentes') return 'recurring';
+                if (path === '/app/conciliacion' || path === '/conciliacion') return 'reconciliation';
+                if (path === '/app/reportes' || path === '/reportes') return 'reports';
+                if (path === '/app/perfil' || path === '/perfil' || path === '/app/settings' || path === '/settings') return 'profile';
+                return '';
+            })();
+
+            const activeSection = querySection || hashSection || pathSection || 'profile';
+            document.documentElement.setAttribute('data-settings-route', activeSection);
+        })();
+    </script>
     <title>Configuracion ExpenseLog</title>
 </head>
 <body class="auth-pending settings-page">
@@ -56,7 +85,7 @@
                     <a id="mobileNavTable" href="/app/table" class="mobile-nav-item"><i class="fa-solid fa-table"></i><span>Tabla</span></a>
                     <a id="mobileNavCalendar" href="/app/table?view=calendar" class="mobile-nav-item"><i class="fa-regular fa-calendar-days"></i><span>Calendario</span></a>
                     <a id="mobileNavReports" href="/app/reportes" class="mobile-nav-item"><i class="fa-regular fa-file-lines"></i><span>Reportes</span></a>
-                    <a id="mobileNavUser" href="/app/settings" class="mobile-nav-item active" aria-current="page"><i class="fa-regular fa-user"></i><span>Usuario</span></a>
+                    <a id="mobileNavUser" href="/app/perfil" class="mobile-nav-item active" aria-current="page"><i class="fa-regular fa-user"></i><span>Usuario</span></a>
         </nav>
 
         <section class="form-container settings-section settings-shell-section settings-profile">
@@ -1728,6 +1757,7 @@ async function saveCategoriesList(nextCategories) {
             const hashSection = normalizeSettingsSection((window.location.hash || '').replace(/^#/, ''));
             const pathSection = sectionFromPath(window.location.pathname);
             const activeSection = querySection || hashSection || pathSection || 'profile';
+            document.documentElement.setAttribute('data-settings-route', activeSection);
             const isModuleRoute = activeSection !== 'profile' && (
                 pathSection !== '' ||
                 querySection !== '' ||
@@ -1764,6 +1794,7 @@ async function saveCategoriesList(nextCategories) {
         // --- Initialization ---
         async function initialize() {
             try {
+                openSectionFromURL();
                 categoriesLoading = true;
                 const cached = loadCachedCategories();
                 if (cached && cached.length > 0) {

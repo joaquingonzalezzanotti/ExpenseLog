@@ -51,15 +51,15 @@
             </aside>
         </header>
 
-        <nav class="mobile-bottom-nav" aria-label="Modulos de configuracion">
-                    <a id="mobileNavProfile" href="/app/perfil" class="mobile-nav-item active" aria-current="page"><i class="fa-regular fa-user"></i><span>Perfil</span></a>
-                    <a id="mobileNavCategories" href="/app/categorias" class="mobile-nav-item"><i class="fa-solid fa-tags"></i><span>Categorias</span></a>
-                    <a id="mobileNavRecurring" href="/app/recurrentes" class="mobile-nav-item"><i class="fa-solid fa-repeat"></i><span>Recurrentes</span></a>
-                    <a id="mobileNavReconciliation" href="/app/conciliacion" class="mobile-nav-item"><i class="fa-solid fa-scale-balanced"></i><span>Conciliar</span></a>
+        <nav class="mobile-bottom-nav" aria-label="Navegacion principal">
+                    <a id="mobileNavHome" href="/app" class="mobile-nav-item"><i class="fa-solid fa-house"></i><span>Inicio</span></a>
+                    <a id="mobileNavTable" href="/app/table" class="mobile-nav-item"><i class="fa-solid fa-table"></i><span>Tabla</span></a>
+                    <a id="mobileNavCalendar" href="/app/table?view=calendar" class="mobile-nav-item"><i class="fa-regular fa-calendar-days"></i><span>Calendario</span></a>
                     <a id="mobileNavReports" href="/app/reportes" class="mobile-nav-item"><i class="fa-regular fa-file-lines"></i><span>Reportes</span></a>
+                    <a id="mobileNavUser" href="/app/settings" class="mobile-nav-item active" aria-current="page"><i class="fa-regular fa-user"></i><span>Usuario</span></a>
         </nav>
 
-        <section class="form-container settings-section settings-profile">
+        <section class="form-container settings-section settings-shell-section settings-profile">
             <div class="settings-detail-header settings-profile-header">
                 <h2>Perfil 👤</h2>
                 <button id="settingsLogoutBtn" class="settings-logout-btn" type="button" aria-label="Cerrar sesion" title="Cerrar sesion">
@@ -81,7 +81,7 @@
             <div id="profileMessage" class="form-message"></div>
         </section>
 
-        <section class="form-container settings-section">
+        <section class="form-container settings-section settings-shell-section">
             <h2>Preferencias ⚙️</h2>
             <div class="settings-preferences-grid">
                 <div class="settings-preference-item">
@@ -109,7 +109,7 @@
             </div>
         </section>
 
-        <section class="form-container settings-section">
+        <section class="form-container settings-section settings-shell-section">
             <h2>Gestión 🛠️</h2>
             <div class="settings-nav-list">
                 <button class="settings-nav-item" id="openCategoriesSection" type="button" data-settings-section="categoriesSection" data-settings-route="/app/categorias" aria-expanded="false">
@@ -134,7 +134,7 @@
             <div class="settings-detail-header">
                 <h2>🧾 Reportes mensuales</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="reportsSection" aria-label="Cerrar reportes" title="Cerrar reportes">
-                    <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
+                    <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 </button>
             </div>
             <p class="settings-helper-text settings-reports-helper">Genera y descarga tu reporte mensual en el momento. Los archivos no se guardan en el servidor.</p>
@@ -177,7 +177,7 @@
             <div class="settings-detail-header">
                 <h2>🏷️ Categorías</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="categoriesSection" aria-label="Cerrar categorias" title="Cerrar categorias">
-                    <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
+                    <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 </button>
             </div>
             <div id="categories-manager">
@@ -211,7 +211,7 @@
             <div class="settings-detail-header">
                 <h2>🔁 Transacciones recurrentes</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="recurringSection" aria-label="Cerrar transacciones recurrentes" title="Cerrar transacciones recurrentes">
-                    <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
+                    <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 </button>
             </div>
             <h3 class="settings-subtitle">📋 Transacciones recurrentes existentes</h3>
@@ -284,7 +284,7 @@
             <div class="settings-detail-header">
                 <h2>🧮 Conciliacion de balance</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="reconciliationSection" aria-label="Cerrar conciliacion" title="Cerrar conciliacion">
-                    <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
+                    <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="settings-divider"></div>
@@ -1698,30 +1698,44 @@ async function saveCategoriesList(nextCategories) {
             return '';
         }
 
+        function setShellSectionsHidden(hidden) {
+            document.querySelectorAll('.settings-shell-section').forEach((section) => {
+                section.hidden = !!hidden;
+            });
+            document.body.classList.toggle('settings-module-mode', !!hidden);
+        }
+
+        function setActiveMobilePrimaryNav(activeKey) {
+            const primaryNavMap = {
+                reports: document.getElementById('mobileNavReports'),
+                user: document.getElementById('mobileNavUser'),
+            };
+            Object.values(primaryNavMap).forEach((node) => {
+                if (!node) return;
+                node.classList.remove('active');
+                node.removeAttribute('aria-current');
+            });
+            const activeNode = primaryNavMap[activeKey];
+            if (activeNode) {
+                activeNode.classList.add('active');
+                activeNode.setAttribute('aria-current', 'page');
+            }
+        }
+
         function openSectionFromURL() {
             const params = new URLSearchParams(window.location.search);
             const querySection = normalizeSettingsSection(params.get('section') || '');
             const hashSection = normalizeSettingsSection((window.location.hash || '').replace(/^#/, ''));
             const pathSection = sectionFromPath(window.location.pathname);
             const activeSection = querySection || hashSection || pathSection || 'profile';
+            const isModuleRoute = activeSection !== 'profile' && (
+                pathSection !== '' ||
+                querySection !== '' ||
+                hashSection !== ''
+            );
 
-            const mobileNavMap = {
-                profile: document.getElementById('mobileNavProfile'),
-                categories: document.getElementById('mobileNavCategories'),
-                recurring: document.getElementById('mobileNavRecurring'),
-                reconciliation: document.getElementById('mobileNavReconciliation'),
-                reports: document.getElementById('mobileNavReports'),
-            };
-            Object.entries(mobileNavMap).forEach(([key, node]) => {
-                if (!node) return;
-                const isActive = key === activeSection;
-                node.classList.toggle('active', isActive);
-                if (isActive) {
-                    node.setAttribute('aria-current', 'page');
-                } else {
-                    node.removeAttribute('aria-current');
-                }
-            });
+            setShellSectionsHidden(isModuleRoute);
+            setActiveMobilePrimaryNav(activeSection === 'reports' ? 'reports' : 'user');
 
             if (activeSection === 'reconciliation') {
                 showOnlySettingsSection('reconciliationSection');
@@ -1737,7 +1751,14 @@ async function saveCategoriesList(nextCategories) {
             }
             if (activeSection === 'reports') {
                 showOnlySettingsSection('reportsSection');
+                return;
             }
+
+            setRecurringComposerVisible(false);
+            hideSettingsSection('categoriesSection');
+            hideSettingsSection('recurringSection');
+            hideSettingsSection('reconciliationSection');
+            hideSettingsSection('reportsSection');
         }
 
         // --- Initialization ---

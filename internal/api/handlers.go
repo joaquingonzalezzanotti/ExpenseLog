@@ -13,14 +13,6 @@ import (
 	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/web"
 )
 
-var settingsSectionQueryMap = map[string]string{
-	"profile":        "",
-	"categories":     "categories",
-	"recurring":      "recurring",
-	"reconciliation": "reconciliation",
-	"reports":        "reports",
-}
-
 // Handler holds the storage interface
 type Handler struct {
 	storage storage.Storage
@@ -702,30 +694,9 @@ func (h *Handler) ServeSettingsReportsPage(w http.ResponseWriter, r *http.Reques
 	h.serveSettingsPageWithSection(w, r, "reports")
 }
 
-func (h *Handler) serveSettingsPageWithSection(w http.ResponseWriter, r *http.Request, section string) {
+func (h *Handler) serveSettingsPageWithSection(w http.ResponseWriter, r *http.Request, _ string) {
 	if r.Method != http.MethodGet {
 		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{Error: "Method not allowed"})
-		return
-	}
-	normalizedSection := strings.ToLower(strings.TrimSpace(section))
-	querySection, ok := settingsSectionQueryMap[normalizedSection]
-	if !ok {
-		querySection = ""
-	}
-	requestedSection := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("section")))
-	if querySection != requestedSection {
-		targetPath := r.URL.Path
-		targetQuery := r.URL.Query()
-		if querySection == "" {
-			targetQuery.Del("section")
-		} else {
-			targetQuery.Set("section", querySection)
-		}
-		target := targetPath
-		if encoded := targetQuery.Encode(); encoded != "" {
-			target += "?" + encoded
-		}
-		http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html")

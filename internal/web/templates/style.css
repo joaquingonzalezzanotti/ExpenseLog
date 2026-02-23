@@ -103,6 +103,18 @@ body.auth-locked .container {
     padding: 1rem;
 }
 
+.app-shell {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    width: 100%;
+}
+
+.app-content {
+    flex: 1;
+    min-width: 0;
+}
+
 body.settings-page .container {
     min-height: calc(100vh - 2rem);
     min-height: calc(100dvh - 2rem);
@@ -1043,8 +1055,10 @@ input:focus-visible {
     right: 0;
     bottom: 0;
     left: 0;
-    background: rgba(15, 23, 42, 0.2);
+    background: rgba(15, 23, 42, 0.46);
     z-index: 58;
+    opacity: 0;
+    transition: opacity 0.22s ease;
 }
 
 .mobile-sidebar {
@@ -1055,13 +1069,16 @@ input:focus-visible {
     height: auto;
     max-height: calc(100dvh - var(--sidebar-top, 84px) - 1rem);
     width: min(290px, 28vw);
-    background: color-mix(in srgb, var(--bg-secondary), transparent 2%);
+    background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 18px;
     box-shadow: 0 18px 36px rgba(2, 6, 23, 0.16);
     z-index: 65;
     padding: 1rem 0.8rem;
     overflow-y: auto;
+    opacity: 0;
+    transform: translateX(-16px);
+    transition: opacity 0.22s ease, transform 0.22s ease;
 }
 
 .mobile-sidebar[hidden],
@@ -1072,6 +1089,15 @@ input:focus-visible {
 .mobile-sidebar:not([hidden]),
 .mobile-sidebar-overlay:not([hidden]) {
     display: block;
+}
+
+.mobile-sidebar.is-open {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.mobile-sidebar-overlay.is-open {
+    opacity: 1;
 }
 
 .mobile-sidebar-nav {
@@ -1145,10 +1171,25 @@ body.sidebar-open .mobile-sidebar-overlay {
 
 body.desktop-sidebar-open .mobile-sidebar {
     display: block !important;
+    position: sticky;
+    top: var(--sidebar-top, 84px);
+    left: 0;
+    bottom: auto;
+    width: 260px;
+    min-width: 260px;
+    max-height: calc(100dvh - var(--sidebar-top, 84px) - 1rem);
+    border-radius: 16px;
+    z-index: 40;
+    opacity: 1;
+    transform: none;
 }
 
 body.desktop-sidebar-open .mobile-sidebar-overlay {
     display: none !important;
+}
+
+body:not(.desktop-sidebar-open) .app-content {
+    width: 100%;
 }
 
 .user-badge {
@@ -3254,16 +3295,16 @@ html[data-settings-route='reports'] body.settings-page #reportsSection[hidden] {
     }
 
     .mobile-sidebar-overlay {
-        top: 0;
-        background: rgba(15, 23, 42, 0.42);
+        top: var(--sidebar-top, 84px);
+        background: rgba(15, 23, 42, 0.52);
     }
 
     .mobile-sidebar {
-        top: 0.55rem;
+        top: var(--sidebar-top, 84px);
         left: 0.45rem;
         bottom: 0.55rem;
         width: min(300px, 84vw);
-        max-height: calc(100dvh - 1.1rem);
+        max-height: calc(100dvh - var(--sidebar-top, 84px) - 0.55rem);
         border-radius: 16px;
         padding: 0.85rem 0.7rem;
         z-index: 82;
@@ -4716,4 +4757,15 @@ html[data-settings-route='reports'] body.settings-page #reportsSection[hidden] {
 .table-footer-controls #showAllToggle {
     margin: 0;
     flex-shrink: 0;
+}
+
+
+@media (max-width: 1023px) {
+    .app-shell {
+        display: block;
+    }
+
+    .app-content {
+        width: 100%;
+    }
 }

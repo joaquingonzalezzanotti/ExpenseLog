@@ -702,10 +702,48 @@ function setupMobileMenu() {
     const overlay = document.getElementById('mobileSidebarOverlay');
     if (!toggle || !sidebar || !overlay) return;
 
-    const desktopQuery = window.matchMedia('(min-width: 901px)');
+    const desktopQuery = window.matchMedia('(min-width: 1024px)');
+    const transitionMs = 220;
     let desktopSidebarOpen = true;
+    let mobileCloseTimer = null;
 
     const isDesktop = () => desktopQuery.matches;
+
+    const setupAppShellLayout = () => {
+        const container = document.querySelector('.container');
+        const header = container?.querySelector('header');
+        if (!container || !header) return;
+
+        let shell = container.querySelector('.app-shell');
+        let content = container.querySelector('.app-content');
+        if (!shell) {
+            shell = document.createElement('div');
+            shell.className = 'app-shell';
+            header.insertAdjacentElement('afterend', shell);
+        }
+
+        if (!content) {
+            content = document.createElement('div');
+            content.className = 'app-content';
+            shell.appendChild(content);
+        }
+
+        if (sidebar.parentElement !== shell) {
+            shell.insertBefore(sidebar, content);
+        }
+
+        Array.from(container.children).forEach((child) => {
+            if (child === header || child === shell || child.classList.contains('mobile-bottom-nav')) return;
+            content.appendChild(child);
+        });
+    };
+
+    const clearMobileCloseTimer = () => {
+        if (mobileCloseTimer) {
+            clearTimeout(mobileCloseTimer);
+            mobileCloseTimer = null;
+        }
+    };
 
     const updateSidebarTopOffset = () => {
         const navBar = document.querySelector('.nav-bar');
@@ -716,20 +754,40 @@ function setupMobileMenu() {
     };
 
     const applyMobileState = (open) => {
+        clearMobileCloseTimer();
         toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-        sidebar.hidden = !open;
-        sidebar.setAttribute('aria-hidden', open ? 'false' : 'true');
-        overlay.hidden = !open;
         document.body.classList.toggle('mobile-menu-open', open);
         document.body.classList.toggle('sidebar-open', open);
         document.body.classList.remove('desktop-sidebar-open');
+
+        if (open) {
+            sidebar.hidden = false;
+            overlay.hidden = false;
+            sidebar.setAttribute('aria-hidden', 'false');
+            requestAnimationFrame(() => {
+                sidebar.classList.add('is-open');
+                overlay.classList.add('is-open');
+            });
+            return;
+        }
+
+        sidebar.setAttribute('aria-hidden', 'true');
+        sidebar.classList.remove('is-open');
+        overlay.classList.remove('is-open');
+        mobileCloseTimer = setTimeout(() => {
+            sidebar.hidden = true;
+            overlay.hidden = true;
+        }, transitionMs);
     };
 
     const applyDesktopState = (open) => {
+        clearMobileCloseTimer();
         desktopSidebarOpen = !!open;
         toggle.setAttribute('aria-expanded', desktopSidebarOpen ? 'true' : 'false');
         sidebar.hidden = !desktopSidebarOpen;
         sidebar.setAttribute('aria-hidden', desktopSidebarOpen ? 'false' : 'true');
+        sidebar.classList.remove('is-open');
+        overlay.classList.remove('is-open');
         overlay.hidden = true;
         document.body.classList.remove('mobile-menu-open', 'sidebar-open');
         document.body.classList.toggle('desktop-sidebar-open', desktopSidebarOpen);
@@ -762,6 +820,8 @@ function setupMobileMenu() {
         toggle.setAttribute('aria-expanded', 'false');
         applyMobileState(false);
     };
+
+    setupAppShellLayout();
 
     toggle.addEventListener('click', () => {
         const isOpen = toggle.getAttribute('aria-expanded') === 'true';

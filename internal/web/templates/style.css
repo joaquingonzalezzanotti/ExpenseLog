@@ -1034,22 +1034,29 @@ input:focus-visible {
 
 .mobile-sidebar-overlay {
     position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.36);
-    z-index: 80;
+    top: var(--sidebar-top, 84px);
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: rgba(15, 23, 42, 0.2);
+    z-index: 58;
 }
 
 .mobile-sidebar {
     position: fixed;
-    top: 0;
-    left: 0;
-    height: 100vh;
-    width: min(280px, 82vw);
-    background: var(--bg-card);
-    border-right: 1px solid var(--border);
-    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.18);
-    z-index: 90;
-    padding: 1.15rem 0.8rem;
+    top: var(--sidebar-top, 84px);
+    left: 1rem;
+    bottom: 1rem;
+    height: auto;
+    max-height: calc(100dvh - var(--sidebar-top, 84px) - 1rem);
+    width: min(290px, 28vw);
+    background: color-mix(in srgb, var(--bg-secondary), transparent 2%);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: 0 18px 36px rgba(2, 6, 23, 0.16);
+    z-index: 65;
+    padding: 1rem 0.8rem;
+    overflow-y: auto;
 }
 
 .mobile-sidebar[hidden],
@@ -1064,17 +1071,24 @@ input:focus-visible {
 
 .mobile-sidebar-nav {
     display: grid;
-    gap: 0.55rem;
+    gap: 0.35rem;
 }
 
 .mobile-sidebar-link {
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--bg-secondary);
+    border: 1px solid transparent;
+    border-radius: 11px;
+    background: transparent;
     color: var(--text-primary);
     text-decoration: none;
     font-weight: 600;
-    padding: 0.75rem 0.8rem;
+    padding: 0.62rem 0.7rem;
+    transition: all 0.18s ease;
+}
+
+.mobile-sidebar-link:hover {
+    border-color: var(--border);
+    background: var(--bg-primary);
+    transform: translateX(2px);
 }
 
 .mobile-bottom-nav {
@@ -1122,6 +1136,14 @@ body.mobile-menu-open {
 body.sidebar-open .mobile-sidebar,
 body.sidebar-open .mobile-sidebar-overlay {
     display: block !important;
+}
+
+body.desktop-sidebar-open .mobile-sidebar {
+    display: block !important;
+}
+
+body.desktop-sidebar-open .mobile-sidebar-overlay {
+    display: none !important;
 }
 
 .user-badge {
@@ -3224,6 +3246,27 @@ html[data-settings-route='reports'] body.settings-page #reportsSection[hidden] {
         display: inline-flex;
         justify-self: end;
         z-index: 3;
+    }
+
+    .mobile-sidebar-overlay {
+        top: 0;
+        background: rgba(15, 23, 42, 0.42);
+    }
+
+    .mobile-sidebar {
+        top: 0.55rem;
+        left: 0.45rem;
+        bottom: 0.55rem;
+        width: min(300px, 84vw);
+        max-height: calc(100dvh - 1.1rem);
+        border-radius: 16px;
+        padding: 0.85rem 0.7rem;
+        z-index: 82;
+    }
+
+    .mobile-sidebar-link {
+        border: 1px solid var(--border);
+        background: color-mix(in srgb, var(--bg-secondary), transparent 4%);
     }
 
     .mobile-sidebar[hidden],

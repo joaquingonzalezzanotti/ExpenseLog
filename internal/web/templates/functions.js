@@ -702,20 +702,65 @@ function setupMobileMenu() {
     const overlay = document.getElementById('mobileSidebarOverlay');
     if (!toggle || !sidebar || !overlay) return;
 
-    const closeMenu = () => {
-        toggle.setAttribute('aria-expanded', 'false');
-        sidebar.hidden = true;
-        sidebar.setAttribute('aria-hidden', 'true');
+    const desktopQuery = window.matchMedia('(min-width: 901px)');
+    let desktopSidebarOpen = true;
+
+    const isDesktop = () => desktopQuery.matches;
+
+    const updateSidebarTopOffset = () => {
+        const navBar = document.querySelector('.nav-bar');
+        if (!navBar) return;
+        const rect = navBar.getBoundingClientRect();
+        const topOffset = Math.max(12, Math.round(rect.bottom + 8));
+        document.documentElement.style.setProperty('--sidebar-top', `${topOffset}px`);
+    };
+
+    const applyMobileState = (open) => {
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        sidebar.hidden = !open;
+        sidebar.setAttribute('aria-hidden', open ? 'false' : 'true');
+        overlay.hidden = !open;
+        document.body.classList.toggle('mobile-menu-open', open);
+        document.body.classList.toggle('sidebar-open', open);
+        document.body.classList.remove('desktop-sidebar-open');
+    };
+
+    const applyDesktopState = (open) => {
+        desktopSidebarOpen = !!open;
+        toggle.setAttribute('aria-expanded', desktopSidebarOpen ? 'true' : 'false');
+        sidebar.hidden = !desktopSidebarOpen;
+        sidebar.setAttribute('aria-hidden', desktopSidebarOpen ? 'false' : 'true');
         overlay.hidden = true;
         document.body.classList.remove('mobile-menu-open', 'sidebar-open');
+        document.body.classList.toggle('desktop-sidebar-open', desktopSidebarOpen);
+        updateSidebarTopOffset();
+    };
+
+    const closeMenu = () => {
+        if (isDesktop()) {
+            applyDesktopState(false);
+            return;
+        }
+        applyMobileState(false);
     };
 
     const openMenu = () => {
-        toggle.setAttribute('aria-expanded', 'true');
-        sidebar.hidden = false;
-        sidebar.setAttribute('aria-hidden', 'false');
-        overlay.hidden = false;
-        document.body.classList.add('mobile-menu-open', 'sidebar-open');
+        if (isDesktop()) {
+            applyDesktopState(true);
+            return;
+        }
+        applyMobileState(true);
+    };
+
+    const applyResponsiveState = (forceDesktopOpen = false) => {
+        updateSidebarTopOffset();
+        if (isDesktop()) {
+            if (forceDesktopOpen) desktopSidebarOpen = true;
+            applyDesktopState(desktopSidebarOpen);
+            return;
+        }
+        toggle.setAttribute('aria-expanded', 'false');
+        applyMobileState(false);
     };
 
     toggle.addEventListener('click', () => {
@@ -729,7 +774,9 @@ function setupMobileMenu() {
 
     overlay.addEventListener('click', closeMenu);
     sidebar.querySelectorAll('a').forEach((link) => {
-        link.addEventListener('click', closeMenu);
+        link.addEventListener('click', () => {
+            if (!isDesktop()) closeMenu();
+        });
     });
 
     document.addEventListener('keydown', (event) => {
@@ -738,8 +785,27 @@ function setupMobileMenu() {
         }
     });
 
-    // Ensure deterministic initial state even if cached DOM/state leaks.
-    closeMenu();
+    let wasDesktop = isDesktop();
+    window.addEventListener('resize', () => {
+        const nowDesktop = isDesktop();
+        if (nowDesktop !== wasDesktop) {
+            wasDesktop = nowDesktop;
+            applyResponsiveState(nowDesktop);
+            return;
+        }
+        if (nowDesktop) {
+            updateSidebarTopOffset();
+        }
+    });
+
+    window.addEventListener('scroll', () => {
+        if (isDesktop() && desktopSidebarOpen) {
+            updateSidebarTopOffset();
+        }
+    }, { passive: true });
+
+    // Desktop: abierta por defecto. Mobile: cerrada.
+    applyResponsiveState(true);
 }
 
 document.addEventListener('DOMContentLoaded', () => {

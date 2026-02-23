@@ -89,6 +89,7 @@ type Config struct {
 	Categories        []string           `json:"categories"`
 	Currency          string             `json:"currency"`
 	StartDate         int                `json:"startDate"`
+	PlanTier          string             `json:"planTier"`
 	RecurringExpenses []RecurringExpense `json:"recurringExpenses"`
 	// Tags              []string           `json:"tags"`
 }
@@ -224,8 +225,23 @@ func (c *Config) SetBaseConfig() {
 	c.Categories = defaultCategories
 	c.Currency = "ars"
 	c.StartDate = 1
+	c.PlanTier = PlanTierFree
 	// c.Tags = []string{}
 	c.RecurringExpenses = []RecurringExpense{}
+}
+
+const (
+	PlanTierFree    = "free"
+	PlanTierPremium = "premium"
+)
+
+func NormalizePlanTier(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case PlanTierPremium:
+		return PlanTierPremium
+	default:
+		return PlanTierFree
+	}
 }
 
 func (c *SystemConfig) SetStorageConfig() {

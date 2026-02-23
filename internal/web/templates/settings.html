@@ -82,7 +82,7 @@
                             <option value="eur">EUR (EUR)</option>
                         </select>
                     </div>
-                    <!-- Esta moneda define la referencia principal de Caja de Ahorro (CA), balance y calculos por defecto. -->
+                    <!-- Esta moneda define la referencia principal del balance y calculos por defecto. -->
                     <div id="currencyMessage" class="form-message"></div>
                 </div>
                 <div class="settings-preference-item">
@@ -110,12 +110,58 @@
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
                 <button class="settings-nav-item" id="openReconciliationSection" type="button" data-settings-section="reconciliationSection" aria-expanded="false">
-                    <span>🧮 Conciliación CA</span>
+                    <span>🧮 Conciliacion de balance</span>
+                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
+                <button class="settings-nav-item" id="openReportsSection" type="button" data-settings-section="reportsSection" aria-expanded="false">
+                    <span>🧾 Reportes mensuales</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
             </div>
         </section>
-
+        <section id="reportsSection" class="form-container settings-section settings-detail-section settings-reports-section" hidden>
+            <div class="settings-detail-header">
+                <h2>🧾 Reportes mensuales</h2>
+                <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="reportsSection" aria-label="Cerrar reportes" title="Cerrar reportes">
+                    <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
+                </button>
+            </div>
+            <p class="settings-helper-text settings-reports-helper">Genera y descarga tu reporte mensual en el momento. Los archivos no se guardan en el servidor.</p>
+            <div class="settings-reports-highlight" role="note">
+                <span class="settings-reports-badge">Premium</span>
+                <span>Incluye resumen ejecutivo, desglose por categoria y detalle completo de movimientos.</span>
+            </div>
+            <div class="settings-export-grid">
+                <div class="settings-preference-item">
+                    <label for="reportMonthSelect">Mes</label>
+                    <div class="settings-preference-control">
+                        <select id="reportMonthSelect"></select>
+                    </div>
+                </div>
+                <div class="settings-preference-item">
+                    <label for="reportYearInput">A&ntilde;o</label>
+                    <div class="settings-preference-control">
+                        <input id="reportYearInput" type="number" min="2000" max="2100" step="1" placeholder="2026" inputmode="numeric">
+                    </div>
+                </div>
+                <div class="settings-preference-item">
+                    <label for="reportCurrencySelect">Moneda</label>
+                    <div class="settings-preference-control">
+                        <select id="reportCurrencySelect">
+                            <option value="ars">ARS</option>
+                            <option value="usd">USD</option>
+                            <option value="eur">EUR</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-export-actions">
+                <button id="downloadMonthlyXLSXBtn" class="nav-button button-secondary" type="button">Descargar Excel (.xlsx)</button>
+                <button id="downloadMonthlyPDFBtn" class="nav-button button-primary" type="button">Descargar PDF (.pdf)</button>
+            </div>
+            <p class="settings-reports-caption">Sugerencia: usa el mismo mes y moneda de tu analisis para compartir resultados claros.</p>
+            <div id="reportExportMessage" class="form-message"></div>
+        </section>
         <section id="categoriesSection" class="form-container settings-section settings-detail-section" hidden>
             <div class="settings-detail-header">
                 <h2>🏷️ Categorías</h2>
@@ -158,6 +204,7 @@
                 </button>
             </div>
             <h3 class="settings-subtitle">📋 Transacciones recurrentes existentes</h3>
+            <p class="settings-helper-text">Tip: para compras en cuotas, crea una recurrente mensual con el monto de la cuota y la cantidad total. En la tabla vas a ver el avance como Cuota X/Y.</p>
             <div id="recurring-expenses-list" class="recurring-table-box"></div>
             <button id="toggleRecurringCreateBtn" class="nav-button button-primary settings-recurring-toggle" type="button" aria-expanded="false">Agregar transaccion recurrente</button>
             <div id="recurringFormWrap" hidden>
@@ -224,18 +271,18 @@
 
         <section id="reconciliationSection" class="form-container settings-section settings-detail-section" hidden>
             <div class="settings-detail-header">
-                <h2>🧮 Conciliación CA</h2>
+                <h2>🧮 Conciliacion de balance</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="reconciliationSection" aria-label="Cerrar conciliacion" title="Cerrar conciliacion">
                     <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="settings-divider"></div>
-            <h3 class="settings-subtitle">🧮 Conciliación rápida de Caja de Ahorro</h3>
-            <p class="settings-helper-text">Ingresa el saldo real de tu CA para crear un ajuste automatico sin buscar el origen de la diferencia.</p>
+            <h3 class="settings-subtitle">🧮 Conciliacion rapida de balance</h3>
+            <p class="settings-helper-text">Ingresa el saldo real para crear un ajuste automatico sin buscar el origen de la diferencia.</p>
             <div id="settingsReconciliationPanel" class="reconciliation-container settings-reconciliation-panel">
                 <div class="reconciliation-metrics">
                     <div class="reconciliation-metric">
-                        <span>Balance app (CA)</span>
+                        <span>Balance app</span>
                         <strong id="settingsReconciliationAppBalance">-</strong>
                     </div>
                     <div class="reconciliation-metric">
@@ -244,7 +291,7 @@
                     </div>
                 </div>
                 <form id="settingsReconciliationForm" class="reconciliation-form">
-                    <label for="settingsReconciliationTarget">Saldo real CA (<span id="settingsReconciliationCurrency">ARS</span>)</label>
+                    <label for="settingsReconciliationTarget">Saldo real (<span id="settingsReconciliationCurrency">ARS</span>)</label>
                     <input type="number" id="settingsReconciliationTarget" step="0.01" placeholder="Ej: 154230.35" required>
                     <div class="settings-reconciliation-shortcuts">
                         <button type="button" id="settingsReconciliationUseCurrent" class="nav-button button-secondary">Usar balance app</button>
@@ -456,6 +503,7 @@
         let addFormSelectedTags = new Set();
         let editFormSelectedTags = new Set();
         let currentCurrency = "usd";
+        let currentPlanTier = "free";
         let recurringExpenses = [];
         let reconciliationHistoryItems = [];
         let allExpensesCache = [];
@@ -475,6 +523,11 @@
         const toggleRecurringCreateBtn = document.getElementById('toggleRecurringCreateBtn');
         const appConfirmModal = document.getElementById('appConfirmModal');
         const appSuccessModal = document.getElementById('appSuccessModal');
+        const reportMonthSelect = document.getElementById('reportMonthSelect');
+        const reportYearInput = document.getElementById('reportYearInput');
+        const reportCurrencySelect = document.getElementById('reportCurrencySelect');
+        const downloadMonthlyXLSXBtn = document.getElementById('downloadMonthlyXLSXBtn');
+        const downloadMonthlyPDFBtn = document.getElementById('downloadMonthlyPDFBtn');
 
         function setSettingsSection(sectionId, expanded) {
             const section = document.getElementById(sectionId);
@@ -487,7 +540,7 @@
         }
 
         function showOnlySettingsSection(sectionId) {
-            const targets = ['categoriesSection', 'recurringSection', 'reconciliationSection'];
+            const targets = ['categoriesSection', 'recurringSection', 'reconciliationSection', 'reportsSection'];
             targets.forEach((id) => setSettingsSection(id, id === sectionId));
             setRecurringComposerVisible(false);
             const targetNode = document.getElementById(sectionId);
@@ -604,6 +657,155 @@
                 messageDiv.textContent = '';
                 messageDiv.className = 'form-message';
             }, 3000);
+        }
+
+        function normalizePlanTier(value) {
+            return String(value || '').trim().toLowerCase() === 'premium' ? 'premium' : 'free';
+        }
+
+        function renderReportAccessState() {
+            const isPremium = currentPlanTier === 'premium';
+            if (downloadMonthlyXLSXBtn) downloadMonthlyXLSXBtn.disabled = !isPremium;
+            if (downloadMonthlyPDFBtn) downloadMonthlyPDFBtn.disabled = !isPremium;
+            const messageDiv = document.getElementById('reportExportMessage');
+            if (!messageDiv) return;
+            if (isPremium) {
+                if (messageDiv.dataset.locked === '1') {
+                    messageDiv.textContent = '';
+                    messageDiv.className = 'form-message';
+                    messageDiv.dataset.locked = '0';
+                }
+                return;
+            }
+            messageDiv.textContent = 'Disponible en Premium: exporta tus movimientos mensuales en Excel y PDF.';
+            messageDiv.className = 'form-message error';
+            messageDiv.dataset.locked = '1';
+        }
+
+        function applyReportContextFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            const monthParam = parseInt(params.get('month') || '', 10);
+            const yearParam = parseInt(params.get('year') || '', 10);
+            const currencyParam = String(params.get('currency') || '').trim().toLowerCase();
+
+            if (reportMonthSelect && Number.isInteger(monthParam) && monthParam >= 1 && monthParam <= 12) {
+                reportMonthSelect.value = String(monthParam);
+            }
+            if (reportYearInput && Number.isInteger(yearParam) && yearParam >= 2000 && yearParam <= 2100) {
+                reportYearInput.value = String(yearParam);
+            }
+            if (reportCurrencySelect && currencyParam) {
+                const hasCurrencyOption = Array.from(reportCurrencySelect.options || []).some(
+                    (option) => String(option.value || '').toLowerCase() === currencyParam
+                );
+                if (hasCurrencyOption) {
+                    reportCurrencySelect.value = currencyParam;
+                }
+            }
+        }
+
+        function populateReportPeriodControls() {
+            if (reportMonthSelect && reportMonthSelect.options.length === 0) {
+                const months = [
+                    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+                ];
+                reportMonthSelect.innerHTML = months
+                    .map((name, idx) => `<option value="${idx + 1}">${name}</option>`)
+                    .join('');
+            }
+
+            const now = new Date();
+            if (reportMonthSelect && !reportMonthSelect.value) {
+                reportMonthSelect.value = String(now.getMonth() + 1);
+            }
+            if (reportYearInput && !reportYearInput.value) {
+                reportYearInput.value = String(now.getFullYear());
+            }
+            if (reportCurrencySelect) {
+                reportCurrencySelect.value = currentCurrency || 'ars';
+            }
+            applyReportContextFromURL();
+            renderReportAccessState();
+        }
+
+        function parseAttachmentFilename(contentDisposition, fallbackName) {
+            const fallback = fallbackName || 'reporte-mensual';
+            const header = String(contentDisposition || '');
+            const utf8Match = header.match(/filename\*=UTF-8''([^;]+)/i);
+            if (utf8Match && utf8Match[1]) {
+                try {
+                    return decodeURIComponent(utf8Match[1]);
+                } catch (_) {}
+            }
+            const basicMatch = header.match(/filename=\"?([^\";]+)\"?/i);
+            if (basicMatch && basicMatch[1]) {
+                return basicMatch[1];
+            }
+            return fallback;
+        }
+
+        function setReportDownloadButtonsDisabled(disabled) {
+            if (downloadMonthlyXLSXBtn) downloadMonthlyXLSXBtn.disabled = !!disabled;
+            if (downloadMonthlyPDFBtn) downloadMonthlyPDFBtn.disabled = !!disabled;
+        }
+
+        async function downloadMonthlyReport(format) {
+            if (currentPlanTier !== 'premium') {
+                showMessage('reportExportMessage', 'La exportacion mensual es una funcion Premium.', false);
+                return;
+            }
+            const month = parseInt(reportMonthSelect?.value || '', 10);
+            const year = parseInt(reportYearInput?.value || '', 10);
+            const currency = (reportCurrencySelect?.value || currentCurrency || 'ars').toLowerCase();
+
+            if (!Number.isInteger(month) || month < 1 || month > 12) {
+                showMessage('reportExportMessage', 'Mes invalido para exportacion.', false);
+                return;
+            }
+            if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+                showMessage('reportExportMessage', 'A\u00f1o invalido para exportacion.', false);
+                return;
+            }
+
+            const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+            const params = new URLSearchParams({
+                year: String(year),
+                month: String(month),
+                currency,
+            });
+            const endpoint = `/api/export/monthly/${ext}?${params.toString()}`;
+
+            setReportDownloadButtonsDisabled(true);
+            showMessage('reportExportMessage', `Generando reporte ${ext.toUpperCase()}...`, true);
+
+            try {
+                const response = await fetch(endpoint, { method: 'GET', credentials: 'same-origin' });
+                if (!response.ok) {
+                    const payload = await response.json().catch(() => ({}));
+                    throw new Error(payload.error || `No se pudo generar el reporte (${response.status})`);
+                }
+
+                const blob = await response.blob();
+                const contentDisposition = response.headers.get('content-disposition');
+                const fallbackName = `expenselog-reporte-${year}-${String(month).padStart(2, '0')}-${currency}.${ext}`;
+                const filename = parseAttachmentFilename(contentDisposition, fallbackName);
+                const downloadURL = URL.createObjectURL(blob);
+                const anchor = document.createElement('a');
+                anchor.href = downloadURL;
+                anchor.download = filename;
+                document.body.appendChild(anchor);
+                anchor.click();
+                anchor.remove();
+                URL.revokeObjectURL(downloadURL);
+
+                showMessage('reportExportMessage', `Reporte ${ext.toUpperCase()} descargado.`, true);
+            } catch (error) {
+                console.error('Error descargando reporte mensual:', error);
+                showMessage('reportExportMessage', error.message || 'No se pudo descargar el reporte.', false);
+            } finally {
+                setReportDownloadButtonsDisabled(false);
+            }
         }
 
         function openModal(modal) {
@@ -1062,8 +1264,11 @@ async function saveCategoriesList(nextCategories) {
                     body: JSON.stringify(currencyCode)
                 });
                 if (response.ok) {
-                    showMessage('currencyMessage', 'Moneda principal actualizada. Se usara como referencia para Caja de Ahorro (CA), balance y vistas por defecto.', true);
+                    showMessage('currencyMessage', 'Moneda principal actualizada. Se usara como referencia para balance y vistas por defecto.', true);
                     currentCurrency = currencyCode;
+                    if (reportCurrencySelect) {
+                        reportCurrencySelect.value = currencyCode;
+                    }
                     invalidateSharedConfigCache();
                 } else {
                     showMessage('currencyMessage', 'No se pudo guardar la moneda', false);
@@ -1407,7 +1612,7 @@ async function saveCategoriesList(nextCategories) {
                 if (!response.ok) throw new Error(result.error || 'No se pudo aplicar la conciliacion');
 
                 if (result.status === 'noop') {
-                    showMessage('settingsReconciliationMessage', 'No se realizaron cambios: la app ya coincide con tu CA.', true);
+                    showMessage('settingsReconciliationMessage', 'No se realizaron cambios: la app ya coincide con tu balance real.', true);
                 } else {
                     const amountLabel = formatCurrency(Math.abs(preview.difference), preview.currency);
                     const successText = `Se registro ${preview.difference > 0 ? 'un ingreso' : 'un gasto'} de ajuste por ${amountLabel}.`;
@@ -1465,6 +1670,10 @@ async function saveCategoriesList(nextCategories) {
             }
             if (section === 'recurring' || hash === '#recurring') {
                 showOnlySettingsSection('recurringSection');
+                return;
+            }
+            if (section === 'reports' || hash === '#reports') {
+                showOnlySettingsSection('reportsSection');
             }
         }
 
@@ -1510,15 +1719,18 @@ async function saveCategoriesList(nextCategories) {
                 recurringExpenses = await recurringExpensesResponse.json() || [];
 
                 currentCurrency = (config.currency || 'ars').toLowerCase();
+                currentPlanTier = normalizePlanTier(config.planTier);
                 allTags.clear();
                 (allExpensesCache || []).forEach(exp => (exp.tags || []).forEach(tag => allTags.add(tag)));
                 (recurringExpenses || []).forEach(exp => (exp.tags || []).forEach(tag => allTags.add(tag)));
 
                 populateCurrencySelect();
+                populateReportPeriodControls();
                 renderRecurringExpenses(recurringExpenses);
                 hideSettingsSection('categoriesSection');
                 hideSettingsSection('recurringSection');
                 hideSettingsSection('reconciliationSection');
+                hideSettingsSection('reportsSection');
                 setRecurringComposerVisible(false);
                 openSectionFromURL();
                 renderSettingsReconciliationPreview();
@@ -1548,6 +1760,7 @@ async function saveCategoriesList(nextCategories) {
                 console.error('No se pudo inicializar la configuracion:', error);
                 categoriesLoading = false;
                 renderCategories();
+                populateReportPeriodControls();
                 showMessage('categoriesMessage', 'No se pudo cargar la configuracion', false);
             }
         }
@@ -1608,6 +1821,8 @@ async function saveCategoriesList(nextCategories) {
             }
         });
         document.getElementById('currencySelect').addEventListener('change', saveCurrency);
+        downloadMonthlyXLSXBtn?.addEventListener('click', () => downloadMonthlyReport('xlsx'));
+        downloadMonthlyPDFBtn?.addEventListener('click', () => downloadMonthlyReport('pdf'));
         toggleRecurringCreateBtn?.addEventListener('click', () => {
             setRecurringComposerVisible(recurringFormWrap?.hidden === true);
         });
@@ -1705,10 +1920,27 @@ async function saveCategoriesList(nextCategories) {
         window.closeRecurringEditModal = closeRecurringEditModal;
         window.confirmRecurringUpdate = confirmRecurringUpdate;
     </script>
-    <script defer src="/_vercel/insights/script.js"></script>
-    <script defer src="/_vercel/speed-insights/script.js"></script>
+    <script>
+        (function loadVercelTelemetry() {
+            const host = window.location.hostname;
+            const isVercelHost = host.endsWith('.vercel.app');
+            const isPrimaryHost = host === 'expenselog.com.ar' || host === 'www.expenselog.com.ar';
+            if (!isVercelHost && !isPrimaryHost) return;
+
+            const addScript = (src) => {
+                const script = document.createElement('script');
+                script.defer = true;
+                script.src = src;
+                document.body.appendChild(script);
+            };
+
+            addScript('/_vercel/insights/script.js');
+            addScript('/_vercel/speed-insights/script.js');
+        })();
+    </script>
 </body>
 </html>
+
 
 
 

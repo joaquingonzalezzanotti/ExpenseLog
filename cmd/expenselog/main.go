@@ -148,6 +148,8 @@ func runServer(port int) {
 
 	// Import/Export
 	registerAPI("/export/csv", handler.RequireAuth(handler.CSVFeatureDisabled))
+	registerAPI("/export/monthly/xlsx", handler.RequireAuth(handler.ExportMonthlyXLSX))
+	registerAPI("/export/monthly/pdf", handler.RequireAuth(handler.ExportMonthlyPDF))
 	registerAPI("/import/csv", handler.RequireAuth(handler.CSVFeatureDisabled))
 	registerAPI("/import/csvold", handler.RequireAuth(handler.CSVFeatureDisabled))
 

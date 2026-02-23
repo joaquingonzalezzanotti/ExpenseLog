@@ -1900,6 +1900,84 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     text-decoration: none;
 }
 
+.settings-reports-section {
+    border: 1px solid rgba(37, 99, 235, 0.24);
+    background:
+        radial-gradient(circle at 100% 0%, rgba(37, 99, 235, 0.12), transparent 40%),
+        radial-gradient(circle at 0% 100%, rgba(16, 185, 129, 0.1), transparent 38%),
+        linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 130%);
+}
+
+.settings-reports-helper {
+    margin-bottom: 0.7rem;
+}
+
+.settings-reports-highlight {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.58rem 0.72rem;
+    border: 1px solid rgba(37, 99, 235, 0.18);
+    border-radius: 10px;
+    background: rgba(37, 99, 235, 0.08);
+    color: var(--text-primary);
+    margin-bottom: 0.8rem;
+}
+
+.settings-reports-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid rgba(37, 99, 235, 0.38);
+    background: rgba(37, 99, 235, 0.16);
+    color: var(--accent);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.52rem;
+    white-space: nowrap;
+}
+
+.settings-export-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.85rem;
+    margin-top: 0.7rem;
+}
+
+.settings-export-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    margin-top: 0.95rem;
+}
+
+.settings-export-actions .nav-button {
+    min-width: 220px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.14);
+}
+
+.settings-reports-caption {
+    margin: 0.75rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.84rem;
+}
+
+@media (max-width: 640px) {
+    .settings-reports-highlight {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .settings-export-actions .nav-button {
+        width: 100%;
+        min-width: 0;
+    }
+}
+
 .cashflow-container {
     display: flex;
     flex-direction: column;
@@ -2563,6 +2641,29 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     border-radius: 10px;
     background-color: var(--bg-primary);
     color: var(--text-primary);
+}
+
+.settings-preference-control input {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font: inherit;
+}
+
+.settings-preference-control input:focus,
+.settings-preference-control select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+#reportYearInput {
+    text-align: left;
 }
 
 .settings-helper-text {

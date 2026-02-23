@@ -33,262 +33,254 @@
 </head>
 <body>
     <div class="container">
-        <header>
-            <div class="nav-bar">
-                <button id="mobileMenuToggle" class="view-button mobile-menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobileSidebar">
-                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
-                </button>
-                <a href="/app" class="nav-logo-link">
-                    <img src="/app/pwa/icon-192.png" alt="ExpenseLog Logo" class="nav-logo">
-                    <span class="nav-logo-mobile-text" aria-hidden="true">EL</span>
-                </a>
-                <div class="nav-right-slot">
-                    <button id="notificationCenterButton" class="view-button notification-trigger" data-tooltip="Notificaciones" type="button" aria-label="Notificaciones" aria-expanded="false">
-                        <i class="fa-regular fa-bell"></i>
-                        <span id="notificationCenterBadge" class="notification-badge" hidden></span>
-                    </button>
-                    <div id="notificationCenterPanel" class="notification-panel" hidden>
-                        <div class="notification-panel-title">Notificaciones 🔔 </div>
-                        <div id="notificationCenterList" class="notification-list"></div>
-                    </div>
-                </div>
-            </div>
-        </header>
-
-        <div id="mobileSidebarOverlay" class="mobile-sidebar-overlay" hidden></div>
-        <aside id="mobileSidebar" class="mobile-sidebar" hidden aria-hidden="true">
-            <nav class="mobile-sidebar-nav" aria-label="Menu principal">
-                <a href="/app" class="mobile-sidebar-link">Inicio</a>
-                <a href="/app/table" class="mobile-sidebar-link">Tabla</a>
-                <a href="/app/table?view=calendar" class="mobile-sidebar-link">Calendario</a>
-                <a href="/app/reportes" class="mobile-sidebar-link">Reportes</a>
-                <a href="/app/perfil" class="mobile-sidebar-link">Usuario</a>
+        <aside id="app-sidebar">
+            <nav class="app-sidebar-nav">
+                <a href="/app" class="app-sidebar-link">Inicio</a>
+                <a href="/app/table" class="app-sidebar-link">Tabla</a>
+                <a href="/app/table?view=calendar" class="app-sidebar-link">Calendario</a>
+                <a href="/app/reportes" class="app-sidebar-link">Reportes</a>
+                <a href="/app/perfil" class="app-sidebar-link">Usuario</a>
             </nav>
         </aside>
-
-
-        <nav class="mobile-bottom-nav" aria-label="Navegacion principal">
-                    <a href="/app" class="mobile-nav-item active" aria-current="page"><i class="fa-solid fa-house"></i><span>Inicio</span></a>
-                    <a href="/app/table" class="mobile-nav-item"><i class="fa-solid fa-table"></i><span>Tabla</span></a>
-                    <a href="/app/table?view=calendar" class="mobile-nav-item"><i class="fa-regular fa-calendar-days"></i><span>Calendario</span></a>
-                    <a href="/app/reportes" class="mobile-nav-item"><i class="fa-regular fa-file-lines"></i><span>Reportes</span></a>
-                    <a href="/app/perfil" class="mobile-nav-item"><i class="fa-regular fa-user"></i><span>Usuario</span></a>
-        </nav>
-
-        <div id="homeGreeting" class="home-greeting"></div>
-
-        <div class="month-navigation">
-            <button id="prevMonth" class="nav-button"><span class="month-nav-arrow" aria-hidden="true">&#8592;</span></button>
-            <div class="current-month" id="currentMonth"></div>
-            <span id="periodModeBadge" class="period-mode-badge" style="display: none;">Proyeccion</span>
-            <button id="nextMonth" class="nav-button"><span class="month-nav-arrow" aria-hidden="true">&#8594;</span></button>
-        </div>
-
-        <div class="table-controls">
-            <div class="quick-actions">
-                <button id="toggleExpenseFormBtn" class="quick-action" data-action="open-form">Agregar gasto</button>
-                <button class="quick-action" data-action="income">Ingreso</button>
-                <button class="quick-action" data-action="card-expense">Gasto Tarjeta</button>
-            </div>
-        </div>
-
-        <div id="baseSummary" class="cashflow-container"></div>
-
-        <div id="addExpenseContainer" class="entry-modal-overlay" hidden aria-hidden="true">
-            <div class="entry-modal-backdrop" data-expense-close></div>
-            <div class="entry-modal-card" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle">
-                <div class="entry-modal-header">
-                    <div class="entry-modal-title-wrap">
-                        <span class="entry-modal-eyebrow">✨ Carga rapida</span>
-                        <h3 id="expenseModalTitle">Registrar movimiento</h3>
-                        <p>Carga un ingreso, gasto o reintegro sin salir del dashboard.</p>
-                    </div>
-                    <button type="button" id="closeExpenseFormBtn" class="entry-modal-close" aria-label="Cerrar formulario">
-                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        <div id="sidebar-overlay"></div>
+        <main class="main-content">
+            <header>
+                <div class="nav-bar">
+                    <button id="sidebar-toggle" class="view-button" type="button" aria-label="Abrir menu">
+                        <i class="fa-solid fa-bars" aria-hidden="true"></i>
                     </button>
+                    <a href="/app" class="nav-logo-link">
+                        <img src="/app/pwa/icon-192.png" alt="ExpenseLog Logo" class="nav-logo">
+                        <span class="nav-logo-mobile-text" aria-hidden="true">EL</span>
+                    </a>
+                    <div class="nav-right-slot">
+                        <button id="notificationCenterButton" class="view-button notification-trigger" data-tooltip="Notificaciones" type="button" aria-label="Notificaciones" aria-expanded="false">
+                            <i class="fa-regular fa-bell"></i>
+                            <span id="notificationCenterBadge" class="notification-badge" hidden></span>
+                        </button>
+                        <div id="notificationCenterPanel" class="notification-panel" hidden>
+                            <div class="notification-panel-title">Notificaciones 🔔 </div>
+                            <div id="notificationCenterList" class="notification-list"></div>
+                        </div>
+                    </div>
                 </div>
-                <form id="expenseForm" class="expense-form expense-modal-form">
-                    <div class="form-group form-group-span-2 movement-type-group">
-                        <label for="movementType">Tipo</label>
-                        <div id="movementTypePills" class="movement-pill-group" role="group" aria-label="Tipo de movimiento">
-                            <button type="button" class="movement-pill active" data-movement-pill="expense">💸 Gasto</button>
-                            <button type="button" class="movement-pill" data-movement-pill="income">💰 Ingreso</button>
-                            <button type="button" class="movement-pill" data-movement-pill="refund">↩️ Reintegro</button>
-                        </div>
-                        <select id="movementType" class="select-assist">
-                            <option value="expense">Gasto</option>
-                            <option value="income">Ingreso</option>
-                            <option value="refund">Reintegro</option>
-                        </select>
-                    </div>
+            </header>
 
-                    <div class="form-group form-group-span-2 method-group">
-                        <label for="sourceSelect">Metodo</label>
-                        <select id="sourceSelect">
-                            <option value="CA">Transferencia / Debito</option>
-                            <option value="EFECTIVO">Efectivo (solo registro)</option>
-                            <option value="TARJETA">Tarjeta de credito</option>
-                        </select>
-                    </div>
+            <div id="homeGreeting" class="home-greeting"></div>
 
-                    <div class="form-group form-group-span-2">
-                        <label for="name">Descripcion</label>
-                        <input type="text" id="name" placeholder="Ej. Supermercado, alquiler, sueldo..." required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="amount">Monto</label>
-                        <input type="number" id="amount" step="0.01" min="0.01" max="9000000000000000" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="date">Fecha</label>
-                        <input type="date" id="date" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="category">Categoria</label>
-                        <select id="category" required>
-                            <option value="">Selecciona categoria</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="currencySelectForm">Moneda</label>
-                        <select id="currencySelectForm" required></select>
-                    </div>
-
-                    <div class="form-group form-group-span-2">
-                        <label for="tags-input">Etiquetas</label>
-                        <div id="tags-input-container" class="tags-input-container">
-                            <div id="selected-tags" class="selected-tags"></div>
-                            <input type="text" id="tags-input" placeholder="Opcional">
-                        </div>
-                        <div id="tags-dropdown" class="tags-dropdown"></div>
-                    </div>
-
-                    <div class="form-group form-group-span-2" id="cardGroup" style="display:none;">
-                        <label for="cardInput">Tarjeta</label>
-                        <input type="text" id="cardInput" placeholder="Ej: Visa, Amex">
-                        <div id="cardError" class="form-error"></div>
-                    </div>
-
-                    <div class="form-group form-group-span-2">
-                        <div id="sourceImpactHint" class="form-help-text" aria-live="polite"></div>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="button" id="cancelExpenseFormBtn" class="nav-button button-secondary">Cancelar</button>
-                        <button type="submit" class="nav-button button-primary">Agregar gasto</button>
-                    </div>
-                </form>
-                <div id="formMessage" class="form-message"></div>
+            <div class="month-navigation">
+                <button id="prevMonth" class="nav-button"><span class="month-nav-arrow" aria-hidden="true">&#8592;</span></button>
+                <div class="current-month" id="currentMonth"></div>
+                <span id="periodModeBadge" class="period-mode-badge" style="display: none;">Proyeccion</span>
+                <button id="nextMonth" class="nav-button"><span class="month-nav-arrow" aria-hidden="true">&#8594;</span></button>
             </div>
-        </div>
 
-        <div id="recentMovements" class="recent-movements" style="display: none;">
-            <h3>🧾 Ultimos 3 movimientos</h3>
-            <div id="recentList" class="recent-list"></div>
-        </div>
-
-        <div class="panel-filters home-filters">
-            <div class="filter-group">
-                <span class="filter-label">Moneda</span>
-                <select id="filterCurrency" class="filter-select">
-                    <option value="all">Todas</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <span class="filter-label">Medio de pago</span>
-                <select id="filterSource" class="filter-select">
-                    <option value="all">Todos</option>
-                </select>
-            </div>
-            <button id="clearFilters" class="nav-button button-secondary">Limpiar</button>
-            <button id="toggleChart" class="nav-button button-primary" style="display: none;">📊 Ver grafico</button>
-        </div>
-
-        <div id="emptyStateBanner" class="empty-state" style="display: none;"></div>
-
-        <div class="chart-container">
-            <div id="noDataMessage" class="empty-state" style="display: none;">
-                <strong>📭 Aun no hay gastos.</strong> Carga el primero con Agregar gasto.
-            </div>
-            <div class="chart-box">
-                <canvas id="categoryPieChart"></canvas>
-            </div>
-            <div class="legend-box" id="customLegend">
-            </div>
-        </div>
-
-        <section id="cardPaymentModule" class="card-payment-module" style="display: none;">
-            <div class="card-payment-head">
-                <div class="card-payment-toggle-copy">
-                    <span class="card-payment-eyebrow">💳 Resumen de credito</span>
-                    <span class="card-payment-title">Tarjeta por pagar</span>
-                    <span id="cardPaymentStatus" class="card-payment-status">Registra pagos para bajar el saldo pendiente.</span>
+            <div class="table-controls">
+                <div class="quick-actions">
+                    <button id="toggleExpenseFormBtn" class="quick-action" data-action="open-form">Agregar gasto</button>
+                    <button class="quick-action" data-action="income">Ingreso</button>
+                    <button class="quick-action" data-action="card-expense">Gasto Tarjeta</button>
                 </div>
             </div>
-            <div class="card-payment-toggle-kpi card-payment-kpi-panel">
-                <span id="cardPayableValue" class="card-payment-value">$0.00</span>
-                <span id="cardPayableSub" class="card-payment-sub"></span>
-            </div>
-            <div id="cardPayableBreakdown" class="card-payment-breakdown"></div>
-            <div class="card-payment-actions">
-                <button id="openCardPaymentModalBtn" type="button" class="nav-button button-primary">Registrar pago</button>
-            </div>
-        </section>
 
-        <div id="cardPaymentOverlay" class="entry-modal-overlay" hidden aria-hidden="true">
-            <div class="entry-modal-backdrop" data-cardpayment-close></div>
-            <div class="entry-modal-card card-payment-modal-card" role="dialog" aria-modal="true" aria-labelledby="cardPaymentModalTitle">
-                <div class="entry-modal-header">
-                    <div class="entry-modal-title-wrap">
-                        <span class="entry-modal-eyebrow">💳 Gestion de pago</span>
-                        <h3 id="cardPaymentModalTitle">Pago de tarjeta</h3>
-                        <p>Registra un pago propio o marca pago por tercero para no afectar tu balance.</p>
+            <div id="baseSummary" class="cashflow-container"></div>
+
+            <div id="addExpenseContainer" class="entry-modal-overlay" hidden aria-hidden="true">
+                <div class="entry-modal-backdrop" data-expense-close></div>
+                <div class="entry-modal-card" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle">
+                    <div class="entry-modal-header">
+                        <div class="entry-modal-title-wrap">
+                            <span class="entry-modal-eyebrow">✨ Carga rapida</span>
+                            <h3 id="expenseModalTitle">Registrar movimiento</h3>
+                            <p>Carga un ingreso, gasto o reintegro sin salir del dashboard.</p>
+                        </div>
+                        <button type="button" id="closeExpenseFormBtn" class="entry-modal-close" aria-label="Cerrar formulario">
+                            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                        </button>
                     </div>
-                    <button type="button" id="closeCardPaymentModalBtn" class="entry-modal-close" aria-label="Cerrar pago de tarjeta">
-                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-                    </button>
+                    <form id="expenseForm" class="expense-form expense-modal-form">
+                        <div class="form-group form-group-span-2 movement-type-group">
+                            <label for="movementType">Tipo</label>
+                            <div id="movementTypePills" class="movement-pill-group" role="group" aria-label="Tipo de movimiento">
+                                <button type="button" class="movement-pill active" data-movement-pill="expense">💸 Gasto</button>
+                                <button type="button" class="movement-pill" data-movement-pill="income">💰 Ingreso</button>
+                                <button type="button" class="movement-pill" data-movement-pill="refund">↩️ Reintegro</button>
+                            </div>
+                            <select id="movementType" class="select-assist">
+                                <option value="expense">Gasto</option>
+                                <option value="income">Ingreso</option>
+                                <option value="refund">Reintegro</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group form-group-span-2 method-group">
+                            <label for="sourceSelect">Metodo</label>
+                            <select id="sourceSelect">
+                                <option value="CA">Transferencia / Debito</option>
+                                <option value="EFECTIVO">Efectivo (solo registro)</option>
+                                <option value="TARJETA">Tarjeta de credito</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group form-group-span-2">
+                            <label for="name">Descripcion</label>
+                            <input type="text" id="name" placeholder="Ej. Supermercado, alquiler, sueldo..." required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="amount">Monto</label>
+                            <input type="number" id="amount" step="0.01" min="0.01" max="9000000000000000" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="date">Fecha</label>
+                            <input type="date" id="date" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="category">Categoria</label>
+                            <select id="category" required>
+                                <option value="">Selecciona categoria</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="currencySelectForm">Moneda</label>
+                            <select id="currencySelectForm" required></select>
+                        </div>
+
+                        <div class="form-group form-group-span-2">
+                            <label for="tags-input">Etiquetas</label>
+                            <div id="tags-input-container" class="tags-input-container">
+                                <div id="selected-tags" class="selected-tags"></div>
+                                <input type="text" id="tags-input" placeholder="Opcional">
+                            </div>
+                            <div id="tags-dropdown" class="tags-dropdown"></div>
+                        </div>
+
+                        <div class="form-group form-group-span-2" id="cardGroup" style="display:none;">
+                            <label for="cardInput">Tarjeta</label>
+                            <input type="text" id="cardInput" placeholder="Ej: Visa, Amex">
+                            <div id="cardError" class="form-error"></div>
+                        </div>
+
+                        <div class="form-group form-group-span-2">
+                            <div id="sourceImpactHint" class="form-help-text" aria-live="polite"></div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" id="cancelExpenseFormBtn" class="nav-button button-secondary">Cancelar</button>
+                            <button type="submit" class="nav-button button-primary">Agregar gasto</button>
+                        </div>
+                    </form>
+                    <div id="formMessage" class="form-message"></div>
                 </div>
-                <form id="cardPaymentForm" class="expense-form card-payment-modal-form">
-                    <div class="form-group form-group-span-2">
-                        <label>Quien paga</label>
-                        <div id="cardPaymentModeGroup" class="payment-mode-group" role="group" aria-label="Modo de pago">
-                            <button type="button" class="payment-mode-pill active" data-card-pay-mode="self">🧾 Pago propio</button>
-                            <button type="button" class="payment-mode-pill" data-card-pay-mode="third_party">🤝 Pago por tercero</button>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="cardPaymentAmount">Monto a registrar</label>
-                        <input type="number" id="cardPaymentAmount" step="0.01" min="0.01" placeholder="Ej: 25000" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="cardPaymentCurrency">Moneda</label>
-                        <select id="cardPaymentCurrency" required></select>
-                    </div>
-                    <div class="form-group form-group-span-2">
-                        <div class="card-payment-shortcuts" role="group" aria-label="Atajos de monto">
-                            <button type="button" class="card-shortcut-btn" data-card-pay-shortcut="full">Usar total pendiente</button>
-                            <button type="button" class="card-shortcut-btn" data-card-pay-shortcut="half">50%</button>
-                            <button type="button" class="card-shortcut-btn" data-card-pay-shortcut="clear">Limpiar</button>
-                        </div>
-                        <div id="cardPaymentPendingHint" class="form-help-text"></div>
-                    </div>
-                    <div class="form-group form-group-span-2">
-                        <label for="cardPaymentCard">Tarjeta (opcional)</label>
-                        <input type="text" id="cardPaymentCard" placeholder="Ej: Visa banco">
-                    </div>
-                    <div id="cardPaymentMessage" class="form-help-text form-group-span-2"></div>
-                    <div class="form-actions">
-                        <button type="button" id="cardPaySubmitBtn" class="nav-button button-primary">Registrar pago propio</button>
-                    </div>
-                </form>
             </div>
-        </div>
 
-        <div id="cashflow-section" class="cashflow-container"></div>
+            <div id="recentMovements" class="recent-movements" style="display: none;">
+                <h3>🧾 Ultimos 3 movimientos</h3>
+                <div id="recentList" class="recent-list"></div>
+            </div>
+
+            <div class="panel-filters home-filters">
+                <div class="filter-group">
+                    <span class="filter-label">Moneda</span>
+                    <select id="filterCurrency" class="filter-select">
+                        <option value="all">Todas</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <span class="filter-label">Medio de pago</span>
+                    <select id="filterSource" class="filter-select">
+                        <option value="all">Todos</option>
+                    </select>
+                </div>
+                <button id="clearFilters" class="nav-button button-secondary">Limpiar</button>
+                <button id="toggleChart" class="nav-button button-primary" style="display: none;">📊 Ver grafico</button>
+            </div>
+
+            <div id="emptyStateBanner" class="empty-state" style="display: none;"></div>
+
+            <div class="chart-container">
+                <div id="noDataMessage" class="empty-state" style="display: none;">
+                    <strong>📭 Aun no hay gastos.</strong> Carga el primero con Agregar gasto.
+                </div>
+                <div class="chart-box">
+                    <canvas id="categoryPieChart"></canvas>
+                </div>
+                <div class="legend-box" id="customLegend">
+                </div>
+            </div>
+
+            <section id="cardPaymentModule" class="card-payment-module" style="display: none;">
+                <div class="card-payment-head">
+                    <div class="card-payment-toggle-copy">
+                        <span class="card-payment-eyebrow">💳 Resumen de credito</span>
+                        <span class="card-payment-title">Tarjeta por pagar</span>
+                        <span id="cardPaymentStatus" class="card-payment-status">Registra pagos para bajar el saldo pendiente.</span>
+                    </div>
+                </div>
+                <div class="card-payment-toggle-kpi card-payment-kpi-panel">
+                    <span id="cardPayableValue" class="card-payment-value">$0.00</span>
+                    <span id="cardPayableSub" class="card-payment-sub"></span>
+                </div>
+                <div id="cardPayableBreakdown" class="card-payment-breakdown"></div>
+                <div class="card-payment-actions">
+                    <button id="openCardPaymentModalBtn" type="button" class="nav-button button-primary">Registrar pago</button>
+                </div>
+            </section>
+
+            <div id="cardPaymentOverlay" class="entry-modal-overlay" hidden aria-hidden="true">
+                <div class="entry-modal-backdrop" data-cardpayment-close></div>
+                <div class="entry-modal-card card-payment-modal-card" role="dialog" aria-modal="true" aria-labelledby="cardPaymentModalTitle">
+                    <div class="entry-modal-header">
+                        <div class="entry-modal-title-wrap">
+                            <span class="entry-modal-eyebrow">💳 Gestion de pago</span>
+                            <h3 id="cardPaymentModalTitle">Pago de tarjeta</h3>
+                            <p>Registra un pago propio o marca pago por tercero para no afectar tu balance.</p>
+                        </div>
+                        <button type="button" id="closeCardPaymentModalBtn" class="entry-modal-close" aria-label="Cerrar pago de tarjeta">
+                            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <form id="cardPaymentForm" class="expense-form card-payment-modal-form">
+                        <div class="form-group form-group-span-2">
+                            <label>Quien paga</label>
+                            <div id="cardPaymentModeGroup" class="payment-mode-group" role="group" aria-label="Modo de pago">
+                                <button type="button" class="payment-mode-pill active" data-card-pay-mode="self">🧾 Pago propio</button>
+                                <button type="button" class="payment-mode-pill" data-card-pay-mode="third_party">🤝 Pago por tercero</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="cardPaymentAmount">Monto a registrar</label>
+                            <input type="number" id="cardPaymentAmount" step="0.01" min="0.01" placeholder="Ej: 25000" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="cardPaymentCurrency">Moneda</label>
+                            <select id="cardPaymentCurrency" required></select>
+                        </div>
+                        <div class="form-group form-group-span-2">
+                            <div class="card-payment-shortcuts" role="group" aria-label="Atajos de monto">
+                                <button type="button" class="card-shortcut-btn" data-card-pay-shortcut="full">Usar total pendiente</button>
+                                <button type="button" class="card-shortcut-btn" data-card-pay-shortcut="half">50%</button>
+                                <button type="button" class="card-shortcut-btn" data-card-pay-shortcut="clear">Limpiar</button>
+                            </div>
+                            <div id="cardPaymentPendingHint" class="form-help-text"></div>
+                        </div>
+                        <div class="form-group form-group-span-2">
+                            <label for="cardPaymentCard">Tarjeta (opcional)</label>
+                            <input type="text" id="cardPaymentCard" placeholder="Ej: Visa banco">
+                        </div>
+                        <div id="cardPaymentMessage" class="form-help-text form-group-span-2"></div>
+                        <div class="form-actions">
+                            <button type="button" id="cardPaySubmitBtn" class="nav-button button-primary">Registrar pago propio</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div id="cashflow-section" class="cashflow-container"></div>
+        </main>
     </div>
     <div id="toastContainer" class="toast-container"></div>
 
@@ -1967,6 +1959,24 @@
             addScript('/_vercel/speed-insights/script.js');
         })();
     </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('app-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const toggleBtn = document.getElementById('sidebar-toggle');
+
+            if (sidebar && overlay && toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    sidebar.classList.toggle('open');
+                    overlay.classList.toggle('open');
+                });
+
+                overlay.addEventListener('click', () => {
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('open');
+                });
+            }
+        });
+    </script>
 </body>
 </html>
-

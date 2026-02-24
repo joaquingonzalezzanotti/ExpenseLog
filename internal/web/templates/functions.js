@@ -715,8 +715,13 @@ function setupMobileMenu() {
         document.documentElement.style.setProperty('--sidebar-top', `${topOffset}px`);
     };
 
+    const setToggleLabel = (open) => {
+        toggle.setAttribute('aria-label', open ? 'Cerrar menu' : 'Abrir menu');
+    };
+
     const applyMobileState = (open) => {
         toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        setToggleLabel(open);
         sidebar.hidden = !open;
         sidebar.setAttribute('aria-hidden', open ? 'false' : 'true');
         overlay.hidden = !open;
@@ -728,6 +733,7 @@ function setupMobileMenu() {
     const applyDesktopState = (open) => {
         desktopSidebarOpen = !!open;
         toggle.setAttribute('aria-expanded', desktopSidebarOpen ? 'true' : 'false');
+        setToggleLabel(desktopSidebarOpen);
         sidebar.hidden = !desktopSidebarOpen;
         sidebar.setAttribute('aria-hidden', desktopSidebarOpen ? 'false' : 'true');
         overlay.hidden = true;
@@ -760,6 +766,7 @@ function setupMobileMenu() {
             return;
         }
         toggle.setAttribute('aria-expanded', 'false');
+        setToggleLabel(false);
         applyMobileState(false);
     };
 
@@ -777,6 +784,23 @@ function setupMobileMenu() {
         link.addEventListener('click', () => {
             if (!isDesktop()) closeMenu();
         });
+    });
+
+    const normalizePath = (value) => (value || '').replace(/\/$/, '');
+    const currentPath = normalizePath(window.location.pathname);
+    const currentQuery = new URLSearchParams(window.location.search);
+    sidebar.querySelectorAll('.mobile-sidebar-link').forEach((link) => {
+        const href = link.getAttribute('href') || '';
+        const [pathPart, queryPart] = href.split('?');
+        const samePath = normalizePath(pathPart) === currentPath;
+        const matchesQuery = !queryPart || queryPart === currentQuery.toString();
+        const active = samePath && matchesQuery;
+        link.classList.toggle('active', active);
+        if (active) {
+            link.setAttribute('aria-current', 'page');
+        } else {
+            link.removeAttribute('aria-current');
+        }
     });
 
     document.addEventListener('keydown', (event) => {

@@ -1054,14 +1054,16 @@ input:focus-visible {
     bottom: 1rem;
     height: auto;
     max-height: calc(100dvh - var(--sidebar-top, 84px) - 1rem);
-    width: min(290px, 28vw);
-    background: color-mix(in srgb, var(--bg-secondary), transparent 2%);
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    box-shadow: 0 18px 36px rgba(2, 6, 23, 0.16);
+    width: min(322px, 30vw);
+    background: #000;
+    border: 1px solid #272727;
+    border-radius: 0 18px 18px 0;
+    box-shadow: 0 24px 44px rgba(0, 0, 0, 0.45);
     z-index: 65;
-    padding: 1rem 0.8rem;
+    padding: 1.25rem 1rem;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
 }
 
 .mobile-sidebar[hidden],
@@ -1076,24 +1078,104 @@ input:focus-visible {
 
 .mobile-sidebar-nav {
     display: grid;
-    gap: 0.35rem;
+    gap: 0.18rem;
+    padding: 1.1rem 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.mobile-sidebar-profile {
+    display: grid;
+    gap: 0.3rem;
+    color: #f3f4f6;
+}
+
+.mobile-sidebar-avatar {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    background: #202327;
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    margin-bottom: 0.45rem;
+}
+
+.mobile-sidebar-name {
+    margin: 0;
+    font-weight: 800;
+    font-size: 1.1rem;
+}
+
+.mobile-sidebar-handle {
+    margin: 0;
+    color: #71767b;
+    font-size: 0.98rem;
+}
+
+.mobile-sidebar-meta {
+    margin: 0.2rem 0 0;
+    color: #71767b;
+    font-size: 0.95rem;
+}
+
+.mobile-sidebar-meta strong {
+    color: #f3f4f6;
+    font-weight: 700;
 }
 
 .mobile-sidebar-link {
-    border: 1px solid transparent;
-    border-radius: 11px;
+    border: 0;
+    border-radius: 999px;
     background: transparent;
-    color: var(--text-primary);
+    color: #f3f4f6;
     text-decoration: none;
-    font-weight: 600;
-    padding: 0.62rem 0.7rem;
+    font-weight: 700;
+    font-size: 1.9rem;
+    line-height: 1;
+    padding: 0.72rem 0.62rem;
     transition: all 0.18s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.92rem;
+    width: fit-content;
+}
+
+.mobile-sidebar-link i {
+    width: 2rem;
+    text-align: center;
+    font-size: 1.4rem;
 }
 
 .mobile-sidebar-link:hover {
-    border-color: var(--border);
-    background: var(--bg-primary);
-    transform: translateX(2px);
+    background: #16181c;
+}
+
+.mobile-sidebar-support {
+    width: 100%;
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #f3f4f6;
+    font-size: 1.02rem;
+    font-weight: 700;
+    background: transparent;
+    border: 0;
+    padding: 0.2rem 0;
+}
+
+.mobile-sidebar-theme {
+    margin-top: auto;
+    width: 2.7rem;
+    height: 2.7rem;
+    border-radius: 999px;
+    border: 1px solid #2f3336;
+    background: transparent;
+    color: #f3f4f6;
+    display: inline-grid;
+    place-items: center;
+    font-size: 1.2rem;
 }
 
 .mobile-bottom-nav {
@@ -3255,23 +3337,22 @@ html[data-settings-route='reports'] body.settings-page #reportsSection[hidden] {
 
     .mobile-sidebar-overlay {
         top: 0;
-        background: rgba(15, 23, 42, 0.42);
+        background: rgba(0, 0, 0, 0.56);
     }
 
     .mobile-sidebar {
-        top: 0.55rem;
-        left: 0.45rem;
+        top: 0;
+        left: 0;
         bottom: 0.55rem;
-        width: min(300px, 84vw);
-        max-height: calc(100dvh - 1.1rem);
-        border-radius: 16px;
-        padding: 0.85rem 0.7rem;
+        width: min(332px, 88vw);
+        max-height: 100dvh;
+        border-radius: 0 18px 18px 0;
+        padding: max(1.4rem, env(safe-area-inset-top, 0px)) 1rem 1.1rem;
         z-index: 82;
     }
 
     .mobile-sidebar-link {
-        border: 1px solid var(--border);
-        background: color-mix(in srgb, var(--bg-secondary), transparent 4%);
+        font-size: clamp(1.55rem, 7vw, 1.9rem);
     }
 
     .mobile-sidebar[hidden],

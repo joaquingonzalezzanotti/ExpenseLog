@@ -41,13 +41,26 @@
             </div>
             <div id="mobileSidebarOverlay" class="mobile-sidebar-overlay" hidden></div>
             <aside id="mobileSidebar" class="mobile-sidebar" hidden aria-hidden="true">
+                <div class="mobile-sidebar-profile" aria-label="Resumen de cuenta">
+                    <div class="mobile-sidebar-avatar" aria-hidden="true">EL</div>
+                    <p class="mobile-sidebar-name">ExpenseLog</p>
+                    <p class="mobile-sidebar-handle">@expenselog</p>
+                    <p class="mobile-sidebar-meta"><strong>1</strong> Siguiendo <strong>9.999</strong> Seguidores</p>
+                </div>
                 <nav class="mobile-sidebar-nav" aria-label="Menu principal mobile">
-                    <a href="/app" class="mobile-sidebar-link">Inicio</a>
-                    <a href="/app/table" class="mobile-sidebar-link">Tabla</a>
-                    <a href="/app/table?view=calendar" class="mobile-sidebar-link">Calendario</a>
-                    <a href="/app/reportes" class="mobile-sidebar-link">Reportes</a>
-                    <a href="/app/perfil" class="mobile-sidebar-link">Usuario</a>
+                    <a href="/app/perfil" class="mobile-sidebar-link"><i class="fa-regular fa-user" aria-hidden="true"></i><span>Perfil</span></a>
+                    <a href="/app" class="mobile-sidebar-link"><i class="fa-solid fa-house" aria-hidden="true"></i><span>Inicio</span></a>
+                    <a href="/app/table" class="mobile-sidebar-link"><i class="fa-solid fa-table" aria-hidden="true"></i><span>Tabla</span></a>
+                    <a href="/app/table?view=calendar" class="mobile-sidebar-link"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i><span>Calendario</span></a>
+                    <a href="/app/reportes" class="mobile-sidebar-link"><i class="fa-regular fa-file-lines" aria-hidden="true"></i><span>Reportes</span></a>
                 </nav>
+                <button type="button" class="mobile-sidebar-support" aria-label="Configuracion y soporte">
+                    <span>Configuracion y soporte</span>
+                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="mobile-sidebar-theme" aria-label="Tema oscuro activado">
+                    <i class="fa-regular fa-moon" aria-hidden="true"></i>
+                </button>
             </aside>
         </header>
 

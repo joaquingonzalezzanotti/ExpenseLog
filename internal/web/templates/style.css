@@ -72,6 +72,36 @@ html[data-theme='dark'] {
     --card-visual-glow: rgba(148, 197, 255, 0.22);
 }
 
+@view-transition {
+    navigation: auto;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation-duration: 180ms;
+        animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    ::view-transition-old(root) {
+        animation-name: expenselog-route-fade-out;
+    }
+
+    ::view-transition-new(root) {
+        animation-name: expenselog-route-fade-in;
+    }
+}
+
+@keyframes expenselog-route-fade-out {
+    from { opacity: 1; }
+    to { opacity: 0.96; }
+}
+
+@keyframes expenselog-route-fade-in {
+    from { opacity: 0.94; }
+    to { opacity: 1; }
+}
+
 body {
     margin: 0;
     padding: 0;

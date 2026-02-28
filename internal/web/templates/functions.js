@@ -722,22 +722,27 @@ function setupMobileDrawer() {
         return `${canonicalPath}${String(search || '')}`;
     };
 
-    const currentRoute = normalizeRoute(window.location.pathname, window.location.search);
-    drawerLinks.forEach((link) => {
-        try {
-            const target = new URL(link.href, window.location.origin);
-            const targetRoute = normalizeRoute(target.pathname, target.search);
-            const isActive = targetRoute === currentRoute;
-            link.classList.toggle('active', isActive);
-            if (isActive) {
-                link.setAttribute('aria-current', 'page');
-            } else {
-                link.removeAttribute('aria-current');
+    const updateDrawerActiveState = () => {
+        const currentRoute = normalizeRoute(window.location.pathname, window.location.search);
+        drawerLinks.forEach((link) => {
+            try {
+                const target = new URL(link.href, window.location.origin);
+                const targetRoute = normalizeRoute(target.pathname, target.search);
+                const isActive = targetRoute === currentRoute;
+                link.classList.toggle('active', isActive);
+                if (isActive) {
+                    link.setAttribute('aria-current', 'page');
+                } else {
+                    link.removeAttribute('aria-current');
+                }
+            } catch (error) {
+                console.error('Failed to parse drawer route:', error);
             }
-        } catch (error) {
-            console.error('Failed to parse drawer route:', error);
-        }
-    });
+        });
+    };
+    updateDrawerActiveState();
+    window.addEventListener('popstate', updateDrawerActiveState);
+    window.addEventListener('expenselog:routechange', updateDrawerActiveState);
 
     const getFocusableElements = () => {
         return Array.from(

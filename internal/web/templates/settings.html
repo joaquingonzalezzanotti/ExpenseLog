@@ -1765,6 +1765,67 @@ async function saveCategoriesList(nextCategories) {
             }
         }
 
+        function routeForSettingsSection(sectionKey) {
+            switch (normalizeSettingsSection(sectionKey)) {
+                case 'categories': return '/app/categorias';
+                case 'recurring': return '/app/recurrentes';
+                case 'reconciliation': return '/app/conciliacion';
+                case 'reports': return '/app/reportes';
+                case 'profile':
+                default:
+                    return '/app/perfil';
+            }
+        }
+
+        function navigateSettingsSection(sectionKey, options = {}) {
+            const normalized = normalizeSettingsSection(sectionKey) || 'profile';
+            const targetPath = routeForSettingsSection(normalized);
+            const currentPath = String(window.location.pathname || '')
+                .trim()
+                .toLowerCase()
+                .replace(/\/+$/, '');
+            const nextPath = String(targetPath || '')
+                .trim()
+                .toLowerCase()
+                .replace(/\/+$/, '');
+
+            if (currentPath !== nextPath) {
+                const historyMethod = options.replace ? 'replaceState' : 'pushState';
+                window.history[historyMethod]({ settingsSection: normalized }, '', targetPath);
+            }
+
+            openSectionFromURL();
+            window.dispatchEvent(new CustomEvent('expenselog:routechange'));
+        }
+
+        function bindSettingsRouteAnchors() {
+            const links = Array.from(document.querySelectorAll('a[href]'));
+            links.forEach((link) => {
+                if (!(link instanceof HTMLAnchorElement)) return;
+                const href = link.getAttribute('href');
+                if (!href || href.startsWith('#')) return;
+
+                let target;
+                try {
+                    target = new URL(href, window.location.origin);
+                } catch {
+                    return;
+                }
+                if (target.origin !== window.location.origin) return;
+
+                const section = sectionFromPath(target.pathname);
+                if (!section) return;
+
+                link.addEventListener('click', (event) => {
+                    if (event.defaultPrevented) return;
+                    if (event.button !== 0) return;
+                    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                    event.preventDefault();
+                    navigateSettingsSection(section);
+                });
+            });
+        }
+
         function openSectionFromURL() {
             const params = new URLSearchParams(window.location.search);
             const querySection = normalizeSettingsSection(params.get('section') || '');
@@ -1916,7 +1977,8 @@ async function saveCategoriesList(nextCategories) {
             button.addEventListener('click', () => {
                 const route = button.dataset.settingsRoute;
                 if (route) {
-                    window.location.href = route;
+                    const targetSection = sectionFromPath(route) || normalizeSettingsSection(button.dataset.settingsSection || '');
+                    navigateSettingsSection(targetSection || 'profile');
                     return;
                 }
                 const sectionId = button.dataset.settingsSection;
@@ -1929,7 +1991,7 @@ async function saveCategoriesList(nextCategories) {
                 if (!sectionId) return;
                 const routeSection = sectionFromPath(window.location.pathname);
                 if (routeSection && routeSection !== 'profile') {
-                    window.location.href = '/app/settings';
+                    navigateSettingsSection('profile');
                     return;
                 }
                 hideSettingsSection(sectionId);
@@ -2002,6 +2064,11 @@ async function saveCategoriesList(nextCategories) {
                 resolveAppSuccessModal();
             }
         });
+        window.addEventListener('popstate', () => {
+            openSectionFromURL();
+            window.dispatchEvent(new CustomEvent('expenselog:routechange'));
+        });
+        bindSettingsRouteAnchors();
         document.getElementById('reconciliation-history-list')?.addEventListener('click', async (e) => {
             const button = e.target.closest('[data-revert-reconciliation-id]');
             if (!button) return;

@@ -2496,7 +2496,11 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 @media (min-width: 769px) {
     .card-payment-chip {
         top: 0.78rem;
-        right: clamp(5.3rem, 14vw, 7.8rem);
+        right: 1rem;
+    }
+
+    .card-payment-kpi-panel {
+        margin-right: clamp(3.8rem, 9vw, 6.2rem);
     }
 
     .card-payment-eyebrow {

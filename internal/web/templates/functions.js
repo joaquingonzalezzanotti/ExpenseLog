@@ -696,121 +696,97 @@ function setupAuthUI() {
 }
 
 
-function setupMobileMenu() {
-    const toggle = document.getElementById('mobileMenuToggle');
-    const sidebar = document.getElementById('mobileSidebar');
-    const overlay = document.getElementById('mobileSidebarOverlay');
-    if (!toggle || !sidebar || !overlay) return;
+function setupMobileDrawer() {
+    const toggle = document.querySelector('[data-mobile-drawer-toggle]');
+    const drawer = document.querySelector('[data-mobile-drawer]');
+    const overlay = document.querySelector('[data-mobile-drawer-overlay]');
+    if (!toggle || !drawer || !overlay) return;
 
-    const desktopQuery = window.matchMedia('(min-width: 901px)');
-    let desktopSidebarOpen = true;
+    const closeButton = drawer.querySelector('[data-mobile-drawer-close]');
+    const mobileQuery = window.matchMedia('(max-width: 768px)');
+    let isOpen = false;
 
-    const isDesktop = () => desktopQuery.matches;
-
-    const updateSidebarTopOffset = () => {
-        const navBar = document.querySelector('.nav-bar');
-        if (!navBar) return;
-        const rect = navBar.getBoundingClientRect();
-        const topOffset = Math.max(12, Math.round(rect.bottom + 8));
-        document.documentElement.style.setProperty('--sidebar-top', `${topOffset}px`);
-    };
-
-    const applyMobileState = (open) => {
-        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-        sidebar.hidden = !open;
-        sidebar.setAttribute('aria-hidden', open ? 'false' : 'true');
-        overlay.hidden = !open;
-        document.body.classList.toggle('mobile-menu-open', open);
-        document.body.classList.toggle('sidebar-open', open);
-        document.body.classList.remove('desktop-sidebar-open');
-    };
-
-    const applyDesktopState = (open) => {
-        desktopSidebarOpen = !!open;
-        toggle.setAttribute('aria-expanded', desktopSidebarOpen ? 'true' : 'false');
-        sidebar.hidden = !desktopSidebarOpen;
-        sidebar.setAttribute('aria-hidden', desktopSidebarOpen ? 'false' : 'true');
-        overlay.hidden = true;
-        document.body.classList.remove('mobile-menu-open', 'sidebar-open');
-        document.body.classList.toggle('desktop-sidebar-open', desktopSidebarOpen);
-        updateSidebarTopOffset();
-    };
-
-    const closeMenu = () => {
-        if (isDesktop()) {
-            applyDesktopState(false);
-            return;
+    const getRoute = (pathname, search) => `${pathname.replace(/\/+$/, '') || '/'}${search || ''}`;
+    const currentRoute = getRoute(window.location.pathname, window.location.search);
+    const routeFromHref = (href) => {
+        try {
+            const parsed = new URL(href, window.location.origin);
+            return getRoute(parsed.pathname, parsed.search);
+        } catch (error) {
+            return '';
         }
-        applyMobileState(false);
     };
+    const activeBottomNavItem = document.querySelector('.mobile-bottom-nav .mobile-nav-item.active[href]');
+    const activeRoute = activeBottomNavItem ? routeFromHref(activeBottomNavItem.href) || currentRoute : currentRoute;
 
-    const openMenu = () => {
-        if (isDesktop()) {
-            applyDesktopState(true);
-            return;
+    drawer.querySelectorAll('.mobile-drawer-link').forEach((link) => {
+        try {
+            const linkURL = new URL(link.href, window.location.origin);
+            const linkRoute = getRoute(linkURL.pathname, linkURL.search);
+            const active = linkRoute === activeRoute;
+            link.classList.toggle('active', active);
+            if (active) {
+                link.setAttribute('aria-current', 'page');
+            } else {
+                link.removeAttribute('aria-current');
+            }
+        } catch (error) {
+            console.error('Unable to evaluate mobile drawer route:', error);
         }
-        applyMobileState(true);
-    };
-
-    const applyResponsiveState = (forceDesktopOpen = false) => {
-        updateSidebarTopOffset();
-        if (isDesktop()) {
-            if (forceDesktopOpen) desktopSidebarOpen = true;
-            applyDesktopState(desktopSidebarOpen);
-            return;
-        }
-        toggle.setAttribute('aria-expanded', 'false');
-        applyMobileState(false);
-    };
-
-    toggle.addEventListener('click', () => {
-        const isOpen = toggle.getAttribute('aria-expanded') === 'true';
-        if (isOpen) {
-            closeMenu();
-            return;
-        }
-        openMenu();
     });
 
-    overlay.addEventListener('click', closeMenu);
-    sidebar.querySelectorAll('a').forEach((link) => {
-        link.addEventListener('click', () => {
-            if (!isDesktop()) closeMenu();
-        });
+    const applyState = (nextOpen) => {
+        const shouldOpen = !!nextOpen && mobileQuery.matches;
+        isOpen = shouldOpen;
+        toggle.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+        drawer.setAttribute('aria-hidden', shouldOpen ? 'false' : 'true');
+        document.body.classList.toggle('mobile-drawer-open', shouldOpen);
+    };
+
+    const closeDrawer = () => applyState(false);
+    const openDrawer = () => applyState(true);
+
+    toggle.addEventListener('click', () => {
+        if (isOpen) {
+            closeDrawer();
+            return;
+        }
+        openDrawer();
+    });
+
+    overlay.addEventListener('click', closeDrawer);
+    if (closeButton) {
+        closeButton.addEventListener('click', closeDrawer);
+    }
+
+    drawer.querySelectorAll('a').forEach((link) => {
+        link.addEventListener('click', closeDrawer);
     });
 
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') {
-            closeMenu();
+        if (event.key === 'Escape' && isOpen) {
+            closeDrawer();
         }
     });
 
-    let wasDesktop = isDesktop();
-    window.addEventListener('resize', () => {
-        const nowDesktop = isDesktop();
-        if (nowDesktop !== wasDesktop) {
-            wasDesktop = nowDesktop;
-            applyResponsiveState(nowDesktop);
-            return;
+    const handleViewportChange = (event) => {
+        if (!event.matches) {
+            closeDrawer();
         }
-        if (nowDesktop) {
-            updateSidebarTopOffset();
-        }
-    });
+    };
 
-    window.addEventListener('scroll', () => {
-        if (isDesktop() && desktopSidebarOpen) {
-            updateSidebarTopOffset();
-        }
-    }, { passive: true });
+    if (typeof mobileQuery.addEventListener === 'function') {
+        mobileQuery.addEventListener('change', handleViewportChange);
+    } else if (typeof mobileQuery.addListener === 'function') {
+        mobileQuery.addListener(handleViewportChange);
+    }
 
-    // Desktop: abierta por defecto. Mobile: cerrada.
-    applyResponsiveState(true);
+    applyState(false);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     setupAuthUI();
-    setupMobileMenu();
+    setupMobileDrawer();
     showAuthMessageFromURL();
     if (!authChecked) {
         checkAuthStatus();

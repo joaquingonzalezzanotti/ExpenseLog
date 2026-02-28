@@ -50,7 +50,7 @@
     <div class="container">
         <header>
             <div class="nav-bar">
-                <button id="mobileMenuToggle" class="view-button mobile-menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobileSidebar">
+                <button id="mobileMenuToggle" class="view-button mobile-drawer-toggle" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobileDrawer" data-mobile-drawer-toggle>
                     <i class="fa-solid fa-bars" aria-hidden="true"></i>
                 </button>
                 <a href="/app" class="nav-logo-link">
@@ -68,14 +68,20 @@
                     </div>
                 </div>
             </div>
-            <div id="mobileSidebarOverlay" class="mobile-sidebar-overlay" hidden></div>
-            <aside id="mobileSidebar" class="mobile-sidebar" hidden aria-hidden="true">
-                <nav class="mobile-sidebar-nav" aria-label="Menu principal mobile">
-                    <a href="/app" class="mobile-sidebar-link">Inicio</a>
-                    <a href="/app/table" class="mobile-sidebar-link">Tabla</a>
-                    <a href="/app/table?view=calendar" class="mobile-sidebar-link">Calendario</a>
-                    <a href="/app/reportes" class="mobile-sidebar-link">Reportes</a>
-                    <a href="/app/perfil" class="mobile-sidebar-link">Usuario</a>
+            <div class="mobile-drawer-overlay" data-mobile-drawer-overlay></div>
+            <aside id="mobileDrawer" class="mobile-drawer" data-mobile-drawer aria-hidden="true">
+                <div class="mobile-drawer-header">
+                    <span class="mobile-drawer-title">Menu</span>
+                    <button type="button" class="view-button mobile-drawer-close" aria-label="Cerrar menu" data-mobile-drawer-close>
+                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <nav class="mobile-drawer-nav" aria-label="Menu principal mobile">
+                    <a href="/app" class="mobile-drawer-link">Inicio</a>
+                    <a href="/app/table" class="mobile-drawer-link">Tabla</a>
+                    <a href="/app/table?view=calendar" class="mobile-drawer-link">Calendario</a>
+                    <a href="/app/reportes" class="mobile-drawer-link">Reportes</a>
+                    <a href="/app/perfil" class="mobile-drawer-link">Usuario</a>
                 </nav>
             </aside>
         </header>
@@ -2068,10 +2074,3 @@ async function saveCategoriesList(nextCategories) {
     </script>
 </body>
 </html>
-
-
-
-
-
-
-

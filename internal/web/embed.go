@@ -18,6 +18,9 @@ func ServeTemplate(w http.ResponseWriter, templateName string) error {
 	if err != nil {
 		return err
 	}
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	}
 	_, err = w.Write(templateContent)
 	return err
 }
@@ -30,9 +33,9 @@ func ServeStatic(w http.ResponseWriter, staticPath string) error {
 	ext := filepath.Ext(staticPath)
 	switch ext {
 	case ".js":
-		w.Header().Set("Content-Type", "application/javascript")
+		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
 	case ".css":
-		w.Header().Set("Content-Type", "text/css")
+		w.Header().Set("Content-Type", "text/css; charset=utf-8")
 	case ".woff", ".woff2":
 		w.Header().Set("Content-Type", "font/"+ext[1:])
 	case ".ttf":
@@ -46,7 +49,7 @@ func ServeStatic(w http.ResponseWriter, staticPath string) error {
 	case ".ico":
 		w.Header().Set("Content-Type", "image/x-icon")
 	case ".json":
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	case ".txt":
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	case ".xml":

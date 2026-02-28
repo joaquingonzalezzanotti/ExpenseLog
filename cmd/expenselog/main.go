@@ -34,7 +34,7 @@ func runServer(port int) {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Write([]byte(version))
 	}
 	http.HandleFunc("/version", versionHandler)
@@ -46,7 +46,7 @@ func runServer(port int) {
 			http.NotFound(w, r)
 			return
 		}
-		w.Header().Set("Content-Type", "text/html")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		if err := web.ServeTemplate(w, "landing.html"); err != nil {
 			log.Printf("HTTP ERROR: Failed to serve template: %v", err)
 			http.Error(w, "Failed to serve template", http.StatusInternalServerError)
@@ -58,7 +58,7 @@ func runServer(port int) {
 			http.NotFound(w, r)
 			return
 		}
-		w.Header().Set("Content-Type", "text/html")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		if err := web.ServeTemplate(w, "index.html"); err != nil {
 			log.Printf("HTTP ERROR: Failed to serve template: %v", err)
 			http.Error(w, "Failed to serve template", http.StatusInternalServerError)

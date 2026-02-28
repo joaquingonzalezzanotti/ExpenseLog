@@ -668,7 +668,7 @@ func (h *Handler) ServeTableView(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{Error: "Method not allowed"})
 		return
 	}
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := web.ServeTemplate(w, "table.html"); err != nil {
 		http.Error(w, "Failed to serve template", http.StatusInternalServerError)
 	}
@@ -710,7 +710,7 @@ func (h *Handler) serveSettingsPageWithSection(w http.ResponseWriter, r *http.Re
 	case "reports":
 		templateName = "settings-reports.html"
 	}
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := web.ServeTemplate(w, templateName); err != nil {
 		http.Error(w, "Failed to serve template", http.StatusInternalServerError)
 	}
@@ -729,3 +729,4 @@ func (h *Handler) ServeStaticFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to serve static file", http.StatusInternalServerError)
 	}
 }
+

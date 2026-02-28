@@ -45,7 +45,7 @@
                         <span id="notificationCenterBadge" class="notification-badge" hidden></span>
                     </button>
                     <div id="notificationCenterPanel" class="notification-panel" hidden>
-                        <div class="notification-panel-title">Notificaciones ðŸ”” </div>
+                        <div class="notification-panel-title">Notificaciones 🔔 </div>
                         <div id="notificationCenterList" class="notification-list"></div>
                     </div>
                 </div>
@@ -84,7 +84,7 @@
             <div class="entry-modal-card" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle">
                 <div class="entry-modal-header">
                     <div class="entry-modal-title-wrap">
-                        <span class="entry-modal-eyebrow">âœ¨ Carga rapida</span>
+                        <span class="entry-modal-eyebrow">✨ Carga rapida</span>
                         <h3 id="expenseModalTitle">Registrar movimiento</h3>
                         <p>Carga un ingreso, gasto o reintegro sin salir del dashboard.</p>
                     </div>
@@ -96,9 +96,9 @@
                     <div class="form-group form-group-span-2 movement-type-group">
                         <label for="movementType">Tipo</label>
                         <div id="movementTypePills" class="movement-pill-group" role="group" aria-label="Tipo de movimiento">
-                            <button type="button" class="movement-pill active" data-movement-pill="expense">ðŸ’¸ Gasto</button>
-                            <button type="button" class="movement-pill" data-movement-pill="income">ðŸ’° Ingreso</button>
-                            <button type="button" class="movement-pill" data-movement-pill="refund">â†©ï¸ Reintegro</button>
+                            <button type="button" class="movement-pill active" data-movement-pill="expense">💸 Gasto</button>
+                            <button type="button" class="movement-pill" data-movement-pill="income">💰 Ingreso</button>
+                            <button type="button" class="movement-pill" data-movement-pill="refund">↩️ Reintegro</button>
                         </div>
                         <select id="movementType" class="select-assist">
                             <option value="expense">Gasto</option>
@@ -172,7 +172,7 @@
         </div>
 
         <div id="recentMovements" class="recent-movements" style="display: none;">
-            <h3>ðŸ§¾ Ultimos 3 movimientos</h3>
+            <h3>🧾 Ultimos 3 movimientos</h3>
             <div id="recentList" class="recent-list"></div>
         </div>
 
@@ -190,14 +190,14 @@
                 </select>
             </div>
             <button id="clearFilters" class="nav-button button-secondary">Limpiar</button>
-            <button id="toggleChart" class="nav-button button-primary" style="display: none;">ðŸ“Š Ver grafico</button>
+            <button id="toggleChart" class="nav-button button-primary" style="display: none;">📊 Ver grafico</button>
         </div>
 
         <div id="emptyStateBanner" class="empty-state" style="display: none;"></div>
 
         <div class="chart-container">
             <div id="noDataMessage" class="empty-state" style="display: none;">
-                <strong>ðŸ“­ Aun no hay gastos.</strong> Carga el primero con Agregar gasto.
+                <strong>📭 Aun no hay gastos.</strong> Carga el primero con Agregar gasto.
             </div>
             <div class="chart-box">
                 <canvas id="categoryPieChart"></canvas>
@@ -209,7 +209,7 @@
         <section id="cardPaymentModule" class="card-payment-module" style="display: none;">
             <div class="card-payment-head">
                 <div class="card-payment-toggle-copy">
-                    <span class="card-payment-eyebrow">ðŸ’³ Resumen de credito</span>
+                    <span class="card-payment-eyebrow">💳 Resumen de credito</span>
                     <span class="card-payment-title">Tarjeta por pagar</span>
                     <span id="cardPaymentStatus" class="card-payment-status">Registra pagos para bajar el saldo pendiente.</span>
                 </div>
@@ -229,7 +229,7 @@
             <div class="entry-modal-card card-payment-modal-card" role="dialog" aria-modal="true" aria-labelledby="cardPaymentModalTitle">
                 <div class="entry-modal-header">
                     <div class="entry-modal-title-wrap">
-                        <span class="entry-modal-eyebrow">ðŸ’³ Gestion de pago</span>
+                        <span class="entry-modal-eyebrow">💳 Gestion de pago</span>
                         <h3 id="cardPaymentModalTitle">Pago de tarjeta</h3>
                         <p>Registra un pago propio o marca pago por tercero para no afectar tu balance.</p>
                     </div>
@@ -241,8 +241,8 @@
                     <div class="form-group form-group-span-2">
                         <label>Quien paga</label>
                         <div id="cardPaymentModeGroup" class="payment-mode-group" role="group" aria-label="Modo de pago">
-                            <button type="button" class="payment-mode-pill active" data-card-pay-mode="self">ðŸ§¾ Pago propio</button>
-                            <button type="button" class="payment-mode-pill" data-card-pay-mode="third_party">ðŸ¤ Pago por tercero</button>
+                            <button type="button" class="payment-mode-pill active" data-card-pay-mode="self">🧾 Pago propio</button>
+                            <button type="button" class="payment-mode-pill" data-card-pay-mode="third_party">🤝 Pago por tercero</button>
                         </div>
                     </div>
                     <div class="form-group">
@@ -305,7 +305,7 @@
                     <input type="email" id="authLoginEmail" autocomplete="email" required>
                 </div>
                 <div class="form-group">
-                    <label for="authLoginPassword">ContraseÃ±a</label>
+                    <label for="authLoginPassword">Contraseña</label>
                     <input type="password" id="authLoginPassword" autocomplete="current-password" required>
                 </div>
                 <label class="auth-remember">
@@ -320,7 +320,7 @@
                     <input type="email" id="authRegisterEmail" autocomplete="email" required>
                 </div>
                 <div class="form-group">
-                    <label for="authRegisterPassword">ContraseÃ±a (min 8)</label>
+                    <label for="authRegisterPassword">Contraseña (min 8)</label>
                     <input type="password" id="authRegisterPassword" autocomplete="new-password" required>
                 </div>
                 <label class="auth-remember">
@@ -482,7 +482,7 @@
                 return;
             }
             greetingEl.style.display = 'block';
-            greetingEl.textContent = `${getGreetingPrefix()}, ${name} ðŸ‘‹`;
+            greetingEl.textContent = `${getGreetingPrefix()}, ${name} 👋`;
         }
 
         function formatCurrencyWithCurrency(amount, currencyCode) {
@@ -1112,7 +1112,7 @@
                 updateHomeFilterControls(false);
                 noDataMessage.style.display = 'none';
                 emptyStateBanner.style.display = 'block';
-                emptyStateBanner.innerHTML = '<strong>ðŸ“­ Aun no hay gastos.</strong> Carga el primero con Agregar gasto.';
+                emptyStateBanner.innerHTML = '<strong>📭 Aun no hay gastos.</strong> Carga el primero con Agregar gasto.';
                 renderCashflowByCurrency([], {});
                 renderRecentMovements([]);
                 return;
@@ -1127,7 +1127,7 @@
             renderRecentMovements(monthExpenses);
             filtersRow.style.display = hasBaseExpenses ? '' : 'none';
             toggleChart.style.display = hasBaseExpenses ? 'inline-flex' : 'none';
-            toggleChart.textContent = chartExpanded ? 'Ocultar grafico' : 'ðŸ“Š Ver grafico';
+            toggleChart.textContent = chartExpanded ? 'Ocultar grafico' : '📊 Ver grafico';
             updateHomeFilterControls(hasBaseExpenses);
 
             // Grafico solo para moneda base y gastos
@@ -1140,7 +1140,7 @@
                     emptyStateBanner.style.display = 'none';
                 } else {
                     emptyStateBanner.style.display = 'block';
-                    emptyStateBanner.innerHTML = `<strong>ðŸ“­ No hay gastos en ${baseCurrency.toUpperCase()}.</strong> Carga el primero con Agregar gasto.`;
+                    emptyStateBanner.innerHTML = `<strong>📭 No hay gastos en ${baseCurrency.toUpperCase()}.</strong> Carga el primero con Agregar gasto.`;
                 }
             } else if (!chartExpanded) {
                 if (pieChart) { pieChart.destroy(); pieChart = null; }
@@ -1237,7 +1237,7 @@
             const title = container.querySelector('h3');
             const futureView = isFuturePeriodSelected();
             if (title) {
-                title.textContent = futureView ? 'ðŸ”® Proximos 3 movimientos' : 'ðŸ§¾ Ultimos 3 movimientos';
+                title.textContent = futureView ? '🔮 Proximos 3 movimientos' : '🧾 Ultimos 3 movimientos';
             }
             const sorted = expenses.slice().sort((a, b) => {
                 if (futureView) {
@@ -1254,7 +1254,7 @@
             container.style.display = 'block';
             list.innerHTML = recent.map(item => `
                 <div class="recent-item">
-                    <span><strong>${escapeHTML(item.name)}</strong> â€¢ ${escapeHTML(formatCategoryLabel(item.category))}</span>
+                    <span><strong>${escapeHTML(item.name)}</strong> • ${escapeHTML(formatCategoryLabel(item.category))}</span>
                     <span>${formatCurrencyWithCurrency(item.amount, item.currency || baseCurrency)}</span>
                 </div>
             `).join('');
@@ -1669,8 +1669,8 @@
         }
 
         function getCreateSubmitLabelByMovementType(movementType) {
-            if (movementType === 'income') return 'ðŸ’° Agregar ingreso';
-            if (movementType === 'refund') return 'â†©ï¸ Agregar reintegro';
+            if (movementType === 'income') return '💰 Agregar ingreso';
+            if (movementType === 'refund') return '↩️ Agregar reintegro';
             return 'Agregar gasto';
         }
 

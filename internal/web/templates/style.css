@@ -65,7 +65,7 @@ html[data-theme='dark'] {
 body {
     margin: 0;
     padding: 0;
-    font-family: 'Manrope', 'Segoe UI', sans-serif;
+    font-family: 'Manrope', 'Segoe UI', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
     background-color: var(--bg-primary);
     color: var(--text-primary);
     line-height: 1.6;
@@ -1357,7 +1357,7 @@ input:focus-visible {
     background: #ffffff;
     color: #3c4043;
     text-decoration: none;
-    font-family: "Roboto", "Segoe UI", Arial, sans-serif;
+    font-family: "Roboto", "Segoe UI", "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", Arial, sans-serif;
     font-size: 0.95rem;
     font-weight: 500;
     line-height: 1;

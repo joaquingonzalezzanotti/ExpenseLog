@@ -695,9 +695,154 @@ function setupAuthUI() {
     setAuthTab('login');
 }
 
+function setupMobileDrawer() {
+    const toggleButton = document.getElementById('mobileMenuToggle');
+    const drawer = document.getElementById('mobileDrawer');
+    const overlay = document.getElementById('mobileDrawerOverlay');
+    if (!toggleButton || !drawer || !overlay) return;
+
+    const closeButton = drawer.querySelector('[data-mobile-drawer-close]');
+    const drawerLinks = Array.from(drawer.querySelectorAll('.mobile-drawer-link'));
+    const mobileQuery = window.matchMedia('(max-width: 768px)');
+    let isOpen = false;
+    let restoreFocusElement = toggleButton;
+
+    const normalizeRoute = (pathname, search = '') => {
+        const cleanedPath = String(pathname || '/').replace(/\/+$/, '') || '/';
+        const aliases = {
+            '/table': '/app/table',
+            '/settings': '/app/perfil',
+            '/perfil': '/app/perfil',
+            '/categorias': '/app/categorias',
+            '/recurrentes': '/app/recurrentes',
+            '/conciliacion': '/app/conciliacion',
+            '/reportes': '/app/reportes',
+            '/app/settings': '/app/perfil',
+        };
+        const canonicalPath = aliases[cleanedPath] || cleanedPath;
+        return `${canonicalPath}${String(search || '')}`;
+    };
+
+    const currentRoute = normalizeRoute(window.location.pathname, window.location.search);
+    drawerLinks.forEach((link) => {
+        try {
+            const target = new URL(link.href, window.location.origin);
+            const targetRoute = normalizeRoute(target.pathname, target.search);
+            const isActive = targetRoute === currentRoute;
+            link.classList.toggle('active', isActive);
+            if (isActive) {
+                link.setAttribute('aria-current', 'page');
+            } else {
+                link.removeAttribute('aria-current');
+            }
+        } catch (error) {
+            console.error('Failed to parse drawer route:', error);
+        }
+    });
+
+    const getFocusableElements = () => {
+        return Array.from(
+            drawer.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])')
+        ).filter((element) => {
+            if (!(element instanceof HTMLElement)) return false;
+            if (element.getAttribute('aria-hidden') === 'true') return false;
+            return element.getClientRects().length > 0;
+        });
+    };
+
+    const handleKeyDown = (event) => {
+        if (!isOpen) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            setDrawerOpen(false);
+            return;
+        }
+        if (event.key !== 'Tab') return;
+
+        const focusable = getFocusableElements();
+        if (!focusable.length) {
+            event.preventDefault();
+            drawer.focus();
+            return;
+        }
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        const activeElement = document.activeElement;
+        const isInsideDrawer = activeElement instanceof Node && drawer.contains(activeElement);
+
+        if (!isInsideDrawer) {
+            event.preventDefault();
+            first.focus();
+            return;
+        }
+        if (!event.shiftKey && activeElement === last) {
+            event.preventDefault();
+            first.focus();
+            return;
+        }
+        if (event.shiftKey && activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        }
+    };
+
+    const setDrawerOpen = (nextOpen, options = { restoreFocus: true }) => {
+        const shouldOpen = Boolean(nextOpen) && mobileQuery.matches;
+        if (shouldOpen === isOpen) return;
+
+        isOpen = shouldOpen;
+        document.body.classList.toggle('mobile-drawer-open', isOpen);
+        toggleButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        drawer.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+        overlay.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+
+        if (isOpen) {
+            restoreFocusElement = document.activeElement instanceof HTMLElement
+                ? document.activeElement
+                : toggleButton;
+            document.addEventListener('keydown', handleKeyDown);
+            const focusable = getFocusableElements();
+            const target = focusable[0] || closeButton || drawer;
+            requestAnimationFrame(() => target.focus());
+            return;
+        }
+
+        document.removeEventListener('keydown', handleKeyDown);
+        if (options.restoreFocus !== false && restoreFocusElement instanceof HTMLElement) {
+            restoreFocusElement.focus();
+        }
+    };
+
+    toggleButton.addEventListener('click', () => {
+        setDrawerOpen(!isOpen);
+    });
+
+    overlay.addEventListener('click', () => setDrawerOpen(false));
+    if (closeButton) {
+        closeButton.addEventListener('click', () => setDrawerOpen(false));
+    }
+
+    drawerLinks.forEach((link) => {
+        link.addEventListener('click', () => setDrawerOpen(false, { restoreFocus: false }));
+    });
+
+    const handleBreakpointChange = (event) => {
+        if (!event.matches) {
+            setDrawerOpen(false, { restoreFocus: false });
+        }
+    };
+
+    if (typeof mobileQuery.addEventListener === 'function') {
+        mobileQuery.addEventListener('change', handleBreakpointChange);
+    } else if (typeof mobileQuery.addListener === 'function') {
+        mobileQuery.addListener(handleBreakpointChange);
+    }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     setupAuthUI();
+    setupMobileDrawer();
     showAuthMessageFromURL();
     if (!authChecked) {
         checkAuthStatus();

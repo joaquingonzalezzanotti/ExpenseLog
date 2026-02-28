@@ -986,7 +986,16 @@ input:focus-visible {
     position: relative;
 }
 
+.nav-left-slot {
+    grid-column: 1;
+    display: none;
+    align-items: center;
+    justify-self: start;
+    z-index: 3;
+}
+
 .nav-logo-link {
+    grid-column: 2;
     display: inline-flex;
     align-items: center;
     position: absolute;
@@ -1004,6 +1013,7 @@ input:focus-visible {
 }
 
 .nav-right-slot {
+    grid-column: 3;
     position: relative;
     display: inline-flex;
     align-items: center;
@@ -1023,6 +1033,26 @@ input:focus-visible {
     font-weight: 800;
     letter-spacing: 0.04em;
     color: var(--text-primary);
+}
+
+.mobile-menu-toggle {
+    display: none;
+    width: 44px;
+    height: 44px;
+}
+
+.mobile-drawer-overlay {
+    display: none;
+}
+
+.mobile-drawer {
+    display: none;
+}
+
+.mobile-drawer-header,
+.mobile-drawer-nav,
+.mobile-drawer-link {
+    display: none;
 }
 
 .mobile-bottom-nav {
@@ -1065,6 +1095,11 @@ input:focus-visible {
 .mobile-nav-item.active {
     color: var(--accent-contrast);
     background: var(--accent);
+}
+
+body.mobile-drawer-open {
+    overflow: hidden;
+    touch-action: none;
 }
 
 .user-badge {
@@ -3131,7 +3166,7 @@ html[data-settings-route='reports'] body.settings-page #reportsSection[hidden] {
     .nav-bar {
         margin-bottom: 0.35rem;
         gap: 0.65rem;
-        grid-template-columns: auto 1fr auto;
+        grid-template-columns: 44px 1fr 44px;
         min-height: 52px;
     }
 
@@ -3153,6 +3188,15 @@ html[data-settings-route='reports'] body.settings-page #reportsSection[hidden] {
         z-index: 2;
     }
 
+    .nav-left-slot {
+        display: inline-flex;
+        justify-self: start;
+    }
+
+    .mobile-menu-toggle {
+        display: inline-flex;
+    }
+
     .nav-center-tabs {
         display: none;
     }
@@ -3161,6 +3205,106 @@ html[data-settings-route='reports'] body.settings-page #reportsSection[hidden] {
         display: inline-flex;
         justify-self: end;
         z-index: 3;
+    }
+
+    .nav-bar .notification-trigger,
+    .mobile-menu-toggle {
+        width: 44px;
+        height: 44px;
+    }
+
+    .mobile-drawer-overlay {
+        position: fixed;
+        inset: 0;
+        display: block;
+        background: rgba(15, 23, 42, 0.44);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+        z-index: 82;
+    }
+
+    .mobile-drawer {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: min(320px, 86vw);
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid var(--border);
+        background: color-mix(in srgb, var(--bg-secondary), transparent 2%);
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.26);
+        transform: translateX(-104%);
+        transition: transform 0.24s ease;
+        visibility: hidden;
+        pointer-events: none;
+        z-index: 83;
+    }
+
+    .mobile-drawer-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6rem;
+        padding: 0.85rem 0.8rem 0.55rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .mobile-drawer-title {
+        margin: 0;
+        font-size: 0.96rem;
+        font-weight: 700;
+        color: var(--text-secondary);
+    }
+
+    .mobile-drawer-close {
+        width: 44px;
+        height: 44px;
+        flex: 0 0 44px;
+    }
+
+    .mobile-drawer-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        padding: 0.75rem;
+        overflow-y: auto;
+    }
+
+    .mobile-drawer-link {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        min-height: 44px;
+        padding: 0.6rem 0.7rem;
+        border-radius: 12px;
+        border: 1px solid transparent;
+        text-decoration: none;
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    .mobile-drawer-link i {
+        width: 1.1rem;
+        text-align: center;
+        color: var(--text-secondary);
+    }
+
+    .mobile-drawer-link.active {
+        border-color: color-mix(in srgb, var(--accent), transparent 45%);
+        background: color-mix(in srgb, var(--accent), transparent 88%);
+    }
+
+    body.mobile-drawer-open .mobile-drawer-overlay {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    body.mobile-drawer-open .mobile-drawer {
+        transform: translateX(0);
+        visibility: visible;
+        pointer-events: auto;
     }
 
     .mobile-bottom-nav {
@@ -3180,8 +3324,8 @@ html[data-settings-route='reports'] body.settings-page #reportsSection[hidden] {
     }
 
     .view-button {
-        width: 42px;
-        height: 42px;
+        width: 44px;
+        height: 44px;
         padding: 0;
         display: inline-flex;
         align-items: center;

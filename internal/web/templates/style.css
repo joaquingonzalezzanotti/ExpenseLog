@@ -2412,7 +2412,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
 .card-payment-head {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 0.75rem;
     min-width: 0;
@@ -2501,6 +2501,10 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
     .card-payment-kpi-panel {
         margin-right: clamp(3.8rem, 9vw, 6.2rem);
+    }
+
+    .card-payment-toggle-copy {
+        margin-top: -0.16rem;
     }
 
     .card-payment-eyebrow {

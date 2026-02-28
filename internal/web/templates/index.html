@@ -232,17 +232,24 @@
         </div>
 
         <section id="cardPaymentModule" class="card-payment-module" style="display: none;">
-            <div class="card-payment-head">
-                <div class="card-payment-toggle-copy">
-                    <span class="card-payment-eyebrow">💳 Resumen de credito</span>
-                    <span class="card-payment-title">Tarjeta por pagar</span>
-                    <span id="cardPaymentStatus" class="card-payment-status">Registra pagos para bajar el saldo pendiente.</span>
+            <article class="card-payment-visual" aria-label="Tarjeta por pagar">
+                <span class="card-payment-chip" aria-hidden="true"></span>
+                <div class="card-payment-head">
+                    <div class="card-payment-toggle-copy">
+                        <span class="card-payment-eyebrow">💳 Resumen de credito</span>
+                        <span class="card-payment-title">Tarjeta por pagar</span>
+                        <span id="cardPaymentStatus" class="card-payment-status">Registra pagos para bajar el saldo pendiente.</span>
+                    </div>
+                    <div class="card-payment-toggle-kpi card-payment-kpi-panel">
+                        <span id="cardPayableValue" class="card-payment-value">$0.00</span>
+                        <span id="cardPayableSub" class="card-payment-sub"></span>
+                    </div>
                 </div>
-            </div>
-            <div class="card-payment-toggle-kpi card-payment-kpi-panel">
-                <span id="cardPayableValue" class="card-payment-value">$0.00</span>
-                <span id="cardPayableSub" class="card-payment-sub"></span>
-            </div>
+                <div class="card-payment-brandline" aria-hidden="true">
+                    <span>ExpenseLog</span>
+                    <span>****  ****</span>
+                </div>
+            </article>
             <div id="cardPayableBreakdown" class="card-payment-breakdown"></div>
             <div class="card-payment-actions">
                 <button id="openCardPaymentModalBtn" type="button" class="nav-button button-primary">Registrar pago</button>

@@ -2394,6 +2394,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     background:
         linear-gradient(90deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.04)),
         repeating-linear-gradient(90deg, transparent 0 7px, rgba(255, 255, 255, 0.2) 7px 8px);
+    z-index: 1;
 }
 
 .card-payment-eyebrow {
@@ -2406,6 +2407,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     color: var(--card-visual-text);
     background: rgba(15, 23, 42, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.18);
+    margin-top: -0.14rem;
 }
 
 .card-payment-head {
@@ -2489,6 +2491,17 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     font-weight: 700;
     letter-spacing: 0.07em;
     color: rgba(241, 245, 249, 0.96);
+}
+
+@media (min-width: 769px) {
+    .card-payment-chip {
+        top: 0.78rem;
+        right: clamp(5.3rem, 14vw, 7.8rem);
+    }
+
+    .card-payment-eyebrow {
+        margin-top: -0.24rem;
+    }
 }
 
 .card-payment-breakdown {

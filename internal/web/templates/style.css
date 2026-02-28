@@ -988,7 +988,7 @@ input:focus-visible {
 
 .nav-left-slot {
     grid-column: 1;
-    display: none;
+    display: inline-flex;
     align-items: center;
     justify-self: start;
     z-index: 3;
@@ -1036,7 +1036,7 @@ input:focus-visible {
 }
 
 .mobile-menu-toggle {
-    display: none;
+    display: inline-flex;
     width: 44px;
     height: 44px;
 }
@@ -1044,7 +1044,7 @@ input:focus-visible {
 .mobile-drawer-overlay {
     position: fixed;
     inset: 0;
-    display: none;
+    display: block;
     opacity: 0;
     pointer-events: none;
     background: rgba(15, 23, 42, 0.44);
@@ -1058,7 +1058,7 @@ input:focus-visible {
     left: 0;
     bottom: 0;
     width: min(320px, 86vw);
-    display: none;
+    display: flex;
     flex-direction: column;
     border-right: 1px solid var(--border);
     background-color: var(--bg-secondary);
@@ -1069,6 +1069,61 @@ input:focus-visible {
     visibility: hidden;
     pointer-events: none;
     z-index: 83;
+}
+
+.mobile-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.85rem 0.8rem 0.55rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.mobile-drawer-title {
+    margin: 0;
+    font-size: 0.96rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.mobile-drawer-close {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+}
+
+.mobile-drawer-nav {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.75rem;
+    overflow-y: auto;
+}
+
+.mobile-drawer-link {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-height: 44px;
+    padding: 0.6rem 0.7rem;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    text-decoration: none;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.mobile-drawer-link i {
+    width: 1.1rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.mobile-drawer-link.active {
+    border-color: color-mix(in srgb, var(--accent), transparent 45%);
+    background: color-mix(in srgb, var(--accent), transparent 88%);
 }
 
 .mobile-bottom-nav {
@@ -1116,6 +1171,17 @@ input:focus-visible {
 body.mobile-drawer-open {
     overflow: hidden;
     touch-action: none;
+}
+
+body.mobile-drawer-open .mobile-drawer-overlay {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+body.mobile-drawer-open .mobile-drawer {
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
 }
 
 .user-badge {

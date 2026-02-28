@@ -703,7 +703,6 @@ function setupMobileDrawer() {
 
     const closeButton = drawer.querySelector('[data-mobile-drawer-close]');
     const drawerLinks = Array.from(drawer.querySelectorAll('.mobile-drawer-link'));
-    const mobileQuery = window.matchMedia('(max-width: 768px)');
     let isOpen = false;
     let restoreFocusElement = toggleButton;
 
@@ -788,7 +787,7 @@ function setupMobileDrawer() {
     };
 
     const setDrawerOpen = (nextOpen, options = { restoreFocus: true }) => {
-        const shouldOpen = Boolean(nextOpen) && mobileQuery.matches;
+        const shouldOpen = Boolean(nextOpen);
         if (shouldOpen === isOpen) return;
 
         isOpen = shouldOpen;
@@ -826,18 +825,6 @@ function setupMobileDrawer() {
     drawerLinks.forEach((link) => {
         link.addEventListener('click', () => setDrawerOpen(false, { restoreFocus: false }));
     });
-
-    const handleBreakpointChange = (event) => {
-        if (!event.matches) {
-            setDrawerOpen(false, { restoreFocus: false });
-        }
-    };
-
-    if (typeof mobileQuery.addEventListener === 'function') {
-        mobileQuery.addEventListener('change', handleBreakpointChange);
-    } else if (typeof mobileQuery.addListener === 'function') {
-        mobileQuery.addListener(handleBreakpointChange);
-    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

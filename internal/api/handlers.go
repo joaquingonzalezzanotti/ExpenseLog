@@ -694,24 +694,13 @@ func (h *Handler) ServeSettingsReportsPage(w http.ResponseWriter, r *http.Reques
 	h.serveSettingsPageWithSection(w, r, "reports")
 }
 
-func (h *Handler) serveSettingsPageWithSection(w http.ResponseWriter, r *http.Request, section string) {
+func (h *Handler) serveSettingsPageWithSection(w http.ResponseWriter, r *http.Request, _ string) {
 	if r.Method != http.MethodGet {
 		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{Error: "Method not allowed"})
 		return
 	}
-	templateName := "settings.html"
-	switch strings.ToLower(strings.TrimSpace(section)) {
-	case "categories":
-		templateName = "settings-categories.html"
-	case "recurring":
-		templateName = "settings-recurring.html"
-	case "reconciliation":
-		templateName = "settings-reconciliation.html"
-	case "reports":
-		templateName = "settings-reports.html"
-	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := web.ServeTemplate(w, templateName); err != nil {
+	if err := web.ServeTemplate(w, "settings.html"); err != nil {
 		http.Error(w, "Failed to serve template", http.StatusInternalServerError)
 	}
 }

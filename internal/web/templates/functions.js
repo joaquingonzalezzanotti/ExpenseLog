@@ -902,16 +902,23 @@ function setupRoutePrefetch() {
 
     const warmRoutes = (() => {
         const path = String(window.location.pathname || '').toLowerCase();
+        const search = String(window.location.search || '').toLowerCase();
         if (path === '/app' || path === '/app/' || path === '/app/index' || path === '/app/index.html') {
-            return ['/app/table', '/app/reportes', '/app/perfil'];
+            return ['/app/table', '/app/table?view=calendar', '/app/reportes', '/app/perfil'];
         }
         if (path.startsWith('/app/table')) {
-            return ['/app', '/app/reportes', '/app/perfil'];
+            if (search.includes('view=calendar')) {
+                return ['/app/table', '/app', '/app/reportes', '/app/perfil'];
+            }
+            return ['/app/table?view=calendar', '/app', '/app/reportes', '/app/perfil'];
         }
         if (path.startsWith('/app/perfil') || path.startsWith('/app/settings')) {
-            return ['/app/reportes', '/app/table', '/app'];
+            return ['/app/reportes', '/app/table', '/app/categorias', '/app/recurrentes', '/app'];
         }
-        return ['/app', '/app/table', '/app/reportes'];
+        if (path.startsWith('/app/categorias') || path.startsWith('/app/recurrentes') || path.startsWith('/app/conciliacion') || path.startsWith('/app/reportes')) {
+            return ['/app/perfil', '/app/table', '/app/table?view=calendar', '/app'];
+        }
+        return ['/app', '/app/table', '/app/table?view=calendar', '/app/reportes'];
     })();
 
     const scheduleWarmup = window.requestIdleCallback

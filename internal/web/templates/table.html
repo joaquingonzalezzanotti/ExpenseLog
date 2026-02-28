@@ -499,6 +499,76 @@
             return 'table';
         }
 
+        function routeForDataView(view) {
+            return view === 'calendar' ? '/app/table?view=calendar' : '/app/table';
+        }
+
+        function normalizePathname(pathname) {
+            const normalized = String(pathname || '').trim().toLowerCase().replace(/\/+$/, '');
+            if (!normalized) return '/';
+            if (normalized === '/table') return '/app/table';
+            return normalized;
+        }
+
+        function getDataViewFromHref(href) {
+            if (!href) return '';
+            let target;
+            try {
+                target = new URL(href, window.location.origin);
+            } catch (_) {
+                return '';
+            }
+            if (target.origin !== window.location.origin) return '';
+            if (normalizePathname(target.pathname) !== '/app/table') return '';
+            const requested = String(new URLSearchParams(target.search).get('view') || '').toLowerCase();
+            return requested === 'calendar' ? 'calendar' : 'table';
+        }
+
+        function navigateDataView(view, options = {}) {
+            const normalizedView = view === 'calendar' ? 'calendar' : 'table';
+            const targetRoute = routeForDataView(normalizedView);
+            const currentRoute = `${normalizePathname(window.location.pathname)}${window.location.search || ''}`;
+            const nextURL = new URL(targetRoute, window.location.origin);
+            const nextRoute = `${normalizePathname(nextURL.pathname)}${nextURL.search || ''}`;
+
+            if (currentRoute !== nextRoute) {
+                const historyMethod = options.replace ? 'replaceState' : 'pushState';
+                window.history[historyMethod]({ tableView: normalizedView }, '', targetRoute);
+            }
+
+            if (activeDataView === normalizedView && currentRoute === nextRoute) {
+                return;
+            }
+
+            const applyView = () => {
+                setActiveDataView(normalizedView);
+                window.dispatchEvent(new CustomEvent('expenselog:routechange'));
+            };
+
+            if (document.startViewTransition) {
+                document.startViewTransition(applyView);
+            } else {
+                applyView();
+            }
+        }
+
+        function bindTableViewRouteAnchors() {
+            const links = Array.from(document.querySelectorAll('a[href]'));
+            links.forEach((link) => {
+                if (!(link instanceof HTMLAnchorElement)) return;
+                const targetView = getDataViewFromHref(link.getAttribute('href'));
+                if (!targetView) return;
+
+                link.addEventListener('click', (event) => {
+                    if (event.defaultPrevented) return;
+                    if (event.button !== 0) return;
+                    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                    event.preventDefault();
+                    navigateDataView(targetView);
+                });
+            });
+        }
+
         function applyCommonExpenseFilters(expenses) {
             let filtered = (expenses || []).filter(exp => {
                 const currency = (exp.currency || currentCurrency).toLowerCase();
@@ -1240,11 +1310,11 @@
         });
 
         viewTableBtn?.addEventListener('click', () => {
-            setActiveDataView('table');
+            navigateDataView('table');
         });
 
         viewCalendarBtn?.addEventListener('click', () => {
-            setActiveDataView('calendar');
+            navigateDataView('calendar');
         });
 
         calendarFilterType?.addEventListener('change', (event) => {
@@ -1288,6 +1358,22 @@
             updateTableFormVisibilityOnViewport();
             updateTable();
         });
+
+        window.addEventListener('popstate', () => {
+            const applyHistoryView = () => {
+                const requestedView = getRequestedDataViewFromURL();
+                if (activeDataView !== requestedView) {
+                    setActiveDataView(requestedView);
+                }
+                window.dispatchEvent(new CustomEvent('expenselog:routechange'));
+            };
+            if (document.startViewTransition) {
+                document.startViewTransition(applyHistoryView);
+            } else {
+                applyHistoryView();
+            }
+        });
+        bindTableViewRouteAnchors();
 
         document.getElementById('prevMonth').addEventListener('click', () => {
             currentDate.setMonth(currentDate.getMonth() - 1);

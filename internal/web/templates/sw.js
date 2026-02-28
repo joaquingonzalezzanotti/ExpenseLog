@@ -1,4 +1,4 @@
-const SW_VERSION = '2026-02-28-v3';
+const SW_VERSION = '2026-02-28-v4';
 const STATIC_CACHE = `expenselog-static-${SW_VERSION}`;
 const PAGE_CACHE = `expenselog-pages-${SW_VERSION}`;
 
@@ -73,17 +73,42 @@ self.addEventListener('activate', (event) => {
             }
             return Promise.resolve();
         }));
+        if (self.registration.navigationPreload) {
+            try {
+                await self.registration.navigationPreload.enable();
+            } catch (_) {
+                // Ignore if browser rejects enablement.
+            }
+        }
         await self.clients.claim();
     })());
 });
 
-async function handleNavigate(request) {
+async function handleNavigate(request, preloadResponsePromise) {
     const url = new URL(request.url);
     const pageCache = await caches.open(PAGE_CACHE);
     const key = cacheKeyForURL(url);
     const cached = await pageCache.match(key) || await pageCache.match(normalizeAppPath(url.pathname));
 
-    const networkFetch = fetch(request).then(async (response) => {
+    const preloadResponse = await (async () => {
+        if (!preloadResponsePromise) return null;
+        try {
+            return await preloadResponsePromise;
+        } catch (_) {
+            return null;
+        }
+    })();
+
+    const networkFetch = (async () => {
+        if (preloadResponse && preloadResponse.ok) {
+            await pageCache.put(key, preloadResponse.clone());
+            const normalizedPath = normalizeAppPath(url.pathname);
+            if (normalizedPath !== key) {
+                await pageCache.put(normalizedPath, preloadResponse.clone());
+            }
+            return preloadResponse;
+        }
+        const response = await fetch(request);
         if (response && response.ok) {
             await pageCache.put(key, response.clone());
             const normalizedPath = normalizeAppPath(url.pathname);
@@ -92,7 +117,7 @@ async function handleNavigate(request) {
             }
         }
         return response;
-    });
+    })();
 
     if (cached) {
         networkFetch.catch(() => {});
@@ -154,7 +179,7 @@ self.addEventListener('fetch', (event) => {
     if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/auth/')) return;
 
     if (request.mode === 'navigate' || request.destination === 'document') {
-        event.respondWith(handleNavigate(request));
+        event.respondWith(handleNavigate(request, event.preloadResponse));
         return;
     }
 

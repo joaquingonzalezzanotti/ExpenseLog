@@ -21,6 +21,10 @@ func ServeTemplate(w http.ResponseWriter, templateName string) error {
 	if w.Header().Get("Content-Type") == "" {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	}
+	if w.Header().Get("Cache-Control") == "" {
+		// Templates are shared shells and do not include user-private data server-side.
+		w.Header().Set("Cache-Control", "public, max-age=120")
+	}
 	_, err = w.Write(templateContent)
 	return err
 }
@@ -54,6 +58,19 @@ func ServeStatic(w http.ResponseWriter, staticPath string) error {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	case ".xml":
 		w.Header().Set("Content-Type", "application/xml; charset=utf-8")
+	}
+	if w.Header().Get("Cache-Control") == "" {
+		switch {
+		case staticPath == "/sw.js" || staticPath == "/manifest.json":
+			// Keep worker and manifest fresh so clients update quickly after deploy.
+			w.Header().Set("Cache-Control", "no-cache")
+		case ext == ".js" || ext == ".css":
+			w.Header().Set("Cache-Control", "public, max-age=3600")
+		case ext == ".woff" || ext == ".woff2" || ext == ".ttf" || ext == ".eot" || ext == ".svg" || ext == ".png" || ext == ".ico":
+			w.Header().Set("Cache-Control", "public, max-age=604800")
+		default:
+			w.Header().Set("Cache-Control", "public, max-age=300")
+		}
 	}
 	_, err = w.Write(staticContent)
 	return err

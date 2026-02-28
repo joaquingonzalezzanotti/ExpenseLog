@@ -706,7 +706,7 @@ func (h *Handler) serveSettingsPageWithSection(w http.ResponseWriter, r *http.Re
 }
 
 func (h *Handler) ServeStaticFile(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{Error: "Method not allowed"})
 		return
 	}
@@ -718,4 +718,3 @@ func (h *Handler) ServeStaticFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to serve static file", http.StatusInternalServerError)
 	}
 }
-

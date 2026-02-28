@@ -21,9 +21,6 @@
     <div class="container">
         <header>
             <div class="nav-bar">
-                <button id="mobileMenuToggle" class="view-button mobile-drawer-toggle" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobileDrawer" data-mobile-drawer-toggle>
-                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
-                </button>
                 <a href="/app" class="nav-logo-link">
                     <img src="/app/pwa/icon-192.png" alt="ExpenseLog Logo" class="nav-logo">
                     <span class="nav-logo-mobile-text" aria-hidden="true">EL</span>
@@ -34,27 +31,11 @@
                         <span id="notificationCenterBadge" class="notification-badge" hidden></span>
                     </button>
                     <div id="notificationCenterPanel" class="notification-panel" hidden>
-                        <div class="notification-panel-title">Notificaciones 🔔</div>
+                        <div class="notification-panel-title">Notificaciones ðŸ””</div>
                         <div id="notificationCenterList" class="notification-list"></div>
                     </div>
                 </div>
             </div>
-            <div class="mobile-drawer-overlay" data-mobile-drawer-overlay></div>
-            <aside id="mobileDrawer" class="mobile-drawer" data-mobile-drawer aria-hidden="true">
-                <div class="mobile-drawer-header">
-                    <span class="mobile-drawer-title">Menu</span>
-                    <button type="button" class="view-button mobile-drawer-close" aria-label="Cerrar menu" data-mobile-drawer-close>
-                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-                    </button>
-                </div>
-                <nav class="mobile-drawer-nav" aria-label="Menu principal mobile">
-                    <a href="/app" class="mobile-drawer-link">Inicio</a>
-                    <a href="/app/table" class="mobile-drawer-link">Tabla</a>
-                    <a href="/app/table?view=calendar" class="mobile-drawer-link">Calendario</a>
-                    <a href="/app/reportes" class="mobile-drawer-link">Reportes</a>
-                    <a href="/app/perfil" class="mobile-drawer-link">Usuario</a>
-                </nav>
-            </aside>
         </header>
 
         <nav class="mobile-bottom-nav" aria-label="Navegacion principal">
@@ -274,14 +255,14 @@
                     <input type="email" id="authLoginEmail" autocomplete="email" required>
                 </div>
                 <div class="form-group">
-                    <label for="authLoginPassword">Contraseña</label>
+                    <label for="authLoginPassword">ContraseÃ±a</label>
                     <input type="password" id="authLoginPassword" autocomplete="current-password" required>
                 </div>
                 <label class="auth-remember">
                     <input type="checkbox" id="authLoginRemember" class="styled-checkbox">
                     Recordarme
                 </label>
-                <button type="button" class="auth-link" data-auth-link="reset">Olvide mi contraseña</button>
+                <button type="button" class="auth-link" data-auth-link="reset">Olvide mi contraseÃ±a</button>
                 <button type="submit" class="nav-button">Ingresar</button>
             </form>
             <form id="authRegisterForm" class="auth-form" data-auth-form="register">
@@ -290,7 +271,7 @@
                     <input type="email" id="authRegisterEmail" autocomplete="email" required>
                 </div>
                 <div class="form-group">
-                    <label for="authRegisterPassword">Contraseña (min 8)</label>
+                    <label for="authRegisterPassword">ContraseÃ±a (min 8)</label>
                     <input type="password" id="authRegisterPassword" autocomplete="new-password" required>
                 </div>
                 <label class="auth-remember">
@@ -309,7 +290,7 @@
                     <input type="text" id="authResetCode" autocomplete="one-time-code" required>
                 </div>
                 <div class="form-group">
-                    <label for="authResetPassword">Nueva contraseña (min 8)</label>
+                    <label for="authResetPassword">Nueva contraseÃ±a (min 8)</label>
                     <input type="password" id="authResetPassword" autocomplete="new-password" required>
                 </div>
                 <div class="auth-reset-actions">

@@ -50,9 +50,6 @@
     <div class="container">
         <header>
             <div class="nav-bar">
-                <button id="mobileMenuToggle" class="view-button mobile-drawer-toggle" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobileDrawer" data-mobile-drawer-toggle>
-                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
-                </button>
                 <a href="/app" class="nav-logo-link">
                     <img src="/app/pwa/icon-192.png" alt="ExpenseLog Logo" class="nav-logo">
                     <span class="nav-logo-mobile-text" aria-hidden="true">EL</span>
@@ -63,27 +60,11 @@
                         <span id="notificationCenterBadge" class="notification-badge" hidden></span>
                     </button>
                     <div id="notificationCenterPanel" class="notification-panel" hidden>
-                        <div class="notification-panel-title">Notificaciones 🔔</div>
+                        <div class="notification-panel-title">Notificaciones ðŸ””</div>
                         <div id="notificationCenterList" class="notification-list"></div>
                     </div>
                 </div>
             </div>
-            <div class="mobile-drawer-overlay" data-mobile-drawer-overlay></div>
-            <aside id="mobileDrawer" class="mobile-drawer" data-mobile-drawer aria-hidden="true">
-                <div class="mobile-drawer-header">
-                    <span class="mobile-drawer-title">Menu</span>
-                    <button type="button" class="view-button mobile-drawer-close" aria-label="Cerrar menu" data-mobile-drawer-close>
-                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-                    </button>
-                </div>
-                <nav class="mobile-drawer-nav" aria-label="Menu principal mobile">
-                    <a href="/app" class="mobile-drawer-link">Inicio</a>
-                    <a href="/app/table" class="mobile-drawer-link">Tabla</a>
-                    <a href="/app/table?view=calendar" class="mobile-drawer-link">Calendario</a>
-                    <a href="/app/reportes" class="mobile-drawer-link">Reportes</a>
-                    <a href="/app/perfil" class="mobile-drawer-link">Usuario</a>
-                </nav>
-            </aside>
         </header>
 
         <nav class="mobile-bottom-nav" aria-label="Navegacion principal">
@@ -96,7 +77,7 @@
 
         <section class="form-container settings-section settings-shell-section settings-profile">
             <div class="settings-detail-header settings-profile-header">
-                <h2>Perfil 👤</h2>
+                <h2>Perfil ðŸ‘¤</h2>
                 <button id="settingsLogoutBtn" class="settings-logout-btn" type="button" aria-label="Cerrar sesion" title="Cerrar sesion">
                     <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
                 </button>
@@ -117,7 +98,7 @@
         </section>
 
         <section class="form-container settings-section settings-shell-section">
-            <h2>Preferencias ⚙️</h2>
+            <h2>Preferencias âš™ï¸</h2>
             <div class="settings-preferences-grid">
                 <div class="settings-preference-item">
                     <label for="currencySelect">Moneda Principal</label>
@@ -145,29 +126,29 @@
         </section>
 
         <section class="form-container settings-section settings-shell-section">
-            <h2>Gestión 🛠️</h2>
+            <h2>GestiÃ³n ðŸ› ï¸</h2>
             <div class="settings-nav-list">
                 <button class="settings-nav-item" id="openCategoriesSection" type="button" data-settings-section="categoriesSection" data-settings-route="/app/categorias" aria-expanded="false">
-                    <span>🏷️ Categorías</span>
+                    <span>ðŸ·ï¸ CategorÃ­as</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
                 <button class="settings-nav-item" id="openRecurringSection" type="button" data-settings-section="recurringSection" data-settings-route="/app/recurrentes" aria-expanded="false">
-                    <span>🔁 Transacciones recurrentes</span>
+                    <span>ðŸ” Transacciones recurrentes</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
                 <button class="settings-nav-item" id="openReconciliationSection" type="button" data-settings-section="reconciliationSection" data-settings-route="/app/conciliacion" aria-expanded="false">
-                    <span>🧮 Conciliacion de balance</span>
+                    <span>ðŸ§® Conciliacion de balance</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
                 <button class="settings-nav-item" id="openReportsSection" type="button" data-settings-section="reportsSection" data-settings-route="/app/reportes" aria-expanded="false">
-                    <span>🧾 Reportes mensuales</span>
+                    <span>ðŸ§¾ Reportes mensuales</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
             </div>
         </section>
         <section id="reportsSection" class="form-container settings-section settings-detail-section settings-reports-section" hidden>
             <div class="settings-detail-header">
-                <h2>🧾 Reportes mensuales</h2>
+                <h2>ðŸ§¾ Reportes mensuales</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="reportsSection" aria-label="Cerrar reportes" title="Cerrar reportes">
                     <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 </button>
@@ -210,7 +191,7 @@
         </section>
         <section id="categoriesSection" class="form-container settings-section settings-detail-section" hidden>
             <div class="settings-detail-header">
-                <h2>🏷️ Categorías</h2>
+                <h2>ðŸ·ï¸ CategorÃ­as</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="categoriesSection" aria-label="Cerrar categorias" title="Cerrar categorias">
                     <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 </button>
@@ -232,7 +213,7 @@
                 </div>
                 <div id="categories-list" class="categories-list"></div>
                 <div id="categories-empty" class="empty-state" style="display: none;">
-                    📭 No hay categorías guardadas. Agrega la primera.
+                    ðŸ“­ No hay categorÃ­as guardadas. Agrega la primera.
                 </div>
                 <div class="category-input-container">
                     <input type="text" id="newCategory" placeholder="Agregar categoria">
@@ -244,12 +225,12 @@
 
         <section id="recurringSection" class="form-container settings-section settings-detail-section" hidden>
             <div class="settings-detail-header">
-                <h2>🔁 Transacciones recurrentes</h2>
+                <h2>ðŸ” Transacciones recurrentes</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="recurringSection" aria-label="Cerrar transacciones recurrentes" title="Cerrar transacciones recurrentes">
                     <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 </button>
             </div>
-            <h3 class="settings-subtitle">📋 Transacciones recurrentes existentes</h3>
+            <h3 class="settings-subtitle">ðŸ“‹ Transacciones recurrentes existentes</h3>
             <p class="settings-helper-text">Tip: para compras en cuotas, crea una recurrente mensual con el monto de la cuota y la cantidad total. En la tabla vas a ver el avance como Cuota X/Y.</p>
             <div id="recurring-expenses-list" class="recurring-table-box"></div>
             <button id="toggleRecurringCreateBtn" class="nav-button button-primary settings-recurring-toggle" type="button" aria-expanded="false">Agregar transaccion recurrente</button>
@@ -317,13 +298,13 @@
 
         <section id="reconciliationSection" class="form-container settings-section settings-detail-section" hidden>
             <div class="settings-detail-header">
-                <h2>🧮 Conciliacion de balance</h2>
+                <h2>ðŸ§® Conciliacion de balance</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="reconciliationSection" aria-label="Cerrar conciliacion" title="Cerrar conciliacion">
                     <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="settings-divider"></div>
-            <h3 class="settings-subtitle">🧮 Conciliacion rapida de balance</h3>
+            <h3 class="settings-subtitle">ðŸ§® Conciliacion rapida de balance</h3>
             <p class="settings-helper-text">Ingresa el saldo real para crear un ajuste automatico sin buscar el origen de la diferencia.</p>
             <div id="settingsReconciliationPanel" class="reconciliation-container settings-reconciliation-panel">
                 <div class="reconciliation-metrics">
@@ -352,7 +333,7 @@
                 <div id="settingsReconciliationMessage" class="form-message"></div>
             </div>
 
-            <h3 class="settings-subtitle">🗂️ Historial de conciliaciones</h3>
+            <h3 class="settings-subtitle">ðŸ—‚ï¸ Historial de conciliaciones</h3>
             <div id="reconciliation-history-list" class="recurring-table-box"></div>
 
         </section>
@@ -432,7 +413,7 @@
     <div id="appConfirmModal" class="modal app-modal" role="dialog" aria-modal="true" aria-labelledby="appConfirmTitle">
         <div class="modal-content app-modal-content">
             <h3 id="appConfirmTitle">Confirmar accion</h3>
-            <p id="appConfirmMessage">¿Continuar?</p>
+            <p id="appConfirmMessage">Â¿Continuar?</p>
             <div class="modal-buttons">
                 <button id="appConfirmCancel" class="modal-button" type="button">Cancelar</button>
                 <button id="appConfirmAccept" class="modal-button confirm app-modal-confirm" type="button">Aceptar</button>
@@ -478,14 +459,14 @@
                     <input type="email" id="authLoginEmail" autocomplete="email" required>
                 </div>
                 <div class="form-group">
-                    <label for="authLoginPassword">Contraseña</label>
+                    <label for="authLoginPassword">ContraseÃ±a</label>
                     <input type="password" id="authLoginPassword" autocomplete="current-password" required>
                 </div>
                 <label class="auth-remember">
                     <input type="checkbox" id="authLoginRemember" class="styled-checkbox">
                     Recordarme
                 </label>
-                <button type="button" class="auth-link" data-auth-link="reset">Olvidé mi contraseña</button>
+                <button type="button" class="auth-link" data-auth-link="reset">OlvidÃ© mi contraseÃ±a</button>
                 <button type="submit" class="nav-button">Ingresar</button>
             </form>
             <form id="authRegisterForm" class="auth-form" data-auth-form="register">
@@ -494,7 +475,7 @@
                     <input type="email" id="authRegisterEmail" autocomplete="email" required>
                 </div>
                 <div class="form-group">
-                    <label for="authRegisterPassword">Contraseña (min 8)</label>
+                    <label for="authRegisterPassword">ContraseÃ±a (min 8)</label>
                     <input type="password" id="authRegisterPassword" autocomplete="new-password" required>
                 </div>
                 <label class="auth-remember">
@@ -513,7 +494,7 @@
                     <input type="text" id="authResetCode" autocomplete="one-time-code" required>
                 </div>
                 <div class="form-group">
-                    <label for="authResetPassword">Nueva contraseña (min 8)</label>
+                    <label for="authResetPassword">Nueva contraseÃ±a (min 8)</label>
                     <input type="password" id="authResetPassword" autocomplete="new-password" required>
                 </div>
                 <div class="auth-reset-actions">
@@ -973,7 +954,7 @@ function renderCategories() {
                 <span class="category-name">${category}${isSystem ? ' <small class="category-system-label">(sistema)</small>' : ''}</span>
             </div>
             <div class="category-actions">
-                ${isSystem ? '<span class="category-system-lock" title="Categoría protegida">🔒</span>' : `
+                ${isSystem ? '<span class="category-system-lock" title="CategorÃ­a protegida">ðŸ”’</span>' : `
                 <button class="edit-button" data-action="edit" data-index="${index}">
                     <i class="fa-solid fa-pen-to-square"></i>
                 </button>
@@ -1562,7 +1543,7 @@ async function saveCategoriesList(nextCategories) {
                             const amount = Number(item.amount || 0);
                             const amountClass = amount >= 0 ? 'positive' : 'negative';
                             const detailMain = isAdjustment
-                                ? `Objetivo: ${item.targetBalance != null ? formatCurrency(item.targetBalance, item.currency || currentCurrency) : '-'} • Balance previo: ${item.appBalanceBefore != null ? formatCurrency(item.appBalanceBefore, item.currency || currentCurrency) : '-'}`
+                                ? `Objetivo: ${item.targetBalance != null ? formatCurrency(item.targetBalance, item.currency || currentCurrency) : '-'} â€¢ Balance previo: ${item.appBalanceBefore != null ? formatCurrency(item.appBalanceBefore, item.currency || currentCurrency) : '-'}`
                                 : `Revierte ajuste ${shortReconciliationID(item.adjustmentExpenseId)}`;
                             const statusBadge = isAdjustment
                                 ? (item.reversed
@@ -1630,7 +1611,7 @@ async function saveCategoriesList(nextCategories) {
                 showMessage('settingsReconciliationMessage', 'No hay diferencia para conciliar.', true);
                 return;
             }
-            const confirmText = `Vas a aplicar un ${preview.difference > 0 ? 'ingreso' : 'gasto'} de ajuste por ${formatCurrency(Math.abs(preview.difference), preview.currency)}. ¿Confirmas?`;
+            const confirmText = `Vas a aplicar un ${preview.difference > 0 ? 'ingreso' : 'gasto'} de ajuste por ${formatCurrency(Math.abs(preview.difference), preview.currency)}. Â¿Confirmas?`;
             const confirmed = await showAppConfirmModal('Confirmar conciliacion', confirmText, 'Aplicar', 'Cancelar');
             if (!confirmed) {
                 return;
@@ -1665,7 +1646,7 @@ async function saveCategoriesList(nextCategories) {
                     const amountLabel = formatCurrency(Math.abs(preview.difference), preview.currency);
                     const successText = `Se registro ${preview.difference > 0 ? 'un ingreso' : 'un gasto'} de ajuste por ${amountLabel}.`;
                     showMessage('settingsReconciliationMessage', `Conciliacion aplicada. ${successText}`, true);
-                    await showAppSuccessModal('✅ Conciliación aplicada', successText, 'Cerrar');
+                    await showAppSuccessModal('âœ… ConciliaciÃ³n aplicada', successText, 'Cerrar');
                     hideSettingsSection('reconciliationSection');
                     if (targetInput) targetInput.value = '';
                     if (noteInput) noteInput.value = '';
@@ -1686,7 +1667,7 @@ async function saveCategoriesList(nextCategories) {
             if (!id) return;
             const confirmed = await showAppConfirmModal(
                 'Revertir conciliacion',
-                'Se va a crear un movimiento inverso para deshacer esta conciliacion. ¿Continuar?',
+                'Se va a crear un movimiento inverso para deshacer esta conciliacion. Â¿Continuar?',
                 'Revertir',
                 'Cancelar'
             );

@@ -827,9 +827,101 @@ function setupMobileDrawer() {
     });
 }
 
+function setupRoutePrefetch() {
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const effectiveType = String(connection?.effectiveType || '').toLowerCase();
+    if (connection?.saveData || effectiveType.includes('2g')) {
+        return;
+    }
+
+    const prefetchQueue = new Set();
+    const supportsPrefetch = (() => {
+        try {
+            return !!document.createElement('link').relList?.supports?.('prefetch');
+        } catch (_) {
+            return false;
+        }
+    })();
+
+    const normalizePrefetchPath = (rawPath) => {
+        if (!rawPath) return '';
+        try {
+            const target = new URL(rawPath, window.location.origin);
+            if (target.origin !== window.location.origin) return '';
+            if (!target.pathname.startsWith('/app')) return '';
+            if (target.pathname === window.location.pathname && target.search === window.location.search) return '';
+            return `${target.pathname}${target.search}`;
+        } catch (_) {
+            return '';
+        }
+    };
+
+    const prefetchPath = (rawPath) => {
+        const path = normalizePrefetchPath(rawPath);
+        if (!path || prefetchQueue.has(path)) return;
+        prefetchQueue.add(path);
+
+        if (supportsPrefetch) {
+            const link = document.createElement('link');
+            link.rel = 'prefetch';
+            link.as = 'document';
+            link.href = path;
+            document.head.appendChild(link);
+            return;
+        }
+
+        fetch(path, {
+            method: 'GET',
+            credentials: 'same-origin',
+            cache: 'force-cache',
+        }).catch(() => {});
+    };
+
+    const bindPrefetch = (node, getPath) => {
+        if (!(node instanceof HTMLElement)) return;
+        if (node.dataset.prefetchBound === 'true') return;
+        node.dataset.prefetchBound = 'true';
+        const onIntent = () => prefetchPath(getPath());
+        node.addEventListener('pointerenter', onIntent, { passive: true });
+        node.addEventListener('focus', onIntent, { passive: true });
+        node.addEventListener('touchstart', onIntent, { passive: true });
+    };
+
+    document.querySelectorAll('a[href]').forEach((link) => {
+        bindPrefetch(link, () => link.getAttribute('href') || '');
+    });
+
+    document.querySelectorAll('[data-settings-route]').forEach((button) => {
+        bindPrefetch(button, () => button.getAttribute('data-settings-route') || '');
+    });
+
+    const warmRoutes = (() => {
+        const path = String(window.location.pathname || '').toLowerCase();
+        if (path === '/app' || path === '/app/' || path === '/app/index' || path === '/app/index.html') {
+            return ['/app/table', '/app/reportes', '/app/perfil'];
+        }
+        if (path.startsWith('/app/table')) {
+            return ['/app', '/app/reportes', '/app/perfil'];
+        }
+        if (path.startsWith('/app/perfil') || path.startsWith('/app/settings')) {
+            return ['/app/reportes', '/app/table', '/app'];
+        }
+        return ['/app', '/app/table', '/app/reportes'];
+    })();
+
+    const scheduleWarmup = window.requestIdleCallback
+        ? window.requestIdleCallback.bind(window)
+        : (cb) => window.setTimeout(cb, 350);
+
+    scheduleWarmup(() => {
+        warmRoutes.forEach((route) => prefetchPath(route));
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     setupAuthUI();
     setupMobileDrawer();
+    setupRoutePrefetch();
     showAuthMessageFromURL();
     if (!authChecked) {
         checkAuthStatus();

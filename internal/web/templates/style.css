@@ -1042,17 +1042,33 @@ input:focus-visible {
 }
 
 .mobile-drawer-overlay {
+    position: fixed;
+    inset: 0;
     display: none;
+    opacity: 0;
+    pointer-events: none;
+    background: rgba(15, 23, 42, 0.44);
+    transition: opacity 0.2s ease;
+    z-index: 82;
 }
 
 .mobile-drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(320px, 86vw);
     display: none;
-}
-
-.mobile-drawer-header,
-.mobile-drawer-nav,
-.mobile-drawer-link {
-    display: none;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    background-color: var(--bg-secondary);
+    background: color-mix(in srgb, var(--bg-secondary), transparent 2%);
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.26);
+    transform: translateX(-104%);
+    transition: transform 0.24s ease;
+    visibility: hidden;
+    pointer-events: none;
+    z-index: 83;
 }
 
 .mobile-bottom-nav {
@@ -3233,6 +3249,7 @@ html[data-settings-route='reports'] body.settings-page #reportsSection[hidden] {
         display: flex;
         flex-direction: column;
         border-right: 1px solid var(--border);
+        background-color: var(--bg-secondary);
         background: color-mix(in srgb, var(--bg-secondary), transparent 2%);
         box-shadow: 0 20px 40px rgba(15, 23, 42, 0.26);
         transform: translateX(-104%);
@@ -3266,6 +3283,7 @@ html[data-settings-route='reports'] body.settings-page #reportsSection[hidden] {
 
     .mobile-drawer-nav {
         display: flex;
+        flex: 1 1 auto;
         flex-direction: column;
         gap: 0.3rem;
         padding: 0.75rem;

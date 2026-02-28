@@ -245,8 +245,9 @@
                         <span id="cardPayableSub" class="card-payment-sub"></span>
                     </div>
                 </div>
-                <div class="card-payment-brandline" aria-hidden="true">
+                <div class="card-payment-brandline">
                     <span>ExpenseLog</span>
+                    <span id="cardPaymentDueDate" class="card-payment-due">Vence --/---</span>
                     <span>****  ****</span>
                 </div>
             </article>
@@ -394,6 +395,7 @@
         const cardPayableValue = document.getElementById('cardPayableValue');
         const cardPayableSub = document.getElementById('cardPayableSub');
         const cardPaymentStatus = document.getElementById('cardPaymentStatus');
+        const cardPaymentDueDate = document.getElementById('cardPaymentDueDate');
         const cardPaymentAmountInput = document.getElementById('cardPaymentAmount');
         const cardPaymentCurrencySelect = document.getElementById('cardPaymentCurrency');
         const cardPaymentCardInput = document.getElementById('cardPaymentCard');
@@ -973,17 +975,29 @@
             syncBodyModalLock();
         }
 
+        function formatCardDueDate(dateRef) {
+            if (!(dateRef instanceof Date) || Number.isNaN(dateRef.getTime())) {
+                return 'Vence --/---';
+            }
+            const due = new Date(dateRef.getFullYear(), dateRef.getMonth() + 1, 0);
+            const day = String(due.getDate()).padStart(2, '0');
+            const monthShort = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'][due.getMonth()] || '---';
+            return `Vence ${day}/${monthShort}`;
+        }
+
         function renderCardPaymentModule() {
             if (!cardPaymentModule || !cardPayableValue || !cardPayableSub) return;
             const selectedCurrency = (cardPaymentCurrencySelect && cardPaymentCurrencySelect.value)
                 ? cardPaymentCurrencySelect.value
                 : baseCurrency;
-            const pendingBase = cardPayableByCurrency[baseCurrency] || 0;
             const pendingSelected = cardPayableByCurrency[selectedCurrency] || 0;
             const hasPending = Object.values(cardPayableByCurrency).some(value => value > 0);
 
             cardPaymentModule.style.display = '';
             cardPayableValue.textContent = formatCurrencyWithCurrency(pendingSelected, selectedCurrency);
+            if (cardPaymentDueDate) {
+                cardPaymentDueDate.textContent = formatCardDueDate(currentDate);
+            }
 
             const pendingLines = supportedCurrencies
                 .filter(cur => (cardPayableByCurrency[cur] || 0) > 0)
@@ -998,21 +1012,22 @@
                             <span>${formatCurrencyWithCurrency(cardPayableByCurrency[cur], cur)}</span>
                         </span>
                     `);
-                cardPayableBreakdown.innerHTML = breakdownItems.join('');
-                cardPayableBreakdown.style.display = breakdownItems.length ? 'flex' : 'none';
+                const showBreakdown = breakdownItems.length > 1;
+                cardPayableBreakdown.innerHTML = showBreakdown ? breakdownItems.join('') : '';
+                cardPayableBreakdown.style.display = showBreakdown ? 'flex' : 'none';
             }
 
             if (pendingLines.length > 1) {
-                cardPayableSub.textContent = pendingLines.join(' | ');
+                cardPayableSub.textContent = `${pendingLines.length} monedas con saldo`;
             } else if (pendingLines.length === 1) {
-                cardPayableSub.textContent = pendingLines[0];
+                cardPayableSub.textContent = `Pendiente en ${selectedCurrency.toUpperCase()}`;
             } else {
                 cardPayableSub.textContent = 'Sin consumos pendientes.';
             }
 
             if (cardPaymentStatus) {
                 if (hasPending) {
-                    cardPaymentStatus.textContent = `Balance pendiente en ${baseCurrency.toUpperCase()}: ${formatCurrencyWithCurrency(pendingBase, baseCurrency)}.`;
+                    cardPaymentStatus.textContent = 'Saldo pendiente del periodo. Registra pagos para reducirlo.';
                 } else {
                     cardPaymentStatus.textContent = 'No hay consumos pendientes de tarjeta en este periodo.';
                 }

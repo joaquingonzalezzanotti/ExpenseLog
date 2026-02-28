@@ -27,11 +27,11 @@
     --cash-carryover-bg: rgba(20, 184, 166, 0.14);
     --cash-card-border: rgba(27, 36, 48, 0.08);
     --cash-label: #3b4b63;
-    --card-visual-start: #2563eb;
-    --card-visual-mid: #1e40af;
-    --card-visual-end: #0f172a;
+    --card-visual-start: #4f72bf;
+    --card-visual-mid: #4560a2;
+    --card-visual-end: #314675;
     --card-visual-text: #f8fbff;
-    --card-visual-glow: rgba(255, 255, 255, 0.32);
+    --card-visual-glow: rgba(255, 255, 255, 0.2);
     --radius-pill: 9999px;
     --radius-card: 14px;
     --control-min-height: 42px;
@@ -65,11 +65,11 @@ html[data-theme='dark'] {
     --cash-carryover-bg: rgba(20, 184, 166, 0.24);
     --cash-card-border: rgba(148, 163, 184, 0.24);
     --cash-label: #d4deec;
-    --card-visual-start: #1d4ed8;
-    --card-visual-mid: #1e3a8a;
-    --card-visual-end: #020617;
+    --card-visual-start: #365393;
+    --card-visual-mid: #2f4678;
+    --card-visual-end: #22345a;
     --card-visual-text: #eff6ff;
-    --card-visual-glow: rgba(148, 197, 255, 0.3);
+    --card-visual-glow: rgba(148, 197, 255, 0.22);
 }
 
 body {
@@ -2367,19 +2367,19 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     position: relative;
     overflow: hidden;
     border-radius: 18px;
-    border: 1px solid rgba(148, 163, 184, 0.34);
+    border: 1px solid rgba(148, 163, 184, 0.3);
     padding: 1rem;
     background:
         radial-gradient(circle at 80% 8%, var(--card-visual-glow), transparent 35%),
         linear-gradient(132deg, var(--card-visual-start) 0%, var(--card-visual-mid) 52%, var(--card-visual-end) 100%);
-    box-shadow: 0 14px 26px rgba(15, 23, 42, 0.28);
+    box-shadow: 0 10px 18px rgba(15, 23, 42, 0.22);
 }
 
 .card-payment-visual::after {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(108deg, rgba(255, 255, 255, 0.17), transparent 26%, transparent 72%, rgba(255, 255, 255, 0.12));
+    background: linear-gradient(108deg, rgba(255, 255, 255, 0.11), transparent 26%, transparent 72%, rgba(255, 255, 255, 0.08));
     pointer-events: none;
 }
 
@@ -2390,7 +2390,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     width: 42px;
     height: 30px;
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.34);
     background:
         linear-gradient(90deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.04)),
         repeating-linear-gradient(90deg, transparent 0 7px, rgba(255, 255, 255, 0.2) 7px 8px);
@@ -2404,8 +2404,8 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     font-size: 0.72rem;
     font-weight: 700;
     color: var(--card-visual-text);
-    background: rgba(15, 23, 42, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(15, 23, 42, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .card-payment-head {
@@ -2433,7 +2433,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
 .card-payment-status {
     font-size: 0.86rem;
-    color: rgba(241, 245, 249, 0.88);
+    color: rgba(241, 245, 249, 0.94);
     max-width: 48ch;
 }
 
@@ -2447,8 +2447,8 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
 .card-payment-kpi-panel {
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    background: rgba(15, 23, 42, 0.24);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(15, 23, 42, 0.18);
     padding: 0.7rem 0.82rem;
     align-items: flex-end;
     justify-content: center;
@@ -2461,7 +2461,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     font-weight: 800;
     color: var(--card-visual-text);
     line-height: 1.05;
-    text-shadow: 0 1px 8px rgba(15, 23, 42, 0.25);
+    text-shadow: 0 1px 5px rgba(15, 23, 42, 0.2);
 }
 
 .card-payment-sub {
@@ -2483,6 +2483,12 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     text-transform: uppercase;
     font-weight: 700;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.card-payment-due {
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    color: rgba(241, 245, 249, 0.96);
 }
 
 .card-payment-breakdown {

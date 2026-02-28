@@ -2,7 +2,7 @@
     "name": "ExpenseLog",
     "short_name": "ExpenseLog",
     "start_url": "/app",
-    "scope": "/app/",
+    "scope": "/app",
     "display": "standalone",
     "background_color": "#1a1a1a",
     "theme_color": "#1a1a1a",

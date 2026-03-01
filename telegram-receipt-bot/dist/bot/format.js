@@ -1,5 +1,10 @@
+const normalizeForMethodMatch = (raw) => String(raw || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toUpperCase();
 const normalizePaymentMethod = (sourceApp) => {
-    const raw = String(sourceApp || '').trim().toUpperCase();
+    const raw = normalizeForMethodMatch(sourceApp);
     if (!raw)
         return 'CA';
     if (raw === 'EFECTIVO' || raw.includes('CASH'))

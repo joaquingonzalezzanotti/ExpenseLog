@@ -264,6 +264,31 @@ func buildBotExpenseName(counterparty, motive, reference string) string {
 
 func normalizeBotExpenseSource(provider string) string {
 	clean := strings.ToUpper(storage.SanitizeString(provider))
+	clean = strings.NewReplacer(
+		"Á", "A",
+		"À", "A",
+		"Â", "A",
+		"Ã", "A",
+		"Ä", "A",
+		"É", "E",
+		"È", "E",
+		"Ê", "E",
+		"Ë", "E",
+		"Í", "I",
+		"Ì", "I",
+		"Î", "I",
+		"Ï", "I",
+		"Ó", "O",
+		"Ò", "O",
+		"Ô", "O",
+		"Õ", "O",
+		"Ö", "O",
+		"Ú", "U",
+		"Ù", "U",
+		"Û", "U",
+		"Ü", "U",
+		"Ñ", "N",
+	).Replace(clean)
 	switch {
 	case clean == "":
 		return "CA"

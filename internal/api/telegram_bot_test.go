@@ -69,6 +69,8 @@ func TestNormalizeBotExpenseSource(t *testing.T) {
 		{provider: "Galicia", want: "CA"},
 		{provider: "Transferencia", want: "CA"},
 		{provider: "Tarjeta debito", want: "CA"},
+		{provider: "Visa Debito", want: "CA"},
+		{provider: "Santander Visa Débito - 2959", want: "CA"},
 		{provider: "Debit card", want: "CA"},
 		{provider: "Tarjeta credito", want: "TARJETA"},
 		{provider: "VISA", want: "TARJETA"},

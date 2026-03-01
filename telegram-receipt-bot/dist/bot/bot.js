@@ -42,8 +42,13 @@ const parseTypeInput = (raw) => {
         return 'income';
     return undefined;
 };
+const normalizeForMethodMatch = (raw) => String(raw || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toUpperCase();
 const normalizePaymentMethod = (raw) => {
-    const normalized = String(raw || '').trim().toUpperCase();
+    const normalized = normalizeForMethodMatch(raw);
     if (!normalized)
         return 'CA';
     if (normalized === 'EFECTIVO' || normalized.includes('CASH'))
@@ -69,7 +74,7 @@ const normalizePaymentMethod = (raw) => {
     return 'CA';
 };
 const parsePaymentMethodInput = (raw) => {
-    const normalized = String(raw || '').trim().toLowerCase();
+    const normalized = normalizeForMethodMatch(raw).toLowerCase();
     if (!normalized)
         return undefined;
     if (normalized.includes('efectivo') || normalized.includes('cash')) {

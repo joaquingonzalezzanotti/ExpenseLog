@@ -1,0 +1,5 @@
+{
+  "name": "ExpenseLog AI Parser",
+  "description": "Headless AI microservice for financial transaction extraction from receipts and natural language.",
+  "requestFramePermissions": []
+}

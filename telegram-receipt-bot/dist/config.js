@@ -45,7 +45,7 @@ export const config = {
     ocrLangs: process.env.OCR_LANGS ?? 'spa+eng',
     pdfRenderMaxPages: asNumber(process.env.PDF_RENDER_MAX_PAGES, 1),
     aiParserBaseUrl: process.env.AI_PARSER_BASE_URL ?? '',
-    aiParserParsePath: process.env.AI_PARSER_PARSE_PATH ?? '/parse',
+    aiParserParsePath: process.env.AI_PARSER_PARSE_PATH ?? '/api/parse',
     aiParserApiKey: process.env.AI_PARSER_API_KEY ?? '',
     aiParserApiKeyHeader: process.env.AI_PARSER_API_KEY_HEADER ?? 'X-API-Key',
     aiParserTimeoutMs: asNumber(process.env.AI_PARSER_TIMEOUT_MS, 8000),

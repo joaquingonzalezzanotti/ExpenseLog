@@ -9,29 +9,29 @@ datasource db {
 
 model TelegramUserLink {
   id                          String   @id @default(uuid())
-  telegramUserId              BigInt   @unique
-  expenselogUserId            String
-  expenselogApiTokenEncrypted String
-  createdAt                   DateTime @default(now())
+  telegramUserId              BigInt   @unique @map("telegram_user_id")
+  expenselogUserId            String   @map("expenselog_user_id")
+  expenselogApiTokenEncrypted String   @map("expenselog_api_token_encrypted")
+  createdAt                   DateTime @default(now()) @map("created_at")
 
   @@map("telegram_user_link")
 }
 
 model ReceiptDraft {
   id                      String   @id @default(uuid())
-  telegramUserId          BigInt
-  chatId                  BigInt
-  messageId               Int
-  fileId                  String
-  fileUniqueId            String
-  fileType                String
+  telegramUserId          BigInt   @map("telegram_user_id")
+  chatId                  BigInt   @map("chat_id")
+  messageId               Int      @map("message_id")
+  fileId                  String   @map("file_id")
+  fileUniqueId            String   @map("file_unique_id")
+  fileType                String   @map("file_type")
   status                  String
-  parseResultJson         Json
-  dedupeKey               String
+  parseResultJson         Json     @map("parse_result_json")
+  dedupeKey               String   @map("dedupe_key")
   reference               String?
-  expenselogTransactionId String?
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  expenselogTransactionId String?  @map("expenselog_transaction_id")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
 
   @@index([telegramUserId, createdAt])
   @@index([reference, status])
@@ -41,12 +41,12 @@ model ReceiptDraft {
 
 model UserRule {
   id             String   @id @default(uuid())
-  telegramUserId BigInt
+  telegramUserId BigInt   @map("telegram_user_id")
   enabled        Boolean  @default(true)
   priority       Int      @default(100)
-  whenJson       Json
-  thenJson       Json
-  createdAt      DateTime @default(now())
+  whenJson       Json     @map("when_json")
+  thenJson       Json     @map("then_json")
+  createdAt      DateTime @default(now()) @map("created_at")
 
   @@index([telegramUserId, enabled, priority])
   @@map("user_rule")

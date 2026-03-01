@@ -22,4 +22,4 @@ ENV PORT=8080
 
 EXPOSE 8080
 
-CMD ["node", "dist/index.js"]
+CMD ["sh", "-c", "npx prisma db push && node dist/index.js"]

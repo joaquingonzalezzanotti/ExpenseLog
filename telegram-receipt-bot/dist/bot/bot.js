@@ -363,10 +363,16 @@ export const buildBot = () => {
             };
             const parsed = await processReceipt({ filePath: tempPath, fileType, telegramMeta });
             const telegramUserId = BigInt(ctx.from.id);
-            const rulesDb = await prisma.userRule.findMany({
-                where: { telegramUserId, enabled: true },
-                orderBy: { priority: 'asc' }
-            });
+            let rulesDb = [];
+            try {
+                rulesDb = await prisma.userRule.findMany({
+                    where: { telegramUserId, enabled: true },
+                    orderBy: { priority: 'asc' }
+                });
+            }
+            catch (error) {
+                logger.warn('user_rules_load_failed', { telegramUserId: String(telegramUserId), error });
+            }
             parsed.rule_output = applyRules(parsed, rulesDb.map((r) => ({
                 enabled: r.enabled,
                 priority: r.priority,

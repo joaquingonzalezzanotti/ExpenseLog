@@ -262,6 +262,35 @@ func buildBotExpenseName(counterparty, motive, reference string) string {
 	}
 }
 
+func normalizeBotExpenseSource(provider string) string {
+	clean := strings.ToUpper(storage.SanitizeString(provider))
+	switch {
+	case clean == "":
+		return "CA"
+	case strings.Contains(clean, "EFECTIVO"), strings.Contains(clean, "CASH"):
+		return "EFECTIVO"
+	case strings.Contains(clean, "DEBITO"),
+		strings.Contains(clean, "DEBIT"),
+		strings.Contains(clean, "TRANSFER"),
+		strings.Contains(clean, "BANCO"),
+		strings.Contains(clean, "BANK"),
+		strings.Contains(clean, "WALLET"),
+		strings.Contains(clean, "MODO"),
+		strings.Contains(clean, "GALICIA"):
+		return "CA"
+	case strings.Contains(clean, "TARJETA"),
+		strings.Contains(clean, "CREDITO"),
+		strings.Contains(clean, "CREDIT"),
+		strings.Contains(clean, "VISA"),
+		strings.Contains(clean, "MASTERCARD"),
+		strings.Contains(clean, "AMEX"):
+		return "TARJETA"
+	default:
+		// Bot providers such as MODO/GALICIA are channels, not payment methods.
+		return "CA"
+	}
+}
+
 func (h *Handler) buildTelegramLinkStatusResponse(userID string, now time.Time) (telegramLinkStatusResponse, error) {
 	premium, err := h.isUserPremium(userID)
 	if err != nil {
@@ -554,13 +583,10 @@ func (h *Handler) CreateBotExpense(w http.ResponseWriter, r *http.Request) {
 		Category:     category,
 		Amount:       adjustedAmount,
 		Currency:     currency,
-		Source:       strings.ToUpper(storage.SanitizeString(payload.Provider)),
+		Source:       normalizeBotExpenseSource(payload.Provider),
 		Tags:         tags,
 		SystemOrigin: "telegram_bot",
 		Date:         createdAt,
-	}
-	if expense.Source == "" {
-		expense.Source = "BOT"
 	}
 	if err := expense.Validate(); err != nil {
 		writeBotError(w, http.StatusBadRequest, err.Error(), "invalid_payload")
@@ -575,4 +601,3 @@ func (h *Handler) CreateBotExpense(w http.ResponseWriter, r *http.Request) {
 		URL:           "/app/table",
 	})
 }
-

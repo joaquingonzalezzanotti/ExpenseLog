@@ -58,3 +58,26 @@ func TestSanitizeTelegramBotUsername(t *testing.T) {
 		t.Fatalf("expected invalid short username to be rejected, got %q", got)
 	}
 }
+
+func TestNormalizeBotExpenseSource(t *testing.T) {
+	tests := []struct {
+		provider string
+		want     string
+	}{
+		{provider: "", want: "CA"},
+		{provider: "MODO", want: "CA"},
+		{provider: "Galicia", want: "CA"},
+		{provider: "Transferencia", want: "CA"},
+		{provider: "Tarjeta debito", want: "CA"},
+		{provider: "Debit card", want: "CA"},
+		{provider: "Tarjeta credito", want: "TARJETA"},
+		{provider: "VISA", want: "TARJETA"},
+		{provider: "Efectivo", want: "EFECTIVO"},
+	}
+	for _, tt := range tests {
+		got := normalizeBotExpenseSource(tt.provider)
+		if got != tt.want {
+			t.Fatalf("normalizeBotExpenseSource(%q) = %q, want %q", tt.provider, got, tt.want)
+		}
+	}
+}

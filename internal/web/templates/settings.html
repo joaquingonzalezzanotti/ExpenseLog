@@ -1723,7 +1723,7 @@ async function saveCategoriesList(nextCategories) {
         function calculateSettingsCurrentCABalance(currency = currentCurrency) {
             const now = new Date();
             return (allExpensesCache || []).reduce((sum, exp) => {
-                const source = (exp.source || '').toUpperCase();
+                const source = normalizeSourceCode(exp.source || 'CA');
                 const expCurrency = (exp.currency || currentCurrency || 'ars').toLowerCase();
                 const expDate = exp.date ? new Date(exp.date) : new Date();
                 if (Number.isNaN(expDate.getTime())) return sum;

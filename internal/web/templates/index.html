@@ -799,7 +799,7 @@
         function calculateCarryoverByCurrency(expenses, periodStart, cutoffDate) {
             const carryoverExpenses = expenses.filter(exp => {
                 const expDate = getComparableExpenseDate(exp);
-                const source = (exp.source || '').toUpperCase();
+                const source = normalizeSourceCode(exp.source || 'CA');
                 return expDate < periodStart && expDate <= cutoffDate && (source === '' || source === 'CA');
             });
             return carryoverExpenses.reduce((acc, exp) => {
@@ -822,7 +822,7 @@
                 const expDate = getComparableExpenseDate(exp);
                 if (expDate > cutoffDate) return;
                 const currency = (exp.currency || baseCurrency).toLowerCase();
-                const source = (exp.source || '').toUpperCase();
+                const source = normalizeSourceCode(exp.source || 'CA');
                 const systemOrigin = String(exp.systemOrigin || '').toLowerCase();
                 const amount = Number(exp.amount) || 0;
                 if (source === 'TARJETA') {
@@ -1209,7 +1209,7 @@
             baseContainer.innerHTML = '';
             // Bank balance only: keep CA (or empty legacy source), exclude EFECTIVO/TARJETA.
             const cashflowExpenses = expenses.filter(exp => {
-                const source = (exp.source || '').toUpperCase();
+                const source = normalizeSourceCode(exp.source || 'CA');
                 return source === '' || source === 'CA';
             });
             const byCurrency = window.ExpenseLogCashflow && typeof window.ExpenseLogCashflow.calculateCashflowBuckets === 'function'
@@ -1612,7 +1612,7 @@
             const monthExpenses = Array.isArray(periodExpenses) ? periodExpenses : getVisiblePeriodExpenses(allExpenses);
             return monthExpenses.filter(exp => {
                 const currencyMatch = filterCurrency === 'all' || (exp.currency || baseCurrency) === filterCurrency;
-                const source = (exp.source || '').toUpperCase();
+                const source = normalizeSourceCode(exp.source || 'CA');
                 const sourceMatch = filterSource === 'all'
                     || (filterSource === 'CA' && (source === '' || source === 'CA'))
                     || source === filterSource;

@@ -79,26 +79,25 @@
         </div>
         
         <div class="table-controls">
-            <button id="toggleTableExpenseFormBtn" class="nav-button button-primary" type="button">
-                <i class="fa-solid fa-plus"></i>
-                <span>Agregar gasto</span>
-            </button>
+            <div class="quick-actions">
+                <button id="toggleExpenseFormBtn" class="quick-action" data-action="open-form" type="button">Agregar gasto</button>
+            </div>
         </div>
 
-        <div id="tableExpenseFormContainer" class="entry-modal-overlay" data-expanded="false" hidden aria-hidden="true">
-            <div class="entry-modal-backdrop" data-table-expense-close></div>
-            <div class="entry-modal-card" role="dialog" aria-modal="true" aria-labelledby="tableExpenseModalTitle">
+        <div id="addExpenseContainer" class="entry-modal-overlay" hidden aria-hidden="true">
+            <div class="entry-modal-backdrop" data-expense-close></div>
+            <div class="entry-modal-card" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle">
                 <div class="entry-modal-header">
                     <div class="entry-modal-title-wrap">
-                        <span class="entry-modal-eyebrow">Carga rapida</span>
-                        <h3 id="tableExpenseModalTitle">Registrar movimiento</h3>
-                        <p>Carga un ingreso, gasto o reintegro sin salir de la tabla.</p>
+                        <span class="entry-modal-eyebrow">&#10024; Carga rapida</span>
+                        <h3 id="expenseModalTitle">Registrar movimiento</h3>
+                        <p>Carga un ingreso, gasto o reintegro sin salir del dashboard.</p>
                     </div>
-                    <button type="button" id="closeTableExpenseFormBtn" class="entry-modal-close" aria-label="Cerrar formulario">
+                    <button type="button" id="closeExpenseFormBtn" class="entry-modal-close" aria-label="Cerrar formulario">
                         <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                     </button>
                 </div>
-            <form id="expenseForm" class="expense-form expense-modal-form table-expense-form">
+            <form id="expenseForm" class="expense-form expense-modal-form">
                 <div class="form-group form-group-span-2 movement-type-group">
                     <label for="movementType">Tipo</label>
                     <div id="movementTypePills" class="movement-pill-group" role="group" aria-label="Tipo de movimiento">
@@ -169,7 +168,7 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="button" id="cancelTableExpenseFormBtn" class="nav-button button-secondary">Cancelar</button>
+                    <button type="button" id="cancelExpenseFormBtn" class="nav-button button-secondary">Cancelar</button>
                     <button type="submit" class="nav-button button-primary">Agregar gasto</button>
                 </div>
             </form>
@@ -355,8 +354,8 @@
         const movementTypeSelect = document.getElementById('movementType');
         const movementTypePills = document.querySelectorAll('[data-movement-pill]');
         const sourceImpactHint = document.getElementById('sourceImpactHint');
-        const tableExpenseForm = document.getElementById('expenseForm');
-        const tableExpenseSubmitButton = tableExpenseForm ? tableExpenseForm.querySelector('button[type="submit"]') : null;
+        const expenseForm = document.getElementById('expenseForm');
+        const expenseSubmitButton = expenseForm ? expenseForm.querySelector('button[type="submit"]') : null;
         let categories = [];
         let searchQuery = '';
         let filterCurrency = 'all';
@@ -367,10 +366,10 @@
         const CONFIG_CACHE_KEY = 'expenselog_config_cache_v1';
         const CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
 
-        const tableFormContainer = document.getElementById('tableExpenseFormContainer');
-        const toggleTableExpenseFormBtn = document.getElementById('toggleTableExpenseFormBtn');
-        const closeTableExpenseFormBtn = document.getElementById('closeTableExpenseFormBtn');
-        const tableExpenseBackdrop = document.querySelector('[data-table-expense-close]');
+        const addExpenseContainer = document.getElementById('addExpenseContainer');
+        const toggleExpenseFormBtn = document.getElementById('toggleExpenseFormBtn');
+        const closeExpenseFormBtn = document.getElementById('closeExpenseFormBtn');
+        const expenseBackdrop = document.querySelector('[data-expense-close]');
         const mobileNavTable = document.getElementById('mobileNavTable');
         const mobileNavCalendar = document.getElementById('mobileNavCalendar');
         const mobileTablePager = document.getElementById('mobileTablePager');
@@ -378,7 +377,7 @@
         const toggleMobileRowsBtn = document.getElementById('toggleMobileRows');
         const clearSearchBtn = document.getElementById('clearSearch');
         const clearTableFiltersBtn = document.getElementById('clearTableFilters');
-        const cancelTableExpenseFormBtn = document.getElementById('cancelTableExpenseFormBtn');
+        const cancelExpenseFormBtn = document.getElementById('cancelExpenseFormBtn');
         const tableDataModule = document.getElementById('tableDataModule');
         const calendarDataModule = document.getElementById('calendarDataModule');
         const viewTableBtn = document.getElementById('viewTableBtn');
@@ -391,45 +390,23 @@
         let calendarTypeFilter = 'all';
         let calendarCategoryFilter = 'all';
         let selectedCalendarDayKey = '';
-        let tableFormInitialized = false;
 
         function isMobileTableView() {
             return window.innerWidth <= MOBILE_TABLE_BREAKPOINT;
         }
 
-        function getTableFormToggleButtonHTML() {
-            return '<i class="fa-solid fa-plus"></i><span>Agregar gasto</span>';
-        }
-
-        function setTableFormExpanded(expanded, { persist = true } = {}) {
-            if (!tableFormContainer) return;
-            tableFormContainer.dataset.expanded = expanded ? 'true' : 'false';
-            if (persist) {
-                tableFormContainer.dataset.userSet = 'true';
+        function setExpenseFormVisible(visible) {
+            if (!addExpenseContainer) return;
+            addExpenseContainer.hidden = !visible;
+            addExpenseContainer.setAttribute('aria-hidden', visible ? 'false' : 'true');
+            if (toggleExpenseFormBtn) {
+                toggleExpenseFormBtn.setAttribute('aria-expanded', visible ? 'true' : 'false');
             }
-            tableFormContainer.hidden = !expanded;
-            tableFormContainer.setAttribute('aria-hidden', expanded ? 'false' : 'true');
-            if (toggleTableExpenseFormBtn) {
-                toggleTableExpenseFormBtn.innerHTML = getTableFormToggleButtonHTML();
-                toggleTableExpenseFormBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-            }
-            if (expanded) {
+            if (visible) {
                 window.setTimeout(() => {
                     document.getElementById('name')?.focus();
                 }, 0);
             }
-        }
-
-        function updateTableFormVisibilityOnViewport() {
-            if (!tableFormContainer) return;
-            const expanded = tableFormContainer?.dataset.expanded === 'true';
-            const userSet = tableFormContainer.dataset.userSet === 'true';
-            if (!tableFormInitialized && !userSet) {
-                setTableFormExpanded(false, { persist: false });
-                tableFormInitialized = true;
-                return;
-            }
-            setTableFormExpanded(expanded, { persist: false });
         }
 
         function updateClearButtonsVisibility() {
@@ -459,10 +436,10 @@
         }
 
         function syncTableSubmitButtonLabel() {
-            if (!tableExpenseSubmitButton || !tableExpenseForm) return;
-            if (tableExpenseForm.dataset.editId) return;
+            if (!expenseSubmitButton || !expenseForm) return;
+            if (expenseForm.dataset.editId) return;
             const movementType = movementTypeSelect ? movementTypeSelect.value : 'expense';
-            tableExpenseSubmitButton.textContent = getTableCreateSubmitLabel(movementType);
+            expenseSubmitButton.textContent = getTableCreateSubmitLabel(movementType);
         }
 
         function isFuturePeriodSelected() {
@@ -603,7 +580,7 @@
         function applyCommonExpenseFilters(expenses) {
             let filtered = (expenses || []).filter(exp => {
                 const currency = (exp.currency || currentCurrency).toLowerCase();
-                const source = (exp.source || '').toUpperCase();
+                const source = normalizeSourceCode(exp.source || 'CA');
                 const currencyMatch = filterCurrency === 'all' || currency === filterCurrency;
                 const sourceMatch = filterSource === 'all'
                     || (filterSource === 'CA' && (source === '' || source === 'CA'))
@@ -842,7 +819,7 @@
             const balanceById = {};
             sortedAsc.forEach(exp => {
                 const currency = (exp.currency || currentCurrency).toLowerCase();
-                const source = (exp.source || '').toUpperCase();
+                const source = normalizeSourceCode(exp.source || 'CA');
                 if (source === '' || source === 'CA') {
                     totalsByCurrency[currency] = (totalsByCurrency[currency] || 0) + exp.amount;
                 }
@@ -1036,7 +1013,7 @@
             form.dataset.editId = id;
             const submitButton = form.querySelector('button[type="submit"]');
             submitButton.textContent = "Actualizar gasto";
-            setTableFormExpanded(true);
+            setExpenseFormVisible(true);
         }
 
         function closeAllRowMenus(exceptContainer = null) {
@@ -1295,7 +1272,6 @@
         async function initialize() {
             try {
                 showAllMobileRows = false;
-                updateTableFormVisibilityOnViewport();
                 const cachedConfigEntry = readConfigCache();
                 const cachedConfig = cachedConfigEntry?.config || null;
                 if (cachedConfig) {
@@ -1379,15 +1355,15 @@
             renderFinancialCalendar();
         });
 
-        if (toggleTableExpenseFormBtn) {
-            toggleTableExpenseFormBtn.addEventListener('click', () => {
-                setTableFormExpanded(true);
+        if (toggleExpenseFormBtn) {
+            toggleExpenseFormBtn.addEventListener('click', () => {
+                setExpenseFormVisible(true);
             });
         }
-        closeTableExpenseFormBtn?.addEventListener('click', () => {
+        closeExpenseFormBtn?.addEventListener('click', () => {
             resetTableExpenseForm({ closeForm: true });
         });
-        tableExpenseBackdrop?.addEventListener('click', () => {
+        expenseBackdrop?.addEventListener('click', () => {
             resetTableExpenseForm({ closeForm: true });
         });
 
@@ -1403,7 +1379,6 @@
                 showAllMobileRows = false;
             }
             closeAllRowMenus();
-            updateTableFormVisibilityOnViewport();
             updateTable();
         });
 
@@ -1498,7 +1473,7 @@
             syncTableSubmitButtonLabel();
             setTableDateToToday();
             if (closeForm) {
-                setTableFormExpanded(false);
+                setExpenseFormVisible(false);
             }
         }
 
@@ -1558,7 +1533,7 @@
                 showToast('No se pudo guardar el gasto', 'error');
             }
         });
-        cancelTableExpenseFormBtn?.addEventListener('click', () => {
+        cancelExpenseFormBtn?.addEventListener('click', () => {
             resetTableExpenseForm({ closeForm: true });
         });
         document.addEventListener('DOMContentLoaded', guardAppInit(initialize));

@@ -21,14 +21,14 @@ function normalizeSourceCode(source) {
     if (code === '' || code === 'CA') return 'CA';
     if (code === 'TARJETA') return 'TARJETA';
     if (code === 'EFECTIVO') return 'EFECTIVO';
-    return code;
+    return 'CA';
 }
 
 function formatSourceLabel(source) {
     const code = normalizeSourceCode(source);
     if (code === 'CA') return 'Transferencia / Debito';
-    if (code === 'TARJETA') return 'Tarjeta credito';
-    if (code === 'EFECTIVO') return 'Efectivo (registro)';
+    if (code === 'TARJETA') return 'Tarjeta de credito';
+    if (code === 'EFECTIVO') return 'Efectivo (solo registro)';
     return code || '-';
 }
 

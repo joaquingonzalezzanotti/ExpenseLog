@@ -17,7 +17,7 @@ const LINK_STATUS_CACHE_TTL_MS = 30_000;
 const multiUserLinkingEnabled = Boolean(String(config.expenselogBotInternalSecret || '').trim());
 const toReceiptParseResult = (value) => value;
 const fieldPromptByKey = {
-    source_app: { label: 'origen', hint: 'Ejemplo: MODO' },
+    source_app: { label: 'metodo de pago', hint: 'Escribi: "transferencia", "efectivo" o "tarjeta credito".' },
     type: { label: 'tipo', hint: 'Escribi "gasto" o "ingreso".' },
     amount: { label: 'monto', hint: 'Ejemplo: 1600 o 1600,50' },
     currency: { label: 'moneda', hint: 'Ejemplo: ARS' },
@@ -39,6 +39,47 @@ const parseTypeInput = (raw) => {
         return 'expense';
     if (['ingreso', 'income'].includes(normalized))
         return 'income';
+    return undefined;
+};
+const normalizePaymentMethod = (raw) => {
+    const normalized = String(raw || '').trim().toUpperCase();
+    if (!normalized)
+        return 'CA';
+    if (normalized === 'EFECTIVO' || normalized.includes('CASH'))
+        return 'EFECTIVO';
+    if (normalized.includes('DEBITO') ||
+        normalized.includes('DEBIT') ||
+        normalized.includes('TRANSFER') ||
+        normalized.includes('BANK') ||
+        normalized.includes('BANCO') ||
+        normalized.includes('WALLET') ||
+        normalized.includes('MODO') ||
+        normalized.includes('GALICIA')) {
+        return 'CA';
+    }
+    if (normalized === 'TARJETA' ||
+        normalized.includes('CREDITO') ||
+        normalized.includes('CREDIT') ||
+        normalized.includes('MASTERCARD') ||
+        normalized.includes('AMEX') ||
+        normalized.includes('VISA')) {
+        return 'TARJETA';
+    }
+    return 'CA';
+};
+const parsePaymentMethodInput = (raw) => {
+    const normalized = String(raw || '').trim().toLowerCase();
+    if (!normalized)
+        return undefined;
+    if (normalized.includes('efectivo') || normalized.includes('cash')) {
+        return 'EFECTIVO';
+    }
+    if (normalized.includes('tarjeta') || normalized.includes('credito') || normalized.includes('credit') || normalized.includes('visa') || normalized.includes('master') || normalized.includes('amex')) {
+        return 'TARJETA';
+    }
+    if (normalized.includes('transfer') || normalized.includes('debito') || normalized.includes('debit') || normalized.includes('banco') || normalized.includes('bank') || normalized.includes('modo')) {
+        return 'CA';
+    }
     return undefined;
 };
 const getMissingRequiredLabels = (r) => {
@@ -313,8 +354,17 @@ export const buildBot = () => {
             }
             parsed.type = parsedType;
         }
+        else if (field === 'source_app') {
+            const parsedMethod = parsePaymentMethodInput(value);
+            if (!parsedMethod) {
+                await ctx.reply('No entendi el metodo. Escribe: "transferencia", "efectivo" o "tarjeta credito".');
+                return;
+            }
+            parsed.source_app = parsedMethod;
+        }
         else if (field === 'motive')
             parsed.motive = value;
+        parsed.source_app = normalizePaymentMethod(parsed.source_app);
         await prisma.receiptDraft.update({
             where: { id: draft.id },
             data: { parseResultJson: parsed, status: 'awaiting_confirm' }
@@ -362,6 +412,7 @@ export const buildBot = () => {
                 file_unique_id: fileUniqueId
             };
             const parsed = await processReceipt({ filePath: tempPath, fileType, telegramMeta });
+            parsed.source_app = normalizePaymentMethod(parsed.source_app);
             const telegramUserId = BigInt(ctx.from.id);
             let rulesDb = [];
             try {
@@ -435,8 +486,15 @@ export const buildBot = () => {
         await answerCallback(ctx);
         await ctx.editMessageReplyMarkup(mainDecisionKeyboard().reply_markup);
     });
-    for (const field of ['amount', 'datetime_iso', 'counterparty', 'type', 'motive']) {
-        bot.action(`fix_${field === 'datetime_iso' ? 'datetime' : field}`, async (ctx) => {
+    for (const { field, action } of [
+        { field: 'amount', action: 'amount' },
+        { field: 'datetime_iso', action: 'datetime' },
+        { field: 'counterparty', action: 'counterparty' },
+        { field: 'type', action: 'type' },
+        { field: 'source_app', action: 'source' },
+        { field: 'motive', action: 'motive' }
+    ]) {
+        bot.action(`fix_${action}`, async (ctx) => {
             if (!(await ensurePrivateAllowed(ctx)))
                 return;
             if (!(await requireLinkedPremium(ctx)))
@@ -491,6 +549,8 @@ export const buildBot = () => {
         }
         const stopCreateTx = stageLatency.startTimer({ stage: 'expenselog_create' });
         let created;
+        const normalizedSource = normalizePaymentMethod(parsed.source_app);
+        parsed.source_app = normalizedSource;
         const transactionTags = buildBotTags(parsed.rule_output?.tags);
         try {
             if (multiUserLinkingEnabled) {
@@ -505,7 +565,7 @@ export const buildBot = () => {
                     motive: parsed.motive,
                     category: parsed.rule_output?.category,
                     tags: transactionTags,
-                    provider: parsed.source_app,
+                    provider: normalizedSource,
                     source_meta: parsed.telegram_meta
                 });
             }
@@ -520,7 +580,7 @@ export const buildBot = () => {
                     motive: parsed.motive,
                     category: parsed.rule_output?.category,
                     tags: transactionTags,
-                    provider: parsed.source_app,
+                    provider: normalizedSource,
                     source_meta: parsed.telegram_meta
                 });
             }

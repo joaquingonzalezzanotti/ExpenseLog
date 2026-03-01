@@ -1,6 +1,23 @@
-const isCardRelated = (r) => {
-    const signal = `${r.account_from?.bank ?? ''} ${r.account_to?.bank ?? ''} ${r.motive ?? ''}`;
-    return /(tarjeta|visa|master|amex|debito|credito)/i.test(signal);
+const normalizePaymentMethod = (sourceApp) => {
+    const raw = String(sourceApp || '').trim().toUpperCase();
+    if (!raw)
+        return 'CA';
+    if (raw === 'EFECTIVO' || raw.includes('CASH'))
+        return 'EFECTIVO';
+    if (raw.includes('DEBITO') || raw.includes('DEBIT') || raw.includes('TRANSFER') || raw.includes('BANK') || raw.includes('WALLET') || raw.includes('MODO'))
+        return 'CA';
+    if (raw === 'TARJETA' || raw.includes('CREDITO') || raw.includes('CREDIT') || raw.includes('MASTERCARD') || raw.includes('AMEX') || raw.includes('VISA')) {
+        return 'TARJETA';
+    }
+    return 'CA';
+};
+const formatPaymentMethodLabel = (sourceApp) => {
+    const code = normalizePaymentMethod(sourceApp);
+    if (code === 'TARJETA')
+        return 'Tarjeta de credito';
+    if (code === 'EFECTIVO')
+        return 'Efectivo (solo registro)';
+    return 'Transferencia / Debito';
 };
 const normalizeMoney = (amount) => (typeof amount === 'number' && Number.isFinite(amount)
     ? amount.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
@@ -22,7 +39,7 @@ export const resolveSuggestedCategory = (r) => {
 const resolveTypeLabel = (r) => {
     if (r.type === 'income')
         return 'Ingreso';
-    if (r.type === 'expense' && isCardRelated(r))
+    if (r.type === 'expense' && normalizePaymentMethod(r.source_app) === 'TARJETA')
         return 'Gasto (tarjeta)';
     if (r.type === 'expense')
         return 'Gasto';
@@ -36,6 +53,6 @@ export const draftSummary = (r) => [
     `Contraparte (comercio/destino): ${r.counterparty ?? '-'}`,
     `Referencia (comprobante): ${r.reference ?? '-'}`,
     `Categoria (regla): ${resolveSuggestedCategory(r) ?? '-'}`,
-    `Origen: ${r.source_app}`,
+    `Metodo: ${formatPaymentMethodLabel(r.source_app)}`,
     `Motivo: ${r.motive ?? '-'}`
 ].join('\n');

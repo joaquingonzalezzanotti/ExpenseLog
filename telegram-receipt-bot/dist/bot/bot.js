@@ -74,11 +74,11 @@ const parsePaymentMethodInput = (raw) => {
     if (normalized.includes('efectivo') || normalized.includes('cash')) {
         return 'EFECTIVO';
     }
-    if (normalized.includes('tarjeta') || normalized.includes('credito') || normalized.includes('credit') || normalized.includes('visa') || normalized.includes('master') || normalized.includes('amex')) {
-        return 'TARJETA';
-    }
     if (normalized.includes('transfer') || normalized.includes('debito') || normalized.includes('debit') || normalized.includes('banco') || normalized.includes('bank') || normalized.includes('modo')) {
         return 'CA';
+    }
+    if (normalized.includes('tarjeta') || normalized.includes('credito') || normalized.includes('credit') || normalized.includes('visa') || normalized.includes('master') || normalized.includes('amex')) {
+        return 'TARJETA';
     }
     return undefined;
 };

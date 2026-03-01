@@ -11,12 +11,13 @@ export const parseModoReceipt = (text, aliases, telegramMeta) => {
     const amountRaw = pick(clean, /Monto\s*\$\s*([\d\.,]+)/i)?.replace(/\./g, '').replace(',', '.');
     const ref = pick(clean, /Ref\.?\s*([A-Z0-9-]{6,})/i);
     const motive = pick(clean, /Motivo\s+(.+?)(?:\s+Fecha y hora|\s+Fecha y Hora|$)/i);
+    const paymentMethodRaw = pick(clean, /Medio de pago\s+(.+?)(?:\s+Comprobante|\s+ID de QR|$)/i);
     const dateIso = parseArDateTime(pick(clean, /Fecha y hora\s+(.+?)(?:\s+Medio de pago|\s+Comprobante|\s+ID de QR|$)/i)
         ?? pick(clean, /Fecha y Hora\s+(.+?)(?:\s+Medio de pago|\s+Comprobante|\s+ID de QR|$)/i)
         ?? '');
     const fromAcc = pick(clean, /Desde la cuenta\s+(.+?)\s+Para/i);
     const toAcc = pick(clean, /A su cuenta\s+(.+?)\s+CBU\/CVU/i)
-        ?? pick(clean, /Medio de pago\s+(.+?)(?:\s+Comprobante|\s+ID de QR|$)/i);
+        ?? paymentMethodRaw;
     const cbu = pick(clean, /CBU\/CVU\s+(\d{10,22})/i);
     const aliasNorm = aliases.map((a) => normalizeName(a));
     const srcIsMine = source && aliasNorm.includes(normalizeName(source));
@@ -32,7 +33,7 @@ export const parseModoReceipt = (text, aliases, telegramMeta) => {
         type = 'income';
     const counterparty = paidTo || (srcIsMine ? dest : source);
     return {
-        source_app: 'MODO',
+        source_app: paymentMethodRaw || 'MODO',
         type,
         amount: amountRaw ? Number(amountRaw) : undefined,
         currency: 'ARS',

@@ -86,31 +86,50 @@
         </div>
 
         <div id="tableExpenseFormContainer" class="form-container" data-expanded="false">
-            <form id="expenseForm" class="expense-form table-expense-form">
-                <div class="form-group form-group-span-2">
-                    <label for="name">Nombre</label>
-                    <input type="text" id="name" placeholder="Ej. Supermercado" required>
+            <form id="expenseForm" class="expense-form expense-modal-form table-expense-form">
+                <div class="form-group form-group-span-2 movement-type-group">
+                    <label for="movementType">Tipo</label>
+                    <div id="movementTypePills" class="movement-pill-group" role="group" aria-label="Tipo de movimiento">
+                        <button type="button" class="movement-pill active" data-movement-pill="expense">💸 Gasto</button>
+                        <button type="button" class="movement-pill" data-movement-pill="income">💰 Ingreso</button>
+                        <button type="button" class="movement-pill" data-movement-pill="refund">↩️ Reintegro</button>
+                    </div>
+                    <select id="movementType" class="select-assist">
+                        <option value="expense">Gasto</option>
+                        <option value="income">Ingreso</option>
+                        <option value="refund">Reintegro</option>
+                    </select>
                 </div>
-                
-                <div class="form-group">
-                    <label for="category">Categoria</label>
-                    <select id="category" required>
-                        <option value="">categorias</option>
+
+                <div class="form-group form-group-span-2 method-group">
+                    <label for="sourceSelect">Metodo</label>
+                    <select id="sourceSelect">
+                        <option value="CA">Transferencia / Debito</option>
+                        <option value="EFECTIVO">Efectivo (solo registro)</option>
+                        <option value="TARJETA">Tarjeta de credito</option>
                     </select>
                 </div>
 
                 <div class="form-group form-group-span-2">
-                    <label for="tags-input">Etiquetas</label>
-                    <div id="tags-input-container" class="tags-input-container">
-                        <div id="selected-tags" class="selected-tags"></div>
-                        <input type="text" id="tags-input" placeholder="(opcional)">
-                    </div>
-                    <div id="tags-dropdown" class="tags-dropdown"></div>
+                    <label for="name">Descripcion</label>
+                    <input type="text" id="name" placeholder="Ej. Supermercado, alquiler, sueldo..." required>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="amount">Monto</label>
                     <input type="number" id="amount" step="0.01" min="0.01" max="9000000000000000" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="date">Fecha</label>
+                    <input type="date" id="date" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Categoria</label>
+                    <select id="category" required>
+                        <option value="">Selecciona categoria</option>
+                    </select>
                 </div>
 
                 <div class="form-group">
@@ -118,14 +137,13 @@
                     <select id="currencySelectForm" required></select>
                 </div>
 
-                <div class="form-group">
-                    <label for="sourceSelect">Metodo</label>
-                    <select id="sourceSelect">
-                        <option value="CA">Transferencia / Debito</option>
-                        <option value="EFECTIVO">Efectivo (registro)</option>
-                        <option value="TARJETA">Tarjeta credito</option>
-                    </select>
-                    <div id="sourceImpactHint" class="form-help-text" aria-live="polite"></div>
+                <div class="form-group form-group-span-2">
+                    <label for="tags-input">Etiquetas</label>
+                    <div id="tags-input-container" class="tags-input-container">
+                        <div id="selected-tags" class="selected-tags"></div>
+                        <input type="text" id="tags-input" placeholder="Opcional">
+                    </div>
+                    <div id="tags-dropdown" class="tags-dropdown"></div>
                 </div>
 
                 <div class="form-group form-group-span-2" id="cardGroup" style="display:none;">
@@ -133,27 +151,9 @@
                     <input type="text" id="cardInput" placeholder="Ej: Visa, Amex">
                     <div id="cardError" class="form-error"></div>
                 </div>
-                
-                <div class="form-group">
-                    <label for="date">Fecha</label>
-                    <input type="date" id="date" required>
-                    <script>
-                        const today = new Date();
-                        const year = today.getFullYear();
-                        const month = String(today.getMonth() + 1).padStart(2, '0');
-                        const day = String(today.getDate()).padStart(2, '0');
-                        const formattedDate = `${year}-${month}-${day}`;
-                        document.getElementById('date').value = formattedDate;
-                    </script>
-                </div>
-                
-                <div class="form-group">
-                    <label for="movementType">Tipo</label>
-                    <select id="movementType">
-                        <option value="expense">Gasto</option>
-                        <option value="income">Ingreso</option>
-                        <option value="refund">Reintegro</option>
-                    </select>
+
+                <div class="form-group form-group-span-2">
+                    <div id="sourceImpactHint" class="form-help-text" aria-live="polite"></div>
                 </div>
 
                 <div class="form-actions">
@@ -340,6 +340,7 @@
         const sourceSelect = document.getElementById('sourceSelect');
         const cardGroup = document.getElementById('cardGroup');
         const movementTypeSelect = document.getElementById('movementType');
+        const movementTypePills = document.querySelectorAll('[data-movement-pill]');
         const sourceImpactHint = document.getElementById('sourceImpactHint');
         const tableExpenseForm = document.getElementById('expenseForm');
         const tableExpenseSubmitButton = tableExpenseForm ? tableExpenseForm.querySelector('button[type="submit"]') : null;
@@ -422,9 +423,19 @@
         }
 
         function getTableCreateSubmitLabel(movementType) {
-            if (movementType === 'income') return 'Agregar ingreso';
-            if (movementType === 'refund') return 'Agregar reintegro';
+            if (movementType === 'income') return '💰 Agregar ingreso';
+            if (movementType === 'refund') return '↩️ Agregar reintegro';
             return 'Agregar gasto';
+        }
+
+        function syncMovementTypePills() {
+            if (!movementTypePills || movementTypePills.length === 0 || !movementTypeSelect) return;
+            const current = movementTypeSelect.value || 'expense';
+            movementTypePills.forEach((button) => {
+                const selected = button.dataset.movementPill === current;
+                button.classList.toggle('active', selected);
+                button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+            });
         }
 
         function syncTableSubmitButtonLabel() {
@@ -1194,7 +1205,7 @@
                 return;
             }
             if (source === 'TARJETA') {
-                sourceImpactHint.textContent = 'Gasto en tarjeta credito: no descuenta Balance ahora. Suma a Tarjeta por pagar.';
+                sourceImpactHint.textContent = 'Gasto en tarjeta credito: no descuenta Balance ahora. Suma a Tarjeta por pagar (usa el modulo para registrar pagos).';
                 return;
             }
             if (source === 'EFECTIVO') {
@@ -1208,6 +1219,17 @@
             syncSourceOptionsByFlow();
             toggleCardInput();
             updateSourceImpactHint();
+            syncMovementTypePills();
+        }
+
+        function setTableDateToToday() {
+            const dateInput = document.getElementById('date');
+            if (!dateInput) return;
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}`;
         }
 
         function highlightText(text, query) {
@@ -1297,6 +1319,9 @@
                 updatePeriodModeBadge();
                 setActiveDataView(getRequestedDataViewFromURL());
                 setupTagInput();
+                if (!document.getElementById('date')?.value) {
+                    setTableDateToToday();
+                }
             } catch (error) {
                 console.error('No se pudo inicializar la tabla:', error);
                 document.getElementById('tableContainer').innerHTML = 
@@ -1448,11 +1473,7 @@
             if (movementTypeSelect) movementTypeSelect.value = 'expense';
             refreshSourceUX();
             syncTableSubmitButtonLabel();
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            document.getElementById('date').value = `${year}-${month}-${day}`;
+            setTableDateToToday();
             if (closeForm) {
                 setTableFormExpanded(false);
             }
@@ -1531,6 +1552,16 @@
             movementTypeSelect.addEventListener('change', () => {
                 syncTableSubmitButtonLabel();
                 refreshSourceUX();
+            });
+        }
+        if (movementTypePills && movementTypePills.length > 0 && movementTypeSelect) {
+            movementTypePills.forEach((button) => {
+                button.setAttribute('aria-pressed', button.classList.contains('active') ? 'true' : 'false');
+                button.addEventListener('click', () => {
+                    movementTypeSelect.value = button.dataset.movementPill || 'expense';
+                    syncTableSubmitButtonLabel();
+                    refreshSourceUX();
+                });
             });
         }
         syncTableSubmitButtonLabel();

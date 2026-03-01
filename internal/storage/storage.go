@@ -43,6 +43,7 @@ type Storage interface {
 
 	// User Config
 	GetConfig(userID string) (*Config, error)
+	GetUserPlanTier(userID string) (string, error)
 
 	// Basic Config Updates
 	GetCategories(userID string) ([]string, error)
@@ -75,6 +76,14 @@ type Storage interface {
 	GetReconciliationHistory(userID string) ([]ReconciliationRecord, error)
 	RevertReconciliation(userID, adjustmentExpenseID string, now time.Time) (Expense, error)
 
+	// Telegram Bot integration
+	GetTelegramUserLinkByUserID(userID string) (TelegramUserLink, error)
+	GetTelegramUserLinkByTelegramUserID(telegramUserID int64) (TelegramUserLink, error)
+	GetActiveTelegramLinkCode(userID string, now time.Time) (TelegramLinkCode, error)
+	InvalidateActiveTelegramLinkCodes(userID string, usedAt time.Time) error
+	CreateTelegramLinkCode(userID, codeHash string, expiresAt, createdAt time.Time) (TelegramLinkCode, error)
+	ConsumeTelegramLinkCode(codeHash string, telegramUserID int64, telegramUsername string, now time.Time) (TelegramUserLink, error)
+
 	// Potential Future Feature: Multi-currency
 	// GetConversions() (map[string]float64, error)
 	// UpdateConversions(conversions map[string]float64) error
@@ -83,6 +92,12 @@ type Storage interface {
 var ErrSystemLockedExpense = errors.New("system-locked expense cannot be modified")
 var ErrReconciliationNotFound = errors.New("reconciliation not found")
 var ErrReconciliationAlreadyReverted = errors.New("reconciliation already reverted")
+var ErrTelegramInvalidLinkCode = errors.New("invalid telegram link code")
+var ErrTelegramLinkCodeExpired = errors.New("telegram link code expired")
+var ErrTelegramLinkCodeUsed = errors.New("telegram link code already used")
+var ErrTelegramPremiumRequired = errors.New("telegram premium required")
+var ErrTelegramAlreadyLinked = errors.New("expenselog account already linked to another telegram user")
+var ErrTelegramUserAlreadyLinked = errors.New("telegram user already linked to another expenselog account")
 
 // config for expense data
 type Config struct {
@@ -219,6 +234,26 @@ type ReconciliationRecord struct {
 	Status              string
 	CreatedAt           time.Time
 	RevertedAt          *time.Time
+}
+
+type TelegramUserLink struct {
+	ID               string
+	UserID           string
+	TelegramUserID   int64
+	TelegramUsername string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+}
+
+type TelegramLinkCode struct {
+	ID                   string
+	UserID               string
+	CodeHash             string
+	CreatedAt            time.Time
+	ExpiresAt            time.Time
+	UsedAt               *time.Time
+	UsedByTelegramUserID *int64
+	UsedTelegramUsername string
 }
 
 func (c *Config) SetBaseConfig() {

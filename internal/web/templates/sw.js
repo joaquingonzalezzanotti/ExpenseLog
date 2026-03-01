@@ -1,4 +1,4 @@
-const SW_VERSION = '2026-02-28-v4';
+const SW_VERSION = '2026-03-01-v5';
 const STATIC_CACHE = `expenselog-static-${SW_VERSION}`;
 const PAGE_CACHE = `expenselog-pages-${SW_VERSION}`;
 
@@ -24,6 +24,7 @@ const APP_ROUTES = [
     '/app/recurrentes',
     '/app/conciliacion',
     '/app/reportes',
+    '/app/telegram',
 ];
 
 function normalizeAppPath(pathname) {

@@ -2190,6 +2190,94 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     font-size: 0.84rem;
 }
 
+.settings-nav-item-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.settings-telegram-section {
+    border: 1px solid rgba(37, 99, 235, 0.22);
+    background:
+        radial-gradient(circle at 100% 0%, rgba(37, 99, 235, 0.12), transparent 40%),
+        radial-gradient(circle at 0% 100%, rgba(16, 185, 129, 0.08), transparent 35%),
+        linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 130%);
+}
+
+.settings-telegram-helper {
+    margin-bottom: 0.8rem;
+}
+
+.telegram-status-box {
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    padding: 0.7rem 0.85rem;
+    margin-bottom: 0.55rem;
+    font-weight: 600;
+}
+
+.telegram-status-info {
+    background: rgba(37, 99, 235, 0.12);
+    border-color: rgba(37, 99, 235, 0.35);
+    color: var(--accent);
+}
+
+.telegram-status-success {
+    background: var(--success-soft);
+    border-color: rgba(5, 150, 105, 0.38);
+    color: var(--success);
+}
+
+.telegram-status-warning {
+    background: var(--warning-soft);
+    border-color: rgba(180, 83, 9, 0.35);
+    color: var(--warning);
+}
+
+.telegram-status-error {
+    background: var(--danger-soft);
+    border-color: rgba(220, 38, 38, 0.35);
+    color: var(--danger);
+}
+
+.settings-telegram-hint {
+    margin-bottom: 0.6rem;
+}
+
+.settings-telegram-code-wrap {
+    border: 1px dashed rgba(37, 99, 235, 0.35);
+    border-radius: 12px;
+    padding: 0.7rem 0.85rem;
+    background: rgba(37, 99, 235, 0.06);
+    margin-bottom: 0.75rem;
+}
+
+.settings-telegram-code-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+}
+
+.settings-telegram-code-value {
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin-top: 0.15rem;
+    margin-bottom: 0.2rem;
+    letter-spacing: 0.05em;
+    color: var(--text-primary);
+}
+
+.settings-telegram-code-meta {
+    color: var(--text-secondary);
+    font-size: 0.83rem;
+}
+
+.settings-telegram-actions .nav-button {
+    min-width: 190px;
+}
+
 @media (max-width: 640px) {
     .settings-reports-highlight {
         flex-direction: column;
@@ -3051,14 +3139,16 @@ body.settings-module-mode .settings-detail-header {
 html[data-settings-route='categories'] body.settings-page .settings-shell-section,
 html[data-settings-route='recurring'] body.settings-page .settings-shell-section,
 html[data-settings-route='reconciliation'] body.settings-page .settings-shell-section,
-html[data-settings-route='reports'] body.settings-page .settings-shell-section {
+html[data-settings-route='reports'] body.settings-page .settings-shell-section,
+html[data-settings-route='telegram'] body.settings-page .settings-shell-section {
     display: none !important;
 }
 
 html[data-settings-route='categories'] body.settings-page #categoriesSection[hidden],
 html[data-settings-route='recurring'] body.settings-page #recurringSection[hidden],
 html[data-settings-route='reconciliation'] body.settings-page #reconciliationSection[hidden],
-html[data-settings-route='reports'] body.settings-page #reportsSection[hidden] {
+html[data-settings-route='reports'] body.settings-page #reportsSection[hidden],
+html[data-settings-route='telegram'] body.settings-page #telegramSection[hidden] {
     display: block !important;
 }
 

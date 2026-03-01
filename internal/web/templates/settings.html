@@ -23,6 +23,7 @@
                 if (normalized === 'recurring' || normalized === 'recurrentes') return 'recurring';
                 if (normalized === 'reconciliation' || normalized === 'conciliacion') return 'reconciliation';
                 if (normalized === 'reports' || normalized === 'reportes') return 'reports';
+                if (normalized === 'telegram' || normalized === 'telegrambot' || normalized === 'bottelegram') return 'telegram';
                 if (normalized === 'profile' || normalized === 'perfil' || normalized === 'settings') return 'profile';
                 return '';
             };
@@ -36,6 +37,7 @@
                 if (path === '/app/recurrentes' || path === '/recurrentes') return 'recurring';
                 if (path === '/app/conciliacion' || path === '/conciliacion') return 'reconciliation';
                 if (path === '/app/reportes' || path === '/reportes') return 'reports';
+                if (path === '/app/telegram' || path === '/telegram') return 'telegram';
                 if (path === '/app/perfil' || path === '/perfil' || path === '/app/settings' || path === '/settings') return 'profile';
                 return '';
             })();
@@ -169,8 +171,14 @@
                     <span>🧾 Reportes mensuales</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
+
+                <button class="settings-nav-item" id="openTelegramSection" type="button" data-settings-section="telegramSection" data-settings-route="/app/telegram" aria-expanded="false">
+                    <span class="settings-nav-item-label">Telegram Bot <span class="settings-reports-badge">Premium</span></span>
+                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
             </div>
         </section>
+
         <section id="reportsSection" class="form-container settings-section settings-detail-section settings-reports-section" hidden>
             <div class="settings-detail-header">
                 <h2>🧾 Reportes mensuales</h2>
@@ -213,6 +221,30 @@
             </div>
             <p class="settings-reports-caption">Sugerencia: usa el mismo mes y moneda de tu analisis para compartir resultados claros.</p>
             <div id="reportExportMessage" class="form-message"></div>
+        </section>
+
+        <section id="telegramSection" class="form-container settings-section settings-detail-section settings-telegram-section" hidden>
+            <div class="settings-detail-header">
+                <h2><i class="fa-brands fa-telegram"></i> Telegram Bot</h2>
+                <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="telegramSection" aria-label="Cerrar Telegram Bot" title="Cerrar Telegram Bot">
+                    <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+                </button>
+            </div>
+            <p class="settings-helper-text settings-telegram-helper">Vincula tu cuenta para cargar comprobantes desde Telegram. Flujo: 1) genera codigo, 2) abre el bot, 3) confirma con <code>/vincular CODIGO</code>.</p>
+            <div id="telegramStatusBanner" class="telegram-status-box telegram-status-info">Cargando estado...</div>
+            <p id="telegramStatusHint" class="settings-helper-text settings-telegram-hint"></p>
+            <div id="telegramCodeWrap" class="settings-telegram-code-wrap" hidden>
+                <div class="settings-telegram-code-label">Codigo vigente</div>
+                <div id="telegramGeneratedCode" class="settings-telegram-code-value">----</div>
+                <div id="telegramCodeMeta" class="settings-telegram-code-meta"></div>
+            </div>
+            <div class="settings-export-actions settings-telegram-actions">
+                <button id="telegramOpenBotBtn" class="nav-button button-secondary" type="button"><i class="fa-brands fa-telegram"></i> Abrir bot</button>
+                <button id="telegramGenerateCodeBtn" class="nav-button button-primary" type="button">Generar codigo de vinculacion</button>
+                <button id="telegramRefreshStatusBtn" class="nav-button button-secondary" type="button">Actualizar estado</button>
+            </div>
+            <p class="settings-reports-caption">Genera un codigo para abrir Telegram con vinculacion rapida.</p>
+            <div id="telegramBotMessage" class="form-message"></div>
         </section>
         <section id="categoriesSection" class="form-container settings-section settings-detail-section" hidden>
             <div class="settings-detail-header">
@@ -564,6 +596,20 @@
         let reconciliationSubmitInFlight = false;
         let pendingConfirmResolver = null;
         let pendingSuccessResolver = null;
+        let telegramCodeCountdownTimer = null;
+        let telegramState = {
+            premium: false,
+            linked: false,
+            telegram_user_id: null,
+            telegram_username: '',
+            linked_at: '',
+            active_code: null,
+            bot_url: '',
+            bot_username: '',
+            deep_link_url: '',
+            generated_code: '',
+            generated_expires_at: '',
+        };
         const SHARED_CONFIG_CACHE_KEY = 'expenselog_config_cache_v1';
         const settingsSectionButtons = Array.from(document.querySelectorAll('[data-settings-section]'));
         const settingsCloseButtons = Array.from(document.querySelectorAll('[data-settings-close]'));
@@ -580,6 +626,14 @@
         const reportCurrencySelect = document.getElementById('reportCurrencySelect');
         const downloadMonthlyXLSXBtn = document.getElementById('downloadMonthlyXLSXBtn');
         const downloadMonthlyPDFBtn = document.getElementById('downloadMonthlyPDFBtn');
+        const telegramStatusBanner = document.getElementById('telegramStatusBanner');
+        const telegramStatusHint = document.getElementById('telegramStatusHint');
+        const telegramCodeWrap = document.getElementById('telegramCodeWrap');
+        const telegramGeneratedCode = document.getElementById('telegramGeneratedCode');
+        const telegramCodeMeta = document.getElementById('telegramCodeMeta');
+        const telegramOpenBotBtn = document.getElementById('telegramOpenBotBtn');
+        const telegramGenerateCodeBtn = document.getElementById('telegramGenerateCodeBtn');
+        const telegramRefreshStatusBtn = document.getElementById('telegramRefreshStatusBtn');
 
         function setSettingsSection(sectionId, expanded) {
             const section = document.getElementById(sectionId);
@@ -592,7 +646,7 @@
         }
 
         function showOnlySettingsSection(sectionId, options = {}) {
-            const targets = ['categoriesSection', 'recurringSection', 'reconciliationSection', 'reportsSection'];
+            const targets = ['categoriesSection', 'recurringSection', 'reconciliationSection', 'reportsSection', 'telegramSection'];
             targets.forEach((id) => setSettingsSection(id, id === sectionId));
             setRecurringComposerVisible(false);
             const shouldScroll = options.scroll !== false;
@@ -859,6 +913,176 @@
                 showMessage('reportExportMessage', error.message || 'No se pudo descargar el reporte.', false);
             } finally {
                 setReportDownloadButtonsDisabled(false);
+            }
+        }
+
+        function clearTelegramCountdown() {
+            if (telegramCodeCountdownTimer) {
+                clearInterval(telegramCodeCountdownTimer);
+                telegramCodeCountdownTimer = null;
+            }
+        }
+
+        function normalizeTelegramCodeCompact(value) {
+            const compact = String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (compact.length !== 8) return '';
+            return compact;
+        }
+
+        function normalizeTelegramCode(value) {
+            const raw = String(value || '').trim().toUpperCase();
+            if (/^\*{4}-\*{4}$/.test(raw)) return raw;
+            const compact = normalizeTelegramCodeCompact(raw);
+            if (!compact) return '';
+            return `${compact.slice(0, 4)}-${compact.slice(4)}`;
+        }
+
+        function getTelegramOpenURL() {
+            const fallback = String(telegramState.bot_url || '').trim();
+            const deepLink = String(telegramState.deep_link_url || '').trim();
+            const compact = normalizeTelegramCodeCompact(telegramState.generated_code);
+            if (!fallback) return '';
+            if (compact.length === 8 && telegramState.generated_expires_at) {
+                const expiresAtMs = Date.parse(telegramState.generated_expires_at);
+                if (Number.isFinite(expiresAtMs) && expiresAtMs > Date.now()) {
+                    if (deepLink) return deepLink;
+                    return `${fallback}?start=vincular_${compact}`;
+                }
+            }
+            return fallback;
+        }
+
+        function formatTelegramDate(value) {
+            const parsed = Date.parse(String(value || ''));
+            if (!Number.isFinite(parsed)) return '-';
+            return new Intl.DateTimeFormat('es-AR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            }).format(new Date(parsed));
+        }
+
+        function setTelegramStatusBox(message, tone = 'info') {
+            if (!telegramStatusBanner) return;
+            telegramStatusBanner.textContent = message;
+            telegramStatusBanner.className = `telegram-status-box telegram-status-${tone}`;
+        }
+
+        function renderTelegramCodePanel() {
+            clearTelegramCountdown();
+            if (!telegramCodeWrap || !telegramGeneratedCode || !telegramCodeMeta) return;
+            const code = normalizeTelegramCode(telegramState.generated_code);
+            if (!code) {
+                telegramCodeWrap.hidden = true;
+                telegramGeneratedCode.textContent = '----';
+                telegramCodeMeta.textContent = '';
+                return;
+            }
+            telegramCodeWrap.hidden = false;
+            telegramGeneratedCode.textContent = code;
+            const updateMeta = () => {
+                const expiresAtMs = Date.parse(String(telegramState.generated_expires_at || ''));
+                if (!Number.isFinite(expiresAtMs)) {
+                    telegramCodeMeta.textContent = 'Sin vencimiento informado.';
+                    return;
+                }
+                const remaining = Math.max(0, Math.floor((expiresAtMs - Date.now()) / 1000));
+                const mm = String(Math.floor(remaining / 60)).padStart(2, '0');
+                const ss = String(remaining % 60).padStart(2, '0');
+                const absolute = formatTelegramDate(telegramState.generated_expires_at);
+                if (remaining <= 0) {
+                    telegramCodeMeta.textContent = `Codigo vencido (${absolute}). Genera uno nuevo.`;
+                    clearTelegramCountdown();
+                    return;
+                }
+                telegramCodeMeta.textContent = `Vence en ${mm}:${ss} (${absolute}).`;
+            };
+            updateMeta();
+            telegramCodeCountdownTimer = setInterval(updateMeta, 1000);
+        }
+
+        function renderTelegramState() {
+            const isPremium = currentPlanTier === 'premium' && !!telegramState.premium;
+            if (telegramGenerateCodeBtn) telegramGenerateCodeBtn.disabled = !isPremium;
+            if (telegramOpenBotBtn) telegramOpenBotBtn.disabled = !telegramState.bot_url;
+
+            if (!isPremium) {
+                setTelegramStatusBox('Estado: disponible solo para cuentas Premium.', 'warning');
+                if (telegramStatusHint) {
+                    telegramStatusHint.textContent = 'Activa Premium para generar un codigo de vinculacion y usar el bot de Telegram.';
+                }
+                telegramState.generated_code = '';
+                telegramState.generated_expires_at = '';
+                telegramState.deep_link_url = '';
+                renderTelegramCodePanel();
+                return;
+            }
+
+            if (telegramState.linked) {
+                const usernameLabel = telegramState.telegram_username ? `@${telegramState.telegram_username.replace(/^@/, '')}` : 'sin username';
+                const linkedAt = formatTelegramDate(telegramState.linked_at);
+                setTelegramStatusBox(`Estado: cuenta vinculada (${usernameLabel}).`, 'success');
+                if (telegramStatusHint) {
+                    telegramStatusHint.textContent = `Vinculada el ${linkedAt}. Puedes enviar comprobantes al bot.`;
+                }
+            } else {
+                setTelegramStatusBox('Estado: cuenta premium sin vincular.', 'info');
+                if (telegramStatusHint) {
+                    telegramStatusHint.textContent = 'Genera un codigo y ejecuta /vincular CODIGO dentro del bot.';
+                }
+            }
+
+            if (!telegramState.generated_code && telegramState.active_code) {
+                telegramState.generated_code = telegramState.active_code.code_masked || '';
+                telegramState.generated_expires_at = telegramState.active_code.expires_at || '';
+                telegramState.deep_link_url = '';
+            }
+            renderTelegramCodePanel();
+        }
+
+        async function fetchTelegramStatus(endpoint = '/telegram/link-status') {
+            const response = await fetch(endpoint, { method: endpoint.includes('/refresh-') ? 'POST' : 'GET', cache: 'no-store' });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(payload.error || 'No se pudo obtener estado de Telegram');
+            }
+            telegramState.premium = !!payload.premium;
+            telegramState.linked = !!payload.linked;
+            telegramState.telegram_user_id = payload.telegram_user_id || null;
+            telegramState.telegram_username = String(payload.telegram_username || '');
+            telegramState.linked_at = payload.linked_at || '';
+            telegramState.active_code = payload.active_code || null;
+            telegramState.bot_url = String(payload.bot_url || telegramState.bot_url || '').trim();
+            telegramState.bot_username = String(payload.bot_username || telegramState.bot_username || '').trim();
+            renderTelegramState();
+            return payload;
+        }
+
+        async function generateTelegramLinkCode() {
+            if (currentPlanTier !== 'premium') {
+                showMessage('telegramBotMessage', 'Disponible solo para cuentas Premium.', false);
+                return;
+            }
+            if (telegramGenerateCodeBtn) telegramGenerateCodeBtn.disabled = true;
+            try {
+                const response = await fetch('/telegram/link-code', { method: 'POST' });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(payload.error || 'No se pudo generar codigo de vinculacion');
+                }
+                telegramState.generated_code = payload.code || '';
+                telegramState.generated_expires_at = payload.expires_at || '';
+                telegramState.bot_url = String(payload.bot_url || telegramState.bot_url || '').trim();
+                telegramState.deep_link_url = String(payload.deep_link_url || '').trim();
+                renderTelegramState();
+                showMessage('telegramBotMessage', 'Codigo generado. Abre el bot para vincular rapido.', true);
+            } catch (error) {
+                console.error('Error generando codigo de Telegram:', error);
+                showMessage('telegramBotMessage', error.message || 'No se pudo generar codigo', false);
+            } finally {
+                if (telegramGenerateCodeBtn) telegramGenerateCodeBtn.disabled = !(currentPlanTier === 'premium');
             }
         }
 
@@ -1716,6 +1940,7 @@ async function saveCategoriesList(nextCategories) {
             if (normalized === 'recurring' || normalized === 'recurrentes') return 'recurring';
             if (normalized === 'reconciliation' || normalized === 'conciliacion') return 'reconciliation';
             if (normalized === 'reports' || normalized === 'reportes') return 'reports';
+            if (normalized === 'telegram' || normalized === 'telegrambot' || normalized === 'bottelegram') return 'telegram';
             if (normalized === 'profile' || normalized === 'perfil' || normalized === 'settings') return 'profile';
             return '';
         }
@@ -1730,6 +1955,7 @@ async function saveCategoriesList(nextCategories) {
             if (normalizedPath === '/app/recurrentes' || normalizedPath === '/recurrentes') return 'recurring';
             if (normalizedPath === '/app/conciliacion' || normalizedPath === '/conciliacion') return 'reconciliation';
             if (normalizedPath === '/app/reportes' || normalizedPath === '/reportes') return 'reports';
+            if (normalizedPath === '/app/telegram' || normalizedPath === '/telegram') return 'telegram';
             if (
                 normalizedPath === '/app/perfil' ||
                 normalizedPath === '/perfil' ||
@@ -1771,6 +1997,7 @@ async function saveCategoriesList(nextCategories) {
                 case 'recurring': return '/app/recurrentes';
                 case 'reconciliation': return '/app/conciliacion';
                 case 'reports': return '/app/reportes';
+                case 'telegram': return '/app/telegram';
                 case 'profile':
                 default:
                     return '/app/perfil';
@@ -1866,12 +2093,17 @@ async function saveCategoriesList(nextCategories) {
                 showOnlySettingsSection('reportsSection', { scroll: false });
                 return;
             }
+            if (activeSection === 'telegram') {
+                showOnlySettingsSection('telegramSection', { scroll: false });
+                return;
+            }
 
             setRecurringComposerVisible(false);
             hideSettingsSection('categoriesSection');
             hideSettingsSection('recurringSection');
             hideSettingsSection('reconciliationSection');
             hideSettingsSection('reportsSection');
+            hideSettingsSection('telegramSection');
         }
 
         // --- Initialization ---
@@ -1929,10 +2161,18 @@ async function saveCategoriesList(nextCategories) {
                 hideSettingsSection('recurringSection');
                 hideSettingsSection('reconciliationSection');
                 hideSettingsSection('reportsSection');
+                hideSettingsSection('telegramSection');
                 setRecurringComposerVisible(false);
                 openSectionFromURL();
                 renderSettingsReconciliationPreview();
                 await fetchAndRenderReconciliationHistory();
+                await fetchTelegramStatus('/telegram/link-status').catch((error) => {
+                    console.error('No se pudo cargar estado de Telegram:', error);
+                    setTelegramStatusBox('No se pudo cargar el estado de Telegram.', 'error');
+                    if (telegramStatusHint) {
+                        telegramStatusHint.textContent = 'Reintenta con "Actualizar estado".';
+                    }
+                });
 
                 try {
                     const authResponse = await fetch('/auth/me', { cache: 'no-store' });
@@ -2033,6 +2273,27 @@ async function saveCategoriesList(nextCategories) {
         document.getElementById('currencySelect').addEventListener('change', saveCurrency);
         downloadMonthlyXLSXBtn?.addEventListener('click', () => downloadMonthlyReport('xlsx'));
         downloadMonthlyPDFBtn?.addEventListener('click', () => downloadMonthlyReport('pdf'));
+        telegramOpenBotBtn?.addEventListener('click', () => {
+            const targetURL = getTelegramOpenURL();
+            if (!targetURL) {
+                showMessage('telegramBotMessage', 'Configura TELEGRAM_BOT_USERNAME para habilitar este boton.', false);
+                return;
+            }
+            window.open(targetURL, '_blank', 'noopener');
+        });
+        telegramGenerateCodeBtn?.addEventListener('click', generateTelegramLinkCode);
+        telegramRefreshStatusBtn?.addEventListener('click', async () => {
+            if (telegramRefreshStatusBtn) telegramRefreshStatusBtn.disabled = true;
+            try {
+                await fetchTelegramStatus('/telegram/refresh-status');
+                showMessage('telegramBotMessage', 'Estado actualizado.', true);
+            } catch (error) {
+                console.error('No se pudo actualizar estado Telegram:', error);
+                showMessage('telegramBotMessage', error.message || 'No se pudo actualizar estado', false);
+            } finally {
+                if (telegramRefreshStatusBtn) telegramRefreshStatusBtn.disabled = false;
+            }
+        });
         toggleRecurringCreateBtn?.addEventListener('click', () => {
             setRecurringComposerVisible(recurringFormWrap?.hidden === true);
         });

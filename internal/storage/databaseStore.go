@@ -151,6 +151,28 @@ const (
 		position INTEGER NOT NULL,
 		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 	);`
+
+	createTelegramUserLinksTableSQL = `
+	CREATE TABLE IF NOT EXISTS telegram_user_links (
+		id VARCHAR(36) PRIMARY KEY,
+		user_id VARCHAR(36) NOT NULL,
+		telegram_user_id BIGINT NOT NULL,
+		telegram_username TEXT,
+		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+	);`
+
+	createTelegramLinkCodesTableSQL = `
+	CREATE TABLE IF NOT EXISTS telegram_link_codes (
+		id VARCHAR(36) PRIMARY KEY,
+		user_id VARCHAR(36) NOT NULL,
+		code_hash VARCHAR(128) NOT NULL,
+		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		expires_at TIMESTAMPTZ NOT NULL,
+		used_at TIMESTAMPTZ,
+		used_by_telegram_user_id BIGINT,
+		used_telegram_username TEXT
+	);`
 )
 
 func InitializePostgresStore(baseConfig SystemConfig) (Storage, error) {
@@ -194,6 +216,8 @@ func createTables(db *sql.DB) error {
 		createRecurringExpensesTableSQL,
 		createConfigTableSQL,
 		createCategoriesTableSQL,
+		createTelegramUserLinksTableSQL,
+		createTelegramLinkCodesTableSQL,
 	} {
 		if _, err := db.Exec(query); err != nil {
 			return err
@@ -223,6 +247,12 @@ func createTables(db *sql.DB) error {
 		"ALTER TABLE password_resets ADD COLUMN IF NOT EXISTS attempts INTEGER NOT NULL DEFAULT 0",
 		"ALTER TABLE password_resets ADD COLUMN IF NOT EXISTS max_attempts INTEGER NOT NULL DEFAULT 5",
 		"ALTER TABLE user_config ADD COLUMN IF NOT EXISTS plan_tier VARCHAR(20) NOT NULL DEFAULT 'free'",
+		"ALTER TABLE telegram_user_links ADD COLUMN IF NOT EXISTS telegram_username TEXT",
+		"ALTER TABLE telegram_user_links ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+		"ALTER TABLE telegram_user_links ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+		"ALTER TABLE telegram_link_codes ADD COLUMN IF NOT EXISTS used_at TIMESTAMPTZ",
+		"ALTER TABLE telegram_link_codes ADD COLUMN IF NOT EXISTS used_by_telegram_user_id BIGINT",
+		"ALTER TABLE telegram_link_codes ADD COLUMN IF NOT EXISTS used_telegram_username TEXT",
 	}
 	for _, stmt := range alterStmts {
 		if _, err := db.Exec(stmt); err != nil {
@@ -272,6 +302,18 @@ func createTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS oauth_identities_user_idx ON oauth_identities (user_id)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS telegram_user_links_user_key ON telegram_user_links (user_id)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS telegram_user_links_telegram_key ON telegram_user_links (telegram_user_id)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS telegram_link_codes_code_hash_key ON telegram_link_codes (code_hash)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS telegram_link_codes_user_created_idx ON telegram_link_codes (user_id, created_at DESC)`); err != nil {
 		return err
 	}
 	if err := ensureRecurringInstanceUniqueIndex(db); err != nil {
@@ -351,6 +393,8 @@ func ensureForeignKeys(db *sql.DB) error {
 		{name: "expenses_user_fk", table: "expenses", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "recurring_expenses_user_fk", table: "recurring_expenses", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "reconciliations_user_fk", table: "reconciliations", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
+		{name: "telegram_user_links_user_fk", table: "telegram_user_links", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
+		{name: "telegram_link_codes_user_fk", table: "telegram_link_codes", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "reconciliations_adjustment_fk", table: "reconciliations", column: "adjustment_expense_id", refTable: "expenses", refColumn: "id", onDelete: "RESTRICT"},
 		{name: "reconciliations_reversal_fk", table: "reconciliations", column: "reversal_expense_id", refTable: "expenses", refColumn: "id", onDelete: "RESTRICT"},
 	}
@@ -1047,6 +1091,18 @@ func (s *databaseStore) GetConfig(userID string) (*Config, error) {
 	}, nil
 }
 
+func (s *databaseStore) GetUserPlanTier(userID string) (string, error) {
+	var planTier string
+	err := s.db.QueryRow(`SELECT COALESCE(plan_tier, 'free') FROM user_config WHERE user_id = $1`, userID).Scan(&planTier)
+	if err == sql.ErrNoRows {
+		return PlanTierFree, nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return NormalizePlanTier(planTier), nil
+}
+
 func (s *databaseStore) getOrCreateUserConfig(userID string) (string, int, string, error) {
 	var currency string
 	var startDate int
@@ -1064,6 +1120,257 @@ func (s *databaseStore) getOrCreateUserConfig(userID string) (string, int, strin
 		return "", 0, "", err
 	}
 	return config.Currency, config.StartDate, NormalizePlanTier(config.PlanTier), nil
+}
+
+func scanTelegramUserLink(scanner interface{ Scan(...any) error }) (TelegramUserLink, error) {
+	var link TelegramUserLink
+	var username sql.NullString
+	if err := scanner.Scan(&link.ID, &link.UserID, &link.TelegramUserID, &username, &link.CreatedAt, &link.UpdatedAt); err != nil {
+		return TelegramUserLink{}, err
+	}
+	if username.Valid {
+		link.TelegramUsername = username.String
+	}
+	return link, nil
+}
+
+func scanTelegramLinkCode(scanner interface{ Scan(...any) error }) (TelegramLinkCode, error) {
+	var code TelegramLinkCode
+	var usedAt sql.NullTime
+	var usedBy sql.NullInt64
+	var usedUsername sql.NullString
+	if err := scanner.Scan(
+		&code.ID,
+		&code.UserID,
+		&code.CodeHash,
+		&code.CreatedAt,
+		&code.ExpiresAt,
+		&usedAt,
+		&usedBy,
+		&usedUsername,
+	); err != nil {
+		return TelegramLinkCode{}, err
+	}
+	if usedAt.Valid {
+		code.UsedAt = &usedAt.Time
+	}
+	if usedBy.Valid {
+		v := usedBy.Int64
+		code.UsedByTelegramUserID = &v
+	}
+	if usedUsername.Valid {
+		code.UsedTelegramUsername = usedUsername.String
+	}
+	return code, nil
+}
+
+func (s *databaseStore) GetTelegramUserLinkByUserID(userID string) (TelegramUserLink, error) {
+	query := `
+		SELECT id, user_id, telegram_user_id, telegram_username, created_at, updated_at
+		FROM telegram_user_links
+		WHERE user_id = $1
+	`
+	link, err := scanTelegramUserLink(s.db.QueryRow(query, userID))
+	if err != nil {
+		return TelegramUserLink{}, err
+	}
+	return link, nil
+}
+
+func (s *databaseStore) GetTelegramUserLinkByTelegramUserID(telegramUserID int64) (TelegramUserLink, error) {
+	query := `
+		SELECT id, user_id, telegram_user_id, telegram_username, created_at, updated_at
+		FROM telegram_user_links
+		WHERE telegram_user_id = $1
+	`
+	link, err := scanTelegramUserLink(s.db.QueryRow(query, telegramUserID))
+	if err != nil {
+		return TelegramUserLink{}, err
+	}
+	return link, nil
+}
+
+func (s *databaseStore) GetActiveTelegramLinkCode(userID string, now time.Time) (TelegramLinkCode, error) {
+	query := `
+		SELECT id, user_id, code_hash, created_at, expires_at, used_at, used_by_telegram_user_id, used_telegram_username
+		FROM telegram_link_codes
+		WHERE user_id = $1
+		  AND used_at IS NULL
+		  AND expires_at > $2
+		ORDER BY created_at DESC
+		LIMIT 1
+	`
+	code, err := scanTelegramLinkCode(s.db.QueryRow(query, userID, now))
+	if err != nil {
+		return TelegramLinkCode{}, err
+	}
+	return code, nil
+}
+
+func (s *databaseStore) InvalidateActiveTelegramLinkCodes(userID string, usedAt time.Time) error {
+	_, err := s.db.Exec(
+		`UPDATE telegram_link_codes
+		 SET used_at = $1
+		 WHERE user_id = $2
+		   AND used_at IS NULL
+		   AND expires_at > $1`,
+		usedAt, userID,
+	)
+	return err
+}
+
+func (s *databaseStore) CreateTelegramLinkCode(userID, codeHash string, expiresAt, createdAt time.Time) (TelegramLinkCode, error) {
+	code := TelegramLinkCode{
+		ID:        uuid.New().String(),
+		UserID:    userID,
+		CodeHash:  codeHash,
+		CreatedAt: createdAt,
+		ExpiresAt: expiresAt,
+	}
+	query := `
+		INSERT INTO telegram_link_codes (
+			id, user_id, code_hash, created_at, expires_at
+		) VALUES ($1, $2, $3, $4, $5)
+	`
+	if _, err := s.db.Exec(query, code.ID, code.UserID, code.CodeHash, code.CreatedAt, code.ExpiresAt); err != nil {
+		return TelegramLinkCode{}, err
+	}
+	return code, nil
+}
+
+func isUniqueConstraintViolation(err error, constraint string) bool {
+	var pqErr *pq.Error
+	if !errors.As(err, &pqErr) {
+		return false
+	}
+	if string(pqErr.Code) != "23505" {
+		return false
+	}
+	if constraint == "" {
+		return true
+	}
+	return pqErr.Constraint == constraint
+}
+
+func (s *databaseStore) ConsumeTelegramLinkCode(codeHash string, telegramUserID int64, telegramUsername string, now time.Time) (TelegramUserLink, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return TelegramUserLink{}, err
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	lockCodeQuery := `
+		SELECT id, user_id, code_hash, created_at, expires_at, used_at, used_by_telegram_user_id, used_telegram_username
+		FROM telegram_link_codes
+		WHERE code_hash = $1
+		LIMIT 1
+		FOR UPDATE
+	`
+	code, err := scanTelegramLinkCode(tx.QueryRow(lockCodeQuery, codeHash))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return TelegramUserLink{}, ErrTelegramInvalidLinkCode
+		}
+		return TelegramUserLink{}, err
+	}
+	if code.UsedAt != nil {
+		return TelegramUserLink{}, ErrTelegramLinkCodeUsed
+	}
+	if !code.ExpiresAt.After(now) {
+		return TelegramUserLink{}, ErrTelegramLinkCodeExpired
+	}
+
+	targetUserID := code.UserID
+	var planTier string
+	planErr := tx.QueryRow(
+		`SELECT COALESCE(plan_tier, 'free') FROM user_config WHERE user_id = $1`,
+		targetUserID,
+	).Scan(&planTier)
+	if planErr != nil && planErr != sql.ErrNoRows {
+		return TelegramUserLink{}, planErr
+	}
+	if NormalizePlanTier(planTier) != PlanTierPremium {
+		return TelegramUserLink{}, ErrTelegramPremiumRequired
+	}
+
+	var existingUserID string
+	tgRowErr := tx.QueryRow(
+		`SELECT user_id FROM telegram_user_links WHERE telegram_user_id = $1 FOR UPDATE`,
+		telegramUserID,
+	).Scan(&existingUserID)
+	if tgRowErr != nil && tgRowErr != sql.ErrNoRows {
+		return TelegramUserLink{}, tgRowErr
+	}
+	if tgRowErr == nil && existingUserID != targetUserID {
+		return TelegramUserLink{}, ErrTelegramUserAlreadyLinked
+	}
+
+	var existingTelegramID int64
+	userRowErr := tx.QueryRow(
+		`SELECT telegram_user_id FROM telegram_user_links WHERE user_id = $1 FOR UPDATE`,
+		targetUserID,
+	).Scan(&existingTelegramID)
+	if userRowErr != nil && userRowErr != sql.ErrNoRows {
+		return TelegramUserLink{}, userRowErr
+	}
+	if userRowErr == nil && existingTelegramID != telegramUserID {
+		return TelegramUserLink{}, ErrTelegramAlreadyLinked
+	}
+
+	upsertQuery := `
+		INSERT INTO telegram_user_links (
+			id, user_id, telegram_user_id, telegram_username, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $5)
+		ON CONFLICT (user_id)
+		DO UPDATE SET
+			telegram_user_id = EXCLUDED.telegram_user_id,
+			telegram_username = EXCLUDED.telegram_username,
+			updated_at = EXCLUDED.updated_at
+	`
+	if _, err := tx.Exec(upsertQuery, uuid.New().String(), targetUserID, telegramUserID, strings.TrimSpace(telegramUsername), now); err != nil {
+		if isUniqueConstraintViolation(err, "telegram_user_links_telegram_key") {
+			return TelegramUserLink{}, ErrTelegramUserAlreadyLinked
+		}
+		if isUniqueConstraintViolation(err, "telegram_user_links_user_key") {
+			return TelegramUserLink{}, ErrTelegramAlreadyLinked
+		}
+		return TelegramUserLink{}, err
+	}
+
+	markUsedQuery := `
+		UPDATE telegram_link_codes
+		SET used_at = $1, used_by_telegram_user_id = $2, used_telegram_username = $3
+		WHERE id = $4
+		  AND used_at IS NULL
+	`
+	result, err := tx.Exec(markUsedQuery, now, telegramUserID, strings.TrimSpace(telegramUsername), code.ID)
+	if err != nil {
+		return TelegramUserLink{}, err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return TelegramUserLink{}, err
+	}
+	if rowsAffected == 0 {
+		return TelegramUserLink{}, ErrTelegramLinkCodeUsed
+	}
+
+	linkQuery := `
+		SELECT id, user_id, telegram_user_id, telegram_username, created_at, updated_at
+		FROM telegram_user_links
+		WHERE user_id = $1
+	`
+	link, err := scanTelegramUserLink(tx.QueryRow(linkQuery, targetUserID))
+	if err != nil {
+		return TelegramUserLink{}, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return TelegramUserLink{}, err
+	}
+	return link, nil
 }
 
 func (s *databaseStore) GetCategories(userID string) ([]string, error) {

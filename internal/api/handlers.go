@@ -694,6 +694,10 @@ func (h *Handler) ServeSettingsReportsPage(w http.ResponseWriter, r *http.Reques
 	h.serveSettingsPageWithSection(w, r, "reports")
 }
 
+func (h *Handler) ServeSettingsTelegramPage(w http.ResponseWriter, r *http.Request) {
+	h.serveSettingsPageWithSection(w, r, "telegram")
+}
+
 func (h *Handler) serveSettingsPageWithSection(w http.ResponseWriter, r *http.Request, _ string) {
 	if r.Method != http.MethodGet {
 		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{Error: "Method not allowed"})

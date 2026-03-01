@@ -1042,7 +1042,7 @@
             renderTelegramCodePanel();
         }
 
-        async function fetchTelegramStatus(endpoint = '/telegram/link-status') {
+        async function fetchTelegramStatus(endpoint = '/api/telegram/link-status') {
             const response = await fetch(endpoint, { method: endpoint.includes('/refresh-') ? 'POST' : 'GET', cache: 'no-store' });
             const payload = await response.json().catch(() => ({}));
             if (!response.ok) {
@@ -1067,7 +1067,7 @@
             }
             if (telegramGenerateCodeBtn) telegramGenerateCodeBtn.disabled = true;
             try {
-                const response = await fetch('/telegram/link-code', { method: 'POST' });
+                const response = await fetch('/api/telegram/link-code', { method: 'POST' });
                 const payload = await response.json().catch(() => ({}));
                 if (!response.ok) {
                     throw new Error(payload.error || 'No se pudo generar codigo de vinculacion');
@@ -2166,7 +2166,7 @@ async function saveCategoriesList(nextCategories) {
                 openSectionFromURL();
                 renderSettingsReconciliationPreview();
                 await fetchAndRenderReconciliationHistory();
-                await fetchTelegramStatus('/telegram/link-status').catch((error) => {
+                await fetchTelegramStatus('/api/telegram/link-status').catch((error) => {
                     console.error('No se pudo cargar estado de Telegram:', error);
                     setTelegramStatusBox('No se pudo cargar el estado de Telegram.', 'error');
                     if (telegramStatusHint) {
@@ -2285,7 +2285,7 @@ async function saveCategoriesList(nextCategories) {
         telegramRefreshStatusBtn?.addEventListener('click', async () => {
             if (telegramRefreshStatusBtn) telegramRefreshStatusBtn.disabled = true;
             try {
-                await fetchTelegramStatus('/telegram/refresh-status');
+                await fetchTelegramStatus('/api/telegram/refresh-status');
                 showMessage('telegramBotMessage', 'Estado actualizado.', true);
             } catch (error) {
                 console.error('No se pudo actualizar estado Telegram:', error);

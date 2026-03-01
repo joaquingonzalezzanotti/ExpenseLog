@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model TelegramUserLink {
+  id                          String   @id @default(uuid())
+  telegramUserId              BigInt   @unique
+  expenselogUserId            String
+  expenselogApiTokenEncrypted String
+  createdAt                   DateTime @default(now())
+
+  @@map("telegram_user_link")
+}
+
+model ReceiptDraft {
+  id                      String   @id @default(uuid())
+  telegramUserId          BigInt
+  chatId                  BigInt
+  messageId               Int
+  fileId                  String
+  fileUniqueId            String
+  fileType                String
+  status                  String
+  parseResultJson         Json
+  dedupeKey               String
+  reference               String?
+  expenselogTransactionId String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@index([telegramUserId, createdAt])
+  @@index([reference, status])
+  @@index([dedupeKey, status])
+  @@map("receipt_draft")
+}
+
+model UserRule {
+  id             String   @id @default(uuid())
+  telegramUserId BigInt
+  enabled        Boolean  @default(true)
+  priority       Int      @default(100)
+  whenJson       Json
+  thenJson       Json
+  createdAt      DateTime @default(now())
+
+  @@index([telegramUserId, enabled, priority])
+  @@map("user_rule")
+}

@@ -32,7 +32,9 @@ const launchBotWithRetry = async () => {
     if (stopping)
         return;
     try {
-        await bot.launch();
+        // Ensure long-polling starts from a clean state after Railway restarts.
+        await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+        await bot.launch({ dropPendingUpdates: true });
         logger.info('telegram_bot_started');
     }
     catch (error) {

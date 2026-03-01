@@ -85,7 +85,19 @@
             </button>
         </div>
 
-        <div id="tableExpenseFormContainer" class="form-container" data-expanded="false">
+        <div id="tableExpenseFormContainer" class="entry-modal-overlay" data-expanded="false" hidden aria-hidden="true">
+            <div class="entry-modal-backdrop" data-table-expense-close></div>
+            <div class="entry-modal-card" role="dialog" aria-modal="true" aria-labelledby="tableExpenseModalTitle">
+                <div class="entry-modal-header">
+                    <div class="entry-modal-title-wrap">
+                        <span class="entry-modal-eyebrow">Carga rapida</span>
+                        <h3 id="tableExpenseModalTitle">Registrar movimiento</h3>
+                        <p>Carga un ingreso, gasto o reintegro sin salir de la tabla.</p>
+                    </div>
+                    <button type="button" id="closeTableExpenseFormBtn" class="entry-modal-close" aria-label="Cerrar formulario">
+                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                    </button>
+                </div>
             <form id="expenseForm" class="expense-form expense-modal-form table-expense-form">
                 <div class="form-group form-group-span-2 movement-type-group">
                     <label for="movementType">Tipo</label>
@@ -162,6 +174,7 @@
                 </div>
             </form>
             <div id="formMessage" class="form-message"></div>
+            </div>
         </div>
 
         <div class="table-view-row">
@@ -356,6 +369,8 @@
 
         const tableFormContainer = document.getElementById('tableExpenseFormContainer');
         const toggleTableExpenseFormBtn = document.getElementById('toggleTableExpenseFormBtn');
+        const closeTableExpenseFormBtn = document.getElementById('closeTableExpenseFormBtn');
+        const tableExpenseBackdrop = document.querySelector('[data-table-expense-close]');
         const mobileNavTable = document.getElementById('mobileNavTable');
         const mobileNavCalendar = document.getElementById('mobileNavCalendar');
         const mobileTablePager = document.getElementById('mobileTablePager');
@@ -392,11 +407,16 @@
             if (persist) {
                 tableFormContainer.dataset.userSet = 'true';
             }
-            tableFormContainer.style.display = expanded ? 'block' : 'none';
+            tableFormContainer.hidden = !expanded;
+            tableFormContainer.setAttribute('aria-hidden', expanded ? 'false' : 'true');
             if (toggleTableExpenseFormBtn) {
                 toggleTableExpenseFormBtn.innerHTML = getTableFormToggleButtonHTML();
                 toggleTableExpenseFormBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-                toggleTableExpenseFormBtn.style.display = expanded ? 'none' : 'inline-flex';
+            }
+            if (expanded) {
+                window.setTimeout(() => {
+                    document.getElementById('name')?.focus();
+                }, 0);
             }
         }
 
@@ -1017,8 +1037,6 @@
             const submitButton = form.querySelector('button[type="submit"]');
             submitButton.textContent = "Actualizar gasto";
             setTableFormExpanded(true);
-            
-            form.scrollIntoView({ behavior: 'smooth' });
         }
 
         function closeAllRowMenus(exceptContainer = null) {
@@ -1364,9 +1382,14 @@
         if (toggleTableExpenseFormBtn) {
             toggleTableExpenseFormBtn.addEventListener('click', () => {
                 setTableFormExpanded(true);
-                document.getElementById('name')?.focus();
             });
         }
+        closeTableExpenseFormBtn?.addEventListener('click', () => {
+            resetTableExpenseForm({ closeForm: true });
+        });
+        tableExpenseBackdrop?.addEventListener('click', () => {
+            resetTableExpenseForm({ closeForm: true });
+        });
 
         if (toggleMobileRowsBtn) {
             toggleMobileRowsBtn.addEventListener('click', () => {

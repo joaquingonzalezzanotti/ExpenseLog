@@ -6,6 +6,14 @@ import { registry } from './observability/metrics.js';
 const bot = buildBot();
 let stopping = false;
 let launchRetryTimer = null;
+const parsePathname = (rawUrl) => {
+    try {
+        return new URL(rawUrl || '/', 'http://127.0.0.1').pathname;
+    }
+    catch {
+        return '/';
+    }
+};
 const isTelegramConflict409 = (error) => {
     const maybe = error;
     return maybe?.response?.error_code === 409;
@@ -34,12 +42,13 @@ const launchBotWithRetry = async () => {
     }
 };
 const server = http.createServer(async (req, res) => {
-    if (req.url === '/metrics') {
+    const pathname = parsePathname(req.url);
+    if (pathname === '/metrics') {
         res.setHeader('Content-Type', registry.contentType);
         res.end(await registry.metrics());
         return;
     }
-    if (req.url === '/healthz') {
+    if (pathname === '/' || pathname === '/healthz' || pathname === '/health') {
         res.statusCode = 200;
         res.end('ok');
         return;
@@ -49,15 +58,24 @@ const server = http.createServer(async (req, res) => {
 });
 server.listen(config.port, () => logger.info('metrics_server_started', { port: config.port }));
 void launchBotWithRetry();
-process.once('SIGINT', () => {
+const shutdown = (signal) => {
+    if (stopping)
+        return;
     stopping = true;
+    logger.info('shutdown_signal_received', { signal });
     if (launchRetryTimer)
         clearTimeout(launchRetryTimer);
-    bot.stop('SIGINT');
-});
-process.once('SIGTERM', () => {
-    stopping = true;
-    if (launchRetryTimer)
-        clearTimeout(launchRetryTimer);
-    bot.stop('SIGTERM');
-});
+    try {
+        bot.stop(signal);
+    }
+    catch (error) {
+        logger.warn('telegram_bot_stop_failed', { signal, error });
+    }
+    server.close(() => {
+        logger.info('metrics_server_stopped', { signal });
+        process.exit(0);
+    });
+    setTimeout(() => process.exit(0), 8_000).unref();
+};
+process.once('SIGINT', () => shutdown('SIGINT'));
+process.once('SIGTERM', () => shutdown('SIGTERM'));

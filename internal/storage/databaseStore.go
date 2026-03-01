@@ -1415,7 +1415,6 @@ func (s *databaseStore) getCategoriesFromTable(userID string) ([]string, error) 
 		log.Printf("[DEBUG] getCategoriesFromTable rows error: %v", err)
 		return nil, err
 	}
-	log.Printf("[DEBUG] getCategoriesFromTable returned %d categories: %v", len(categories), categories)
 	return categories, nil
 }
 

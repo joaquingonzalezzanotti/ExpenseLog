@@ -3,6 +3,7 @@ import { prisma } from '../db/client.js';
 import { config, isAllowedTelegramUser } from '../config.js';
 import { tempPathFor, safeDelete } from '../processing/file.js';
 import { processReceipt } from '../processing/pipeline.js';
+import { canUseAIParser, parseWithAIParser } from '../processing/ai_parser.js';
 import { logger } from '../observability/logger.js';
 import { draftSummary } from './format.js';
 import { dedupeKeyboard, fixMenuKeyboard, mainDecisionKeyboard } from './keyboards.js';
@@ -332,8 +333,83 @@ export const buildBot = () => {
         if (!(await requireLinkedPremium(ctx)))
             return;
         const field = pendingFix.get(ctx.from.id);
-        if (!field)
+        if (!field) {
+            if (!config.aiParserTextEnabled) {
+                return;
+            }
+            if (!canUseAIParser()) {
+                await ctx.reply('El parser AI para texto no esta habilitado en este entorno.');
+                return;
+            }
+            await ctx.reply('Recibi texto. Estoy analizandolo con parser AI...');
+            const telegramUserId = BigInt(ctx.from.id);
+            const telegramMeta = {
+                chat_id: ctx.chat.id,
+                message_id: ctx.message.message_id,
+                file_id: `text:${ctx.message.message_id}`,
+                file_unique_id: `text:${ctx.from.id}:${ctx.message.message_id}`
+            };
+            try {
+                const parsed = await parseWithAIParser({
+                    text: rawText,
+                    fileType: 'text',
+                    telegramMeta,
+                    nativeResult: null
+                });
+                parsed.source_app = normalizePaymentMethod(parsed.source_app);
+                let rulesDb = [];
+                try {
+                    rulesDb = await prisma.userRule.findMany({
+                        where: { telegramUserId, enabled: true },
+                        orderBy: { priority: 'asc' }
+                    });
+                }
+                catch (error) {
+                    logger.warn('user_rules_load_failed', { telegramUserId: String(telegramUserId), error });
+                }
+                parsed.rule_output = applyRules(parsed, rulesDb.map((r) => ({
+                    enabled: r.enabled,
+                    priority: r.priority,
+                    when: r.whenJson,
+                    then: r.thenJson
+                })));
+                parseResults.inc({ status: 'ok_text_ai' });
+                const probableDuplicate = parsed.reference
+                    ? await prisma.receiptDraft.findFirst({
+                        where: {
+                            telegramUserId,
+                            reference: parsed.reference,
+                            status: 'confirmed'
+                        }
+                    })
+                    : await findFallbackDuplicateByTimeWindow(telegramUserId, parsed);
+                const draft = await prisma.receiptDraft.create({
+                    data: {
+                        telegramUserId,
+                        chatId: BigInt(ctx.chat.id),
+                        messageId: ctx.message.message_id,
+                        fileId: `text:${ctx.message.message_id}`,
+                        fileUniqueId: `text:${ctx.from.id}:${ctx.message.message_id}`,
+                        fileType: 'text',
+                        status: mustHaveRequired(parsed) ? 'awaiting_confirm' : 'awaiting_fix',
+                        parseResultJson: parsed,
+                        dedupeKey: dedupeKey(parsed),
+                        reference: parsed.reference
+                    }
+                });
+                if (probableDuplicate) {
+                    await ctx.reply('Detecte una posible carga duplicada. Quieres crearla igual?', dedupeKeyboard());
+                }
+                await ctx.reply(draftSummary(parsed), { parse_mode: 'Markdown', ...mainDecisionKeyboard() });
+                logger.info('draft_created_from_text', { id: draft.id });
+            }
+            catch (error) {
+                parseResults.inc({ status: 'fail_text_ai' });
+                logger.warn('text_ai_parse_failed', { error });
+                await ctx.reply('No pude procesar ese texto con parser AI. Prueba reformularlo o envia una imagen/PDF.');
+            }
             return;
+        }
         const telegramUserId = BigInt(ctx.from.id);
         const draft = await latestDraftByUser(telegramUserId);
         if (!draft)

@@ -411,7 +411,16 @@ export const buildBot = () => {
                 file_id: fileId,
                 file_unique_id: fileUniqueId
             };
-            const parsed = await processReceipt({ filePath: tempPath, fileType, telegramMeta });
+            const processed = await processReceipt({
+                filePath: tempPath,
+                fileType,
+                telegramMeta,
+                onFallbackAttempt: async () => {
+                    await ctx.reply('No pude interpretar completamente el comprobante con el parser interno. Estoy probando parser AI como respaldo, espera unos segundos...');
+                }
+            });
+            const parsed = processed?.result ?? processed;
+            const fallbackInfo = processed?.fallback;
             parsed.source_app = normalizePaymentMethod(parsed.source_app);
             const telegramUserId = BigInt(ctx.from.id);
             let rulesDb = [];
@@ -430,7 +439,16 @@ export const buildBot = () => {
                 when: r.whenJson,
                 then: r.thenJson
             })));
-            parseResults.inc({ status: 'ok' });
+            if (fallbackInfo?.attempted && fallbackInfo?.used) {
+                await ctx.reply('Listo, el parser AI devolvio una propuesta. Revisala y confirma.');
+            }
+            if (fallbackInfo?.attempted && !fallbackInfo?.used && String(fallbackInfo?.reason || '').includes('ai_failed')) {
+                await ctx.reply('Intente parser AI como respaldo pero no respondio a tiempo. Te muestro la mejor lectura disponible para que la corrijas si hace falta.');
+            }
+            const parseStatus = fallbackInfo?.used
+                ? 'ok_fallback_ai'
+                : (fallbackInfo?.attempted ? 'ok_fallback_native' : 'ok');
+            parseResults.inc({ status: parseStatus });
             const probableDuplicate = parsed.reference
                 ? await prisma.receiptDraft.findFirst({
                     where: {

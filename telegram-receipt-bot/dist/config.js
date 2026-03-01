@@ -5,6 +5,16 @@ const asNumber = (v, fallback) => {
     const parsed = Number(v);
     return Number.isFinite(parsed) ? parsed : fallback;
 };
+const asBoolean = (v, fallback) => {
+    const normalized = String(v ?? '').trim().toLowerCase();
+    if (!normalized)
+        return fallback;
+    if (['1', 'true', 'yes', 'on'].includes(normalized))
+        return true;
+    if (['0', 'false', 'no', 'off'].includes(normalized))
+        return false;
+    return fallback;
+};
 const parseAdapterMode = (v) => {
     const normalized = String(v || '').trim().toLowerCase();
     if (normalized === 'transactions_api')
@@ -34,6 +44,14 @@ export const config = {
     expenselogBotExpensePath: process.env.EXPENSELOG_BOT_EXPENSE_PATH ?? '/api/bot/expense',
     ocrLangs: process.env.OCR_LANGS ?? 'spa+eng',
     pdfRenderMaxPages: asNumber(process.env.PDF_RENDER_MAX_PAGES, 1),
+    aiParserBaseUrl: process.env.AI_PARSER_BASE_URL ?? '',
+    aiParserParsePath: process.env.AI_PARSER_PARSE_PATH ?? '/parse',
+    aiParserApiKey: process.env.AI_PARSER_API_KEY ?? '',
+    aiParserApiKeyHeader: process.env.AI_PARSER_API_KEY_HEADER ?? 'X-API-Key',
+    aiParserTimeoutMs: asNumber(process.env.AI_PARSER_TIMEOUT_MS, 8000),
+    aiParserFallbackEnabled: asBoolean(process.env.AI_PARSER_FALLBACK_ENABLED, true),
+    aiParserTextEnabled: asBoolean(process.env.AI_PARSER_TEXT_ENABLED, false),
+    aiParserMinConfidence: asNumber(process.env.AI_PARSER_MIN_CONFIDENCE, 0.55),
     logLevel: process.env.LOG_LEVEL ?? 'info',
     port: asNumber(process.env.PORT, 3000)
 };

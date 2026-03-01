@@ -36,3 +36,17 @@ npm start
 
 - Se versiona `dist/`.
 - No se versiona `node_modules/`.
+
+## Fallback AI parser (opcional)
+
+Si el parser interno no logra extraer campos obligatorios (o devuelve baja confianza), el bot puede probar un parser AI externo.
+
+Variables:
+
+- `AI_PARSER_FALLBACK_ENABLED=true|false`
+- `AI_PARSER_BASE_URL` (ej: `https://tu-parser.up.railway.app`)
+- `AI_PARSER_PARSE_PATH` (default: `/parse`)
+- `AI_PARSER_API_KEY` (opcional)
+- `AI_PARSER_API_KEY_HEADER` (default: `X-API-Key`)
+- `AI_PARSER_TIMEOUT_MS` (default: `8000`)
+- `AI_PARSER_MIN_CONFIDENCE` (default: `0.55`)

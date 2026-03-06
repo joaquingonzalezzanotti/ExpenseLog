@@ -180,6 +180,39 @@ const mustHaveRequired = (r) => Boolean(r.type &&
     hasRequiredAmount(r.amount) &&
     r.datetime_iso &&
     r.counterparty);
+const getOverallConfidence = (r) => {
+    const value = Number(r?.confidence?.overall);
+    return Number.isFinite(value) ? value : undefined;
+};
+const shouldPreferAICandidate = (nativeParsed, aiParsed) => {
+    const nativeRequired = mustHaveRequired(nativeParsed);
+    const aiRequired = mustHaveRequired(aiParsed);
+    if (aiRequired && !nativeRequired)
+        return true;
+    if (!aiRequired)
+        return false;
+    const nativeConfidence = getOverallConfidence(nativeParsed);
+    const aiConfidence = getOverallConfidence(aiParsed);
+    if (typeof aiConfidence === 'number' && typeof nativeConfidence !== 'number')
+        return true;
+    if (typeof aiConfidence === 'number' && typeof nativeConfidence === 'number') {
+        return aiConfidence >= nativeConfidence;
+    }
+    return !nativeRequired;
+};
+const buildAITextFromDraft = (parsed) => {
+    const excerpt = String(parsed?.raw_text_excerpt || '').trim();
+    if (excerpt)
+        return excerpt;
+    const bits = [
+        parsed?.counterparty ? `Contraparte: ${parsed.counterparty}` : '',
+        hasRequiredAmount(parsed?.amount) ? `Monto: ${parsed.amount}` : '',
+        parsed?.datetime_iso ? `Fecha y hora: ${parsed.datetime_iso}` : '',
+        parsed?.reference ? `Referencia: ${parsed.reference}` : '',
+        parsed?.motive ? `Motivo: ${parsed.motive}` : ''
+    ].filter(Boolean);
+    return bits.join('\n');
+};
 const normalizeCounterparty = (value) => (String(value || '').trim().toLowerCase().replace(/\s+/g, ' '));
 const dedupeKey = (r) => (`${r.type || 'unknown'}|${hasRequiredAmount(r.amount) ? Math.abs(r.amount).toFixed(2) : '0'}|${normalizeCounterparty(r.counterparty)}`);
 const isWithin24Hours = (aIso, bIso) => {
@@ -758,6 +791,83 @@ export const buildBot = () => {
             await ctx.reply(`Escribe el nuevo valor para ${prompt?.label ?? 'este campo'}.${hintLine}`);
         });
     }
+    bot.action('fix_retry_ai', async (ctx) => {
+        if (!(await ensurePrivateAllowed(ctx)))
+            return;
+        if (!(await requireLinkedPremium(ctx)))
+            return;
+        await answerCallback(ctx);
+        if (!canUseAIParser()) {
+            await ctx.reply('El parser AI no esta habilitado en este entorno.');
+            return;
+        }
+        const telegramUserId = BigInt(ctx.from.id);
+        const draft = await latestDraftByUser(telegramUserId);
+        if (!draft) {
+            await ctx.reply('No encontre un borrador reciente para mejorar.');
+            return;
+        }
+        const parsed = toReceiptParseResult(draft.parseResultJson);
+        const aiInputText = buildAITextFromDraft(parsed);
+        if (!aiInputText) {
+            await ctx.reply('No hay texto suficiente para reintentar con AI.');
+            return;
+        }
+        await ctx.reply('Reintentando con parser AI...');
+        try {
+            const aiParsed = await parseWithAIParser({
+                text: aiInputText,
+                fileType: draft.fileType || 'image',
+                telegramMeta: parsed?.telegram_meta || {
+                    chat_id: ctx.chat?.id,
+                    message_id: draft.messageId
+                },
+                nativeResult: parsed
+            });
+            aiParsed.source_app = normalizePaymentMethod(aiParsed.source_app);
+            let rulesDb = [];
+            try {
+                rulesDb = await prisma.userRule.findMany({
+                    where: { telegramUserId, enabled: true },
+                    orderBy: { priority: 'asc' }
+                });
+            }
+            catch (error) {
+                logger.warn('user_rules_load_failed', { telegramUserId: String(telegramUserId), error });
+            }
+            aiParsed.rule_output = applyRules(aiParsed, rulesDb.map((r) => ({
+                enabled: r.enabled,
+                priority: r.priority,
+                when: r.whenJson,
+                then: r.thenJson
+            })));
+
+            const useAI = shouldPreferAICandidate(parsed, aiParsed);
+            const finalParsed = useAI ? aiParsed : parsed;
+            await prisma.receiptDraft.update({
+                where: { id: draft.id },
+                data: {
+                    status: mustHaveRequired(finalParsed) ? 'awaiting_confirm' : 'awaiting_fix',
+                    parseResultJson: finalParsed,
+                    dedupeKey: dedupeKey(finalParsed),
+                    reference: finalParsed.reference
+                }
+            });
+            parseResults.inc({ status: useAI ? 'ok_fix_ai_used' : 'ok_fix_ai_native_kept' });
+            if (finalParsed === aiParsed) {
+                await ctx.reply('Listo, aplique la mejora con AI.');
+            }
+            else {
+                await ctx.reply('AI no mejoro el borrador. Mantengo la version actual.');
+            }
+            await ctx.reply(draftSummary(finalParsed), { parse_mode: 'Markdown', ...mainDecisionKeyboard() });
+        }
+        catch (error) {
+            parseResults.inc({ status: 'fail_fix_ai' });
+            logger.warn('fix_retry_ai_failed', { error, telegramUserId: String(telegramUserId) });
+            await ctx.reply('No pude completar el reintento AI en este momento. Intenta de nuevo en unos segundos.');
+        }
+    });
     bot.action('reject', async (ctx) => {
         if (!(await ensurePrivateAllowed(ctx)))
             return;

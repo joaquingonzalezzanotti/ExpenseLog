@@ -8,6 +8,7 @@ export const fixMenuKeyboard = () => Markup.inlineKeyboard([
     [Markup.button.callback('Cambiar monto', 'fix_amount'), Markup.button.callback('Cambiar fecha y hora', 'fix_datetime')],
     [Markup.button.callback('Cambiar contraparte', 'fix_counterparty'), Markup.button.callback('Cambiar tipo', 'fix_type')],
     [Markup.button.callback('Cambiar metodo', 'fix_source'), Markup.button.callback('Cambiar motivo', 'fix_motive')],
+    [Markup.button.callback('Reintentar con AI', 'fix_retry_ai')],
     [Markup.button.callback('Volver', 'back_summary')]
 ]);
 export const dedupeKeyboard = () => Markup.inlineKeyboard([

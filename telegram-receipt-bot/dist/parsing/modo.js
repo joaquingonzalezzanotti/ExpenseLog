@@ -24,18 +24,59 @@ export const parseModoReceipt = (text, aliases, telegramMeta) => {
     const dstIsMine = dest && aliasNorm.includes(normalizeName(dest));
     const paidToNorm = normalizeName(paidTo);
     const paidToIsMine = paidToNorm ? aliasNorm.includes(paidToNorm) : false;
+    const hasDirectionalTransferLayout = Boolean(source && dest && fromAcc && toAcc);
     let type;
-    if (paidTo && !paidToIsMine)
+    let typeConfidence = 0.2;
+    const warnings = [];
+    if (paidTo && !paidToIsMine) {
         type = 'expense';
-    if (srcIsMine && !dstIsMine)
-        type = 'expense';
-    if (!srcIsMine && dstIsMine)
+        typeConfidence = 0.92;
+    }
+    if (paidTo && paidToIsMine) {
         type = 'income';
-    const counterparty = paidTo || (srcIsMine ? dest : source);
+        typeConfidence = 0.7;
+    }
+    if (srcIsMine && !dstIsMine) {
+        type = 'expense';
+        typeConfidence = 0.88;
+    }
+    if (!srcIsMine && dstIsMine) {
+        type = 'income';
+        typeConfidence = 0.88;
+    }
+    // For receipts like "Transferencia de X ... Para Y ...", if aliases are missing,
+    // infer expense from the directional layout instead of leaving type undefined.
+    if (!type && hasDirectionalTransferLayout) {
+        type = 'expense';
+        typeConfidence = 0.72;
+        warnings.push('Tipo inferido por estructura de transferencia (sin alias).');
+    }
+    let counterparty = paidTo || (srcIsMine ? dest : source);
+    if (!paidTo && type === 'expense' && dest) {
+        counterparty = dest;
+    }
+    if (!paidTo && type === 'income' && source) {
+        counterparty = source;
+    }
+    const amount = amountRaw ? Number(amountRaw) : undefined;
+    const amountConfidence = amountRaw ? 0.95 : 0.2;
+    const datetimeConfidence = dateIso ? 0.8 : 0.2;
+    const counterpartyConfidence = counterparty ? 0.82 : 0.1;
+    const overallRaw = (typeConfidence + amountConfidence + datetimeConfidence + counterpartyConfidence) / 4;
+    const overall = Math.max(0, Math.min(1, Number(overallRaw.toFixed(2))));
+    const missingRequired = [];
+    if (!type)
+        missingRequired.push('type');
+    if (!(typeof amount === 'number' && Number.isFinite(amount) && amount !== 0))
+        missingRequired.push('amount');
+    if (!dateIso)
+        missingRequired.push('datetime_iso');
+    if (!counterparty)
+        missingRequired.push('counterparty');
     return {
         source_app: paymentMethodRaw || 'MODO',
         type,
-        amount: amountRaw ? Number(amountRaw) : undefined,
+        amount,
         currency: 'ARS',
         datetime_iso: dateIso,
         counterparty,
@@ -45,12 +86,14 @@ export const parseModoReceipt = (text, aliases, telegramMeta) => {
         account_to: toAcc ? { bank: toAcc } : undefined,
         cbu_cvu_last4: onlyLast4(cbu),
         confidence: {
-            type: type ? 0.9 : 0.2,
-            amount: amountRaw ? 0.95 : 0.2,
-            datetime_iso: dateIso ? 0.8 : 0.2,
-            counterparty: counterparty ? 0.8 : 0.1,
-            overall: 0.75
+            type: typeConfidence,
+            amount: amountConfidence,
+            datetime_iso: datetimeConfidence,
+            counterparty: counterpartyConfidence,
+            overall
         },
+        missing_required: missingRequired,
+        warnings,
         raw_text_excerpt: sanitizeExcerpt(clean),
         telegram_meta: telegramMeta
     };

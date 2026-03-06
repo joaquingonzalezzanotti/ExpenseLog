@@ -619,6 +619,8 @@ func buildMonthlyReportPDF(expenses []storage.Expense, query monthlyReportQuery,
 	pageLeft := 10.0
 	pageWidth := 190.0
 	topY := 10.0
+	// Requested visual adjustment: start KPI cards + table ~0.5cm lower on A4.
+	contentOffsetY := 5.0
 
 	pdf.SetFillColor(29, 78, 216)
 	pdf.Rect(pageLeft, topY, pageWidth, 16, "F")
@@ -681,7 +683,7 @@ func buildMonthlyReportPDF(expenses []storage.Expense, query monthlyReportQuery,
 	cardW := 91.0
 	cardH := 16.0
 	cardGap := 8.0
-	startCardY := 31.0
+	startCardY := 31.0 + contentOffsetY
 	for idx, card := range cards {
 		x := pageLeft
 		y := startCardY

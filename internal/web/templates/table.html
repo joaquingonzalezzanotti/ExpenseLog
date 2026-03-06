@@ -625,8 +625,15 @@
 
         function getCalendarFilteredExpenses(expenses) {
             return (expenses || []).filter(exp => {
-                if (calendarTypeFilter !== 'all' && resolveFlow(exp) !== calendarTypeFilter) {
-                    return false;
+                const flow = resolveFlow(exp);
+                if (calendarTypeFilter !== 'all') {
+                    if (calendarTypeFilter === 'income') {
+                        if (!(flow === 'income' || flow === 'refund')) {
+                            return false;
+                        }
+                    } else if (flow !== calendarTypeFilter) {
+                        return false;
+                    }
                 }
                 if (calendarCategoryFilter !== 'all' && (exp.category || '') !== calendarCategoryFilter) {
                     return false;
@@ -1179,10 +1186,10 @@
             const movementType = movementTypeSelect.value || 'expense';
             const cardOption = sourceSelect.querySelector('option[value="TARJETA"]');
             const cashOption = sourceSelect.querySelector('option[value="EFECTIVO"]');
-            const isIncome = movementType === 'income';
-            if (cardOption) cardOption.disabled = isIncome;
-            if (cashOption) cashOption.disabled = isIncome;
-            if (isIncome && (sourceSelect.value === 'TARJETA' || sourceSelect.value === 'EFECTIVO')) {
+            const isBalanceIncome = movementType === 'income' || movementType === 'refund';
+            if (cardOption) cardOption.disabled = isBalanceIncome;
+            if (cashOption) cashOption.disabled = isBalanceIncome;
+            if (isBalanceIncome && (sourceSelect.value === 'TARJETA' || sourceSelect.value === 'EFECTIVO')) {
                 sourceSelect.value = 'CA';
             }
         }
@@ -1196,7 +1203,7 @@
                 return;
             }
             if (movementType === 'refund') {
-                sourceImpactHint.textContent = 'Reintegro: suma Balance ahora en el modo actual.';
+                sourceImpactHint.textContent = 'Reintegro: suma Balance ahora. Medio disponible: Transferencia / Debito.';
                 return;
             }
             if (source === 'TARJETA') {

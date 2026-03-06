@@ -35,6 +35,9 @@ const shouldTriggerAIFallback = (nativeParsed) => {
         return { tryFallback: true, reason: 'missing_required_fields' };
     }
     const confidence = getOverallConfidence(nativeParsed);
+    if (typeof confidence !== 'number') {
+        return { tryFallback: true, reason: 'missing_confidence' };
+    }
     if (typeof confidence === 'number' && confidence < config.aiParserMinConfidence) {
         return { tryFallback: true, reason: 'low_confidence' };
     }

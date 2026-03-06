@@ -239,6 +239,115 @@ const normalizeLinkCode = (raw) => {
         return '';
     return `${compact.slice(0, 4)}-${compact.slice(4)}`;
 };
+const buildAIParserURLForDiag = () => {
+    const base = String(config.aiParserBaseUrl || '').trim().replace(/\/+$/, '');
+    const pathRaw = String(config.aiParserParsePath || '/api/parse').trim();
+    const path = pathRaw.startsWith('/') ? pathRaw : `/${pathRaw}`;
+    if (!base) {
+        return '';
+    }
+    return `${base}${path}`;
+};
+const formatDiagError = (error) => {
+    const parts = [];
+    const name = String(error?.name || '').trim();
+    const message = String(error?.message || '').trim();
+    if (name || message) {
+        parts.push(`${name || 'Error'}: ${message || 'sin mensaje'}`);
+    }
+    const cause = error?.cause;
+    if (cause) {
+        const causeName = String(cause?.name || '').trim();
+        const causeMessage = String(cause?.message || '').trim();
+        const causeCode = String(cause?.code || '').trim();
+        const causeHost = String(cause?.hostname || '').trim();
+        const causePort = String(cause?.port || '').trim();
+        const details = [
+            causeName ? `cause=${causeName}` : '',
+            causeMessage ? `msg=${causeMessage}` : '',
+            causeCode ? `code=${causeCode}` : '',
+            causeHost ? `host=${causeHost}` : '',
+            causePort ? `port=${causePort}` : ''
+        ].filter(Boolean);
+        if (details.length > 0) {
+            parts.push(details.join(' '));
+        }
+    }
+    return parts.join(' | ') || 'Error desconocido';
+};
+const fetchWithTimeout = async (url, init, timeoutMs) => {
+    const controller = new AbortController();
+    const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        return await fetch(url, { ...init, signal: controller.signal });
+    }
+    finally {
+        clearTimeout(timeoutHandle);
+    }
+};
+const runAIDiagnostics = async () => {
+    const parseURL = buildAIParserURLForDiag();
+    const baseURL = String(config.aiParserBaseUrl || '').trim().replace(/\/+$/, '');
+    const healthURL = baseURL ? `${baseURL}/healthz` : '';
+    const timeoutMs = Number(config.aiParserTimeoutMs) || 8000;
+    const enabled = Boolean(config.aiParserFallbackEnabled);
+    const results = {
+        enabled,
+        parseURL,
+        healthURL,
+        timeoutMs,
+        minConfidence: config.aiParserMinConfidence,
+        textEnabled: config.aiParserTextEnabled,
+        apiKeyHeader: config.aiParserApiKeyHeader || 'X-API-Key',
+        health: { ok: false, status: null, detail: '' },
+        parse: { ok: false, status: null, detail: '' }
+    };
+
+    if (!enabled) {
+        results.health.detail = 'fallback deshabilitado por config';
+        results.parse.detail = 'fallback deshabilitado por config';
+        return results;
+    }
+    if (!parseURL || !healthURL) {
+        results.health.detail = 'URL del parser no configurada';
+        results.parse.detail = 'URL del parser no configurada';
+        return results;
+    }
+
+    try {
+        const healthRes = await fetchWithTimeout(healthURL, { method: 'GET' }, timeoutMs);
+        results.health.status = healthRes.status;
+        const raw = await healthRes.text();
+        const detail = String(raw || '').replace(/\s+/g, ' ').trim().slice(0, 220);
+        results.health.ok = healthRes.ok;
+        results.health.detail = detail || '(sin body)';
+    }
+    catch (error) {
+        results.health.detail = formatDiagError(error);
+    }
+
+    try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (config.aiParserApiKey) {
+            headers[config.aiParserApiKeyHeader || 'X-API-Key'] = config.aiParserApiKey;
+        }
+        const body = JSON.stringify({
+            text: 'pague 1234 en supermercado hoy',
+            context_date: new Date().toISOString()
+        });
+        const parseRes = await fetchWithTimeout(parseURL, { method: 'POST', headers, body }, timeoutMs);
+        results.parse.status = parseRes.status;
+        const raw = await parseRes.text();
+        const detail = String(raw || '').replace(/\s+/g, ' ').trim().slice(0, 220);
+        results.parse.ok = parseRes.ok;
+        results.parse.detail = detail || '(sin body)';
+    }
+    catch (error) {
+        results.parse.detail = formatDiagError(error);
+    }
+
+    return results;
+};
 const extractLinkCodeFromStartPayload = (payload) => {
     const raw = String(payload || '').trim();
     if (!raw)
@@ -390,10 +499,34 @@ export const buildBot = () => {
         await ctx.reply('Comandos disponibles:\n' +
             '/vincular TU-CODIGO -> Vincula Telegram con tu cuenta Premium.\n\n' +
             '/cargar TEXTO -> Carga un movimiento desde texto libre.\n\n' +
+            '/diag_ai -> Diagnostica conexion con parser AI.\n\n' +
             'Flujo recomendado:\n' +
             '1) Enviar comprobante.\n' +
             '2) Revisar el resumen.\n' +
             '3) Confirmar o corregir datos.');
+    });
+    bot.command('diag_ai', async (ctx) => {
+        if (!(await ensurePrivateAllowed(ctx)))
+            return;
+        await ctx.reply('Ejecutando diagnostico AI (health + parse)...');
+        const diag = await runAIDiagnostics();
+        const parseURL = diag.parseURL || '(no configurada)';
+        const healthURL = diag.healthURL || '(no configurada)';
+        const message = [
+            'Diagnostico AI parser',
+            `enabled: ${diag.enabled}`,
+            `base health URL: ${healthURL}`,
+            `parse URL: ${parseURL}`,
+            `timeoutMs: ${diag.timeoutMs}`,
+            `minConfidence: ${diag.minConfidence}`,
+            `textEnabled: ${diag.textEnabled}`,
+            `apiKeyHeader: ${diag.apiKeyHeader}`,
+            `healthz: ${diag.health.ok ? 'OK' : 'FAIL'}${diag.health.status != null ? ` (status ${diag.health.status})` : ''}`,
+            `health detail: ${diag.health.detail || '-'}`,
+            `parse: ${diag.parse.ok ? 'OK' : 'FAIL'}${diag.parse.status != null ? ` (status ${diag.parse.status})` : ''}`,
+            `parse detail: ${diag.parse.detail || '-'}`
+        ].join('\n');
+        await ctx.reply(message);
     });
     bot.command('vincular', async (ctx) => {
         if (!(await ensurePrivateAllowed(ctx)))

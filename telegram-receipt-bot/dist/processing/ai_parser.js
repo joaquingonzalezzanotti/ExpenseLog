@@ -73,9 +73,9 @@ const normalizeAIParserResult = (payload, fallbackText, telegramMeta) => {
 };
 const buildAIParserURL = () => {
     const base = String(config.aiParserBaseUrl || '').trim().replace(/\/+$/, '');
-    const path = String(config.aiParserParsePath || '/parse').startsWith('/')
-        ? String(config.aiParserParsePath || '/parse')
-        : `/${String(config.aiParserParsePath || '/parse')}`;
+    const path = String(config.aiParserParsePath || '/api/parse').startsWith('/')
+        ? String(config.aiParserParsePath || '/api/parse')
+        : `/${String(config.aiParserParsePath || '/api/parse')}`;
     if (!base) {
         return '';
     }
@@ -84,43 +84,106 @@ const buildAIParserURL = () => {
 export const canUseAIParser = () => {
     return Boolean(config.aiParserFallbackEnabled && buildAIParserURL());
 };
+const RETRYABLE_ERROR_CODES = new Set([
+    'ECONNREFUSED',
+    'ECONNRESET',
+    'ENOTFOUND',
+    'EAI_AGAIN',
+    'ETIMEDOUT',
+    'UND_ERR_CONNECT_TIMEOUT',
+    'UND_ERR_SOCKET'
+]);
+const AI_PARSER_RETRY_DELAYS_MS = [2000, 5000];
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const isRetryableAIFetchError = (error) => {
+    if (!error)
+        return false;
+    const message = String(error?.message || '').toLowerCase();
+    const code = String(error?.code || error?.cause?.code || '').trim().toUpperCase();
+    const name = String(error?.name || '').trim();
+    if (name === 'AbortError')
+        return true;
+    if (RETRYABLE_ERROR_CODES.has(code))
+        return true;
+    if (message.includes('fetch failed') || message.includes('network') || message.includes('timed out')) {
+        return true;
+    }
+    return false;
+};
 export const parseWithAIParser = async ({ text, fileType, telegramMeta, nativeResult }) => {
     const url = buildAIParserURL();
     if (!url) {
         throw new Error('AI parser URL is not configured');
     }
-    const controller = new AbortController();
-    const timeoutHandle = setTimeout(() => controller.abort(), config.aiParserTimeoutMs);
-    try {
-        const headers = {
-            'Content-Type': 'application/json'
-        };
-        if (config.aiParserApiKey) {
-            headers[config.aiParserApiKeyHeader || 'X-API-Key'] = config.aiParserApiKey;
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    if (config.aiParserApiKey) {
+        headers[config.aiParserApiKeyHeader || 'X-API-Key'] = config.aiParserApiKey;
+    }
+    const payload = {
+        text,
+        file_type: fileType,
+        telegram_meta: telegramMeta,
+        native_result: nativeResult
+    };
+    const maxAttempts = AI_PARSER_RETRY_DELAYS_MS.length + 1;
+    let lastError = null;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        const controller = new AbortController();
+        const timeoutHandle = setTimeout(() => controller.abort(), config.aiParserTimeoutMs);
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(payload),
+                signal: controller.signal
+            });
+            if (!response.ok) {
+                throw new Error(`AI parser request failed with status ${response.status}`);
+            }
+            const data = await response.json();
+            if (attempt > 1) {
+                logger.info('ai_parser_request_recovered', { url, attempt });
+            }
+            return normalizeAIParserResult(data, text, telegramMeta);
         }
-        const payload = {
-            text,
-            file_type: fileType,
-            telegram_meta: telegramMeta,
-            native_result: nativeResult
-        };
-        const response = await fetch(url, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(payload),
-            signal: controller.signal
-        });
-        if (!response.ok) {
-            throw new Error(`AI parser request failed with status ${response.status}`);
+        catch (error) {
+            lastError = error;
+            const retryable = isRetryableAIFetchError(error);
+            logger.warn('ai_parser_request_failed', {
+                url,
+                timeoutMs: config.aiParserTimeoutMs,
+                attempt,
+                maxAttempts,
+                retryable,
+                error: {
+                    name: error?.name,
+                    message: error?.message,
+                    code: error?.code,
+                    cause: error?.cause
+                        ? {
+                            name: error.cause?.name,
+                            message: error.cause?.message,
+                            code: error.cause?.code,
+                            errno: error.cause?.errno,
+                            syscall: error.cause?.syscall,
+                            hostname: error.cause?.hostname,
+                            address: error.cause?.address,
+                            port: error.cause?.port
+                        }
+                        : undefined,
+                    stack: error?.stack
+                }
+            });
+            if (!retryable || attempt >= maxAttempts) {
+                throw error;
+            }
+            await sleep(AI_PARSER_RETRY_DELAYS_MS[attempt - 1] || 1000);
         }
-        const data = await response.json();
-        return normalizeAIParserResult(data, text, telegramMeta);
+        finally {
+            clearTimeout(timeoutHandle);
+        }
     }
-    catch (error) {
-        logger.warn('ai_parser_request_failed', { error });
-        throw error;
-    }
-    finally {
-        clearTimeout(timeoutHandle);
-    }
+    throw lastError || new Error('AI parser request failed');
 };

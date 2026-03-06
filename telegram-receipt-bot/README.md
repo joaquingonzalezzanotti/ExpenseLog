@@ -45,7 +45,7 @@ Variables:
 
 - `AI_PARSER_FALLBACK_ENABLED=true|false`
 - `AI_PARSER_BASE_URL` (ej: `https://tu-parser.up.railway.app`)
-- `AI_PARSER_PARSE_PATH` (default: `/parse`)
+- `AI_PARSER_PARSE_PATH` (default: `/api/parse`)
 - `AI_PARSER_API_KEY` (opcional)
 - `AI_PARSER_API_KEY_HEADER` (default: `X-API-Key`)
 - `AI_PARSER_TIMEOUT_MS` (default: `8000`)

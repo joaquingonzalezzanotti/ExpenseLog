@@ -28,29 +28,17 @@
 
     function ensureBucket(map, currency) {
         if (!map[currency]) {
-            map[currency] = { income: 0, refund: 0, expense: 0 };
+            map[currency] = { income: 0, expense: 0 };
         }
         return map[currency];
     }
 
-    function normalizeFlow(flow, amount) {
-        var normalizedFlow = String(flow || "").trim().toLowerCase();
-        if (normalizedFlow === "income" || normalizedFlow === "refund" || normalizedFlow === "expense") {
-            return normalizedFlow;
-        }
-        return amount >= 0 ? "income" : "expense";
-    }
-
-    function applyRegularMovement(bucket, flow, amount) {
-        if (flow === "income") {
+    function applyRegularMovement(bucket, amount) {
+        if (amount > 0) {
             bucket.income += amount;
             return;
         }
-        if (flow === "refund") {
-            bucket.refund += amount;
-            return;
-        }
-        if (flow === "expense") {
+        if (amount < 0) {
             bucket.expense += Math.abs(amount);
         }
     }
@@ -78,7 +66,6 @@
 
             const currency = normalizeCurrency(exp && exp.currency, fallbackCurrency);
             const amount = toNumber(exp && exp.amount);
-            const flow = normalizeFlow(exp && exp.flow, amount);
             const systemOrigin = String(exp && exp.systemOrigin ? exp.systemOrigin : "").toLowerCase();
             const bucket = ensureBucket(byCurrency, currency);
 
@@ -87,12 +74,11 @@
                 return;
             }
 
-            applyRegularMovement(bucket, flow, amount);
+            applyRegularMovement(bucket, amount);
         });
 
         Object.keys(byCurrency).forEach(function (currency) {
             byCurrency[currency].income = normalizeZero(byCurrency[currency].income);
-            byCurrency[currency].refund = normalizeZero(byCurrency[currency].refund);
             byCurrency[currency].expense = normalizeZero(byCurrency[currency].expense);
         });
 
@@ -103,3 +89,4 @@
         calculateCashflowBuckets: calculateCashflowBuckets,
     };
 });
+

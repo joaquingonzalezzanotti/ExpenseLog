@@ -35,30 +35,23 @@ func TestFilterExpensesForMonthlyReport(t *testing.T) {
 func TestCalculateMonthlyReportMetrics(t *testing.T) {
 	expenses := []storage.Expense{
 		{Name: "Ingreso", Source: "CA", Amount: 10000, Flow: "income"},
-		{Name: "Reintegro", Source: "CA", Amount: 1200, Flow: "refund"},
 		{Name: "Compra debito", Source: "CA", Amount: -3000, Flow: "expense"},
 		{Name: "Compra credito", Source: "TARJETA", Amount: -5000, Flow: "expense"},
 		{Name: "Pago tarjeta", Source: "CA", Amount: -2000, Flow: "expense", SystemOrigin: "card_payment_owner"},
 	}
 
 	metrics := calculateMonthlyReportMetrics(expenses)
-	if metrics.TransactionCount != 5 {
-		t.Fatalf("expected 5 transactions, got %d", metrics.TransactionCount)
+	if metrics.TransactionCount != 4 {
+		t.Fatalf("expected 4 transactions, got %d", metrics.TransactionCount)
 	}
 	if metrics.Income != 10000 {
 		t.Fatalf("expected income 10000, got %.2f", metrics.Income)
 	}
-	if metrics.Refund != 1200 {
-		t.Fatalf("expected refund 1200, got %.2f", metrics.Refund)
-	}
-	if metrics.CashIn != 11200 {
-		t.Fatalf("expected cash in 11200, got %.2f", metrics.CashIn)
-	}
 	if metrics.Expense != 5000 {
 		t.Fatalf("expected expense 5000, got %.2f", metrics.Expense)
 	}
-	if metrics.NetBalance != 6200 {
-		t.Fatalf("expected net balance 6200, got %.2f", metrics.NetBalance)
+	if metrics.NetBalance != 5000 {
+		t.Fatalf("expected net balance 5000, got %.2f", metrics.NetBalance)
 	}
 	if metrics.CardPending != 3000 {
 		t.Fatalf("expected card pending 3000, got %.2f", metrics.CardPending)

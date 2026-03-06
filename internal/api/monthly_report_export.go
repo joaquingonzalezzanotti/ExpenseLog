@@ -33,8 +33,6 @@ type monthlyReportQuery struct {
 type monthlyReportMetrics struct {
 	TransactionCount int
 	Income           float64
-	Refund           float64
-	CashIn           float64
 	Expense          float64
 	NetBalance       float64
 	CardPending      float64
@@ -232,7 +230,6 @@ func filterExpensesForMonthlyReport(expenses []storage.Expense, query monthlyRep
 
 func calculateMonthlyReportMetrics(expenses []storage.Expense) monthlyReportMetrics {
 	var income float64
-	var refund float64
 	var expense float64
 	var rawCardTotals float64
 	var ownerPayments float64
@@ -242,12 +239,8 @@ func calculateMonthlyReportMetrics(expenses []storage.Expense) monthlyReportMetr
 		amount := exp.Amount
 
 		if source == "CA" {
-			flow := strings.ToLower(strings.TrimSpace(exp.Flow))
-			if flow == "income" && amount > 0 {
+			if amount > 0 {
 				income += amount
-			}
-			if flow == "refund" && amount > 0 {
-				refund += amount
 			}
 			if amount < 0 {
 				expense += math.Abs(amount)
@@ -266,15 +259,11 @@ func calculateMonthlyReportMetrics(expenses []storage.Expense) monthlyReportMetr
 	rawDebt := math.Max(0, -rawCardTotals)
 	cardPending := math.Max(0, rawDebt-ownerPayments)
 
-	cashIn := income + refund
-
 	return monthlyReportMetrics{
 		TransactionCount: len(expenses),
 		Income:           income,
-		Refund:           refund,
-		CashIn:           cashIn,
 		Expense:          expense,
-		NetBalance:       cashIn - expense,
+		NetBalance:       income - expense,
 		CardPending:      cardPending,
 	}
 }
@@ -518,9 +507,7 @@ func buildMonthlyReportXLSX(expenses []storage.Expense, query monthlyReportQuery
 		IsMoney bool
 	}{
 		{Label: "Movimientos", Value: metrics.TransactionCount, IsMoney: false},
-		{Label: "Ingresos KPI", Value: metrics.Income, IsMoney: true},
-		{Label: "Reintegros", Value: metrics.Refund, IsMoney: true},
-		{Label: "Entradas de caja", Value: metrics.CashIn, IsMoney: true},
+		{Label: "Ingresos", Value: metrics.Income, IsMoney: true},
 		{Label: "Egresos", Value: metrics.Expense, IsMoney: true},
 		{Label: "Balance neto del periodo", Value: metrics.NetBalance, IsMoney: true},
 		{Label: "Tarjeta por pagar (periodo)", Value: metrics.CardPending, IsMoney: true},
@@ -656,18 +643,11 @@ func buildMonthlyReportPDF(expenses []storage.Expense, query monthlyReportQuery,
 			TitleColor: [3]int{30, 64, 175},
 		},
 		{
-			Title:      "Ingresos KPI",
+			Title:      "Ingresos",
 			Value:      formatReportAmount(metrics.Income, query.Currency),
 			FillColor:  [3]int{236, 253, 245},
 			LineColor:  [3]int{110, 231, 183},
 			TitleColor: [3]int{6, 95, 70},
-		},
-		{
-			Title:      "Reintegros",
-			Value:      formatReportAmount(metrics.Refund, query.Currency),
-			FillColor:  [3]int{239, 246, 255},
-			LineColor:  [3]int{147, 197, 253},
-			TitleColor: [3]int{30, 64, 175},
 		},
 		{
 			Title:      "Egresos",
@@ -700,7 +680,7 @@ func buildMonthlyReportPDF(expenses []storage.Expense, query monthlyReportQuery,
 		x := pageLeft
 		y := startCardY
 		width := cardW
-		if idx < 6 {
+		if idx < 4 {
 			col := idx % 2
 			row := idx / 2
 			x = pageLeft + float64(col)*(cardW+cardGap)
@@ -725,7 +705,7 @@ func buildMonthlyReportPDF(expenses []storage.Expense, query monthlyReportQuery,
 		pdf.CellFormat(width-6, 5, card.Value, "", 0, "L", false, 0, "")
 	}
 
-	pdf.SetY(startCardY + 3*(cardH+5) + cardH)
+	pdf.SetY(startCardY + 3*(cardH+5))
 	pdf.Ln(1)
 	pdf.SetTextColor(15, 23, 42)
 	pdf.SetFont("Arial", "B", 11)

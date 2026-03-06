@@ -79,38 +79,68 @@
         </div>
         
         <div class="table-controls">
-            <button id="toggleTableExpenseFormBtn" class="nav-button button-primary" type="button">
-                <i class="fa-solid fa-plus"></i>
-                <span>Agregar gasto</span>
-            </button>
+            <div class="quick-actions">
+                <button id="toggleExpenseFormBtn" class="quick-action" data-action="open-form" type="button">Agregar gasto</button>
+            </div>
         </div>
 
-        <div id="tableExpenseFormContainer" class="form-container" data-expanded="false">
-            <form id="expenseForm" class="expense-form table-expense-form">
-                <div class="form-group form-group-span-2">
-                    <label for="name">Nombre</label>
-                    <input type="text" id="name" placeholder="Ej. Supermercado" required>
+        <div id="addExpenseContainer" class="entry-modal-overlay" hidden aria-hidden="true">
+            <div class="entry-modal-backdrop" data-expense-close></div>
+            <div class="entry-modal-card" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle">
+                <div class="entry-modal-header">
+                    <div class="entry-modal-title-wrap">
+                        <span class="entry-modal-eyebrow">&#10024; Carga rapida</span>
+                        <h3 id="expenseModalTitle">Registrar movimiento</h3>
+                        <p>Carga un ingreso, gasto o reintegro sin salir del dashboard.</p>
+                    </div>
+                    <button type="button" id="closeExpenseFormBtn" class="entry-modal-close" aria-label="Cerrar formulario">
+                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                    </button>
                 </div>
-                
-                <div class="form-group">
-                    <label for="category">Categoria</label>
-                    <select id="category" required>
-                        <option value="">categorias</option>
+            <form id="expenseForm" class="expense-form expense-modal-form">
+                <div class="form-group form-group-span-2 movement-type-group">
+                    <label for="movementType">Tipo</label>
+                    <div id="movementTypePills" class="movement-pill-group" role="group" aria-label="Tipo de movimiento">
+                        <button type="button" class="movement-pill active" data-movement-pill="expense">💸 Gasto</button>
+                        <button type="button" class="movement-pill" data-movement-pill="income">💰 Ingreso</button>
+                        <button type="button" class="movement-pill" data-movement-pill="refund">↩️ Reintegro</button>
+                    </div>
+                    <select id="movementType" class="select-assist">
+                        <option value="expense">Gasto</option>
+                        <option value="income">Ingreso</option>
+                        <option value="refund">Reintegro</option>
+                    </select>
+                </div>
+
+                <div class="form-group form-group-span-2 method-group">
+                    <label for="sourceSelect">Metodo</label>
+                    <select id="sourceSelect">
+                        <option value="CA">Transferencia / Debito</option>
+                        <option value="EFECTIVO">Efectivo (solo registro)</option>
+                        <option value="TARJETA">Tarjeta de credito</option>
                     </select>
                 </div>
 
                 <div class="form-group form-group-span-2">
-                    <label for="tags-input">Etiquetas</label>
-                    <div id="tags-input-container" class="tags-input-container">
-                        <div id="selected-tags" class="selected-tags"></div>
-                        <input type="text" id="tags-input" placeholder="(opcional)">
-                    </div>
-                    <div id="tags-dropdown" class="tags-dropdown"></div>
+                    <label for="name">Descripcion</label>
+                    <input type="text" id="name" placeholder="Ej. Supermercado, alquiler, sueldo..." required>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="amount">Monto</label>
                     <input type="number" id="amount" step="0.01" min="0.01" max="9000000000000000" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="date">Fecha</label>
+                    <input type="date" id="date" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Categoria</label>
+                    <select id="category" required>
+                        <option value="">Selecciona categoria</option>
+                    </select>
                 </div>
 
                 <div class="form-group">
@@ -118,14 +148,13 @@
                     <select id="currencySelectForm" required></select>
                 </div>
 
-                <div class="form-group">
-                    <label for="sourceSelect">Metodo</label>
-                    <select id="sourceSelect">
-                        <option value="CA">Transferencia / Debito</option>
-                        <option value="EFECTIVO">Efectivo (registro)</option>
-                        <option value="TARJETA">Tarjeta credito</option>
-                    </select>
-                    <div id="sourceImpactHint" class="form-help-text" aria-live="polite"></div>
+                <div class="form-group form-group-span-2">
+                    <label for="tags-input">Etiquetas</label>
+                    <div id="tags-input-container" class="tags-input-container">
+                        <div id="selected-tags" class="selected-tags"></div>
+                        <input type="text" id="tags-input" placeholder="Opcional">
+                    </div>
+                    <div id="tags-dropdown" class="tags-dropdown"></div>
                 </div>
 
                 <div class="form-group form-group-span-2" id="cardGroup" style="display:none;">
@@ -133,35 +162,18 @@
                     <input type="text" id="cardInput" placeholder="Ej: Visa, Amex">
                     <div id="cardError" class="form-error"></div>
                 </div>
-                
-                <div class="form-group">
-                    <label for="date">Fecha</label>
-                    <input type="date" id="date" required>
-                    <script>
-                        const today = new Date();
-                        const year = today.getFullYear();
-                        const month = String(today.getMonth() + 1).padStart(2, '0');
-                        const day = String(today.getDate()).padStart(2, '0');
-                        const formattedDate = `${year}-${month}-${day}`;
-                        document.getElementById('date').value = formattedDate;
-                    </script>
-                </div>
-                
-                <div class="form-group">
-                    <label for="movementType">Tipo</label>
-                    <select id="movementType">
-                        <option value="expense">Gasto</option>
-                        <option value="income">Ingreso</option>
-                        <option value="refund">Reintegro</option>
-                    </select>
+
+                <div class="form-group form-group-span-2">
+                    <div id="sourceImpactHint" class="form-help-text" aria-live="polite"></div>
                 </div>
 
                 <div class="form-actions">
-                    <button type="button" id="cancelTableExpenseFormBtn" class="nav-button button-secondary">Cancelar</button>
+                    <button type="button" id="cancelExpenseFormBtn" class="nav-button button-secondary">Cancelar</button>
                     <button type="submit" class="nav-button button-primary">Agregar gasto</button>
                 </div>
             </form>
             <div id="formMessage" class="form-message"></div>
+            </div>
         </div>
 
         <div class="table-view-row">
@@ -340,9 +352,10 @@
         const sourceSelect = document.getElementById('sourceSelect');
         const cardGroup = document.getElementById('cardGroup');
         const movementTypeSelect = document.getElementById('movementType');
+        const movementTypePills = document.querySelectorAll('[data-movement-pill]');
         const sourceImpactHint = document.getElementById('sourceImpactHint');
-        const tableExpenseForm = document.getElementById('expenseForm');
-        const tableExpenseSubmitButton = tableExpenseForm ? tableExpenseForm.querySelector('button[type="submit"]') : null;
+        const expenseForm = document.getElementById('expenseForm');
+        const expenseSubmitButton = expenseForm ? expenseForm.querySelector('button[type="submit"]') : null;
         let categories = [];
         let searchQuery = '';
         let filterCurrency = 'all';
@@ -353,8 +366,10 @@
         const CONFIG_CACHE_KEY = 'expenselog_config_cache_v1';
         const CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
 
-        const tableFormContainer = document.getElementById('tableExpenseFormContainer');
-        const toggleTableExpenseFormBtn = document.getElementById('toggleTableExpenseFormBtn');
+        const addExpenseContainer = document.getElementById('addExpenseContainer');
+        const toggleExpenseFormBtn = document.getElementById('toggleExpenseFormBtn');
+        const closeExpenseFormBtn = document.getElementById('closeExpenseFormBtn');
+        const expenseBackdrop = document.querySelector('[data-expense-close]');
         const mobileNavTable = document.getElementById('mobileNavTable');
         const mobileNavCalendar = document.getElementById('mobileNavCalendar');
         const mobileTablePager = document.getElementById('mobileTablePager');
@@ -362,7 +377,7 @@
         const toggleMobileRowsBtn = document.getElementById('toggleMobileRows');
         const clearSearchBtn = document.getElementById('clearSearch');
         const clearTableFiltersBtn = document.getElementById('clearTableFilters');
-        const cancelTableExpenseFormBtn = document.getElementById('cancelTableExpenseFormBtn');
+        const cancelExpenseFormBtn = document.getElementById('cancelExpenseFormBtn');
         const tableDataModule = document.getElementById('tableDataModule');
         const calendarDataModule = document.getElementById('calendarDataModule');
         const viewTableBtn = document.getElementById('viewTableBtn');
@@ -375,40 +390,23 @@
         let calendarTypeFilter = 'all';
         let calendarCategoryFilter = 'all';
         let selectedCalendarDayKey = '';
-        let tableFormInitialized = false;
 
         function isMobileTableView() {
             return window.innerWidth <= MOBILE_TABLE_BREAKPOINT;
         }
 
-        function getTableFormToggleButtonHTML() {
-            return '<i class="fa-solid fa-plus"></i><span>Agregar gasto</span>';
-        }
-
-        function setTableFormExpanded(expanded, { persist = true } = {}) {
-            if (!tableFormContainer) return;
-            tableFormContainer.dataset.expanded = expanded ? 'true' : 'false';
-            if (persist) {
-                tableFormContainer.dataset.userSet = 'true';
+        function setExpenseFormVisible(visible) {
+            if (!addExpenseContainer) return;
+            addExpenseContainer.hidden = !visible;
+            addExpenseContainer.setAttribute('aria-hidden', visible ? 'false' : 'true');
+            if (toggleExpenseFormBtn) {
+                toggleExpenseFormBtn.setAttribute('aria-expanded', visible ? 'true' : 'false');
             }
-            tableFormContainer.style.display = expanded ? 'block' : 'none';
-            if (toggleTableExpenseFormBtn) {
-                toggleTableExpenseFormBtn.innerHTML = getTableFormToggleButtonHTML();
-                toggleTableExpenseFormBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-                toggleTableExpenseFormBtn.style.display = expanded ? 'none' : 'inline-flex';
+            if (visible) {
+                window.setTimeout(() => {
+                    document.getElementById('name')?.focus();
+                }, 0);
             }
-        }
-
-        function updateTableFormVisibilityOnViewport() {
-            if (!tableFormContainer) return;
-            const expanded = tableFormContainer?.dataset.expanded === 'true';
-            const userSet = tableFormContainer.dataset.userSet === 'true';
-            if (!tableFormInitialized && !userSet) {
-                setTableFormExpanded(false, { persist: false });
-                tableFormInitialized = true;
-                return;
-            }
-            setTableFormExpanded(expanded, { persist: false });
         }
 
         function updateClearButtonsVisibility() {
@@ -422,16 +420,26 @@
         }
 
         function getTableCreateSubmitLabel(movementType) {
-            if (movementType === 'income') return 'Agregar ingreso';
-            if (movementType === 'refund') return 'Agregar reintegro';
+            if (movementType === 'income') return '💰 Agregar ingreso';
+            if (movementType === 'refund') return '↩️ Agregar reintegro';
             return 'Agregar gasto';
         }
 
+        function syncMovementTypePills() {
+            if (!movementTypePills || movementTypePills.length === 0 || !movementTypeSelect) return;
+            const current = movementTypeSelect.value || 'expense';
+            movementTypePills.forEach((button) => {
+                const selected = button.dataset.movementPill === current;
+                button.classList.toggle('active', selected);
+                button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+            });
+        }
+
         function syncTableSubmitButtonLabel() {
-            if (!tableExpenseSubmitButton || !tableExpenseForm) return;
-            if (tableExpenseForm.dataset.editId) return;
+            if (!expenseSubmitButton || !expenseForm) return;
+            if (expenseForm.dataset.editId) return;
             const movementType = movementTypeSelect ? movementTypeSelect.value : 'expense';
-            tableExpenseSubmitButton.textContent = getTableCreateSubmitLabel(movementType);
+            expenseSubmitButton.textContent = getTableCreateSubmitLabel(movementType);
         }
 
         function isFuturePeriodSelected() {
@@ -572,7 +580,7 @@
         function applyCommonExpenseFilters(expenses) {
             let filtered = (expenses || []).filter(exp => {
                 const currency = (exp.currency || currentCurrency).toLowerCase();
-                const source = (exp.source || '').toUpperCase();
+                const source = normalizeSourceCode(exp.source || 'CA');
                 const currencyMatch = filterCurrency === 'all' || currency === filterCurrency;
                 const sourceMatch = filterSource === 'all'
                     || (filterSource === 'CA' && (source === '' || source === 'CA'))
@@ -617,8 +625,15 @@
 
         function getCalendarFilteredExpenses(expenses) {
             return (expenses || []).filter(exp => {
-                if (calendarTypeFilter !== 'all' && resolveFlow(exp) !== calendarTypeFilter) {
-                    return false;
+                const flow = resolveFlow(exp);
+                if (calendarTypeFilter !== 'all') {
+                    if (calendarTypeFilter === 'income') {
+                        if (!(flow === 'income' || flow === 'refund')) {
+                            return false;
+                        }
+                    } else if (flow !== calendarTypeFilter) {
+                        return false;
+                    }
                 }
                 if (calendarCategoryFilter !== 'all' && (exp.category || '') !== calendarCategoryFilter) {
                     return false;
@@ -811,7 +826,7 @@
             const balanceById = {};
             sortedAsc.forEach(exp => {
                 const currency = (exp.currency || currentCurrency).toLowerCase();
-                const source = (exp.source || '').toUpperCase();
+                const source = normalizeSourceCode(exp.source || 'CA');
                 if (source === '' || source === 'CA') {
                     totalsByCurrency[currency] = (totalsByCurrency[currency] || 0) + exp.amount;
                 }
@@ -819,6 +834,13 @@
                 balanceById[exp.id] = { amount: running, currency };
             });
             return balanceById;
+        }
+
+        function isTelegramBotExpense(expense) {
+            const origin = String(expense?.systemOrigin || '').trim().toLowerCase();
+            if (origin === 'telegram_bot') return true;
+            if (!Array.isArray(expense?.tags)) return false;
+            return expense.tags.some(tag => String(tag || '').trim().toLowerCase() === 'telegram_bot');
         }
 
         function createTable(expenses, runningBalances) {
@@ -849,12 +871,14 @@
                             const amountFlowClass = resolveFlow(expense) === 'expense' ? 'is-expense' : 'is-income';
                             const sourceCode = normalizeSourceCode(expense.source || 'CA');
                             const sourceLabel = formatSourceLabel(sourceCode);
+                            const isTelegramExpense = isTelegramBotExpense(expense);
                             return `
                             <tr>
                                 <td>
                                     <div class="expense-name-cell">
                                         <span class="expense-name-text">${highlightText(expense.name, searchQuery)}</span>
                                         ${expense.recurringID ? '<span class="recurring-badge">Recurrente</span>' : ''}
+                                        ${isTelegramExpense ? '<span class="recurring-badge">BotTelegram</span>' : ''}
                                         ${expense.systemLocked ? '<span class="recurring-badge">Sistema</span>' : ''}
                                     </div>
                                     <div class="expense-meta-mobile">
@@ -1005,9 +1029,7 @@
             form.dataset.editId = id;
             const submitButton = form.querySelector('button[type="submit"]');
             submitButton.textContent = "Actualizar gasto";
-            setTableFormExpanded(true);
-            
-            form.scrollIntoView({ behavior: 'smooth' });
+            setExpenseFormVisible(true);
         }
 
         function closeAllRowMenus(exceptContainer = null) {
@@ -1173,10 +1195,10 @@
             const movementType = movementTypeSelect.value || 'expense';
             const cardOption = sourceSelect.querySelector('option[value="TARJETA"]');
             const cashOption = sourceSelect.querySelector('option[value="EFECTIVO"]');
-            const isIncome = movementType === 'income';
-            if (cardOption) cardOption.disabled = isIncome;
-            if (cashOption) cashOption.disabled = isIncome;
-            if (isIncome && (sourceSelect.value === 'TARJETA' || sourceSelect.value === 'EFECTIVO')) {
+            const isBalanceIncome = movementType === 'income' || movementType === 'refund';
+            if (cardOption) cardOption.disabled = isBalanceIncome;
+            if (cashOption) cashOption.disabled = isBalanceIncome;
+            if (isBalanceIncome && (sourceSelect.value === 'TARJETA' || sourceSelect.value === 'EFECTIVO')) {
                 sourceSelect.value = 'CA';
             }
         }
@@ -1190,11 +1212,11 @@
                 return;
             }
             if (movementType === 'refund') {
-                sourceImpactHint.textContent = 'Reintegro: suma Balance ahora en el modo actual.';
+                sourceImpactHint.textContent = 'Reintegro: suma Balance ahora. Medio disponible: Transferencia / Debito.';
                 return;
             }
             if (source === 'TARJETA') {
-                sourceImpactHint.textContent = 'Gasto en tarjeta credito: no descuenta Balance ahora. Suma a Tarjeta por pagar.';
+                sourceImpactHint.textContent = 'Gasto en tarjeta credito: no descuenta Balance ahora. Suma a Tarjeta por pagar (usa el modulo para registrar pagos).';
                 return;
             }
             if (source === 'EFECTIVO') {
@@ -1208,6 +1230,17 @@
             syncSourceOptionsByFlow();
             toggleCardInput();
             updateSourceImpactHint();
+            syncMovementTypePills();
+        }
+
+        function setTableDateToToday() {
+            const dateInput = document.getElementById('date');
+            if (!dateInput) return;
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}`;
         }
 
         function highlightText(text, query) {
@@ -1255,7 +1288,6 @@
         async function initialize() {
             try {
                 showAllMobileRows = false;
-                updateTableFormVisibilityOnViewport();
                 const cachedConfigEntry = readConfigCache();
                 const cachedConfig = cachedConfigEntry?.config || null;
                 if (cachedConfig) {
@@ -1297,6 +1329,9 @@
                 updatePeriodModeBadge();
                 setActiveDataView(getRequestedDataViewFromURL());
                 setupTagInput();
+                if (!document.getElementById('date')?.value) {
+                    setTableDateToToday();
+                }
             } catch (error) {
                 console.error('No se pudo inicializar la tabla:', error);
                 document.getElementById('tableContainer').innerHTML = 
@@ -1336,12 +1371,17 @@
             renderFinancialCalendar();
         });
 
-        if (toggleTableExpenseFormBtn) {
-            toggleTableExpenseFormBtn.addEventListener('click', () => {
-                setTableFormExpanded(true);
-                document.getElementById('name')?.focus();
+        if (toggleExpenseFormBtn) {
+            toggleExpenseFormBtn.addEventListener('click', () => {
+                setExpenseFormVisible(true);
             });
         }
+        closeExpenseFormBtn?.addEventListener('click', () => {
+            resetTableExpenseForm({ closeForm: true });
+        });
+        expenseBackdrop?.addEventListener('click', () => {
+            resetTableExpenseForm({ closeForm: true });
+        });
 
         if (toggleMobileRowsBtn) {
             toggleMobileRowsBtn.addEventListener('click', () => {
@@ -1355,7 +1395,6 @@
                 showAllMobileRows = false;
             }
             closeAllRowMenus();
-            updateTableFormVisibilityOnViewport();
             updateTable();
         });
 
@@ -1448,13 +1487,9 @@
             if (movementTypeSelect) movementTypeSelect.value = 'expense';
             refreshSourceUX();
             syncTableSubmitButtonLabel();
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            document.getElementById('date').value = `${year}-${month}-${day}`;
+            setTableDateToToday();
             if (closeForm) {
-                setTableFormExpanded(false);
+                setExpenseFormVisible(false);
             }
         }
 
@@ -1514,7 +1549,7 @@
                 showToast('No se pudo guardar el gasto', 'error');
             }
         });
-        cancelTableExpenseFormBtn?.addEventListener('click', () => {
+        cancelExpenseFormBtn?.addEventListener('click', () => {
             resetTableExpenseForm({ closeForm: true });
         });
         document.addEventListener('DOMContentLoaded', guardAppInit(initialize));
@@ -1531,6 +1566,16 @@
             movementTypeSelect.addEventListener('change', () => {
                 syncTableSubmitButtonLabel();
                 refreshSourceUX();
+            });
+        }
+        if (movementTypePills && movementTypePills.length > 0 && movementTypeSelect) {
+            movementTypePills.forEach((button) => {
+                button.setAttribute('aria-pressed', button.classList.contains('active') ? 'true' : 'false');
+                button.addEventListener('click', () => {
+                    movementTypeSelect.value = button.dataset.movementPill || 'expense';
+                    syncTableSubmitButtonLabel();
+                    refreshSourceUX();
+                });
             });
         }
         syncTableSubmitButtonLabel();

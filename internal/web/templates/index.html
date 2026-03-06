@@ -799,7 +799,7 @@
         function calculateCarryoverByCurrency(expenses, periodStart, cutoffDate) {
             const carryoverExpenses = expenses.filter(exp => {
                 const expDate = getComparableExpenseDate(exp);
-                const source = (exp.source || '').toUpperCase();
+                const source = normalizeSourceCode(exp.source || 'CA');
                 return expDate < periodStart && expDate <= cutoffDate && (source === '' || source === 'CA');
             });
             return carryoverExpenses.reduce((acc, exp) => {
@@ -822,7 +822,7 @@
                 const expDate = getComparableExpenseDate(exp);
                 if (expDate > cutoffDate) return;
                 const currency = (exp.currency || baseCurrency).toLowerCase();
-                const source = (exp.source || '').toUpperCase();
+                const source = normalizeSourceCode(exp.source || 'CA');
                 const systemOrigin = String(exp.systemOrigin || '').toLowerCase();
                 const amount = Number(exp.amount) || 0;
                 if (source === 'TARJETA') {
@@ -1209,29 +1209,38 @@
             baseContainer.innerHTML = '';
             // Bank balance only: keep CA (or empty legacy source), exclude EFECTIVO/TARJETA.
             const cashflowExpenses = expenses.filter(exp => {
-                const source = (exp.source || '').toUpperCase();
+                const source = normalizeSourceCode(exp.source || 'CA');
                 return source === '' || source === 'CA';
             });
             const byCurrency = window.ExpenseLogCashflow && typeof window.ExpenseLogCashflow.calculateCashflowBuckets === 'function'
                 ? window.ExpenseLogCashflow.calculateCashflowBuckets(cashflowExpenses, baseCurrency)
                 : cashflowExpenses.reduce((acc, exp) => {
                     const cur = exp.currency || baseCurrency;
-                    acc[cur] = acc[cur] || { income: 0, expense: 0 };
-                    if (exp.amount > 0) acc[cur].income += exp.amount;
-                    else acc[cur].expense += Math.abs(exp.amount);
+                    const flow = resolveFlow(exp);
+                    acc[cur] = acc[cur] || { income: 0, refund: 0, expense: 0 };
+                    if (exp.amount > 0) {
+                        if (flow === 'refund') {
+                            acc[cur].refund += exp.amount;
+                        } else {
+                            acc[cur].income += exp.amount;
+                        }
+                    } else {
+                        acc[cur].expense += Math.abs(exp.amount);
+                    }
                     return acc;
                 }, {});
             const carryover = carryoverByCurrency || {};
 
             const baseData = byCurrency[baseCurrency];
             const baseCarryover = carryover[baseCurrency] || 0;
-            const baseHasValue = (baseData && (baseData.income !== 0 || baseData.expense !== 0)) || baseCarryover !== 0;
+            const baseHasValue = (baseData && (baseData.income !== 0 || baseData.refund !== 0 || baseData.expense !== 0)) || baseCarryover !== 0;
             if (baseHasValue) {
                 const baseWrapper = document.createElement('div');
                 baseWrapper.className = 'cashflow-row base-currency';
                 const baseIncome = baseData ? baseData.income : 0;
+                const baseRefund = baseData ? baseData.refund : 0;
                 const baseExpense = baseData ? baseData.expense : 0;
-                const balance = baseCarryover + baseIncome - baseExpense;
+                const balance = baseCarryover + baseIncome + baseRefund - baseExpense;
                 baseWrapper.innerHTML = `
                     <div class="cashflow-item carryover">
                         <div class="cashflow-label">Saldo inicial (CA) ${baseCurrency.toUpperCase()}</div>
@@ -1258,9 +1267,10 @@
                 const data = byCurrency[cur];
                 const carry = carryover[cur] || 0;
                 const income = data ? data.income : 0;
+                const refund = data ? data.refund : 0;
                 const expense = data ? data.expense : 0;
-                const balance = carry + income - expense;
-                if (balance === 0 && income === 0 && expense === 0 && carry === 0) return;
+                const balance = carry + income + refund - expense;
+                if (balance === 0 && income === 0 && refund === 0 && expense === 0 && carry === 0) return;
                 const row = document.createElement('div');
                 row.className = 'cashflow-row';
                 row.innerHTML = `
@@ -1612,7 +1622,7 @@
             const monthExpenses = Array.isArray(periodExpenses) ? periodExpenses : getVisiblePeriodExpenses(allExpenses);
             return monthExpenses.filter(exp => {
                 const currencyMatch = filterCurrency === 'all' || (exp.currency || baseCurrency) === filterCurrency;
-                const source = (exp.source || '').toUpperCase();
+                const source = normalizeSourceCode(exp.source || 'CA');
                 const sourceMatch = filterSource === 'all'
                     || (filterSource === 'CA' && (source === '' || source === 'CA'))
                     || source === filterSource;
@@ -1636,10 +1646,10 @@
             const movementType = movementTypeSelect.value || 'expense';
             const cardOption = sourceSelect.querySelector('option[value="TARJETA"]');
             const cashOption = sourceSelect.querySelector('option[value="EFECTIVO"]');
-            const isIncome = movementType === 'income';
-            if (cardOption) cardOption.disabled = isIncome;
-            if (cashOption) cashOption.disabled = isIncome;
-            if (isIncome && (sourceSelect.value === 'TARJETA' || sourceSelect.value === 'EFECTIVO')) {
+            const isBalanceIncome = movementType === 'income' || movementType === 'refund';
+            if (cardOption) cardOption.disabled = isBalanceIncome;
+            if (cashOption) cashOption.disabled = isBalanceIncome;
+            if (isBalanceIncome && (sourceSelect.value === 'TARJETA' || sourceSelect.value === 'EFECTIVO')) {
                 sourceSelect.value = 'CA';
             }
         }
@@ -1653,7 +1663,7 @@
                 return;
             }
             if (movementType === 'refund') {
-                sourceImpactHint.textContent = 'Reintegro: suma Balance ahora en el modo actual.';
+                sourceImpactHint.textContent = 'Reintegro: suma Balance ahora. Medio disponible: Transferencia / Debito.';
                 return;
             }
             if (source === 'TARJETA') {

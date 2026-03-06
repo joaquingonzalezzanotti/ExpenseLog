@@ -27,13 +27,16 @@ test("reversion de conciliacion negativa deshace gastos", () => {
 test("movimientos comunes siguen igual por signo", () => {
     const buckets = CashflowUI.calculateCashflowBuckets([
         { amount: 25000, currency: "ars", source: "CA" },
+        { amount: 3000, flow: "refund", currency: "ars", source: "CA" },
         { amount: -8000, currency: "ars", source: "CA" },
         { amount: -1000, currency: "ars", source: "EFECTIVO" }, // fuera de CA: ignorado
         { amount: 2000, currency: "usd", source: "CA" },
     ], "ars");
 
     assert.equal(buckets.ars.income, 25000);
+    assert.equal(buckets.ars.refund, 3000);
     assert.equal(buckets.ars.expense, 8000);
     assert.equal(buckets.usd.income, 2000);
+    assert.equal(buckets.usd.refund, 0);
     assert.equal(buckets.usd.expense, 0);
 });

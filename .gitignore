@@ -4,3 +4,4 @@ main
 .vscode
 BACKLOG.md
 email-previews/
+node_modules/

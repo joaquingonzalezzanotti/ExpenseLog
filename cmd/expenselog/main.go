@@ -79,6 +79,7 @@ func runServer(port int) {
 	http.HandleFunc("/app/recurrentes", handler.ServeSettingsRecurringPage)
 	http.HandleFunc("/app/conciliacion", handler.ServeSettingsReconciliationPage)
 	http.HandleFunc("/app/reportes", handler.ServeSettingsReportsPage)
+	http.HandleFunc("/app/telegram", handler.ServeSettingsTelegramPage)
 	http.HandleFunc("/table", handler.ServeTableView)
 	http.HandleFunc("/settings", handler.ServeSettingsPage)
 	http.HandleFunc("/perfil", handler.ServeSettingsPage)
@@ -86,6 +87,7 @@ func runServer(port int) {
 	http.HandleFunc("/recurrentes", handler.ServeSettingsRecurringPage)
 	http.HandleFunc("/conciliacion", handler.ServeSettingsReconciliationPage)
 	http.HandleFunc("/reportes", handler.ServeSettingsReportsPage)
+	http.HandleFunc("/telegram", handler.ServeSettingsTelegramPage)
 
 	// Static File Handlers
 	staticPaths := []string{
@@ -131,6 +133,9 @@ func runServer(port int) {
 	registerAPI("/currency/edit", handler.RequireAuth(handler.UpdateCurrency))
 	registerAPI("/startdate", handler.RequireAuth(handler.GetStartDate))
 	registerAPI("/startdate/edit", handler.RequireAuth(handler.UpdateStartDate))
+	registerAPI("/telegram/link-status", handler.RequireAuth(handler.GetTelegramLinkStatus))
+	registerAPI("/telegram/link-code", handler.RequireAuth(handler.CreateTelegramLinkCode))
+	registerAPI("/telegram/refresh-status", handler.RequireAuth(handler.RefreshTelegramLinkStatus))
 	// http.HandleFunc("/tags", handler.GetTags)
 	// http.HandleFunc("/tags/edit", handler.UpdateTags)
 
@@ -162,6 +167,11 @@ func runServer(port int) {
 	registerAPI("/export/monthly/pdf", handler.RequireAuth(handler.ExportMonthlyPDF))
 	registerAPI("/import/csv", handler.RequireAuth(handler.CSVFeatureDisabled))
 	registerAPI("/import/csvold", handler.RequireAuth(handler.CSVFeatureDisabled))
+
+	// Telegram bot internal API
+	registerAPI("/bot/telegram/consume-link-code", handler.RequireBotAuth(handler.ConsumeTelegramLinkCode))
+	registerAPI("/bot/telegram/link-status", handler.RequireBotAuth(handler.GetBotTelegramLinkStatus))
+	registerAPI("/bot/expense", handler.RequireBotAuth(handler.CreateBotExpense))
 
 	server := &http.Server{
 		Addr:              fmt.Sprint(":", port),

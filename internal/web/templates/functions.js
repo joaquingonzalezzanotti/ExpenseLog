@@ -21,14 +21,14 @@ function normalizeSourceCode(source) {
     if (code === '' || code === 'CA') return 'CA';
     if (code === 'TARJETA') return 'TARJETA';
     if (code === 'EFECTIVO') return 'EFECTIVO';
-    return code;
+    return 'CA';
 }
 
 function formatSourceLabel(source) {
     const code = normalizeSourceCode(source);
     if (code === 'CA') return 'Transferencia / Debito';
-    if (code === 'TARJETA') return 'Tarjeta credito';
-    if (code === 'EFECTIVO') return 'Efectivo (registro)';
+    if (code === 'TARJETA') return 'Tarjeta de credito';
+    if (code === 'EFECTIVO') return 'Efectivo (solo registro)';
     return code || '-';
 }
 
@@ -48,7 +48,7 @@ let currentVisibleNotificationItems = [];
 let notificationCenterDisabled = false;
 let notificationCenterFetchWarned = false;
 
-const API_ROUTE_REGEX = /^\/(auth|config|categories|currency|startdate|reconciliation|expense|expenses|recurring-expense|recurring-expenses|alerts|export|import|version|card)(\/|$)/;
+const API_ROUTE_REGEX = /^\/(auth|config|categories|currency|startdate|reconciliation|expense|expenses|recurring-expense|recurring-expenses|alerts|export|import|version|card|telegram)(\/|$)/;
 const originalFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : null;
 if (originalFetch) {
     window.fetch = (input, init) => {
@@ -716,6 +716,7 @@ function setupMobileDrawer() {
             '/recurrentes': '/app/recurrentes',
             '/conciliacion': '/app/conciliacion',
             '/reportes': '/app/reportes',
+            '/telegram': '/app/telegram',
             '/app/settings': '/app/perfil',
         };
         const canonicalPath = aliases[cleanedPath] || cleanedPath;
@@ -913,9 +914,9 @@ function setupRoutePrefetch() {
             return ['/app/table?view=calendar', '/app', '/app/reportes', '/app/perfil'];
         }
         if (path.startsWith('/app/perfil') || path.startsWith('/app/settings')) {
-            return ['/app/reportes', '/app/table', '/app/categorias', '/app/recurrentes', '/app'];
+            return ['/app/reportes', '/app/telegram', '/app/table', '/app/categorias', '/app/recurrentes', '/app'];
         }
-        if (path.startsWith('/app/categorias') || path.startsWith('/app/recurrentes') || path.startsWith('/app/conciliacion') || path.startsWith('/app/reportes')) {
+        if (path.startsWith('/app/categorias') || path.startsWith('/app/recurrentes') || path.startsWith('/app/conciliacion') || path.startsWith('/app/reportes') || path.startsWith('/app/telegram')) {
             return ['/app/perfil', '/app/table', '/app/table?view=calendar', '/app'];
         }
         return ['/app', '/app/table', '/app/table?view=calendar', '/app/reportes'];

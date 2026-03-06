@@ -1,0 +1,147 @@
+import { config } from '../config.js';
+export class ExpenseLogAPIError extends Error {
+    status;
+    code;
+    constructor(status, message, code) {
+        super(message);
+        this.name = 'ExpenseLogAPIError';
+        this.status = status;
+        this.code = code;
+    }
+}
+export class ExpenseLogAdapter {
+    async createTransaction(payload) {
+        if (config.expenselogAdapterMode === 'transactions_api') {
+            return this.createViaTransactionsAPI(payload);
+        }
+        return this.createViaExpenseAPI(payload);
+    }
+    async consumeLinkCode(payload) {
+        const response = await fetch(this.buildURL(config.expenselogBotConsumeLinkCodePath), {
+            method: 'POST',
+            headers: this.botHeaders(),
+            body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+            throw await this.readAPIError(response, 'ExpenseLog consume-link-code failed');
+        }
+    }
+    async getTelegramLinkStatus(telegramUserID) {
+        const response = await fetch(this.buildURL(config.expenselogBotLinkStatusPath), {
+            method: 'POST',
+            headers: this.botHeaders(),
+            body: JSON.stringify({ telegram_user_id: telegramUserID })
+        });
+        if (!response.ok) {
+            throw await this.readAPIError(response, 'ExpenseLog link-status failed');
+        }
+        return (await response.json());
+    }
+    async createBotExpense(payload) {
+        const response = await fetch(this.buildURL(config.expenselogBotExpensePath), {
+            method: 'POST',
+            headers: this.botHeaders(),
+            body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+            throw await this.readAPIError(response, 'ExpenseLog bot-expense API error');
+        }
+        const data = (await response.json());
+        if (!data.transaction_id) {
+            throw new Error('ExpenseLog bot-expense API returned no transaction_id');
+        }
+        if (!data.url) {
+            data.url = `${String(config.expenselogWebBaseUrl || '').replace(/\/+$/, '')}/app/table`;
+        }
+        return data;
+    }
+    async readAPIError(response, fallback) {
+        const payload = (await response.json().catch(() => ({})));
+        return new ExpenseLogAPIError(response.status, payload.error || fallback, payload.code);
+    }
+    baseHeaders() {
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        if (config.expenselogApiToken) {
+            headers.Authorization = `Bearer ${config.expenselogApiToken}`;
+        }
+        if (config.expenselogSessionCookie) {
+            headers.Cookie = `expense_session=${config.expenselogSessionCookie}`;
+        }
+        if (!headers.Authorization && !headers.Cookie) {
+            throw new Error('ExpenseLog auth is missing. Set EXPENSELOG_API_TOKEN or EXPENSELOG_SESSION_COOKIE.');
+        }
+        return headers;
+    }
+    botHeaders() {
+        if (!config.expenselogBotInternalSecret) {
+            throw new Error('Missing EXPENSELOG_BOT_INTERNAL_SECRET for bot integration.');
+        }
+        return {
+            'Content-Type': 'application/json',
+            'X-ExpenseLog-Bot-Secret': config.expenselogBotInternalSecret
+        };
+    }
+    buildURL(pathname) {
+        const base = String(config.expenselogApiBaseUrl || '').replace(/\/+$/, '');
+        const path = String(pathname || '').startsWith('/') ? pathname : `/${pathname}`;
+        return `${base}${path}`;
+    }
+    buildExpenseAPIPayload(payload) {
+        const directionLabel = payload.type === 'income' ? 'de' : 'a';
+        const fallbackName = `Transferencia ${directionLabel} ${payload.counterparty}`.trim();
+        const motive = String(payload.motive || '').trim();
+        const name = motive ? `${fallbackName} - ${motive}` : fallbackName;
+        const category = payload.category || (payload.type === 'income'
+            ? config.expenselogDefaultIncomeCategory
+            : config.expenselogDefaultExpenseCategory);
+        return {
+            name,
+            category,
+            amount: Math.abs(payload.amount),
+            currency: String(payload.currency || 'ARS').toLowerCase(),
+            source: config.expenselogDefaultSource,
+            flow: payload.type,
+            tags: Array.isArray(payload.tags) ? payload.tags : [],
+            date: payload.datetime_iso
+        };
+    }
+    async createViaTransactionsAPI(payload) {
+        const response = await fetch(this.buildURL(config.expenselogTransactionsPath), {
+            method: 'POST',
+            headers: this.baseHeaders(),
+            body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+            throw new Error(`ExpenseLog transactions API error: ${response.status}`);
+        }
+        const data = (await response.json());
+        if (!data.transaction_id) {
+            throw new Error('ExpenseLog transactions API returned no transaction_id');
+        }
+        if (!data.url) {
+            data.url = `${String(config.expenselogWebBaseUrl || '').replace(/\/+$/, '')}/app/table`;
+        }
+        return data;
+    }
+    async createViaExpenseAPI(payload) {
+        const response = await fetch(this.buildURL(config.expenselogExpensePath), {
+            method: 'PUT',
+            headers: this.baseHeaders(),
+            body: JSON.stringify(this.buildExpenseAPIPayload(payload))
+        });
+        if (!response.ok) {
+            throw new Error(`ExpenseLog expense API error: ${response.status}`);
+        }
+        const data = (await response.json());
+        const transactionID = String(data.id || '').trim();
+        if (!transactionID) {
+            throw new Error('ExpenseLog expense API returned no id');
+        }
+        return {
+            transaction_id: transactionID,
+            url: `${String(config.expenselogWebBaseUrl || '').replace(/\/+$/, '')}/app/table`
+        };
+    }
+}

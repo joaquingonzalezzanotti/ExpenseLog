@@ -836,6 +836,13 @@
             return balanceById;
         }
 
+        function isTelegramBotExpense(expense) {
+            const origin = String(expense?.systemOrigin || '').trim().toLowerCase();
+            if (origin === 'telegram_bot') return true;
+            if (!Array.isArray(expense?.tags)) return false;
+            return expense.tags.some(tag => String(tag || '').trim().toLowerCase() === 'telegram_bot');
+        }
+
         function createTable(expenses, runningBalances) {
             if (!expenses || expenses.length === 0) {
                 const message = document.getElementById('showAllToggle').checked ? 
@@ -864,12 +871,14 @@
                             const amountFlowClass = resolveFlow(expense) === 'expense' ? 'is-expense' : 'is-income';
                             const sourceCode = normalizeSourceCode(expense.source || 'CA');
                             const sourceLabel = formatSourceLabel(sourceCode);
+                            const isTelegramExpense = isTelegramBotExpense(expense);
                             return `
                             <tr>
                                 <td>
                                     <div class="expense-name-cell">
                                         <span class="expense-name-text">${highlightText(expense.name, searchQuery)}</span>
                                         ${expense.recurringID ? '<span class="recurring-badge">Recurrente</span>' : ''}
+                                        ${isTelegramExpense ? '<span class="recurring-badge">BotTelegram</span>' : ''}
                                         ${expense.systemLocked ? '<span class="recurring-badge">Sistema</span>' : ''}
                                     </div>
                                     <div class="expense-meta-mobile">

@@ -35,20 +35,20 @@ const ConfidenceSchema = z.object({
     datetime_iso: z.number().min(0).max(1),
     counterparty: z.number().min(0).max(1),
     overall: z.number().min(0).max(1),
-});
+}).partial();
 const TransactionSchema = z.object({
-    type: z.enum(["income", "expense"]),
-    amount: z.number().finite().refine((value) => value !== 0, "amount must be non-zero"),
-    currency: z.literal("ARS"),
+    type: z.enum(["income", "expense", "refund"]).optional(),
+    amount: z.number().finite().optional(),
+    currency: z.literal("ARS").optional(),
     datetime_iso: z
         .string()
-        .min(1)
-        .refine((value) => !Number.isNaN(Date.parse(value)), "datetime_iso must be a valid ISO date"),
-    counterparty: z.string().min(1),
+        .optional()
+        .refine((value) => !value || !Number.isNaN(Date.parse(value)), "datetime_iso must be a valid ISO date"),
+    counterparty: z.string().optional(),
     reference: z.string().optional(),
     motive: z.string().optional(),
-    source_app: z.enum(["MODO", "BANK", "WALLET", "UNKNOWN"]),
-    confidence: ConfidenceSchema,
+    source_app: z.enum(["MODO", "BANK", "WALLET", "UNKNOWN"]).optional(),
+    confidence: ConfidenceSchema.optional(),
     missing_required: z.array(z.string()).default([]),
     warnings: z.array(z.string()).default([]),
 });
@@ -193,6 +193,163 @@ function parseModelJSON(rawResponseText) {
     }
     return JSON.parse(trimmed);
 }
+function normalizeForMatch(raw) {
+    return String(raw ?? "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .toLowerCase();
+}
+function pickFirstNonEmptyString(...values) {
+    for (const value of values) {
+        const normalized = String(value ?? "").trim();
+        if (normalized)
+            return normalized;
+    }
+    return undefined;
+}
+function normalizeType(raw) {
+    const value = normalizeForMatch(raw);
+    if (!value)
+        return undefined;
+    if (["income", "ingreso", "entrada", "credito", "cobro", "deposito", "recibido"].includes(value)) {
+        return "income";
+    }
+    if (["expense", "gasto", "egreso", "salida", "debito", "pago"].includes(value)) {
+        return "expense";
+    }
+    if (["refund", "reintegro", "devolucion", "cashback"].includes(value)) {
+        return "refund";
+    }
+    return undefined;
+}
+function normalizeSourceApp(raw) {
+    const value = String(raw || "").trim().toUpperCase();
+    if (value === "MODO")
+        return "MODO";
+    if (value === "BANK")
+        return "BANK";
+    if (value === "WALLET")
+        return "WALLET";
+    return "UNKNOWN";
+}
+function normalizeAmount(raw) {
+    if (typeof raw === "number" && Number.isFinite(raw))
+        return raw;
+    const value = String(raw || "").trim();
+    if (!value)
+        return undefined;
+    const cleaned = value.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+    const parsed = Number(cleaned);
+    if (!Number.isFinite(parsed))
+        return undefined;
+    return parsed;
+}
+function inferTypeFromText(text) {
+    const value = normalizeForMatch(text);
+    if (!value)
+        return undefined;
+    if (/\b(reintegro|devolucion|cashback)\b/.test(value))
+        return "refund";
+    if (/\b(cobre|recibi|ingrese|depositaron|me transfirieron)\b/.test(value))
+        return "income";
+    if (/\b(gaste|pague|compre|pago)\b/.test(value))
+        return "expense";
+    return undefined;
+}
+function inferAmountFromText(text) {
+    const value = String(text || "");
+    const withCurrency = value.match(/\$\s*([\d\.,]+)/);
+    const generic = value.match(/\b(\d[\d\.,]*)\b/);
+    return normalizeAmount(withCurrency?.[1] || generic?.[1] || "");
+}
+function inferCounterpartyFromText(text) {
+    const value = String(text || "").trim();
+    if (!value)
+        return undefined;
+    const toOrAt = value.match(/\b(?:en|a)\s+(.+)$/i)?.[1]?.trim();
+    if (toOrAt)
+        return toOrAt;
+    return undefined;
+}
+function normalizeDateTime(raw) {
+    const value = String(raw || "").trim();
+    if (!value)
+        return undefined;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime()))
+        return undefined;
+    return parsed.toISOString();
+}
+function normalizeConfidence(raw, fallbackOverall) {
+    const fromObject = typeof raw === "object" && raw !== null ? raw : {};
+    const asNumber = (key, fallback) => {
+        const n = Number(fromObject[key]);
+        if (Number.isFinite(n))
+            return Math.max(0, Math.min(1, n));
+        return fallback;
+    };
+    return {
+        type: asNumber("type", fallbackOverall),
+        amount: asNumber("amount", fallbackOverall),
+        datetime_iso: asNumber("datetime_iso", fallbackOverall),
+        counterparty: asNumber("counterparty", fallbackOverall),
+        overall: asNumber("overall", fallbackOverall),
+    };
+}
+function normalizeModelOutput(raw, inputText, contextDateISO) {
+    const source = typeof raw === "object" && raw !== null ? raw : {};
+    const warnings = [];
+    const missingRequired = [];
+    const modelType = normalizeType(source.type ?? source.flow ?? source.direction ?? source.movement_type);
+    const inferredType = inferTypeFromText(inputText);
+    const type = modelType || inferredType;
+    if (!type) {
+        missingRequired.push("type");
+    }
+    else if (!modelType && inferredType) {
+        warnings.push("Tipo inferido por texto.");
+    }
+    const modelAmount = normalizeAmount(source.amount ?? source.total ?? source.monto);
+    const inferredAmount = inferAmountFromText(inputText);
+    const amount = (typeof modelAmount === "number" && modelAmount !== 0) ? modelAmount : inferredAmount;
+    if (!(typeof amount === "number" && Number.isFinite(amount) && amount !== 0)) {
+        missingRequired.push("amount");
+    }
+    else if (!(typeof modelAmount === "number" && modelAmount !== 0) && typeof inferredAmount === "number") {
+        warnings.push("Monto inferido por texto.");
+    }
+    const directDate = normalizeDateTime(source.datetime_iso ?? source.date_time_iso ?? source.date_time ?? source.datetime ?? source.fecha_hora ?? source.date);
+    const datetimeISO = directDate || contextDateISO;
+    if (!directDate) {
+        warnings.push("Fecha y hora inferidas.");
+    }
+    const inferredCounterparty = inferCounterpartyFromText(inputText);
+    const counterparty = pickFirstNonEmptyString(source.counterparty, source.merchant, source.comercio, source.destination, source.destino, source.recipient, inferredCounterparty);
+    if (!counterparty) {
+        missingRequired.push("counterparty");
+    }
+    else if (!pickFirstNonEmptyString(source.counterparty, source.merchant, source.comercio, source.destination, source.destino, source.recipient) &&
+        inferredCounterparty) {
+        warnings.push("Contraparte inferida por texto.");
+    }
+    const sourceApp = normalizeSourceApp(source.source_app ?? source.source ?? source.provider ?? source.payment_method ?? source.method);
+    const overallConfidence = missingRequired.length > 0 ? 0.45 : 0.82;
+    const confidence = normalizeConfidence(source.confidence ?? source.score, overallConfidence);
+    return {
+        type,
+        amount,
+        currency: "ARS",
+        datetime_iso: datetimeISO,
+        counterparty,
+        reference: pickFirstNonEmptyString(source.reference, source.ref, source.operation_id, source.comprobante),
+        motive: pickFirstNonEmptyString(source.motive, source.description, source.concept, source.detalle),
+        source_app: sourceApp,
+        confidence,
+        missing_required: Array.from(new Set(missingRequired)),
+        warnings: Array.from(new Set([...(Array.isArray(source.warnings) ? source.warnings.map((item) => String(item)) : []), ...warnings])),
+    };
+}
 class AIService {
     ai;
     constructor(apiKey) {
@@ -221,7 +378,8 @@ class AIService {
             },
         });
         const parsed = parseModelJSON(response.text || "");
-        return TransactionSchema.parse(parsed);
+        const normalized = normalizeModelOutput(parsed, input.text, input.contextDateISO);
+        return TransactionSchema.parse(normalized);
     }
 }
 const app = express();

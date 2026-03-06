@@ -230,6 +230,7 @@ func filterExpensesForMonthlyReport(expenses []storage.Expense, query monthlyRep
 
 func calculateMonthlyReportMetrics(expenses []storage.Expense) monthlyReportMetrics {
 	var income float64
+	var refund float64
 	var expense float64
 	var rawCardTotals float64
 	var ownerPayments float64
@@ -237,10 +238,15 @@ func calculateMonthlyReportMetrics(expenses []storage.Expense) monthlyReportMetr
 	for _, exp := range expenses {
 		source := normalizeReportSource(exp.Source)
 		amount := exp.Amount
+		flow := normalizeReportFlow(exp.Flow, amount)
 
 		if source == "CA" {
 			if amount > 0 {
-				income += amount
+				if flow == "refund" {
+					refund += amount
+				} else {
+					income += amount
+				}
 			}
 			if amount < 0 {
 				expense += math.Abs(amount)
@@ -263,7 +269,7 @@ func calculateMonthlyReportMetrics(expenses []storage.Expense) monthlyReportMetr
 		TransactionCount: len(expenses),
 		Income:           income,
 		Expense:          expense,
-		NetBalance:       income - expense,
+		NetBalance:       income + refund - expense,
 		CardPending:      cardPending,
 	}
 }
@@ -849,6 +855,17 @@ func formatFlowLabel(flow string) string {
 	default:
 		return "Gasto"
 	}
+}
+
+func normalizeReportFlow(flow string, amount float64) string {
+	normalized := strings.ToLower(strings.TrimSpace(flow))
+	if normalized != "" {
+		return normalized
+	}
+	if amount >= 0 {
+		return "income"
+	}
+	return "expense"
 }
 
 func trimForPDF(value string, max int) string {

@@ -5,3 +5,5 @@ main
 BACKLOG.md
 email-previews/
 node_modules/
+.gocache/
+.gomodcache/

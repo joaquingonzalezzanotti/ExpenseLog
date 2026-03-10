@@ -174,6 +174,16 @@ const (
 		used_telegram_username TEXT
 	);`
 
+	createWalletIngestTokensTableSQL = `
+	CREATE TABLE IF NOT EXISTS wallet_ingest_tokens (
+		id VARCHAR(36) PRIMARY KEY,
+		user_id VARCHAR(36) NOT NULL,
+		token_hash VARCHAR(128) NOT NULL,
+		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		last_used_at TIMESTAMPTZ
+	);`
+
 	createWalletIngestEventsTableSQL = `
 	CREATE TABLE IF NOT EXISTS wallet_ingest_events (
 		id VARCHAR(36) PRIMARY KEY,
@@ -239,6 +249,7 @@ func createTables(db *sql.DB) error {
 		createCategoriesTableSQL,
 		createTelegramUserLinksTableSQL,
 		createTelegramLinkCodesTableSQL,
+		createWalletIngestTokensTableSQL,
 		createWalletIngestEventsTableSQL,
 	} {
 		if _, err := db.Exec(query); err != nil {
@@ -275,6 +286,10 @@ func createTables(db *sql.DB) error {
 		"ALTER TABLE telegram_link_codes ADD COLUMN IF NOT EXISTS used_at TIMESTAMPTZ",
 		"ALTER TABLE telegram_link_codes ADD COLUMN IF NOT EXISTS used_by_telegram_user_id BIGINT",
 		"ALTER TABLE telegram_link_codes ADD COLUMN IF NOT EXISTS used_telegram_username TEXT",
+		"ALTER TABLE wallet_ingest_tokens ADD COLUMN IF NOT EXISTS token_hash VARCHAR(128)",
+		"ALTER TABLE wallet_ingest_tokens ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+		"ALTER TABLE wallet_ingest_tokens ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+		"ALTER TABLE wallet_ingest_tokens ADD COLUMN IF NOT EXISTS last_used_at TIMESTAMPTZ",
 		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS merchant_raw TEXT",
 		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS card_label TEXT",
 		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS wallet_category TEXT",
@@ -346,6 +361,15 @@ func createTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS telegram_link_codes_user_created_idx ON telegram_link_codes (user_id, created_at DESC)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS wallet_ingest_tokens_user_key ON wallet_ingest_tokens (user_id)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS wallet_ingest_tokens_token_hash_key ON wallet_ingest_tokens (token_hash)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS wallet_ingest_tokens_user_updated_idx ON wallet_ingest_tokens (user_id, updated_at DESC)`); err != nil {
 		return err
 	}
 	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS wallet_ingest_events_user_paid_at_idx ON wallet_ingest_events (user_id, paid_at)`); err != nil {
@@ -433,6 +457,7 @@ func ensureForeignKeys(db *sql.DB) error {
 		{name: "reconciliations_user_fk", table: "reconciliations", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "telegram_user_links_user_fk", table: "telegram_user_links", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "telegram_link_codes_user_fk", table: "telegram_link_codes", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
+		{name: "wallet_ingest_tokens_user_fk", table: "wallet_ingest_tokens", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "wallet_ingest_events_user_fk", table: "wallet_ingest_events", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "reconciliations_adjustment_fk", table: "reconciliations", column: "adjustment_expense_id", refTable: "expenses", refColumn: "id", onDelete: "RESTRICT"},
 		{name: "reconciliations_reversal_fk", table: "reconciliations", column: "reversal_expense_id", refTable: "expenses", refColumn: "id", onDelete: "RESTRICT"},
@@ -1203,6 +1228,26 @@ func scanTelegramLinkCode(scanner interface{ Scan(...any) error }) (TelegramLink
 	return code, nil
 }
 
+func scanWalletIngestToken(scanner interface{ Scan(...any) error }) (WalletIngestToken, error) {
+	var token WalletIngestToken
+	var lastUsed sql.NullTime
+	if err := scanner.Scan(
+		&token.ID,
+		&token.UserID,
+		&token.TokenHash,
+		&token.CreatedAt,
+		&token.UpdatedAt,
+		&lastUsed,
+	); err != nil {
+		return WalletIngestToken{}, err
+	}
+	if lastUsed.Valid {
+		value := lastUsed.Time
+		token.LastUsedAt = &value
+	}
+	return token, nil
+}
+
 func (s *databaseStore) GetTelegramUserLinkByUserID(userID string) (TelegramUserLink, error) {
 	query := `
 		SELECT id, user_id, telegram_user_id, telegram_username, created_at, updated_at
@@ -1410,6 +1455,77 @@ func (s *databaseStore) ConsumeTelegramLinkCode(codeHash string, telegramUserID 
 		return TelegramUserLink{}, err
 	}
 	return link, nil
+}
+
+func (s *databaseStore) GetActiveWalletIngestTokenByUserID(userID string) (WalletIngestToken, error) {
+	query := `
+		SELECT id, user_id, token_hash, created_at, updated_at, last_used_at
+		FROM wallet_ingest_tokens
+		WHERE user_id = $1
+		LIMIT 1
+	`
+	token, err := scanWalletIngestToken(s.db.QueryRow(query, userID))
+	if err != nil {
+		return WalletIngestToken{}, err
+	}
+	return token, nil
+}
+
+func (s *databaseStore) UpsertWalletIngestToken(userID, tokenHash string, now time.Time) (WalletIngestToken, error) {
+	token := WalletIngestToken{
+		ID:        uuid.New().String(),
+		UserID:    userID,
+		TokenHash: tokenHash,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	query := `
+		INSERT INTO wallet_ingest_tokens (
+			id, user_id, token_hash, created_at, updated_at, last_used_at
+		) VALUES ($1, $2, $3, $4, $5, NULL)
+		ON CONFLICT (user_id)
+		DO UPDATE SET
+			token_hash = EXCLUDED.token_hash,
+			created_at = EXCLUDED.created_at,
+			updated_at = EXCLUDED.updated_at,
+			last_used_at = NULL
+		RETURNING id, user_id, token_hash, created_at, updated_at, last_used_at
+	`
+	upserted, err := scanWalletIngestToken(s.db.QueryRow(
+		query,
+		token.ID,
+		token.UserID,
+		token.TokenHash,
+		token.CreatedAt,
+		token.UpdatedAt,
+	))
+	if err != nil {
+		return WalletIngestToken{}, err
+	}
+	return upserted, nil
+}
+
+func (s *databaseStore) GetWalletIngestTokenByHash(tokenHash string) (WalletIngestToken, error) {
+	query := `
+		SELECT id, user_id, token_hash, created_at, updated_at, last_used_at
+		FROM wallet_ingest_tokens
+		WHERE token_hash = $1
+		LIMIT 1
+	`
+	token, err := scanWalletIngestToken(s.db.QueryRow(query, tokenHash))
+	if err != nil {
+		return WalletIngestToken{}, err
+	}
+	return token, nil
+}
+
+func (s *databaseStore) TouchWalletIngestTokenLastUsed(tokenID string, usedAt time.Time) error {
+	_, err := s.db.Exec(
+		`UPDATE wallet_ingest_tokens SET last_used_at = $2, updated_at = NOW() WHERE id = $1`,
+		tokenID,
+		usedAt,
+	)
+	return err
 }
 
 func (s *databaseStore) GetCategories(userID string) ([]string, error) {

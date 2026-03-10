@@ -1,14 +1,17 @@
 package api
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
-	"github.com/google/uuid"
 	"math"
 	"net/http"
-	"os"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/storage"
 )
@@ -27,6 +30,7 @@ const (
 	walletDraftSource              = "APPLE_WALLET_SHORTCUT"
 	walletDraftFallbackName        = "Apple Wallet purchase"
 	walletDraftCategoryNeedsReview = "Por revisar"
+	walletIngestTokenBytes         = 24
 )
 
 type appleWalletIngestRequest struct {
@@ -43,6 +47,18 @@ type appleWalletIngestRequest struct {
 type appleWalletDebugResponse struct {
 	Status  string `json:"status"`
 	EventID string `json:"eventId"`
+}
+
+type appleWalletTokenStatusResponse struct {
+	Premium   bool       `json:"premium"`
+	HasToken  bool       `json:"has_token"`
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+	LastUsed  *time.Time `json:"last_used_at,omitempty"`
+}
+
+type appleWalletCreateTokenResponse struct {
+	Token     string    `json:"token"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func normalizeMerchant(raw string) string {
@@ -79,27 +95,17 @@ func isWalletPayloadSufficient(payload appleWalletIngestRequest, merchant string
 	return strings.TrimSpace(payload.CardLabel) != "" && !payload.PaidAt.IsZero()
 }
 
-func walletIngestTokenMapFromEnv() map[string]string {
-	raw := strings.TrimSpace(os.Getenv("EXPENSELOG_SHORTCUT_INGEST_TOKENS"))
-	pairs := strings.Split(raw, ",")
-	tokens := make(map[string]string, len(pairs))
-	for _, pair := range pairs {
-		entry := strings.TrimSpace(pair)
-		if entry == "" {
-			continue
-		}
-		parts := strings.SplitN(entry, ":", 2)
-		if len(parts) != 2 {
-			continue
-		}
-		userID := strings.TrimSpace(parts[0])
-		token := strings.TrimSpace(parts[1])
-		if userID == "" || token == "" {
-			continue
-		}
-		tokens[token] = userID
+func hashWalletIngestToken(raw string) string {
+	sum := sha256.Sum256([]byte(raw))
+	return hex.EncodeToString(sum[:])
+}
+
+func newWalletIngestToken() (string, error) {
+	buf := make([]byte, walletIngestTokenBytes)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
 	}
-	return tokens
+	return hex.EncodeToString(buf), nil
 }
 
 func readShortcutBearerToken(r *http.Request) string {
@@ -167,17 +173,112 @@ func (h *Handler) AppleWalletDebug(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, appleWalletDebugResponse{Status: "ok", EventID: event.ID})
 }
 
+func (h *Handler) GetAppleWalletIngestTokenStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{Error: "Method not allowed"})
+		return
+	}
+	userID, ok := requireUserID(w, r)
+	if !ok {
+		return
+	}
+	premium, err := h.isUserPremium(userID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to validate plan"})
+		return
+	}
+	if !premium {
+		writeJSON(w, http.StatusOK, appleWalletTokenStatusResponse{Premium: false, HasToken: false})
+		return
+	}
+	token, err := h.storage.GetActiveWalletIngestTokenByUserID(userID)
+	if err == sql.ErrNoRows {
+		writeJSON(w, http.StatusOK, appleWalletTokenStatusResponse{Premium: true, HasToken: false})
+		return
+	}
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to load token status"})
+		return
+	}
+	writeJSON(w, http.StatusOK, appleWalletTokenStatusResponse{
+		Premium:   true,
+		HasToken:  true,
+		CreatedAt: &token.CreatedAt,
+		LastUsed:  token.LastUsedAt,
+	})
+}
+
+func (h *Handler) CreateAppleWalletIngestToken(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{Error: "Method not allowed"})
+		return
+	}
+	userID, ok := requireUserID(w, r)
+	if !ok {
+		return
+	}
+	premium, err := h.isUserPremium(userID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to validate plan"})
+		return
+	}
+	if !premium {
+		writeJSON(w, http.StatusForbidden, map[string]string{
+			"error": "Disponible solo para cuentas Premium",
+			"code":  "premium_required",
+		})
+		return
+	}
+	token, err := newWalletIngestToken()
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to generate token"})
+		return
+	}
+	now := time.Now().UTC()
+	stored, err := h.storage.UpsertWalletIngestToken(userID, hashWalletIngestToken(token), now)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to persist token"})
+		return
+	}
+	writeJSON(w, http.StatusOK, appleWalletCreateTokenResponse{
+		Token:     token,
+		CreatedAt: stored.CreatedAt,
+	})
+}
+
 func (h *Handler) AppleWalletIngest(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{Error: "Method not allowed"})
 		return
 	}
-	token := readShortcutBearerToken(r)
-	userID := walletIngestTokenMapFromEnv()[token]
-	if userID == "" {
+	rawToken := readShortcutBearerToken(r)
+	if rawToken == "" {
 		writeJSON(w, http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
 		return
 	}
+	ingestToken, err := h.storage.GetWalletIngestTokenByHash(hashWalletIngestToken(rawToken))
+	if err == sql.ErrNoRows {
+		writeJSON(w, http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
+		return
+	}
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to validate token"})
+		return
+	}
+	userID := ingestToken.UserID
+	premium, err := h.isUserPremium(userID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to validate plan"})
+		return
+	}
+	if !premium {
+		writeJSON(w, http.StatusForbidden, map[string]string{
+			"error": "Premium requerido",
+			"code":  "premium_required",
+		})
+		return
+	}
+	_ = h.storage.TouchWalletIngestTokenLastUsed(ingestToken.ID, time.Now().UTC())
 	rawPayload, err := decodeRequestBodyAsRawJSON(r)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid request body"})

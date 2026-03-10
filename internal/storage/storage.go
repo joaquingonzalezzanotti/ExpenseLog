@@ -85,6 +85,10 @@ type Storage interface {
 	ConsumeTelegramLinkCode(codeHash string, telegramUserID int64, telegramUsername string, now time.Time) (TelegramUserLink, error)
 
 	// Apple Wallet Shortcut ingestion
+	GetActiveWalletIngestTokenByUserID(userID string) (WalletIngestToken, error)
+	UpsertWalletIngestToken(userID, tokenHash string, now time.Time) (WalletIngestToken, error)
+	GetWalletIngestTokenByHash(tokenHash string) (WalletIngestToken, error)
+	TouchWalletIngestTokenLastUsed(tokenID string, usedAt time.Time) error
 	CreateWalletIngestEvent(event WalletIngestEvent) (WalletIngestEvent, error)
 	UpdateWalletIngestEventResult(eventID, status, confidence, createdTransactionID, duplicateOfEventID string) error
 	FindPotentialDuplicateWalletIngestEvent(userID string, amount float64, merchantNormalized string, paidAt time.Time, window time.Duration) (WalletIngestEvent, error)
@@ -227,6 +231,15 @@ type WalletIngestEvent struct {
 	DuplicateOfEventID   string    `json:"duplicateOfEventId"`
 	CreatedAt            time.Time `json:"createdAt"`
 	UpdatedAt            time.Time `json:"updatedAt"`
+}
+
+type WalletIngestToken struct {
+	ID         string     `json:"id"`
+	UserID     string     `json:"userId"`
+	TokenHash  string     `json:"-"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	UpdatedAt  time.Time  `json:"updatedAt"`
+	LastUsedAt *time.Time `json:"lastUsedAt,omitempty"`
 }
 
 type ReconciliationApplyInput struct {

@@ -14,6 +14,25 @@ import (
 	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/storage"
 )
 
+func TestNormalizeWalletAmount(t *testing.T) {
+	cases := []struct {
+		in   float64
+		want float64
+	}{
+		{in: 12500, want: 12500},
+		{in: 12500.125, want: 12500.13},
+		{in: 0.004, want: 0},
+		{in: 0.005, want: 0.01},
+		{in: -10.235, want: -10.24},
+	}
+	for _, tc := range cases {
+		got := normalizeWalletAmount(tc.in)
+		if got != tc.want {
+			t.Fatalf("normalizeWalletAmount(%v) = %v, want %v", tc.in, got, tc.want)
+		}
+	}
+}
+
 func newAPIStoreForTest(t *testing.T) storage.Storage {
 	t.Helper()
 	uri := os.Getenv("TEST_DATABASE_URL")

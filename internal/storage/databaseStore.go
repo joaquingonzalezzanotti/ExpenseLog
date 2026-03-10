@@ -2483,9 +2483,10 @@ func (s *databaseStore) FindPotentialDuplicateWalletIngestEvent(userID string, a
 			COALESCE(created_transaction_id, ''), COALESCE(duplicate_of_event_id, ''), created_at, updated_at
 		FROM wallet_ingest_events
 		WHERE user_id = $1
-			AND amount = $2
+			AND ROUND(COALESCE(amount, 0)::numeric, 2) = ROUND($2::numeric, 2)
+			AND paid_at IS NOT NULL
 			AND paid_at BETWEEN $3 AND $4
-			AND merchant = $5
+			AND COALESCE(merchant, '') = $5
 			AND status IN ('draft_transaction_created', 'duplicate', 'needs_review', 'received')
 		ORDER BY created_at ASC
 		LIMIT 1

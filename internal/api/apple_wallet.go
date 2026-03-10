@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"github.com/google/uuid"
+	"math"
 	"net/http"
 	"os"
 	"strings"
@@ -49,6 +50,13 @@ func normalizeMerchant(raw string) string {
 	clean = strings.ToLower(strings.TrimSpace(clean))
 	clean = strings.Join(strings.Fields(clean), " ")
 	return clean
+}
+
+func normalizeWalletAmount(raw float64) float64 {
+	if math.IsNaN(raw) || math.IsInf(raw, 0) {
+		return 0
+	}
+	return math.Round(raw*100) / 100
 }
 
 func walletConfidenceForPayload(payload appleWalletIngestRequest, merchant string) string {
@@ -180,6 +188,7 @@ func (h *Handler) AppleWalletIngest(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid request body"})
 		return
 	}
+	payload.Amount = normalizeWalletAmount(payload.Amount)
 	merchantNormalized := normalizeMerchant(payload.Merchant)
 	if merchantNormalized == "" {
 		merchantNormalized = normalizeMerchant(payload.MerchantRaw)
@@ -188,6 +197,9 @@ func (h *Handler) AppleWalletIngest(w http.ResponseWriter, r *http.Request) {
 	confidence := walletConfidenceForPayload(payload, merchantNormalized)
 	if !isWalletPayloadSufficient(payload, merchantNormalized) {
 		status = walletEventStatusNeedsReview
+	}
+	if status != walletEventStatusNeedsReview && payload.PaidAt.IsZero() {
+		payload.PaidAt = time.Now().UTC()
 	}
 	if strings.TrimSpace(payload.Source) == "" {
 		payload.Source = walletSourceDefault
@@ -216,9 +228,6 @@ func (h *Handler) AppleWalletIngest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if payload.PaidAt.IsZero() {
-		payload.PaidAt = time.Now().UTC()
-	}
 	dup, err := h.storage.FindPotentialDuplicateWalletIngestEvent(userID, payload.Amount, merchantNormalized, payload.PaidAt, 10*time.Minute)
 	if err == nil && dup.ID != "" && dup.ID != event.ID {
 		if updateErr := h.storage.UpdateWalletIngestEventResult(event.ID, walletEventStatusDuplicate, confidence, "", dup.ID); updateErr != nil {

@@ -173,6 +173,27 @@ const (
 		used_by_telegram_user_id BIGINT,
 		used_telegram_username TEXT
 	);`
+
+	createWalletIngestEventsTableSQL = `
+	CREATE TABLE IF NOT EXISTS wallet_ingest_events (
+		id VARCHAR(36) PRIMARY KEY,
+		user_id VARCHAR(36) NOT NULL,
+		source VARCHAR(100) NOT NULL,
+		amount NUMERIC(14, 2),
+		merchant TEXT,
+		merchant_raw TEXT,
+		card_label TEXT,
+		wallet_category TEXT,
+		paid_at TIMESTAMPTZ,
+		raw_payload JSONB NOT NULL,
+		request_headers JSONB,
+		status VARCHAR(40) NOT NULL DEFAULT 'received',
+		confidence VARCHAR(20) NOT NULL DEFAULT 'low',
+		created_transaction_id VARCHAR(36),
+		duplicate_of_event_id VARCHAR(36),
+		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+	);`
 )
 
 func InitializePostgresStore(baseConfig SystemConfig) (Storage, error) {
@@ -218,6 +239,7 @@ func createTables(db *sql.DB) error {
 		createCategoriesTableSQL,
 		createTelegramUserLinksTableSQL,
 		createTelegramLinkCodesTableSQL,
+		createWalletIngestEventsTableSQL,
 	} {
 		if _, err := db.Exec(query); err != nil {
 			return err
@@ -253,6 +275,16 @@ func createTables(db *sql.DB) error {
 		"ALTER TABLE telegram_link_codes ADD COLUMN IF NOT EXISTS used_at TIMESTAMPTZ",
 		"ALTER TABLE telegram_link_codes ADD COLUMN IF NOT EXISTS used_by_telegram_user_id BIGINT",
 		"ALTER TABLE telegram_link_codes ADD COLUMN IF NOT EXISTS used_telegram_username TEXT",
+		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS merchant_raw TEXT",
+		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS card_label TEXT",
+		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS wallet_category TEXT",
+		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ",
+		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS request_headers JSONB",
+		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS status VARCHAR(40) NOT NULL DEFAULT 'received'",
+		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS confidence VARCHAR(20) NOT NULL DEFAULT 'low'",
+		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS created_transaction_id VARCHAR(36)",
+		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS duplicate_of_event_id VARCHAR(36)",
+		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
 	}
 	for _, stmt := range alterStmts {
 		if _, err := db.Exec(stmt); err != nil {
@@ -314,6 +346,12 @@ func createTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS telegram_link_codes_user_created_idx ON telegram_link_codes (user_id, created_at DESC)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS wallet_ingest_events_user_paid_at_idx ON wallet_ingest_events (user_id, paid_at)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS wallet_ingest_events_user_amount_idx ON wallet_ingest_events (user_id, amount)`); err != nil {
 		return err
 	}
 	if err := ensureRecurringInstanceUniqueIndex(db); err != nil {
@@ -395,6 +433,7 @@ func ensureForeignKeys(db *sql.DB) error {
 		{name: "reconciliations_user_fk", table: "reconciliations", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "telegram_user_links_user_fk", table: "telegram_user_links", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "telegram_link_codes_user_fk", table: "telegram_link_codes", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
+		{name: "wallet_ingest_events_user_fk", table: "wallet_ingest_events", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "reconciliations_adjustment_fk", table: "reconciliations", column: "adjustment_expense_id", refTable: "expenses", refColumn: "id", onDelete: "RESTRICT"},
 		{name: "reconciliations_reversal_fk", table: "reconciliations", column: "reversal_expense_id", refTable: "expenses", refColumn: "id", onDelete: "RESTRICT"},
 	}
@@ -2370,4 +2409,108 @@ func generateExpensesFromRecurring(userID string, recExp RecurringExpense, fromT
 		}
 	}
 	return expenses
+}
+
+func (s *databaseStore) CreateWalletIngestEvent(event WalletIngestEvent) (WalletIngestEvent, error) {
+	if event.ID == "" {
+		event.ID = uuid.New().String()
+	}
+	if event.Status == "" {
+		event.Status = "received"
+	}
+	if event.Confidence == "" {
+		event.Confidence = "low"
+	}
+	if event.Source == "" {
+		event.Source = "apple_wallet_shortcut"
+	}
+	query := `
+		INSERT INTO wallet_ingest_events (
+			id, user_id, source, amount, merchant, merchant_raw, card_label, wallet_category,
+			paid_at, raw_payload, request_headers, status, confidence,
+			created_transaction_id, duplicate_of_event_id, created_at, updated_at
+		) VALUES (
+			$1, $2, $3, NULLIF($4, 0), NULLIF($5, ''), NULLIF($6, ''), NULLIF($7, ''), NULLIF($8, ''),
+			NULLIF($9, TIMESTAMPTZ '0001-01-01T00:00:00Z'), $10::jsonb, NULLIF($11, '')::jsonb, $12, $13,
+			NULLIF($14, ''), NULLIF($15, ''), NOW(), NOW()
+		)
+		RETURNING created_at, updated_at
+	`
+	if err := s.db.QueryRow(
+		query,
+		event.ID,
+		event.UserID,
+		event.Source,
+		event.Amount,
+		event.Merchant,
+		event.MerchantRaw,
+		event.CardLabel,
+		event.WalletCategory,
+		event.PaidAt,
+		event.RawPayload,
+		event.RequestHeaders,
+		event.Status,
+		event.Confidence,
+		event.CreatedTransactionID,
+		event.DuplicateOfEventID,
+	).Scan(&event.CreatedAt, &event.UpdatedAt); err != nil {
+		return WalletIngestEvent{}, err
+	}
+	return event, nil
+}
+
+func (s *databaseStore) UpdateWalletIngestEventResult(eventID, status, confidence, createdTransactionID, duplicateOfEventID string) error {
+	_, err := s.db.Exec(`
+		UPDATE wallet_ingest_events
+		SET status = COALESCE(NULLIF($2, ''), status),
+			confidence = COALESCE(NULLIF($3, ''), confidence),
+			created_transaction_id = NULLIF($4, ''),
+			duplicate_of_event_id = NULLIF($5, ''),
+			updated_at = NOW()
+		WHERE id = $1
+	`, eventID, status, confidence, createdTransactionID, duplicateOfEventID)
+	return err
+}
+
+func (s *databaseStore) FindPotentialDuplicateWalletIngestEvent(userID string, amount float64, merchantNormalized string, paidAt time.Time, window time.Duration) (WalletIngestEvent, error) {
+	if paidAt.IsZero() {
+		return WalletIngestEvent{}, sql.ErrNoRows
+	}
+	query := `
+		SELECT id, user_id, source, COALESCE(amount, 0), COALESCE(merchant, ''), COALESCE(merchant_raw, ''),
+			COALESCE(card_label, ''), COALESCE(wallet_category, ''), paid_at,
+			raw_payload::text, COALESCE(request_headers::text, ''), status, confidence,
+			COALESCE(created_transaction_id, ''), COALESCE(duplicate_of_event_id, ''), created_at, updated_at
+		FROM wallet_ingest_events
+		WHERE user_id = $1
+			AND amount = $2
+			AND paid_at BETWEEN $3 AND $4
+			AND merchant = $5
+			AND status IN ('draft_transaction_created', 'duplicate', 'needs_review', 'received')
+		ORDER BY created_at ASC
+		LIMIT 1
+	`
+	var event WalletIngestEvent
+	if err := s.db.QueryRow(query, userID, amount, paidAt.Add(-window), paidAt.Add(window), merchantNormalized).Scan(
+		&event.ID,
+		&event.UserID,
+		&event.Source,
+		&event.Amount,
+		&event.Merchant,
+		&event.MerchantRaw,
+		&event.CardLabel,
+		&event.WalletCategory,
+		&event.PaidAt,
+		&event.RawPayload,
+		&event.RequestHeaders,
+		&event.Status,
+		&event.Confidence,
+		&event.CreatedTransactionID,
+		&event.DuplicateOfEventID,
+		&event.CreatedAt,
+		&event.UpdatedAt,
+	); err != nil {
+		return WalletIngestEvent{}, err
+	}
+	return event, nil
 }

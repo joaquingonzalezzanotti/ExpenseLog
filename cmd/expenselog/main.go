@@ -151,6 +151,8 @@ func runServer(port int) {
 	registerAPI("/expense/delete", handler.RequireAuth(handler.DeleteExpense))           // DELETE for single
 	registerAPI("/expenses/delete", handler.RequireAuth(handler.DeleteMultipleExpenses)) // DELETE for multiple
 	registerAPI("/card/payment", handler.RequireAuth(handler.AddCardPayment))            // POST for card payment events
+	registerAPI("/integrations/apple-wallet/debug", handler.RequireAuth(handler.AppleWalletDebug))
+	registerAPI("/integrations/apple-wallet/ingest", handler.AppleWalletIngest)
 
 	// Recurring Expenses
 	registerAPI("/recurring-expense", handler.RequireAuth(handler.AddRecurringExpense))           // PUT for add

@@ -11,6 +11,7 @@
     <link rel="manifest" href="/app/manifest.json">
     <link rel="apple-touch-icon" href="/app/pwa/icon-192.png">
     <link rel="stylesheet" href="/app/style.css">
+    <link rel="stylesheet" href="/app/onboarding.css">
     <script>
         (function() {
             const theme = localStorage.getItem('theme') || 'system';
@@ -101,6 +102,45 @@
                 <button class="quick-action" data-action="card-expense">Gasto Tarjeta</button>
             </div>
         </div>
+
+        <section id="firstUserOnboarding" class="first-user-onboarding" style="display: none;" aria-hidden="true">
+            <div class="first-user-onboarding-head">
+                <span class="first-user-onboarding-kicker">Primeros 10 minutos</span>
+                <h2>Empecemos con un flujo simple</h2>
+                <p>Con estos 3 pasos vas a entender rapido como impacta cada movimiento en Balance y Tarjeta por pagar.</p>
+            </div>
+            <ol class="first-user-onboarding-steps">
+                <li class="first-user-onboarding-step">
+                    <div class="first-user-onboarding-step-title">
+                        <strong>Paso 1</strong>
+                        <span>Carga tu ingreso inicial</span>
+                    </div>
+                    <p>Ejemplo: sueldo, cobro freelance o transferencia recibida.</p>
+                    <button type="button" class="nav-button button-primary" data-onboarding-action="start-income">Cargar ingreso</button>
+                </li>
+                <li class="first-user-onboarding-step">
+                    <div class="first-user-onboarding-step-title">
+                        <strong>Paso 2</strong>
+                        <span>Carga tu primer gasto</span>
+                    </div>
+                    <p>Ejemplo: supermercado, alquiler o transporte.</p>
+                    <button type="button" class="nav-button button-secondary" data-onboarding-action="start-expense">Cargar gasto</button>
+                </li>
+                <li class="first-user-onboarding-step">
+                    <div class="first-user-onboarding-step-title">
+                        <strong>Paso 3</strong>
+                        <span>Prueba un gasto con tarjeta</span>
+                    </div>
+                    <p>Asi vas a ver como se completa el modulo Tarjeta por pagar y luego registrar el pago.</p>
+                    <button type="button" class="nav-button button-secondary" data-onboarding-action="start-card-expense">Cargar gasto con tarjeta</button>
+                </li>
+            </ol>
+            <div class="first-user-onboarding-actions">
+                <button type="button" class="nav-button button-secondary" data-onboarding-action="go-table">Ver tabla</button>
+                <button type="button" class="nav-button button-secondary" data-onboarding-action="go-calendar">Ver calendario</button>
+                <button type="button" class="nav-button button-secondary" data-onboarding-action="dismiss">Saltar por ahora</button>
+            </div>
+        </section>
 
         <div id="baseSummary" class="cashflow-container"></div>
 
@@ -255,6 +295,11 @@
             <div class="card-payment-actions">
                 <button id="openCardPaymentModalBtn" type="button" class="nav-button button-primary">Registrar pago</button>
             </div>
+            <div id="cardPaymentEmptyHelp" class="card-payment-empty-help" style="display: none;">
+                <strong>Cuando aparece Tarjeta por pagar?</strong>
+                <p>Se completa cuando registras un gasto con metodo Tarjeta de credito. Luego podes registrar el pago desde este modulo.</p>
+                <button type="button" class="nav-button button-secondary" data-onboarding-action="start-card-expense">Cargar gasto con tarjeta</button>
+            </div>
         </section>
 
         <div id="cardPaymentOverlay" class="entry-modal-overlay" hidden aria-hidden="true">
@@ -367,6 +412,7 @@
 
     <script src="/app/alerts_ui.js"></script>
     <script src="/app/cashflow_ui.js"></script>
+    <script src="/app/onboarding_ui.js"></script>
     <script src="/app/functions.js"></script>
     <script>
         let currentCurrency = 'usd';
@@ -415,6 +461,9 @@
         const expenseSubmitButton = expenseForm ? expenseForm.querySelector('button[type="submit"]') : null;
         const movementTypeGroup = movementTypeSelect ? movementTypeSelect.closest('.form-group') : null;
         const cardPaymentOwnerOrigin = 'card_payment_owner';
+        const onboardingUI = (typeof ExpenseLogOnboarding !== 'undefined') ? ExpenseLogOnboarding : null;
+        const firstUserOnboardingPanel = document.getElementById('firstUserOnboarding');
+        const cardPaymentEmptyHelp = document.getElementById('cardPaymentEmptyHelp');
         const LIQUIDITY_RULES = Object.freeze({
             currency: 'ars',
             windowDays: 7,
@@ -462,6 +511,27 @@
         function isConfigCacheFresh(entry) {
             if (!entry || typeof entry.cachedAt !== 'number') return false;
             return (Date.now() - entry.cachedAt) < CONFIG_CACHE_TTL_MS;
+        }
+
+        function shouldShowFirstUserOnboarding() {
+            if (!onboardingUI || typeof onboardingUI.shouldShowHomeOnboarding !== 'function') {
+                return allExpenses.length === 0;
+            }
+            return onboardingUI.shouldShowHomeOnboarding(allExpenses.length);
+        }
+
+        function renderFirstUserOnboarding() {
+            if (!firstUserOnboardingPanel) return;
+            const visible = shouldShowFirstUserOnboarding();
+            firstUserOnboardingPanel.style.display = visible ? 'block' : 'none';
+            firstUserOnboardingPanel.setAttribute('aria-hidden', visible ? 'false' : 'true');
+        }
+
+        function getHomeEmptyStateHTML(mode = 'default') {
+            if (onboardingUI && typeof onboardingUI.getHomeEmptyStateHTML === 'function') {
+                return onboardingUI.getHomeEmptyStateHTML(mode, baseCurrency);
+            }
+            return '<strong>Aun no hay gastos.</strong> Carga el primero con Agregar gasto.';
         }
 
         function applyHomeConfig(config) {
@@ -1036,6 +1106,9 @@
                 openCardPaymentModalBtn.disabled = !hasPending;
                 openCardPaymentModalBtn.textContent = hasPending ? 'Registrar pago' : 'Sin saldo pendiente';
             }
+            if (cardPaymentEmptyHelp) {
+                cardPaymentEmptyHelp.style.display = hasPending ? 'none' : 'block';
+            }
             refreshCardPaymentPendingHint();
             if (!hasPending) {
                 setCardPaymentModalVisible(false);
@@ -1159,9 +1232,10 @@
                 updateHomeFilterControls(false);
                 noDataMessage.style.display = 'none';
                 emptyStateBanner.style.display = 'block';
-                emptyStateBanner.innerHTML = '<strong>📭 Aun no hay gastos.</strong> Carga el primero con Agregar gasto.';
+                emptyStateBanner.innerHTML = getHomeEmptyStateHTML(allExpenses.length === 0 ? 'first_user' : 'default');
                 renderCashflowByCurrency([], {});
                 renderRecentMovements([]);
+                renderFirstUserOnboarding();
                 return;
             }
 
@@ -1187,7 +1261,7 @@
                     emptyStateBanner.style.display = 'none';
                 } else {
                     emptyStateBanner.style.display = 'block';
-                    emptyStateBanner.innerHTML = `<strong>📭 No hay gastos en ${baseCurrency.toUpperCase()}.</strong> Carga el primero con Agregar gasto.`;
+                    emptyStateBanner.innerHTML = getHomeEmptyStateHTML('base_currency');
                 }
             } else if (!chartExpanded) {
                 if (pieChart) { pieChart.destroy(); pieChart = null; }
@@ -1200,6 +1274,7 @@
                 createPieChart(categoryData);
                 updateLegend(categoryData, filteredForChart);
             }
+            renderFirstUserOnboarding();
         }
 
         function renderCashflowByCurrency(expenses, carryoverByCurrency) {
@@ -1725,6 +1800,29 @@
             syncBodyModalLock();
         }
 
+        function openExpenseFormWithPreset(options = {}) {
+            const movementType = options.movementType || 'expense';
+            const source = options.source || 'CA';
+            const suggestedName = options.suggestedName || '';
+            resetExpenseFormState();
+            if (movementTypeSelect) {
+                movementTypeSelect.value = movementType;
+            }
+            if (sourceSelect) {
+                sourceSelect.value = source;
+            }
+            if (movementTypeGroup) {
+                movementTypeGroup.style.display = '';
+            }
+            refreshSourceUX();
+            syncExpenseSubmitButtonLabel();
+            setExpenseFormVisible(true);
+            const nameInput = document.getElementById('name');
+            if (nameInput && suggestedName) {
+                nameInput.value = suggestedName;
+            }
+        }
+
         function getCreateSubmitLabelByMovementType(movementType) {
             if (movementType === 'income') return '💰 Agregar ingreso';
             if (movementType === 'refund') return '↩️ Agregar reintegro';
@@ -1773,7 +1871,10 @@
                 if (response.ok) {
                 messageDiv.textContent = '';
                 messageDiv.className = 'form-message';
-                showToast('Gasto agregado con exito', 'success');
+                const successMessage = movementType === 'income'
+                    ? 'Ingreso agregado con exito'
+                    : (movementType === 'refund' ? 'Reintegro agregado con exito' : 'Gasto agregado con exito');
+                showToast(successMessage, 'success');
                 resetExpenseFormState();
                 setExpenseFormVisible(false);
                 await initialize();
@@ -1868,27 +1969,71 @@
             btn.addEventListener('click', () => {
                 const action = btn.dataset.action;
                 if (action === 'open-form') {
-                    if (movementTypeSelect) movementTypeSelect.value = 'expense';
-                    sourceSelect.value = 'CA';
-                    refreshSourceUX();
-                    syncExpenseSubmitButtonLabel();
-                    setExpenseFormVisible(true);
+                    openExpenseFormWithPreset({
+                        movementType: 'expense',
+                        source: 'CA',
+                    });
                     return;
                 }
-                setExpenseFormVisible(true);
                 if (action === 'income') {
-                    if (movementTypeSelect) movementTypeSelect.value = 'income';
-                    sourceSelect.value = 'CA';
+                    openExpenseFormWithPreset({
+                        movementType: 'income',
+                        source: 'CA',
+                        suggestedName: 'Sueldo',
+                    });
                 } else if (action === 'card-expense') {
-                    if (movementTypeSelect) movementTypeSelect.value = 'expense';
-                    sourceSelect.value = 'TARJETA';
+                    openExpenseFormWithPreset({
+                        movementType: 'expense',
+                        source: 'TARJETA',
+                        suggestedName: 'Compra tarjeta',
+                    });
                 }
-                if (movementTypeGroup) {
-                    movementTypeGroup.style.display = '';
-                }
-                refreshSourceUX();
-                syncExpenseSubmitButtonLabel();
             });
+        });
+
+        document.addEventListener('click', (event) => {
+            const target = event.target.closest('[data-onboarding-action]');
+            if (!target) return;
+            const action = target.dataset.onboardingAction || '';
+            if (action === 'start-income') {
+                openExpenseFormWithPreset({
+                    movementType: 'income',
+                    source: 'CA',
+                    suggestedName: 'Sueldo',
+                });
+                return;
+            }
+            if (action === 'start-expense') {
+                openExpenseFormWithPreset({
+                    movementType: 'expense',
+                    source: 'CA',
+                    suggestedName: 'Supermercado',
+                });
+                return;
+            }
+            if (action === 'start-card-expense') {
+                openExpenseFormWithPreset({
+                    movementType: 'expense',
+                    source: 'TARJETA',
+                    suggestedName: 'Compra tarjeta',
+                });
+                return;
+            }
+            if (action === 'go-table') {
+                window.location.href = '/app/table';
+                return;
+            }
+            if (action === 'go-calendar') {
+                window.location.href = '/app/table?view=calendar';
+                return;
+            }
+            if (action === 'dismiss') {
+                if (onboardingUI && typeof onboardingUI.dismissHomeOnboarding === 'function') {
+                    onboardingUI.dismissHomeOnboarding();
+                }
+                renderFirstUserOnboarding();
+                showToast('Guia de inicio ocultada.', 'success');
+            }
         });
 
         function closeAndResetExpenseForm() {

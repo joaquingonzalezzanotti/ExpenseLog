@@ -1,10 +1,12 @@
-const SW_VERSION = '2026-03-01-v6';
+const SW_VERSION = '2026-03-10-v7';
 const STATIC_CACHE = `expenselog-static-${SW_VERSION}`;
 const PAGE_CACHE = `expenselog-pages-${SW_VERSION}`;
 
 const STATIC_ASSETS = [
     '/app/style.css',
+    '/app/onboarding.css',
     '/app/functions.js',
+    '/app/onboarding_ui.js',
     '/app/alerts_ui.js',
     '/app/cashflow_ui.js',
     '/app/fa.min.css',

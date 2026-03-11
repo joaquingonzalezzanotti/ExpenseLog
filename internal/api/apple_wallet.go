@@ -61,6 +61,16 @@ type appleWalletCreateTokenResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type appleWalletIngestResponse struct {
+	Status             string `json:"status"`
+	EventID            string `json:"eventId"`
+	TransactionID      string `json:"transactionId,omitempty"`
+	DuplicateOfEventID string `json:"duplicateOfEventId,omitempty"`
+	Result             string `json:"result,omitempty"`
+	Message            string `json:"message,omitempty"`
+	NextStep           string `json:"nextStep,omitempty"`
+}
+
 func normalizeMerchant(raw string) string {
 	clean := storage.SanitizeString(raw)
 	clean = strings.ToLower(strings.TrimSpace(clean))
@@ -325,7 +335,13 @@ func (h *Handler) AppleWalletIngest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if status == walletEventStatusNeedsReview {
-		writeJSON(w, http.StatusAccepted, map[string]string{"status": status, "eventId": event.ID})
+		writeJSON(w, http.StatusAccepted, appleWalletIngestResponse{
+			Status:   status,
+			EventID:  event.ID,
+			Result:   "queued_for_review",
+			Message:  "Evento recibido, pero faltan datos para crear la transaccion automaticamente.",
+			NextStep: "Revisa y completa la transaccion en ExpenseLog.",
+		})
 		return
 	}
 
@@ -335,7 +351,14 @@ func (h *Handler) AppleWalletIngest(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to update duplicate event"})
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]string{"status": walletEventStatusDuplicate, "eventId": event.ID, "duplicateOfEventId": dup.ID})
+		writeJSON(w, http.StatusOK, appleWalletIngestResponse{
+			Status:             walletEventStatusDuplicate,
+			EventID:            event.ID,
+			DuplicateOfEventID: dup.ID,
+			Result:             "duplicate_ignored",
+			Message:            "Evento duplicado detectado. No se creo una nueva transaccion.",
+			NextStep:           "No requiere accion.",
+		})
 		return
 	}
 	if err != nil && err != sql.ErrNoRows {
@@ -386,5 +409,12 @@ func (h *Handler) AppleWalletIngest(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to update ingest event"})
 		return
 	}
-	writeJSON(w, http.StatusCreated, map[string]string{"status": walletEventStatusDraftCreated, "eventId": event.ID, "transactionId": expense.ID})
+	writeJSON(w, http.StatusCreated, appleWalletIngestResponse{
+		Status:        walletEventStatusDraftCreated,
+		EventID:       event.ID,
+		TransactionID: expense.ID,
+		Result:        "transaction_created",
+		Message:       "Transaccion creada automaticamente como borrador para revision.",
+		NextStep:      "Abre ExpenseLog para revisar categoria, metodo y monto.",
+	})
 }

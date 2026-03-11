@@ -845,7 +845,9 @@
 
         function isAppleWalletDraftExpense(expense) {
             const origin = String(expense?.systemOrigin || '').trim().toLowerCase();
-            return origin === 'apple_wallet_shortcut_draft';
+            if (origin === 'apple_wallet_shortcut_draft') return true;
+            const source = String(expense?.source || '').trim().toLowerCase();
+            return source.includes('apple_wallet_shortcut') || source.includes('apple_wallet');
         }
 
         function createTable(expenses, runningBalances) {

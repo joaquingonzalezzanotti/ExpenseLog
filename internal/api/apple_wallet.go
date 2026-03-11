@@ -27,7 +27,6 @@ const (
 	walletConfidenceMedium         = "medium"
 	walletConfidenceHigh           = "high"
 	walletDraftSystemOrigin        = "apple_wallet_shortcut_draft"
-	walletDraftSource              = "APPLE_WALLET_SHORTCUT"
 	walletDraftFallbackName        = "Apple Wallet purchase"
 	walletDraftCategoryNeedsReview = "Por revisar"
 	walletIngestTokenBytes         = 24
@@ -39,6 +38,7 @@ type appleWalletIngestRequest struct {
 	MerchantRaw    string          `json:"merchantRaw"`
 	CardLabel      string          `json:"cardLabel"`
 	WalletCategory string          `json:"walletCategory"`
+	PaymentMethod  string          `json:"paymentMethod"`
 	PaidAt         time.Time       `json:"paidAt"`
 	Source         string          `json:"source"`
 	RawPayload     json.RawMessage `json:"rawPayload"`
@@ -103,6 +103,19 @@ func isWalletPayloadSufficient(payload appleWalletIngestRequest, merchant string
 		return true
 	}
 	return strings.TrimSpace(payload.CardLabel) != "" && !payload.PaidAt.IsZero()
+}
+
+func normalizeWalletPaymentMethod(raw string) string {
+	switch strings.ToUpper(strings.TrimSpace(raw)) {
+	case "CA":
+		return "CA"
+	case "TARJETA":
+		return "TARJETA"
+	case "EFECTIVO":
+		return "EFECTIVO"
+	default:
+		return "CA"
+	}
 }
 
 func hashWalletIngestToken(raw string) string {
@@ -315,6 +328,7 @@ func (h *Handler) AppleWalletIngest(w http.ResponseWriter, r *http.Request) {
 	if strings.TrimSpace(payload.Source) == "" {
 		payload.Source = walletSourceDefault
 	}
+	paymentMethod := normalizeWalletPaymentMethod(payload.PaymentMethod)
 	event, err := h.storage.CreateWalletIngestEvent(storage.WalletIngestEvent{
 		UserID:         userID,
 		Source:         payload.Source,
@@ -391,7 +405,7 @@ func (h *Handler) AppleWalletIngest(w http.ResponseWriter, r *http.Request) {
 		Amount:       amount,
 		Currency:     currency,
 		Flow:         flow,
-		Source:       walletDraftSource,
+		Source:       paymentMethod,
 		Card:         strings.TrimSpace(payload.CardLabel),
 		Date:         payload.PaidAt,
 		SystemOrigin: walletDraftSystemOrigin,

@@ -40,6 +40,7 @@ Este flujo recibe eventos desde un Shortcut de Apple Wallet/Apple Pay, guarda el
 - El token se valida contra `wallet_ingest_tokens`.
 - Solo procesa eventos de usuarios premium.
 - Guarda evento en `wallet_ingest_events`.
+- Si llega `paymentMethod`, se usa para el metodo contable de la transaccion (`CA`, `TARJETA`, `EFECTIVO`).
 - Si hay datos suficientes, crea transaccion borrador.
 - Si no hay datos, marca evento como `needs_review`.
 
@@ -51,6 +52,7 @@ Este flujo recibe eventos desde un Shortcut de Apple Wallet/Apple Pay, guarda el
   "merchantRaw": "STARBUCKS STORE 2143",
   "cardLabel": "Visa Galicia",
   "walletCategory": "Food & Drink",
+  "paymentMethod": "TARJETA",
   "paidAt": "2026-03-10T14:32:00-03:00",
   "source": "apple_wallet_shortcut",
   "rawPayload": {
@@ -81,6 +83,7 @@ curl -X POST http://localhost:8080/api/integrations/apple-wallet/ingest \
     "merchantRaw": "STARBUCKS STORE 2143",
     "cardLabel": "Visa Galicia",
     "walletCategory": "Food & Drink",
+    "paymentMethod": "TARJETA",
     "paidAt": "2026-03-10T14:32:00-03:00",
     "source": "apple_wallet_shortcut",
     "rawPayload": {"shortcutInput":{"amount":12500,"merchant":"Starbucks"}}

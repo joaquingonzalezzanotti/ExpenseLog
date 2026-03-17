@@ -81,6 +81,13 @@ const buildAIParserURL = () => {
     }
     return `${base}${path}`;
 };
+const buildAIParserHealthURL = () => {
+    const base = String(config.aiParserBaseUrl || '').trim().replace(/\/+$/, '');
+    if (!base) {
+        return '';
+    }
+    return `${base}/healthz`;
+};
 export const canUseAIParser = () => {
     return Boolean(config.aiParserFallbackEnabled && buildAIParserURL());
 };
@@ -94,6 +101,26 @@ const RETRYABLE_ERROR_CODES = new Set([
     'UND_ERR_SOCKET'
 ]);
 const AI_PARSER_RETRY_DELAYS_MS = [2000, 5000];
+const AI_PARSER_HEALTHCHECK_RETRY_DELAYS_MS = [1500, 3000];
+const AI_PARSER_COOLDOWN_MS = 120000;
+let aiParserUnavailableUntil = 0;
+const buildAIParserCooldownError = () => {
+    const remainingMs = Math.max(0, aiParserUnavailableUntil - Date.now());
+    const remainingSeconds = Math.ceil(remainingMs / 1000);
+    const error = new Error(`AI parser temporarily unavailable (${remainingSeconds}s remaining in cooldown)`);
+    error.code = 'AI_PARSER_TEMP_UNAVAILABLE';
+    return error;
+};
+const fetchWithTimeout = async (url, init, timeoutMs) => {
+    const controller = new AbortController();
+    const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        return await fetch(url, { ...init, signal: controller.signal });
+    }
+    finally {
+        clearTimeout(timeoutHandle);
+    }
+};
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const isRetryableAIFetchError = (error) => {
     if (!error)
@@ -110,11 +137,58 @@ const isRetryableAIFetchError = (error) => {
     }
     return false;
 };
+const ensureAIParserReady = async () => {
+    const healthURL = buildAIParserHealthURL();
+    if (!healthURL) {
+        return;
+    }
+    let lastError = null;
+    const timeoutMs = Math.min(config.aiParserTimeoutMs, 5000);
+    const maxAttempts = AI_PARSER_HEALTHCHECK_RETRY_DELAYS_MS.length + 1;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        try {
+            const response = await fetchWithTimeout(healthURL, { method: 'GET' }, timeoutMs);
+            if (!response.ok) {
+                throw new Error(`AI parser healthz failed with status ${response.status}`);
+            }
+            if (attempt > 1) {
+                logger.info('ai_parser_healthcheck_recovered', { healthURL, attempt });
+            }
+            return;
+        }
+        catch (error) {
+            lastError = error;
+            const retryable = isRetryableAIFetchError(error);
+            logger.warn('ai_parser_healthcheck_failed', {
+                healthURL,
+                timeoutMs,
+                attempt,
+                maxAttempts,
+                retryable,
+                error: {
+                    name: error?.name,
+                    message: error?.message,
+                    code: error?.code,
+                    causeCode: error?.cause?.code
+                }
+            });
+            if (!retryable || attempt >= maxAttempts) {
+                throw error;
+            }
+            await sleep(AI_PARSER_HEALTHCHECK_RETRY_DELAYS_MS[attempt - 1] || 1000);
+        }
+    }
+    throw lastError || new Error('AI parser healthcheck failed');
+};
 export const parseWithAIParser = async ({ text, fileType, telegramMeta, nativeResult }) => {
     const url = buildAIParserURL();
     if (!url) {
         throw new Error('AI parser URL is not configured');
     }
+    if (aiParserUnavailableUntil > Date.now()) {
+        throw buildAIParserCooldownError();
+    }
+    await ensureAIParserReady();
     const headers = {
         'Content-Type': 'application/json'
     };
@@ -130,15 +204,12 @@ export const parseWithAIParser = async ({ text, fileType, telegramMeta, nativeRe
     const maxAttempts = AI_PARSER_RETRY_DELAYS_MS.length + 1;
     let lastError = null;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-        const controller = new AbortController();
-        const timeoutHandle = setTimeout(() => controller.abort(), config.aiParserTimeoutMs);
         try {
-            const response = await fetch(url, {
+            const response = await fetchWithTimeout(url, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify(payload),
-                signal: controller.signal
-            });
+            }, config.aiParserTimeoutMs);
             if (!response.ok) {
                 throw new Error(`AI parser request failed with status ${response.status}`);
             }
@@ -146,6 +217,7 @@ export const parseWithAIParser = async ({ text, fileType, telegramMeta, nativeRe
             if (attempt > 1) {
                 logger.info('ai_parser_request_recovered', { url, attempt });
             }
+            aiParserUnavailableUntil = 0;
             return normalizeAIParserResult(data, text, telegramMeta);
         }
         catch (error) {
@@ -176,13 +248,23 @@ export const parseWithAIParser = async ({ text, fileType, telegramMeta, nativeRe
                     stack: error?.stack
                 }
             });
+            if (retryable && attempt >= maxAttempts) {
+                aiParserUnavailableUntil = Date.now() + AI_PARSER_COOLDOWN_MS;
+                logger.warn('ai_parser_circuit_opened', {
+                    url,
+                    cooldownMs: AI_PARSER_COOLDOWN_MS,
+                    retryable,
+                    error: {
+                        message: error?.message,
+                        code: error?.code,
+                        causeCode: error?.cause?.code
+                    }
+                });
+            }
             if (!retryable || attempt >= maxAttempts) {
                 throw error;
             }
             await sleep(AI_PARSER_RETRY_DELAYS_MS[attempt - 1] || 1000);
-        }
-        finally {
-            clearTimeout(timeoutHandle);
         }
     }
     throw lastError || new Error('AI parser request failed');

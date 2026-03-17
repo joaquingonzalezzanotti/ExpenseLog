@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -235,7 +237,15 @@ func isHTTPSRequest(r *http.Request) bool {
 }
 
 func main() {
-	port := flag.Int("port", 8080, "Port to serve from")
+	defaultPort := 8080
+	if raw := strings.TrimSpace(os.Getenv("PORT")); raw != "" {
+		if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 {
+			defaultPort = parsed
+		} else {
+			log.Printf("Invalid PORT env value %q, falling back to %d", raw, defaultPort)
+		}
+	}
+	port := flag.Int("port", defaultPort, "Port to serve from")
 	flag.Parse()
 	runServer(*port)
 }

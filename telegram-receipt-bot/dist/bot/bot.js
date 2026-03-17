@@ -510,6 +510,11 @@ export const buildBot = () => {
         catch (error) {
             parseResults.inc({ status: 'fail_text_ai' });
             logger.warn('text_ai_parse_failed', { error, origin });
+            const errorCode = String(error?.code || error?.cause?.code || '').trim().toUpperCase();
+            if (errorCode === 'AI_PARSER_TEMP_UNAVAILABLE' || errorCode === 'ECONNREFUSED') {
+                await ctx.reply('El parser AI esta temporalmente dormido o no disponible. Prueba de nuevo en 1 o 2 minutos, o envia una imagen/PDF.');
+                return;
+            }
             await ctx.reply('No pude procesar ese texto con parser AI. Prueba reformularlo o envia una imagen/PDF.');
         }
     };

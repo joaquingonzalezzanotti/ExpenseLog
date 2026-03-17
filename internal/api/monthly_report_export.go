@@ -1024,7 +1024,70 @@ func buildMonthlyReportPDF(
 		pdf.CellFormat(0, 5, fmt.Sprintf("ExpenseLog | Pagina %d/{nb}", pdf.PageNo()), "", 0, "R", false, 0, "")
 	})
 	pdf.AddPage()
+	drawPDFSummaryPage(pdf, query, metrics, categories)
 
+	// Page 2+ : full movement table (continues automatically if needed).
+	pdf.AddPage()
+	pdf.SetTextColor(15, 23, 42)
+	pdf.SetFont("Arial", "B", 11)
+	pdf.CellFormat(0, 7, "Detalle de movimientos", "", 1, "L", false, 0, "")
+
+	headers := []string{"Fecha", "Nombre", "Tipo", "Categoria", "Monto", "Medio de pago"}
+	widths := []float64{21, 52, 18, 30, 34, 35}
+	drawPDFReportTableHeader(pdf, headers, widths)
+
+	if len(expenses) == 0 {
+		pdf.SetFont("Arial", "I", 9)
+		pdf.SetTextColor(71, 85, 105)
+		pdf.CellFormat(0, 8, "No hay movimientos para el periodo seleccionado.", "1", 1, "L", false, 0, "")
+	}
+
+	pdf.SetFont("Arial", "", 8.5)
+	for idx, exp := range expenses {
+		if pdf.GetY()+6 > 285 {
+			pdf.AddPage()
+			pdf.SetTextColor(15, 23, 42)
+			pdf.SetFont("Arial", "B", 11)
+			pdf.CellFormat(0, 7, "Detalle de movimientos (continuacion)", "", 1, "L", false, 0, "")
+			drawPDFReportTableHeader(pdf, headers, widths)
+			pdf.SetFont("Arial", "", 8.5)
+		}
+		if idx%2 == 0 {
+			pdf.SetFillColor(255, 255, 255)
+		} else {
+			pdf.SetFillColor(248, 250, 252)
+		}
+		pdf.SetTextColor(15, 23, 42)
+		row := []string{
+			exp.Date.UTC().Format("2006-01-02"),
+			trimForPDF(exp.Name, 34),
+			trimForPDF(formatFlowLabelResolved(exp.Flow, exp.Amount), 14),
+			trimForPDF(formatCategoryLabel(exp.Category), 18),
+			formatReportAmount(exp.Amount, query.Currency),
+			trimForPDF(formatSourceLabel(exp.Source), 20),
+		}
+		for col, value := range row {
+			align := "L"
+			if col == 4 {
+				align = "R"
+			}
+			pdf.CellFormat(widths[col], 6, value, "1", 0, align, true, 0, "")
+		}
+		pdf.Ln(-1)
+	}
+
+	// Last page : additional chart + economic analysis.
+	pdf.AddPage()
+	drawPDFAnalysisPage(pdf, query, metrics, categories, insights)
+
+	buffer := bytes.NewBuffer(nil)
+	if err := pdf.Output(buffer); err != nil {
+		return nil, err
+	}
+	return buffer, nil
+}
+
+func drawPDFSummaryPage(pdf *gofpdf.Fpdf, query monthlyReportQuery, metrics monthlyReportMetrics, categories []monthlyReportCategoryStat) {
 	pageLeft := 10.0
 	pageWidth := 190.0
 	topY := 10.0
@@ -1039,7 +1102,7 @@ func buildMonthlyReportPDF(
 	pdf.CellFormat(65, 6, fmt.Sprintf("%s %d", monthlyReportMonthName(query.Month), query.Year), "", 1, "R", false, 0, "")
 
 	pdf.SetTextColor(51, 65, 85)
-	pdf.SetXY(pageLeft+3, topY+18)
+	pdf.SetXY(pageLeft+3, 31)
 	pdf.SetFont("Arial", "", 10)
 	pdf.CellFormat(0, 5, fmt.Sprintf("Moneda: %s | Emitido: %s UTC", strings.ToUpper(query.Currency), time.Now().UTC().Format("2006-01-02 15:04")), "", 1, "L", false, 0, "")
 
@@ -1095,83 +1158,312 @@ func buildMonthlyReportPDF(
 	}
 
 	cardW := 91.0
-	cardH := 15.0
+	cardH := 16.0
 	cardGap := 8.0
-	startCardY := 31.0
+	startCardY := 38.0
 	for idx, card := range cards {
 		col := idx % 2
 		row := idx / 2
 		x := pageLeft + float64(col)*(cardW+cardGap)
-		y := startCardY + float64(row)*(cardH+4.5)
+		y := startCardY + float64(row)*(cardH+5)
 
 		pdf.SetDrawColor(card.LineColor[0], card.LineColor[1], card.LineColor[2])
 		pdf.SetFillColor(card.FillColor[0], card.FillColor[1], card.FillColor[2])
 		pdf.RoundedRect(x, y, cardW, cardH, 2, "1234", "DF")
-		pdf.SetXY(x+3, y+2.8)
+		pdf.SetXY(x+3, y+3)
 		pdf.SetTextColor(card.TitleColor[0], card.TitleColor[1], card.TitleColor[2])
-		pdf.SetFont("Arial", "B", 8.5)
-		pdf.CellFormat(cardW-6, 3.8, card.Title, "", 2, "L", false, 0, "")
+		pdf.SetFont("Arial", "B", 8.8)
+		pdf.CellFormat(cardW-6, 4, card.Title, "", 2, "L", false, 0, "")
 		pdf.SetX(x + 3)
 		pdf.SetTextColor(15, 23, 42)
-		pdf.SetFont("Arial", "B", 10.5)
-		pdf.CellFormat(cardW-6, 4.5, card.Value, "", 0, "L", false, 0, "")
+		pdf.SetFont("Arial", "B", 10.8)
+		pdf.CellFormat(cardW-6, 5, card.Value, "", 0, "L", false, 0, "")
 	}
 
-	pdf.SetY(startCardY + 3*(cardH+4.5) + 4)
-	drawPDFCategorySection(pdf, categories, query.Currency)
-	drawPDFInsightsSection(pdf, insights)
-
-	pdf.AddPage()
+	topCategories := topCategoryStatsByExpense(categories, 6)
+	pieSectionY := startCardY + 3*(cardH+5) + 8
+	pdf.SetY(pieSectionY)
 	pdf.SetTextColor(15, 23, 42)
-	pdf.SetFont("Arial", "B", 11)
-	pdf.CellFormat(0, 7, "Detalle de movimientos", "", 1, "L", false, 0, "")
+	pdf.SetFont("Arial", "B", 10.5)
+	pdf.CellFormat(0, 6, "Distribucion por categoria (egresos)", "", 1, "L", false, 0, "")
 
-	headers := []string{"Fecha", "Nombre", "Tipo", "Categoria", "Monto", "Medio de pago"}
-	widths := []float64{21, 52, 18, 30, 34, 35}
-	drawPDFReportTableHeader(pdf, headers, widths)
-
-	if len(expenses) == 0 {
-		pdf.SetFont("Arial", "I", 9)
+	if len(topCategories) == 0 {
+		pdf.SetFont("Arial", "", 9)
 		pdf.SetTextColor(71, 85, 105)
-		pdf.CellFormat(0, 8, "No hay movimientos para el periodo seleccionado.", "1", 1, "L", false, 0, "")
+		pdf.CellFormat(0, 6, "No hay egresos para el periodo.", "1", 1, "L", false, 0, "")
+		return
 	}
 
-	pdf.SetFont("Arial", "", 8.5)
-	for idx, exp := range expenses {
-		if pdf.GetY()+6 > 285 {
-			pdf.AddPage()
-			drawPDFReportTableHeader(pdf, headers, widths)
-			pdf.SetFont("Arial", "", 8.5)
+	drawPDFPieChart(pdf, 40, pieSectionY+28, 22, topCategories)
+	drawPDFPieLegend(pdf, 67, pieSectionY+7, topCategories, query.Currency)
+	drawPDFCategorySectionTable(pdf, pieSectionY+55, topCategories, query.Currency)
+}
+
+func drawPDFCategorySectionTable(pdf *gofpdf.Fpdf, y float64, categories []monthlyReportCategoryStat, currency string) {
+	pdf.SetY(y)
+	headers := []string{"Categoria", "Egreso", "Share"}
+	widths := []float64{110, 45, 35}
+	pdf.SetFont("Arial", "B", 9)
+	pdf.SetTextColor(255, 255, 255)
+	pdf.SetFillColor(30, 64, 175)
+	for idx, header := range headers {
+		align := "L"
+		if idx > 0 {
+			align = "R"
 		}
+		pdf.CellFormat(widths[idx], 6, header, "1", 0, align, true, 0, "")
+	}
+	pdf.Ln(-1)
+
+	pdf.SetFont("Arial", "", 8.7)
+	for idx, row := range categories {
 		if idx%2 == 0 {
 			pdf.SetFillColor(255, 255, 255)
 		} else {
 			pdf.SetFillColor(248, 250, 252)
 		}
 		pdf.SetTextColor(15, 23, 42)
-		row := []string{
-			exp.Date.UTC().Format("2006-01-02"),
-			trimForPDF(exp.Name, 34),
-			trimForPDF(formatFlowLabelResolved(exp.Flow, exp.Amount), 14),
-			trimForPDF(formatCategoryLabel(exp.Category), 18),
-			formatReportAmount(exp.Amount, query.Currency),
-			trimForPDF(formatSourceLabel(exp.Source), 20),
-		}
-		for col, value := range row {
-			align := "L"
-			if col == 4 {
-				align = "R"
-			}
-			pdf.CellFormat(widths[col], 6, value, "1", 0, align, true, 0, "")
-		}
-		pdf.Ln(-1)
+		pdf.CellFormat(widths[0], 6, trimForPDF(row.Name, 44), "1", 0, "L", true, 0, "")
+		pdf.CellFormat(widths[1], 6, formatReportAmount(row.ExpenseTotal, currency), "1", 0, "R", true, 0, "")
+		pdf.CellFormat(widths[2], 6, fmt.Sprintf("%.1f%%", row.ExpenseShare), "1", 1, "R", true, 0, "")
+	}
+}
+
+func drawPDFPieLegend(pdf *gofpdf.Fpdf, x, y float64, categories []monthlyReportCategoryStat, currency string) {
+	palette := monthlyReportPalette()
+	pdf.SetFont("Arial", "", 8.3)
+	for i, row := range categories {
+		color := palette[i%len(palette)]
+		currentY := y + float64(i)*6.2
+		pdf.SetFillColor(color[0], color[1], color[2])
+		pdf.Rect(x, currentY+1.6, 2.8, 2.8, "F")
+		pdf.SetTextColor(51, 65, 85)
+		label := fmt.Sprintf("%s (%.1f%%)", trimForPDF(row.Name, 22), row.ExpenseShare)
+		pdf.SetXY(x+4.2, currentY)
+		pdf.CellFormat(52, 5, label, "", 0, "L", false, 0, "")
+		pdf.SetXY(x+56, currentY)
+		pdf.CellFormat(26, 5, formatReportAmount(row.ExpenseTotal, currency), "", 1, "R", false, 0, "")
+	}
+}
+
+func drawPDFPieChart(pdf *gofpdf.Fpdf, cx, cy, radius float64, categories []monthlyReportCategoryStat) {
+	total := 0.0
+	for _, row := range categories {
+		total += row.ExpenseTotal
+	}
+	if total <= 0 {
+		pdf.SetDrawColor(203, 213, 225)
+		pdf.SetFillColor(248, 250, 252)
+		pdf.Circle(cx, cy, radius, "DF")
+		return
 	}
 
-	buffer := bytes.NewBuffer(nil)
-	if err := pdf.Output(buffer); err != nil {
-		return nil, err
+	palette := monthlyReportPalette()
+	startDeg := -90.0
+	for i, row := range categories {
+		if row.ExpenseTotal <= 0 {
+			continue
+		}
+		sweep := (row.ExpenseTotal / total) * 360
+		endDeg := startDeg + sweep
+		points := []gofpdf.PointType{{X: cx, Y: cy}}
+		steps := int(math.Max(8, math.Ceil(sweep/4)))
+		for s := 0; s <= steps; s++ {
+			deg := startDeg + (sweep*float64(s))/float64(steps)
+			rad := deg * math.Pi / 180
+			points = append(points, gofpdf.PointType{
+				X: cx + radius*math.Cos(rad),
+				Y: cy + radius*math.Sin(rad),
+			})
+		}
+		points = append(points, gofpdf.PointType{
+			X: cx + radius*math.Cos(endDeg*math.Pi/180),
+			Y: cy + radius*math.Sin(endDeg*math.Pi/180),
+		})
+		color := palette[i%len(palette)]
+		pdf.SetFillColor(color[0], color[1], color[2])
+		pdf.SetDrawColor(255, 255, 255)
+		pdf.Polygon(points, "FD")
+		startDeg = endDeg
 	}
-	return buffer, nil
+}
+
+func drawPDFAnalysisPage(pdf *gofpdf.Fpdf, query monthlyReportQuery, metrics monthlyReportMetrics, categories []monthlyReportCategoryStat, insights []monthlyReportInsight) {
+	pdf.SetTextColor(15, 23, 42)
+	pdf.SetFont("Arial", "B", 14)
+	pdf.CellFormat(0, 8, "Analisis economico del mes", "", 1, "L", false, 0, "")
+	pdf.SetFont("Arial", "", 9)
+	pdf.SetTextColor(71, 85, 105)
+	pdf.CellFormat(0, 5, fmt.Sprintf("Periodo: %s %d | Moneda: %s", monthlyReportMonthName(query.Month), query.Year, strings.ToUpper(query.Currency)), "", 1, "L", false, 0, "")
+
+	drawPDFWaterfallChart(pdf, 12, 28, 186, 74, metrics, query.Currency)
+	drawPDFTopCategoriesBarChart(pdf, 12, 112, 186, 62, categories, query.Currency)
+	drawPDFEconomicSummary(pdf, 12, 182, 186, metrics, insights, query.Currency)
+}
+
+func drawPDFWaterfallChart(pdf *gofpdf.Fpdf, x, y, w, h float64, metrics monthlyReportMetrics, currency string) {
+	pdf.SetTextColor(15, 23, 42)
+	pdf.SetFont("Arial", "B", 10)
+	pdf.SetXY(x, y-6)
+	pdf.CellFormat(w, 5, "Waterfall de resultado de caja", "", 0, "L", false, 0, "")
+
+	incomes := metrics.Income + metrics.Refund
+	values := []float64{
+		metrics.InitialBalance,
+		metrics.InitialBalance + incomes,
+		metrics.NetBalance,
+	}
+	minV := math.Min(0, math.Min(values[0], math.Min(values[1], values[2])))
+	maxV := math.Max(0, math.Max(values[0], math.Max(values[1], values[2])))
+	if math.Abs(maxV-minV) < 0.01 {
+		maxV = minV + 1
+	}
+	padding := (maxV - minV) * 0.1
+	minV -= padding
+	maxV += padding
+
+	toY := func(v float64) float64 {
+		return y + h - ((v-minV)/(maxV-minV))*h
+	}
+	zeroY := toY(0)
+	pdf.SetDrawColor(203, 213, 225)
+	pdf.Line(x, zeroY, x+w, zeroY)
+	pdf.Rect(x, y, w, h, "D")
+
+	barW := 28.0
+	gap := (w - 4*barW) / 5
+	xs := []float64{
+		x + gap,
+		x + gap*2 + barW,
+		x + gap*3 + barW*2,
+		x + gap*4 + barW*3,
+	}
+
+	bars := []struct {
+		label string
+		from  float64
+		to    float64
+		color [3]int
+	}{
+		{"Saldo inicial", 0, metrics.InitialBalance, [3]int{59, 130, 246}},
+		{"+ Ingresos", metrics.InitialBalance, metrics.InitialBalance + incomes, [3]int{16, 185, 129}},
+		{"- Egresos", metrics.InitialBalance + incomes, metrics.NetBalance, [3]int{239, 68, 68}},
+		{"Cierre", 0, metrics.NetBalance, [3]int{99, 102, 241}},
+	}
+
+	pdf.SetFont("Arial", "", 7.8)
+	for i, bar := range bars {
+		y1 := toY(bar.from)
+		y2 := toY(bar.to)
+		top := math.Min(y1, y2)
+		height := math.Abs(y2 - y1)
+		if height < 1 {
+			height = 1
+		}
+		pdf.SetFillColor(bar.color[0], bar.color[1], bar.color[2])
+		pdf.SetDrawColor(255, 255, 255)
+		pdf.Rect(xs[i], top, barW, height, "FD")
+		pdf.SetTextColor(51, 65, 85)
+		pdf.SetXY(xs[i], y+h+1.5)
+		pdf.CellFormat(barW, 4, trimForPDF(bar.label, 14), "", 2, "C", false, 0, "")
+		pdf.SetX(xs[i])
+		amount := bar.to
+		if i == 1 {
+			amount = incomes
+		}
+		if i == 2 {
+			amount = -metrics.Expense
+		}
+		pdf.CellFormat(barW, 4, trimForPDF(formatReportAmount(amount, currency), 14), "", 0, "C", false, 0, "")
+	}
+}
+
+func drawPDFTopCategoriesBarChart(pdf *gofpdf.Fpdf, x, y, w, h float64, categories []monthlyReportCategoryStat, currency string) {
+	pdf.SetTextColor(15, 23, 42)
+	pdf.SetFont("Arial", "B", 10)
+	pdf.SetXY(x, y-6)
+	pdf.CellFormat(w, 5, "Top 5 categorias de egreso", "", 0, "L", false, 0, "")
+	pdf.Rect(x, y, w, h, "D")
+
+	top := topCategoryStatsByExpense(categories, 5)
+	if len(top) == 0 {
+		pdf.SetFont("Arial", "", 9)
+		pdf.SetTextColor(100, 116, 139)
+		pdf.SetXY(x+3, y+h/2-2)
+		pdf.CellFormat(w-6, 4, "Sin egresos para mostrar.", "", 0, "L", false, 0, "")
+		return
+	}
+
+	maxExpense := top[0].ExpenseTotal
+	leftLabelW := 56.0
+	barAreaW := 88.0
+	valueW := 34.0
+	rowH := h / float64(len(top))
+	palette := monthlyReportPalette()
+	pdf.SetFont("Arial", "", 8.4)
+	for i, row := range top {
+		rowY := y + float64(i)*rowH
+		pdf.SetTextColor(51, 65, 85)
+		pdf.SetXY(x+2, rowY+1.4)
+		pdf.CellFormat(leftLabelW-2, 4.5, trimForPDF(row.Name, 20), "", 0, "L", false, 0, "")
+		ratio := 0.0
+		if maxExpense > 0 {
+			ratio = row.ExpenseTotal / maxExpense
+		}
+		barW := math.Max(1, barAreaW*ratio)
+		color := palette[i%len(palette)]
+		pdf.SetFillColor(color[0], color[1], color[2])
+		pdf.Rect(x+leftLabelW, rowY+1.5, barW, rowH-3, "F")
+		pdf.SetXY(x+leftLabelW+barAreaW+2, rowY+1.2)
+		pdf.CellFormat(valueW-2, 4.5, formatReportAmount(row.ExpenseTotal, currency), "", 0, "R", false, 0, "")
+	}
+}
+
+func drawPDFEconomicSummary(pdf *gofpdf.Fpdf, x, y, w float64, metrics monthlyReportMetrics, insights []monthlyReportInsight, currency string) {
+	pdf.SetXY(x, y)
+	pdf.SetTextColor(15, 23, 42)
+	pdf.SetFont("Arial", "B", 10)
+	pdf.CellFormat(w, 5, "Conclusion economica", "", 1, "L", false, 0, "")
+
+	pdf.SetFont("Arial", "", 9)
+	pdf.SetTextColor(51, 65, 85)
+	baseLines := []string{
+		fmt.Sprintf("- Balance neto de caja: %s", formatReportAmount(metrics.NetBalance, currency)),
+		fmt.Sprintf("- Tasa de ahorro: %.1f%% | Dependencia tarjeta: %.1f%%", metrics.SavingsRate, metrics.CardExpenseShare),
+		fmt.Sprintf("- Ticket promedio: %s | Mediana: %s", formatReportAmount(metrics.AvgExpenseTicket, currency), formatReportAmount(metrics.MedianExpenseTicket, currency)),
+		fmt.Sprintf("- Concentracion top 3 categorias: %.1f%%", metrics.CategoryConcentrationTop3),
+	}
+	for _, line := range baseLines {
+		pdf.MultiCell(w, 4.8, line, "", "L", false)
+	}
+
+	if len(insights) > 0 {
+		pdf.Ln(1)
+		pdf.SetFont("Arial", "B", 9)
+		pdf.SetTextColor(15, 23, 42)
+		pdf.CellFormat(w, 4.8, "Hallazgos clave", "", 1, "L", false, 0, "")
+		pdf.SetFont("Arial", "", 8.8)
+		pdf.SetTextColor(51, 65, 85)
+		limit := 3
+		if len(insights) < limit {
+			limit = len(insights)
+		}
+		for i := 0; i < limit; i++ {
+			pdf.MultiCell(w, 4.8, fmt.Sprintf("- %s: %s", insights[i].Title, insights[i].Detail), "", "L", false)
+		}
+	}
+}
+
+func monthlyReportPalette() [][3]int {
+	return [][3]int{
+		{59, 130, 246},
+		{16, 185, 129},
+		{244, 114, 182},
+		{245, 158, 11},
+		{139, 92, 246},
+		{34, 197, 94},
+		{14, 165, 233},
+	}
 }
 
 func drawPDFCategorySection(pdf *gofpdf.Fpdf, categories []monthlyReportCategoryStat, currency string) {

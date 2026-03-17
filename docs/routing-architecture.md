@@ -1,67 +1,67 @@
-# Routing Architecture (`/`, `/app/*`, `/api/*`)
+# Arquitectura de Ruteo (`/`, `/app/*`, `/api/*`)
 
-## Goal
-Define and freeze the web routing contract so landing, app, and API can evolve independently.
+## Objetivo
+Definir y congelar el contrato de ruteo web para que landing, app y API puedan evolucionar de forma independiente.
 
-## Canonical routes
+## Rutas canónicas
 
-1. `https://expenselog.com.ar/` -> public landing.
-2. `https://expenselog.com.ar/app` and `https://expenselog.com.ar/app/*` -> authenticated app UI.
-3. `https://expenselog.com.ar/api/*` -> backend API.
+1. `https://expenselog.com.ar/` -> landing pública.
+2. `https://expenselog.com.ar/app` y `https://expenselog.com.ar/app/*` -> interfaz de la app autenticada.
+3. `https://expenselog.com.ar/api/*` -> API backend.
 
-## Backend behavior in this repo
+## Comportamiento del backend en este repositorio
 
-As of February 22, 2026, the Go server supports:
+Al 22 de febrero de 2026, el servidor Go soporta:
 
-1. New namespaced routes:
-   - `/app`, `/app/table`, `/app/settings`
-   - `/app/*` static assets (for example `/app/style.css`, `/app/functions.js`)
-   - `/api/*` for all auth/config/expenses/reconciliation/import-export/version endpoints
-2. Legacy compatibility routes still active:
-   - `/table`, `/settings`
-   - root API routes (`/auth/*`, `/expense*`, etc.)
-   - root static assets (`/style.css`, `/functions.js`, etc.)
+1. Nuevas rutas con espacio de nombres:
+  - `/app`, `/app/table`, `/app/settings`
+  - activos estáticos en `/app/*` (por ejemplo `/app/style.css`, `/app/functions.js`)
+  - `/api/*` para todos los endpoints de auth/config/expenses/reconciliation/import-export/version
+2. Rutas de compatibilidad heredadas aún activas:
+  - `/table`, `/settings`
+  - rutas raíz de API (`/auth/*`, `/expense*`, etc.)
+  - activos estáticos en la raíz (`/style.css`, `/functions.js`, etc.)
 
-This allows safe rollout without breaking existing links/sessions.
+Esto permite un despliegue seguro sin romper enlaces o sesiones existentes.
 
-## Frontend contract
+## Contrato del frontend
 
-App templates now load:
+Las plantillas de la app ahora cargan:
 
-1. assets from `/app/*`
-2. auth provider entrypoint from `/api/auth/google`
-3. API calls through `/api/*` (automatically prefixed in `internal/web/templates/functions.js`)
+1. activos desde `/app/*`
+2. punto de entrada del proveedor de autenticación desde `/api/auth/google`
+3. llamadas a la API a través de `/api/*` (prefijadas automáticamente en `internal/web/templates/functions.js`)
 
-Landing remains on `/` and opens `/app`.
+El landing permanece en `/` y abre `/app`.
 
-## Suggested Vercel rewrites (landing on Vercel, app/api on Railway)
+## Reescrituras sugeridas para Vercel (landing en Vercel, app/api en Railway)
 
 `vercel.json`:
 
 ```json
 {
   "rewrites": [
-    {
-      "source": "/app",
-      "destination": "https://<railway-host>/app"
-    },
-    {
-      "source": "/app/:path*",
-      "destination": "https://<railway-host>/app/:path*"
-    },
-    {
-      "source": "/api/:path*",
-      "destination": "https://<railway-host>/api/:path*"
-    }
+   {
+    "source": "/app",
+    "destination": "https://<railway-host>/app"
+   },
+   {
+    "source": "/app/:path*",
+    "destination": "https://<railway-host>/app/:path*"
+   },
+   {
+    "source": "/api/:path*",
+    "destination": "https://<railway-host>/api/:path*"
+   }
   ]
 }
 ```
 
-Replace `<railway-host>` with your real Railway domain.
+Reemplaza `<railway-host>` por tu dominio real de Railway.
 
-## Migration notes
+## Notas de migración
 
-1. Keep legacy routes enabled during transition.
-2. Update external integrations to `/api/*` gradually.
-3. After production stabilization, remove legacy routes in a separate hardening pass.
-4. Note: a no-op docs commit can be used to force CI/CD auto-deploy detection when branch tracking is delayed.
+1. Mantener las rutas heredadas habilitadas durante la transición.
+2. Actualizar gradualmente las integraciones externas a `/api/*`.
+3. Tras la estabilización en producción, eliminar las rutas heredadas en una pasada de endurecimiento separada.
+4. Nota: se puede usar un commit de documentación sin cambios para forzar la detección de auto-despliegue en CI/CD cuando el seguimiento de ramas se retrasa.

@@ -214,6 +214,15 @@
                         </select>
                     </div>
                 </div>
+                <div class="settings-preference-item">
+                    <label for="reportIncludeCreditCardCheckbox">Gasto tarjeta</label>
+                    <div class="settings-preference-control">
+                        <label class="checkbox-inline">
+                            <input id="reportIncludeCreditCardCheckbox" type="checkbox" class="styled-checkbox" checked>
+                            <span>Incluir gastos con tarjeta de credito</span>
+                        </label>
+                    </div>
+                </div>
             </div>
             <div class="settings-export-actions">
                 <button id="downloadMonthlyXLSXBtn" class="nav-button button-secondary" type="button">Descargar Excel (.xlsx)</button>
@@ -624,6 +633,7 @@
         const reportMonthSelect = document.getElementById('reportMonthSelect');
         const reportYearInput = document.getElementById('reportYearInput');
         const reportCurrencySelect = document.getElementById('reportCurrencySelect');
+        const reportIncludeCreditCardCheckbox = document.getElementById('reportIncludeCreditCardCheckbox');
         const downloadMonthlyXLSXBtn = document.getElementById('downloadMonthlyXLSXBtn');
         const downloadMonthlyPDFBtn = document.getElementById('downloadMonthlyPDFBtn');
         const telegramStatusBanner = document.getElementById('telegramStatusBanner');
@@ -795,6 +805,7 @@
             const monthParam = parseInt(params.get('month') || '', 10);
             const yearParam = parseInt(params.get('year') || '', 10);
             const currencyParam = String(params.get('currency') || '').trim().toLowerCase();
+            const includeCreditCardParam = String(params.get('include_credit_card') || '').trim().toLowerCase();
 
             if (reportMonthSelect && Number.isInteger(monthParam) && monthParam >= 1 && monthParam <= 12) {
                 reportMonthSelect.value = String(monthParam);
@@ -808,6 +819,13 @@
                 );
                 if (hasCurrencyOption) {
                     reportCurrencySelect.value = currencyParam;
+                }
+            }
+            if (reportIncludeCreditCardCheckbox && includeCreditCardParam) {
+                const isTruthy = ['1', 'true', 'yes', 'si', 'on'].includes(includeCreditCardParam);
+                const isFalsy = ['0', 'false', 'no', 'off'].includes(includeCreditCardParam);
+                if (isTruthy || isFalsy) {
+                    reportIncludeCreditCardCheckbox.checked = isTruthy;
                 }
             }
         }
@@ -832,6 +850,9 @@
             }
             if (reportCurrencySelect) {
                 reportCurrencySelect.value = currentCurrency || 'ars';
+            }
+            if (reportIncludeCreditCardCheckbox) {
+                reportIncludeCreditCardCheckbox.checked = true;
             }
             applyReportContextFromURL();
             renderReportAccessState();
@@ -866,6 +887,7 @@
             const month = parseInt(reportMonthSelect?.value || '', 10);
             const year = parseInt(reportYearInput?.value || '', 10);
             const currency = (reportCurrencySelect?.value || currentCurrency || 'ars').toLowerCase();
+            const includeCreditCard = reportIncludeCreditCardCheckbox ? !!reportIncludeCreditCardCheckbox.checked : true;
 
             if (!Number.isInteger(month) || month < 1 || month > 12) {
                 showMessage('reportExportMessage', 'Mes invalido para exportacion.', false);
@@ -881,6 +903,7 @@
                 year: String(year),
                 month: String(month),
                 currency,
+                include_credit_card: includeCreditCard ? 'true' : 'false',
             });
             const endpoint = `/api/export/monthly/${ext}?${params.toString()}`;
 

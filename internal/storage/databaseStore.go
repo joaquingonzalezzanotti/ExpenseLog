@@ -173,6 +173,37 @@ const (
 		used_by_telegram_user_id BIGINT,
 		used_telegram_username TEXT
 	);`
+
+	createWalletIngestTokensTableSQL = `
+	CREATE TABLE IF NOT EXISTS wallet_ingest_tokens (
+		id VARCHAR(36) PRIMARY KEY,
+		user_id VARCHAR(36) NOT NULL,
+		token_hash VARCHAR(128) NOT NULL,
+		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		last_used_at TIMESTAMPTZ
+	);`
+
+	createWalletIngestEventsTableSQL = `
+	CREATE TABLE IF NOT EXISTS wallet_ingest_events (
+		id VARCHAR(36) PRIMARY KEY,
+		user_id VARCHAR(36) NOT NULL,
+		source VARCHAR(100) NOT NULL,
+		amount NUMERIC(14, 2),
+		merchant TEXT,
+		merchant_raw TEXT,
+		card_label TEXT,
+		wallet_category TEXT,
+		paid_at TIMESTAMPTZ,
+		raw_payload JSONB NOT NULL,
+		request_headers JSONB,
+		status VARCHAR(40) NOT NULL DEFAULT 'received',
+		confidence VARCHAR(20) NOT NULL DEFAULT 'low',
+		created_transaction_id VARCHAR(36),
+		duplicate_of_event_id VARCHAR(36),
+		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+	);`
 )
 
 func InitializePostgresStore(baseConfig SystemConfig) (Storage, error) {
@@ -218,6 +249,8 @@ func createTables(db *sql.DB) error {
 		createCategoriesTableSQL,
 		createTelegramUserLinksTableSQL,
 		createTelegramLinkCodesTableSQL,
+		createWalletIngestTokensTableSQL,
+		createWalletIngestEventsTableSQL,
 	} {
 		if _, err := db.Exec(query); err != nil {
 			return err
@@ -253,6 +286,20 @@ func createTables(db *sql.DB) error {
 		"ALTER TABLE telegram_link_codes ADD COLUMN IF NOT EXISTS used_at TIMESTAMPTZ",
 		"ALTER TABLE telegram_link_codes ADD COLUMN IF NOT EXISTS used_by_telegram_user_id BIGINT",
 		"ALTER TABLE telegram_link_codes ADD COLUMN IF NOT EXISTS used_telegram_username TEXT",
+		"ALTER TABLE wallet_ingest_tokens ADD COLUMN IF NOT EXISTS token_hash VARCHAR(128)",
+		"ALTER TABLE wallet_ingest_tokens ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+		"ALTER TABLE wallet_ingest_tokens ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+		"ALTER TABLE wallet_ingest_tokens ADD COLUMN IF NOT EXISTS last_used_at TIMESTAMPTZ",
+		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS merchant_raw TEXT",
+		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS card_label TEXT",
+		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS wallet_category TEXT",
+		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ",
+		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS request_headers JSONB",
+		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS status VARCHAR(40) NOT NULL DEFAULT 'received'",
+		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS confidence VARCHAR(20) NOT NULL DEFAULT 'low'",
+		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS created_transaction_id VARCHAR(36)",
+		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS duplicate_of_event_id VARCHAR(36)",
+		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
 	}
 	for _, stmt := range alterStmts {
 		if _, err := db.Exec(stmt); err != nil {
@@ -314,6 +361,21 @@ func createTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS telegram_link_codes_user_created_idx ON telegram_link_codes (user_id, created_at DESC)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS wallet_ingest_tokens_user_key ON wallet_ingest_tokens (user_id)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS wallet_ingest_tokens_token_hash_key ON wallet_ingest_tokens (token_hash)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS wallet_ingest_tokens_user_updated_idx ON wallet_ingest_tokens (user_id, updated_at DESC)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS wallet_ingest_events_user_paid_at_idx ON wallet_ingest_events (user_id, paid_at)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS wallet_ingest_events_user_amount_idx ON wallet_ingest_events (user_id, amount)`); err != nil {
 		return err
 	}
 	if err := ensureRecurringInstanceUniqueIndex(db); err != nil {
@@ -395,6 +457,8 @@ func ensureForeignKeys(db *sql.DB) error {
 		{name: "reconciliations_user_fk", table: "reconciliations", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "telegram_user_links_user_fk", table: "telegram_user_links", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "telegram_link_codes_user_fk", table: "telegram_link_codes", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
+		{name: "wallet_ingest_tokens_user_fk", table: "wallet_ingest_tokens", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
+		{name: "wallet_ingest_events_user_fk", table: "wallet_ingest_events", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "reconciliations_adjustment_fk", table: "reconciliations", column: "adjustment_expense_id", refTable: "expenses", refColumn: "id", onDelete: "RESTRICT"},
 		{name: "reconciliations_reversal_fk", table: "reconciliations", column: "reversal_expense_id", refTable: "expenses", refColumn: "id", onDelete: "RESTRICT"},
 	}
@@ -1164,6 +1228,26 @@ func scanTelegramLinkCode(scanner interface{ Scan(...any) error }) (TelegramLink
 	return code, nil
 }
 
+func scanWalletIngestToken(scanner interface{ Scan(...any) error }) (WalletIngestToken, error) {
+	var token WalletIngestToken
+	var lastUsed sql.NullTime
+	if err := scanner.Scan(
+		&token.ID,
+		&token.UserID,
+		&token.TokenHash,
+		&token.CreatedAt,
+		&token.UpdatedAt,
+		&lastUsed,
+	); err != nil {
+		return WalletIngestToken{}, err
+	}
+	if lastUsed.Valid {
+		value := lastUsed.Time
+		token.LastUsedAt = &value
+	}
+	return token, nil
+}
+
 func (s *databaseStore) GetTelegramUserLinkByUserID(userID string) (TelegramUserLink, error) {
 	query := `
 		SELECT id, user_id, telegram_user_id, telegram_username, created_at, updated_at
@@ -1371,6 +1455,77 @@ func (s *databaseStore) ConsumeTelegramLinkCode(codeHash string, telegramUserID 
 		return TelegramUserLink{}, err
 	}
 	return link, nil
+}
+
+func (s *databaseStore) GetActiveWalletIngestTokenByUserID(userID string) (WalletIngestToken, error) {
+	query := `
+		SELECT id, user_id, token_hash, created_at, updated_at, last_used_at
+		FROM wallet_ingest_tokens
+		WHERE user_id = $1
+		LIMIT 1
+	`
+	token, err := scanWalletIngestToken(s.db.QueryRow(query, userID))
+	if err != nil {
+		return WalletIngestToken{}, err
+	}
+	return token, nil
+}
+
+func (s *databaseStore) UpsertWalletIngestToken(userID, tokenHash string, now time.Time) (WalletIngestToken, error) {
+	token := WalletIngestToken{
+		ID:        uuid.New().String(),
+		UserID:    userID,
+		TokenHash: tokenHash,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	query := `
+		INSERT INTO wallet_ingest_tokens (
+			id, user_id, token_hash, created_at, updated_at, last_used_at
+		) VALUES ($1, $2, $3, $4, $5, NULL)
+		ON CONFLICT (user_id)
+		DO UPDATE SET
+			token_hash = EXCLUDED.token_hash,
+			created_at = EXCLUDED.created_at,
+			updated_at = EXCLUDED.updated_at,
+			last_used_at = NULL
+		RETURNING id, user_id, token_hash, created_at, updated_at, last_used_at
+	`
+	upserted, err := scanWalletIngestToken(s.db.QueryRow(
+		query,
+		token.ID,
+		token.UserID,
+		token.TokenHash,
+		token.CreatedAt,
+		token.UpdatedAt,
+	))
+	if err != nil {
+		return WalletIngestToken{}, err
+	}
+	return upserted, nil
+}
+
+func (s *databaseStore) GetWalletIngestTokenByHash(tokenHash string) (WalletIngestToken, error) {
+	query := `
+		SELECT id, user_id, token_hash, created_at, updated_at, last_used_at
+		FROM wallet_ingest_tokens
+		WHERE token_hash = $1
+		LIMIT 1
+	`
+	token, err := scanWalletIngestToken(s.db.QueryRow(query, tokenHash))
+	if err != nil {
+		return WalletIngestToken{}, err
+	}
+	return token, nil
+}
+
+func (s *databaseStore) TouchWalletIngestTokenLastUsed(tokenID string, usedAt time.Time) error {
+	_, err := s.db.Exec(
+		`UPDATE wallet_ingest_tokens SET last_used_at = $2, updated_at = NOW() WHERE id = $1`,
+		tokenID,
+		usedAt,
+	)
+	return err
 }
 
 func (s *databaseStore) GetCategories(userID string) ([]string, error) {
@@ -1589,6 +1744,50 @@ func (s *databaseStore) GetAllExpenses(userID string) ([]Expense, error) {
 		expenses = append(expenses, expense)
 	}
 	return expenses, nil
+}
+
+func (s *databaseStore) GetExpensesByPeriodAndCurrency(userID string, start, end time.Time, currency string) ([]Expense, error) {
+	query := `
+		SELECT id, recurring_id, name, category, amount, currency, date, flow, tags, source, card, system_origin, system_locked
+		FROM expenses
+		WHERE user_id = $1
+			AND date >= $2
+			AND date < $3
+			AND LOWER(COALESCE(NULLIF(TRIM(currency), ''), $4)) = $4
+		ORDER BY date ASC, name ASC, id ASC
+	`
+	rows, err := s.db.Query(query, userID, start, end, strings.ToLower(strings.TrimSpace(currency)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query expenses by period and currency: %v", err)
+	}
+	defer rows.Close()
+
+	expenses := make([]Expense, 0)
+	for rows.Next() {
+		expense, err := scanExpense(rows)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan expense: %v", err)
+		}
+		expenses = append(expenses, expense)
+	}
+	return expenses, nil
+}
+
+func (s *databaseStore) GetCashBalanceBeforeDate(userID string, before time.Time, currency string) (float64, error) {
+	query := `
+		SELECT COALESCE(SUM(amount), 0)
+		FROM expenses
+		WHERE user_id = $1
+			AND date < $2
+			AND LOWER(COALESCE(NULLIF(TRIM(currency), ''), $3)) = $3
+			AND UPPER(COALESCE(NULLIF(TRIM(source), ''), 'CA')) = 'CA'
+	`
+	var balance float64
+	err := s.db.QueryRow(query, userID, before, strings.ToLower(strings.TrimSpace(currency))).Scan(&balance)
+	if err != nil {
+		return 0, fmt.Errorf("failed to query cash balance before date: %v", err)
+	}
+	return balance, nil
 }
 
 func (s *databaseStore) GetExpense(userID, id string) (Expense, error) {
@@ -2370,4 +2569,109 @@ func generateExpensesFromRecurring(userID string, recExp RecurringExpense, fromT
 		}
 	}
 	return expenses
+}
+
+func (s *databaseStore) CreateWalletIngestEvent(event WalletIngestEvent) (WalletIngestEvent, error) {
+	if event.ID == "" {
+		event.ID = uuid.New().String()
+	}
+	if event.Status == "" {
+		event.Status = "received"
+	}
+	if event.Confidence == "" {
+		event.Confidence = "low"
+	}
+	if event.Source == "" {
+		event.Source = "apple_wallet_shortcut"
+	}
+	query := `
+		INSERT INTO wallet_ingest_events (
+			id, user_id, source, amount, merchant, merchant_raw, card_label, wallet_category,
+			paid_at, raw_payload, request_headers, status, confidence,
+			created_transaction_id, duplicate_of_event_id, created_at, updated_at
+		) VALUES (
+			$1, $2, $3, NULLIF($4, 0), NULLIF($5, ''), NULLIF($6, ''), NULLIF($7, ''), NULLIF($8, ''),
+			NULLIF($9, TIMESTAMPTZ '0001-01-01T00:00:00Z'), $10::jsonb, NULLIF($11, '')::jsonb, $12, $13,
+			NULLIF($14, ''), NULLIF($15, ''), NOW(), NOW()
+		)
+		RETURNING created_at, updated_at
+	`
+	if err := s.db.QueryRow(
+		query,
+		event.ID,
+		event.UserID,
+		event.Source,
+		event.Amount,
+		event.Merchant,
+		event.MerchantRaw,
+		event.CardLabel,
+		event.WalletCategory,
+		event.PaidAt,
+		event.RawPayload,
+		event.RequestHeaders,
+		event.Status,
+		event.Confidence,
+		event.CreatedTransactionID,
+		event.DuplicateOfEventID,
+	).Scan(&event.CreatedAt, &event.UpdatedAt); err != nil {
+		return WalletIngestEvent{}, err
+	}
+	return event, nil
+}
+
+func (s *databaseStore) UpdateWalletIngestEventResult(eventID, status, confidence, createdTransactionID, duplicateOfEventID string) error {
+	_, err := s.db.Exec(`
+		UPDATE wallet_ingest_events
+		SET status = COALESCE(NULLIF($2, ''), status),
+			confidence = COALESCE(NULLIF($3, ''), confidence),
+			created_transaction_id = NULLIF($4, ''),
+			duplicate_of_event_id = NULLIF($5, ''),
+			updated_at = NOW()
+		WHERE id = $1
+	`, eventID, status, confidence, createdTransactionID, duplicateOfEventID)
+	return err
+}
+
+func (s *databaseStore) FindPotentialDuplicateWalletIngestEvent(userID string, amount float64, merchantNormalized string, paidAt time.Time, window time.Duration) (WalletIngestEvent, error) {
+	if paidAt.IsZero() {
+		return WalletIngestEvent{}, sql.ErrNoRows
+	}
+	query := `
+		SELECT id, user_id, source, COALESCE(amount, 0), COALESCE(merchant, ''), COALESCE(merchant_raw, ''),
+			COALESCE(card_label, ''), COALESCE(wallet_category, ''), paid_at,
+			raw_payload::text, COALESCE(request_headers::text, ''), status, confidence,
+			COALESCE(created_transaction_id, ''), COALESCE(duplicate_of_event_id, ''), created_at, updated_at
+		FROM wallet_ingest_events
+		WHERE user_id = $1
+			AND ROUND(COALESCE(amount, 0)::numeric, 2) = ROUND($2::numeric, 2)
+			AND paid_at IS NOT NULL
+			AND paid_at BETWEEN $3 AND $4
+			AND COALESCE(merchant, '') = $5
+			AND status IN ('draft_transaction_created', 'duplicate', 'needs_review', 'received')
+		ORDER BY created_at ASC
+		LIMIT 1
+	`
+	var event WalletIngestEvent
+	if err := s.db.QueryRow(query, userID, amount, paidAt.Add(-window), paidAt.Add(window), merchantNormalized).Scan(
+		&event.ID,
+		&event.UserID,
+		&event.Source,
+		&event.Amount,
+		&event.Merchant,
+		&event.MerchantRaw,
+		&event.CardLabel,
+		&event.WalletCategory,
+		&event.PaidAt,
+		&event.RawPayload,
+		&event.RequestHeaders,
+		&event.Status,
+		&event.Confidence,
+		&event.CreatedTransactionID,
+		&event.DuplicateOfEventID,
+		&event.CreatedAt,
+		&event.UpdatedAt,
+	); err != nil {
+		return WalletIngestEvent{}, err
+	}
+	return event, nil
 }

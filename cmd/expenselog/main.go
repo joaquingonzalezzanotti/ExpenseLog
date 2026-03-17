@@ -67,9 +67,25 @@ func runServer(port int) {
 			return
 		}
 	})
+	http.HandleFunc("/app/wake", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/app/wake" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		if err := web.ServeTemplate(w, "wake.html"); err != nil {
+			log.Printf("HTTP ERROR: Failed to serve template: %v", err)
+			http.Error(w, "Failed to serve template", http.StatusInternalServerError)
+			return
+		}
+	})
 	http.HandleFunc("/app/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/app/" || r.URL.Path == "/app/index" || r.URL.Path == "/app/index.html" {
 			http.Redirect(w, r, "/app", http.StatusPermanentRedirect)
+			return
+		}
+		if r.URL.Path == "/app/wake/" {
+			http.Redirect(w, r, "/app/wake", http.StatusPermanentRedirect)
 			return
 		}
 		http.NotFound(w, r)
@@ -153,6 +169,10 @@ func runServer(port int) {
 	registerAPI("/expense/delete", handler.RequireAuth(handler.DeleteExpense))           // DELETE for single
 	registerAPI("/expenses/delete", handler.RequireAuth(handler.DeleteMultipleExpenses)) // DELETE for multiple
 	registerAPI("/card/payment", handler.RequireAuth(handler.AddCardPayment))            // POST for card payment events
+	registerAPI("/integrations/apple-wallet/debug", handler.RequireAuth(handler.AppleWalletDebug))
+	registerAPI("/integrations/apple-wallet/token-status", handler.RequireAuth(handler.GetAppleWalletIngestTokenStatus))
+	registerAPI("/integrations/apple-wallet/token", handler.RequireAuth(handler.CreateAppleWalletIngestToken))
+	registerAPI("/integrations/apple-wallet/ingest", handler.AppleWalletIngest)
 
 	// Recurring Expenses
 	registerAPI("/recurring-expense", handler.RequireAuth(handler.AddRecurringExpense))           // PUT for add

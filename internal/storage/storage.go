@@ -64,6 +64,8 @@ type Storage interface {
 
 	// Expenses
 	GetAllExpenses(userID string) ([]Expense, error)
+	GetExpensesByPeriodAndCurrency(userID string, start, end time.Time, currency string) ([]Expense, error)
+	GetCashBalanceBeforeDate(userID string, before time.Time, currency string) (float64, error)
 	GetExpense(userID, id string) (Expense, error)
 	AddExpense(userID string, expense Expense) error
 	RemoveExpense(userID, id string) error
@@ -83,6 +85,15 @@ type Storage interface {
 	InvalidateActiveTelegramLinkCodes(userID string, usedAt time.Time) error
 	CreateTelegramLinkCode(userID, codeHash string, expiresAt, createdAt time.Time) (TelegramLinkCode, error)
 	ConsumeTelegramLinkCode(codeHash string, telegramUserID int64, telegramUsername string, now time.Time) (TelegramUserLink, error)
+
+	// Apple Wallet Shortcut ingestion
+	GetActiveWalletIngestTokenByUserID(userID string) (WalletIngestToken, error)
+	UpsertWalletIngestToken(userID, tokenHash string, now time.Time) (WalletIngestToken, error)
+	GetWalletIngestTokenByHash(tokenHash string) (WalletIngestToken, error)
+	TouchWalletIngestTokenLastUsed(tokenID string, usedAt time.Time) error
+	CreateWalletIngestEvent(event WalletIngestEvent) (WalletIngestEvent, error)
+	UpdateWalletIngestEventResult(eventID, status, confidence, createdTransactionID, duplicateOfEventID string) error
+	FindPotentialDuplicateWalletIngestEvent(userID string, amount float64, merchantNormalized string, paidAt time.Time, window time.Duration) (WalletIngestEvent, error)
 
 	// Potential Future Feature: Multi-currency
 	// GetConversions() (map[string]float64, error)
@@ -202,6 +213,35 @@ type Expense struct {
 	SystemOrigin string    `json:"systemOrigin,omitempty"`
 	SystemLocked bool      `json:"systemLocked,omitempty"`
 	Date         time.Time `json:"date"`
+}
+
+type WalletIngestEvent struct {
+	ID                   string    `json:"id"`
+	UserID               string    `json:"userId"`
+	Source               string    `json:"source"`
+	Amount               float64   `json:"amount"`
+	Merchant             string    `json:"merchant"`
+	MerchantRaw          string    `json:"merchantRaw"`
+	CardLabel            string    `json:"cardLabel"`
+	WalletCategory       string    `json:"walletCategory"`
+	PaidAt               time.Time `json:"paidAt"`
+	RawPayload           string    `json:"rawPayload"`
+	RequestHeaders       string    `json:"requestHeaders,omitempty"`
+	Status               string    `json:"status"`
+	Confidence           string    `json:"confidence"`
+	CreatedTransactionID string    `json:"createdTransactionId"`
+	DuplicateOfEventID   string    `json:"duplicateOfEventId"`
+	CreatedAt            time.Time `json:"createdAt"`
+	UpdatedAt            time.Time `json:"updatedAt"`
+}
+
+type WalletIngestToken struct {
+	ID         string     `json:"id"`
+	UserID     string     `json:"userId"`
+	TokenHash  string     `json:"-"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	UpdatedAt  time.Time  `json:"updatedAt"`
+	LastUsedAt *time.Time `json:"lastUsedAt,omitempty"`
 }
 
 type ReconciliationApplyInput struct {

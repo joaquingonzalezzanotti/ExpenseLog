@@ -843,6 +843,13 @@
             return expense.tags.some(tag => String(tag || '').trim().toLowerCase() === 'telegram_bot');
         }
 
+        function isAppleWalletDraftExpense(expense) {
+            const origin = String(expense?.systemOrigin || '').trim().toLowerCase();
+            if (origin === 'apple_wallet_shortcut_draft') return true;
+            const source = String(expense?.source || '').trim().toLowerCase();
+            return source.includes('apple_wallet_shortcut') || source.includes('apple_wallet');
+        }
+
         function createTable(expenses, runningBalances) {
             if (!expenses || expenses.length === 0) {
                 const message = document.getElementById('showAllToggle').checked ? 
@@ -872,6 +879,7 @@
                             const sourceCode = normalizeSourceCode(expense.source || 'CA');
                             const sourceLabel = formatSourceLabel(sourceCode);
                             const isTelegramExpense = isTelegramBotExpense(expense);
+                            const isAppleWalletDraft = isAppleWalletDraftExpense(expense);
                             return `
                             <tr>
                                 <td>
@@ -879,6 +887,7 @@
                                         <span class="expense-name-text">${highlightText(expense.name, searchQuery)}</span>
                                         ${expense.recurringID ? '<span class="recurring-badge">Recurrente</span>' : ''}
                                         ${isTelegramExpense ? '<span class="recurring-badge">BotTelegram</span>' : ''}
+                                        ${isAppleWalletDraft ? '<span class="recurring-badge">ApplePay</span>' : ''}
                                         ${expense.systemLocked ? '<span class="recurring-badge">Sistema</span>' : ''}
                                     </div>
                                     <div class="expense-meta-mobile">

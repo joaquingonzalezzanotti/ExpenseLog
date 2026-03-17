@@ -1,4 +1,4 @@
-const SW_VERSION = '2026-03-01-v6';
+const SW_VERSION = '2026-03-14-v7';
 const STATIC_CACHE = `expenselog-static-${SW_VERSION}`;
 const PAGE_CACHE = `expenselog-pages-${SW_VERSION}`;
 
@@ -16,6 +16,7 @@ const STATIC_ASSETS = [
 ];
 
 const APP_ROUTES = [
+    '/app/wake',
     '/app',
     '/app/table',
     '/app/table?view=calendar',

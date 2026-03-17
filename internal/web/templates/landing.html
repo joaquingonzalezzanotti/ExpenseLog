@@ -642,7 +642,6 @@
             <button id="bootRetry" class="btn btn-secondary boot-retry" type="button">Reintentar</button>
         </div>
     </div>
-
     <script>
         (function () {
             const overlayEl = document.getElementById('bootOverlay');
@@ -656,12 +655,15 @@
             const sameOriginBackend = backendOrigin === window.location.origin;
             const appURL = sameOriginBackend ? '/app' : backendOrigin + '/app';
             const versionURL = backendOrigin + '/api/version';
+            const authMeURL = backendOrigin + '/api/auth/me';
 
             let backendReady = false;
             let warmupStarted = false;
             let waitingForAppOpen = false;
             let pollingInterval = null;
             let overlayStartAt = 0;
+            let authRedirectChecked = false;
+            let redirectingToApp = false;
 
             function showOverlay(hintText) {
                 if (!overlayEl) return;
@@ -703,6 +705,17 @@
                 };
             }
 
+            function goToApp(message) {
+                if (redirectingToApp) {
+                    return;
+                }
+                redirectingToApp = true;
+                waitingForAppOpen = true;
+                showOverlay(message || 'Listo! Entrando a la app...');
+                setRetryVisible(false);
+                window.location.assign(appURL);
+            }
+
             async function pingBackend(timeoutMs) {
                 const guard = withTimeout(timeoutMs || 6000);
                 try {
@@ -720,6 +733,29 @@
                 }
             }
 
+            async function maybeAutoRedirectLoggedIn() {
+                if (authRedirectChecked || !sameOriginBackend || waitingForAppOpen || redirectingToApp || !backendReady) {
+                    return;
+                }
+                authRedirectChecked = true;
+                const guard = withTimeout(4500);
+                try {
+                    const response = await fetch(authMeURL, {
+                        method: 'GET',
+                        cache: 'no-store',
+                        credentials: 'include',
+                        signal: guard.signal,
+                    });
+                    if (response.ok) {
+                        goToApp('Sesion detectada. Entrando a la app...');
+                    }
+                } catch (_) {
+                    // silent
+                } finally {
+                    guard.clear();
+                }
+            }
+
             async function pollBackendState() {
                 if (backendReady) {
                     return;
@@ -730,7 +766,7 @@
                     if (waitingForAppOpen) {
                         const elapsed = Date.now() - overlayStartAt;
                         if (elapsed > 18000) {
-                            setOverlayHint('Todavía estamos preparando todo para vos...');
+                            setOverlayHint('Todavia estamos preparando todo para vos...');
                         }
                         if (elapsed > 45000) {
                             setRetryVisible(true);
@@ -746,10 +782,11 @@
                 }
 
                 if (waitingForAppOpen) {
-                    setOverlayHint('¡Listo! Entrando a la app...');
-                    window.location.assign(appURL);
+                    goToApp('Listo! Entrando a la app...');
                     return;
                 }
+
+                maybeAutoRedirectLoggedIn();
             }
 
             function startWarmup() {
@@ -780,7 +817,7 @@
                 startWarmup();
 
                 if (backendReady) {
-                    window.location.assign(appURL);
+                    goToApp('Listo! Entrando a la app...');
                 }
             }
 
@@ -810,6 +847,7 @@
             });
         })();
     </script>
+
     <script>
         (function loadVercelTelemetry() {
             const host = window.location.hostname;
@@ -830,3 +868,4 @@
     </script>
 </body>
 </html>
+

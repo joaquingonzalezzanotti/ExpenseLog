@@ -65,9 +65,25 @@ func runServer(port int) {
 			return
 		}
 	})
+	http.HandleFunc("/app/wake", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/app/wake" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		if err := web.ServeTemplate(w, "wake.html"); err != nil {
+			log.Printf("HTTP ERROR: Failed to serve template: %v", err)
+			http.Error(w, "Failed to serve template", http.StatusInternalServerError)
+			return
+		}
+	})
 	http.HandleFunc("/app/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/app/" || r.URL.Path == "/app/index" || r.URL.Path == "/app/index.html" {
 			http.Redirect(w, r, "/app", http.StatusPermanentRedirect)
+			return
+		}
+		if r.URL.Path == "/app/wake/" {
+			http.Redirect(w, r, "/app/wake", http.StatusPermanentRedirect)
 			return
 		}
 		http.NotFound(w, r)

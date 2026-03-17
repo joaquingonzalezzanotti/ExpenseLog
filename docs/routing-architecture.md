@@ -1,3 +1,5 @@
+# YA IMPLEMENTADO!
+
 # Arquitectura de Ruteo (`/`, `/app/*`, `/api/*`)
 
 ## Objetivo

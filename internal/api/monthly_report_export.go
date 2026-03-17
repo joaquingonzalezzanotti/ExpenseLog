@@ -31,11 +31,43 @@ type monthlyReportQuery struct {
 }
 
 type monthlyReportMetrics struct {
-	TransactionCount int
-	Income           float64
-	Expense          float64
-	NetBalance       float64
-	CardPending      float64
+	TransactionCount          int
+	Income                    float64
+	Refund                    float64
+	Expense                   float64
+	NetBalance                float64
+	CardPending               float64
+	TotalOutflow              float64
+	CashOutflow               float64
+	CardOutflow               float64
+	CashExpenseShare          float64
+	CardExpenseShare          float64
+	ActiveDays                int
+	AvgDailyExpense           float64
+	AvgExpenseTicket          float64
+	MedianExpenseTicket       float64
+	SavingsRate               float64
+	CategoryConcentrationTop3 float64
+	LargestExpenseName        string
+	LargestExpenseAmount      float64
+	LargestExpenseDate        time.Time
+	LargestIncomeName         string
+	LargestIncomeAmount       float64
+	LargestIncomeDate         time.Time
+}
+
+type monthlyReportCategoryStat struct {
+	Name         string
+	Count        int
+	ExpenseTotal float64
+	IncomeTotal  float64
+	Net          float64
+	ExpenseShare float64
+}
+
+type monthlyReportInsight struct {
+	Title  string
+	Detail string
 }
 
 func (h *Handler) ExportMonthlyXLSX(w http.ResponseWriter, r *http.Request) {
@@ -67,16 +99,17 @@ func (h *Handler) ExportMonthlyXLSX(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expenses, err := h.storage.GetAllExpenses(userID)
+	expenses, err := h.storage.GetExpensesByPeriodAndCurrency(userID, query.Start, query.End, query.Currency)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to retrieve expenses"})
 		return
 	}
 
-	filtered := filterExpensesForMonthlyReport(expenses, query)
-	metrics := calculateMonthlyReportMetrics(filtered)
+	categories := buildMonthlyReportCategoryStats(expenses)
+	metrics := calculateMonthlyReportMetrics(expenses, categories)
+	insights := buildMonthlyReportInsights(metrics, categories, query)
 
-	buffer, err := buildMonthlyReportXLSX(filtered, query, metrics)
+	buffer, err := buildMonthlyReportXLSX(expenses, query, metrics, categories, insights)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to generate XLSX report"})
 		return
@@ -119,16 +152,17 @@ func (h *Handler) ExportMonthlyPDF(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expenses, err := h.storage.GetAllExpenses(userID)
+	expenses, err := h.storage.GetExpensesByPeriodAndCurrency(userID, query.Start, query.End, query.Currency)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to retrieve expenses"})
 		return
 	}
 
-	filtered := filterExpensesForMonthlyReport(expenses, query)
-	metrics := calculateMonthlyReportMetrics(filtered)
+	categories := buildMonthlyReportCategoryStats(expenses)
+	metrics := calculateMonthlyReportMetrics(expenses, categories)
+	insights := buildMonthlyReportInsights(metrics, categories, query)
 
-	buffer, err := buildMonthlyReportPDF(filtered, query, metrics)
+	buffer, err := buildMonthlyReportPDF(expenses, query, metrics, categories, insights)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to generate PDF report"})
 		return
@@ -228,17 +262,86 @@ func filterExpensesForMonthlyReport(expenses []storage.Expense, query monthlyRep
 	return filtered
 }
 
-func calculateMonthlyReportMetrics(expenses []storage.Expense) monthlyReportMetrics {
+func buildMonthlyReportCategoryStats(expenses []storage.Expense) []monthlyReportCategoryStat {
+	type bucket struct {
+		count   int
+		expense float64
+		income  float64
+		net     float64
+	}
+	byCategory := map[string]bucket{}
+
+	for _, exp := range expenses {
+		key := formatCategoryLabel(exp.Category)
+		item := byCategory[key]
+		item.count++
+		if exp.Amount < 0 {
+			item.expense += math.Abs(exp.Amount)
+		} else if exp.Amount > 0 {
+			item.income += exp.Amount
+		}
+		item.net += exp.Amount
+		byCategory[key] = item
+	}
+
+	totalExpense := 0.0
+	for _, item := range byCategory {
+		totalExpense += item.expense
+	}
+
+	rows := make([]monthlyReportCategoryStat, 0, len(byCategory))
+	for name, item := range byCategory {
+		share := 0.0
+		if totalExpense > 0 {
+			share = (item.expense / totalExpense) * 100
+		}
+		rows = append(rows, monthlyReportCategoryStat{
+			Name:         name,
+			Count:        item.count,
+			ExpenseTotal: item.expense,
+			IncomeTotal:  item.income,
+			Net:          item.net,
+			ExpenseShare: share,
+		})
+	}
+
+	sort.Slice(rows, func(i, j int) bool {
+		if rows[i].ExpenseTotal == rows[j].ExpenseTotal {
+			if rows[i].Count == rows[j].Count {
+				return rows[i].Name < rows[j].Name
+			}
+			return rows[i].Count > rows[j].Count
+		}
+		return rows[i].ExpenseTotal > rows[j].ExpenseTotal
+	})
+	return rows
+}
+
+func calculateMonthlyReportMetrics(expenses []storage.Expense, categories []monthlyReportCategoryStat) monthlyReportMetrics {
 	var income float64
 	var refund float64
 	var expense float64
 	var rawCardTotals float64
 	var ownerPayments float64
+	var totalOutflow float64
+	var cashOutflow float64
+	var cardOutflow float64
+
+	var largestExpenseAmount float64
+	var largestExpenseName string
+	var largestExpenseDate time.Time
+	var largestIncomeAmount float64
+	var largestIncomeName string
+	var largestIncomeDate time.Time
+	activeDays := map[string]struct{}{}
+	expenseTickets := make([]float64, 0)
+	sumExpenseTickets := 0.0
 
 	for _, exp := range expenses {
 		source := normalizeReportSource(exp.Source)
 		amount := exp.Amount
 		flow := normalizeReportFlow(exp.Flow, amount)
+		activeDays[exp.Date.UTC().Format("2006-01-02")] = struct{}{}
 
 		if source == "CA" {
 			if amount > 0 {
@@ -260,29 +363,204 @@ func calculateMonthlyReportMetrics(expenses []storage.Expense) monthlyReportMetr
 		if strings.EqualFold(strings.TrimSpace(exp.SystemOrigin), "card_payment_owner") && amount < 0 {
 			ownerPayments += math.Abs(amount)
 		}
+
+		if amount < 0 {
+			absAmount := math.Abs(amount)
+			totalOutflow += absAmount
+			expenseTickets = append(expenseTickets, absAmount)
+			sumExpenseTickets += absAmount
+
+			if source == "CA" {
+				cashOutflow += absAmount
+			}
+			if source == "TARJETA" {
+				cardOutflow += absAmount
+			}
+			if absAmount > largestExpenseAmount {
+				largestExpenseAmount = absAmount
+				largestExpenseName = strings.TrimSpace(exp.Name)
+				largestExpenseDate = exp.Date.UTC()
+			}
+		}
+		if amount > 0 && flow != "refund" && amount > largestIncomeAmount {
+			largestIncomeAmount = amount
+			largestIncomeName = strings.TrimSpace(exp.Name)
+			largestIncomeDate = exp.Date.UTC()
+		}
 	}
 
 	rawDebt := math.Max(0, -rawCardTotals)
 	cardPending := math.Max(0, rawDebt-ownerPayments)
 
+	cardShare := 0.0
+	cashShare := 0.0
+	if totalOutflow > 0 {
+		cardShare = (cardOutflow / totalOutflow) * 100
+		cashShare = (cashOutflow / totalOutflow) * 100
+	}
+
+	avgDailyExpense := 0.0
+	if len(activeDays) > 0 {
+		avgDailyExpense = totalOutflow / float64(len(activeDays))
+	}
+
+	avgExpenseTicket := 0.0
+	medianExpenseTicket := 0.0
+	if len(expenseTickets) > 0 {
+		avgExpenseTicket = sumExpenseTickets / float64(len(expenseTickets))
+		sortedTickets := append([]float64(nil), expenseTickets...)
+		sort.Float64s(sortedTickets)
+		middle := len(sortedTickets) / 2
+		if len(sortedTickets)%2 == 0 {
+			medianExpenseTicket = (sortedTickets[middle-1] + sortedTickets[middle]) / 2
+		} else {
+			medianExpenseTicket = sortedTickets[middle]
+		}
+	}
+
+	availableCashIn := income + refund
+	savingsRate := 0.0
+	if availableCashIn > 0 {
+		savingsRate = ((availableCashIn - expense) / availableCashIn) * 100
+	}
+
+	top3Share := 0.0
+	for i, category := range categories {
+		if i >= 3 {
+			break
+		}
+		top3Share += category.ExpenseShare
+	}
+
 	return monthlyReportMetrics{
-		TransactionCount: len(expenses),
-		Income:           income,
-		Expense:          expense,
-		NetBalance:       income + refund - expense,
-		CardPending:      cardPending,
+		TransactionCount:          len(expenses),
+		Income:                    income,
+		Refund:                    refund,
+		Expense:                   expense,
+		NetBalance:                income + refund - expense,
+		CardPending:               cardPending,
+		TotalOutflow:              totalOutflow,
+		CashOutflow:               cashOutflow,
+		CardOutflow:               cardOutflow,
+		CashExpenseShare:          cashShare,
+		CardExpenseShare:          cardShare,
+		ActiveDays:                len(activeDays),
+		AvgDailyExpense:           avgDailyExpense,
+		AvgExpenseTicket:          avgExpenseTicket,
+		MedianExpenseTicket:       medianExpenseTicket,
+		SavingsRate:               savingsRate,
+		CategoryConcentrationTop3: top3Share,
+		LargestExpenseName:        largestExpenseName,
+		LargestExpenseAmount:      largestExpenseAmount,
+		LargestExpenseDate:        largestExpenseDate,
+		LargestIncomeName:         largestIncomeName,
+		LargestIncomeAmount:       largestIncomeAmount,
+		LargestIncomeDate:         largestIncomeDate,
 	}
 }
 
-func buildMonthlyReportXLSX(expenses []storage.Expense, query monthlyReportQuery, metrics monthlyReportMetrics) (*bytes.Buffer, error) {
+func buildMonthlyReportInsights(metrics monthlyReportMetrics, categories []monthlyReportCategoryStat, query monthlyReportQuery) []monthlyReportInsight {
+	insights := make([]monthlyReportInsight, 0, 6)
+	if metrics.TransactionCount == 0 {
+		return []monthlyReportInsight{
+			{
+				Title:  "Sin actividad",
+				Detail: "No hay movimientos para el periodo seleccionado.",
+			},
+		}
+	}
+
+	switch {
+	case metrics.SavingsRate < 0:
+		insights = append(insights, monthlyReportInsight{
+			Title:  "Resultado de caja",
+			Detail: fmt.Sprintf("El mes cerro con deficit de caja (%.1f%%).", math.Abs(metrics.SavingsRate)),
+		})
+	case metrics.SavingsRate < 15:
+		insights = append(insights, monthlyReportInsight{
+			Title:  "Resultado de caja",
+			Detail: fmt.Sprintf("El margen de ahorro fue bajo (%.1f%%).", metrics.SavingsRate),
+		})
+	default:
+		insights = append(insights, monthlyReportInsight{
+			Title:  "Resultado de caja",
+			Detail: fmt.Sprintf("El ahorro de caja fue saludable (%.1f%%).", metrics.SavingsRate),
+		})
+	}
+
+	if metrics.CategoryConcentrationTop3 >= 70 {
+		insights = append(insights, monthlyReportInsight{
+			Title:  "Concentracion de gasto",
+			Detail: fmt.Sprintf("Las 3 categorias top explican %.1f%% del egreso.", metrics.CategoryConcentrationTop3),
+		})
+	} else {
+		insights = append(insights, monthlyReportInsight{
+			Title:  "Concentracion de gasto",
+			Detail: fmt.Sprintf("Top 3 categorias representan %.1f%% del egreso.", metrics.CategoryConcentrationTop3),
+		})
+	}
+
+	if metrics.CardExpenseShare > 55 {
+		insights = append(insights, monthlyReportInsight{
+			Title:  "Dependencia de tarjeta",
+			Detail: fmt.Sprintf("El %.1f%% del egreso se hizo con tarjeta.", metrics.CardExpenseShare),
+		})
+	} else {
+		insights = append(insights, monthlyReportInsight{
+			Title:  "Mix de pago",
+			Detail: fmt.Sprintf("Caja/debito %.1f%% vs tarjeta %.1f%% del egreso.", metrics.CashExpenseShare, metrics.CardExpenseShare),
+		})
+	}
+
+	if metrics.AvgExpenseTicket > 0 && metrics.MedianExpenseTicket > 0 {
+		ratio := metrics.AvgExpenseTicket / metrics.MedianExpenseTicket
+		if ratio > 1.45 {
+			insights = append(insights, monthlyReportInsight{
+				Title:  "Dispersion de tickets",
+				Detail: fmt.Sprintf("Promedio/mediana = %.2fx; hubo consumos puntuales altos.", ratio),
+			})
+		}
+	}
+
+	if len(categories) > 0 && categories[0].ExpenseTotal > 0 {
+		insights = append(insights, monthlyReportInsight{
+			Title: "Categoria dominante",
+			Detail: fmt.Sprintf("%s concentra %.1f%% (%s).",
+				categories[0].Name,
+				categories[0].ExpenseShare,
+				formatReportAmount(categories[0].ExpenseTotal, query.Currency),
+			),
+		})
+	}
+
+	if metrics.LargestExpenseAmount > 0 {
+		name := strings.TrimSpace(metrics.LargestExpenseName)
+		if name == "" {
+			name = "Movimiento sin nombre"
+		}
+		insights = append(insights, monthlyReportInsight{
+			Title: "Mayor egreso",
+			Detail: fmt.Sprintf("%s por %s el %s.",
+				name,
+				formatReportAmount(metrics.LargestExpenseAmount, query.Currency),
+				metrics.LargestExpenseDate.Format("2006-01-02"),
+			),
+		})
+	}
+	return insights
+}
+
+func buildMonthlyReportXLSX(expenses []storage.Expense, query monthlyReportQuery, metrics monthlyReportMetrics, categories []monthlyReportCategoryStat, insights []monthlyReportInsight) (*bytes.Buffer, error) {
 	file := excelize.NewFile()
 	const movementsSheet = "Movimientos"
 	const summarySheet = "Resumen"
 	const categoriesSheet = "Categorias"
+	const analysisSheet = "Analisis"
 
 	file.SetSheetName("Sheet1", movementsSheet)
 	_, _ = file.NewSheet(summarySheet)
 	_, _ = file.NewSheet(categoriesSheet)
+	_, _ = file.NewSheet(analysisSheet)
 
 	titleStyle, _ := file.NewStyle(&excelize.Style{
 		Font: &excelize.Font{Bold: true, Color: "#0F172A", Size: 16},
@@ -401,8 +679,8 @@ func buildMonthlyReportXLSX(expenses []storage.Expense, query monthlyReportQuery
 		values := []any{
 			exp.Date.UTC().Format("2006-01-02"),
 			exp.Name,
-			formatFlowLabel(exp.Flow),
-			exp.Category,
+			formatFlowLabelResolved(exp.Flow, exp.Amount),
+			formatCategoryLabel(exp.Category),
 			exp.Amount,
 			strings.ToUpper(query.Currency),
 			formatSourceLabel(exp.Source),
@@ -508,15 +786,23 @@ func buildMonthlyReportXLSX(expenses []storage.Expense, query monthlyReportQuery
 	_ = file.SetCellValue(summarySheet, "C2", fmt.Sprintf("Moneda: %s", strings.ToUpper(query.Currency)))
 
 	summaryRows := []struct {
-		Label   string
-		Value   any
-		IsMoney bool
+		Label string
+		Value any
+		Kind  string
 	}{
-		{Label: "Movimientos", Value: metrics.TransactionCount, IsMoney: false},
-		{Label: "Ingresos", Value: metrics.Income, IsMoney: true},
-		{Label: "Egresos", Value: metrics.Expense, IsMoney: true},
-		{Label: "Balance neto del periodo", Value: metrics.NetBalance, IsMoney: true},
-		{Label: "Tarjeta por pagar (periodo)", Value: metrics.CardPending, IsMoney: true},
+		{Label: "Movimientos", Value: metrics.TransactionCount, Kind: "text"},
+		{Label: "Dias con actividad", Value: metrics.ActiveDays, Kind: "text"},
+		{Label: "Ingresos", Value: metrics.Income, Kind: "money"},
+		{Label: "Reintegros", Value: metrics.Refund, Kind: "money"},
+		{Label: "Egresos de caja", Value: metrics.Expense, Kind: "money"},
+		{Label: "Consumo con tarjeta", Value: metrics.CardOutflow, Kind: "money"},
+		{Label: "Egresos totales", Value: metrics.TotalOutflow, Kind: "money"},
+		{Label: "Balance neto de caja", Value: metrics.NetBalance, Kind: "money"},
+		{Label: "Tarjeta por pagar (periodo)", Value: metrics.CardPending, Kind: "money"},
+		{Label: "Ticket promedio de egreso", Value: metrics.AvgExpenseTicket, Kind: "money"},
+		{Label: "Ticket mediano de egreso", Value: metrics.MedianExpenseTicket, Kind: "money"},
+		{Label: "Concentracion top 3", Value: fmt.Sprintf("%.1f%%", metrics.CategoryConcentrationTop3), Kind: "text"},
+		{Label: "Tasa de ahorro", Value: fmt.Sprintf("%.1f%%", metrics.SavingsRate), Kind: "text"},
 	}
 	for idx, row := range summaryRows {
 		r := idx + 4
@@ -525,74 +811,178 @@ func buildMonthlyReportXLSX(expenses []storage.Expense, query monthlyReportQuery
 		_ = file.SetCellValue(summarySheet, labelCell, row.Label)
 		_ = file.SetCellValue(summarySheet, valueCell, row.Value)
 		_ = file.SetCellStyle(summarySheet, labelCell, labelCell, summaryLabelStyle)
-		if row.IsMoney {
+		if row.Kind == "money" {
 			_ = file.SetCellStyle(summarySheet, valueCell, valueCell, summaryValueMoneyStyle)
 		} else {
 			_ = file.SetCellStyle(summarySheet, valueCell, valueCell, summaryValueTextStyle)
 		}
 	}
-	_ = file.SetColWidth(summarySheet, "A", "A", 34)
-	_ = file.SetColWidth(summarySheet, "B", "B", 20)
+	_ = file.SetColWidth(summarySheet, "A", "A", 36)
+	_ = file.SetColWidth(summarySheet, "B", "B", 23)
 	_ = file.SetColWidth(summarySheet, "C", "D", 20)
 
-	categoryTotals := map[string]struct {
-		Count int
-		Net   float64
-	}{}
-	for _, exp := range expenses {
-		key := strings.TrimSpace(exp.Category)
-		if key == "" {
-			key = "Sin categoria"
-		}
-		item := categoryTotals[key]
-		item.Count++
-		item.Net += exp.Amount
-		categoryTotals[key] = item
-	}
-	type categoryRow struct {
-		Name  string
-		Count int
-		Net   float64
-	}
-	categoryRows := make([]categoryRow, 0, len(categoryTotals))
-	for name, values := range categoryTotals {
-		categoryRows = append(categoryRows, categoryRow{Name: name, Count: values.Count, Net: values.Net})
-	}
-	sort.Slice(categoryRows, func(i, j int) bool {
-		if math.Abs(categoryRows[i].Net) == math.Abs(categoryRows[j].Net) {
-			return categoryRows[i].Name < categoryRows[j].Name
-		}
-		return math.Abs(categoryRows[i].Net) > math.Abs(categoryRows[j].Net)
-	})
-
 	_ = file.SetCellValue(categoriesSheet, "A1", "Categorias destacadas")
-	_ = file.MergeCell(categoriesSheet, "A1", "C1")
-	_ = file.SetCellStyle(categoriesSheet, "A1", "C1", summaryTitleStyle)
+	_ = file.MergeCell(categoriesSheet, "A1", "F1")
+	_ = file.SetCellStyle(categoriesSheet, "A1", "F1", summaryTitleStyle)
+	_ = file.SetCellValue(categoriesSheet, "A2", "La distribucion de egresos replica el criterio del grafico de torta del panel principal.")
+	_ = file.MergeCell(categoriesSheet, "A2", "F2")
+	_ = file.SetCellStyle(categoriesSheet, "A2", "F2", subtitleStyle)
 
 	_ = file.SetCellValue(categoriesSheet, "A3", "Categoria")
 	_ = file.SetCellValue(categoriesSheet, "B3", "Cantidad")
-	_ = file.SetCellValue(categoriesSheet, "C3", "Monto neto")
-	_ = file.SetCellStyle(categoriesSheet, "A3", "C3", headerStyle)
+	_ = file.SetCellValue(categoriesSheet, "C3", "Egreso")
+	_ = file.SetCellValue(categoriesSheet, "D3", "Ingreso")
+	_ = file.SetCellValue(categoriesSheet, "E3", "Monto neto")
+	_ = file.SetCellValue(categoriesSheet, "F3", "Participacion egresos")
+	_ = file.SetCellStyle(categoriesSheet, "A3", "F3", headerStyle)
 
-	for idx, row := range categoryRows {
+	lastExpenseShareRow := 0
+	lastCategoryRow := 3
+	for idx, row := range categories {
 		r := idx + 4
+		lastCategoryRow = r
 		_ = file.SetCellValue(categoriesSheet, fmt.Sprintf("A%d", r), row.Name)
 		_ = file.SetCellValue(categoriesSheet, fmt.Sprintf("B%d", r), row.Count)
-		_ = file.SetCellValue(categoriesSheet, fmt.Sprintf("C%d", r), row.Net)
+		_ = file.SetCellValue(categoriesSheet, fmt.Sprintf("C%d", r), row.ExpenseTotal)
+		_ = file.SetCellValue(categoriesSheet, fmt.Sprintf("D%d", r), row.IncomeTotal)
+		_ = file.SetCellValue(categoriesSheet, fmt.Sprintf("E%d", r), row.Net)
+		_ = file.SetCellValue(categoriesSheet, fmt.Sprintf("F%d", r), fmt.Sprintf("%.1f%%", row.ExpenseShare))
+		if row.ExpenseTotal > 0 {
+			lastExpenseShareRow = r
+		}
 		startCell := fmt.Sprintf("A%d", r)
-		endCell := fmt.Sprintf("C%d", r)
-		amountCell := fmt.Sprintf("C%d", r)
+		endCell := fmt.Sprintf("F%d", r)
 		if idx%2 == 0 {
 			_ = file.SetCellStyle(categoriesSheet, startCell, endCell, bodyStyle)
-			_ = file.SetCellStyle(categoriesSheet, amountCell, amountCell, amountStyle)
+			_ = file.SetCellStyle(categoriesSheet, fmt.Sprintf("C%d", r), fmt.Sprintf("E%d", r), amountStyle)
 		} else {
 			_ = file.SetCellStyle(categoriesSheet, startCell, endCell, oddRowStyle)
-			_ = file.SetCellStyle(categoriesSheet, amountCell, amountCell, amountOddStyle)
+			_ = file.SetCellStyle(categoriesSheet, fmt.Sprintf("C%d", r), fmt.Sprintf("E%d", r), amountOddStyle)
 		}
 	}
-	_ = file.SetColWidth(categoriesSheet, "A", "A", 30)
-	_ = file.SetColWidth(categoriesSheet, "B", "B", 14)
-	_ = file.SetColWidth(categoriesSheet, "C", "C", 18)
+	if len(categories) == 0 {
+		_ = file.SetCellValue(categoriesSheet, "A4", "No hay categorias para el periodo seleccionado.")
+		_ = file.MergeCell(categoriesSheet, "A4", "F4")
+		_ = file.SetCellStyle(categoriesSheet, "A4", "F4", bodyStyle)
+		lastCategoryRow = 4
+	}
+
+	_ = file.SetColWidth(categoriesSheet, "A", "A", 29)
+	_ = file.SetColWidth(categoriesSheet, "B", "B", 11)
+	_ = file.SetColWidth(categoriesSheet, "C", "E", 16)
+	_ = file.SetColWidth(categoriesSheet, "F", "F", 20)
+
+	if lastExpenseShareRow >= 4 {
+		varyColors := true
+		_ = file.AddChart(categoriesSheet, "H3", &excelize.Chart{
+			Type: excelize.Doughnut,
+			Series: []excelize.ChartSeries{
+				{
+					Name:       fmt.Sprintf("%s!$C$3", categoriesSheet),
+					Categories: fmt.Sprintf("%s!$A$4:$A$%d", categoriesSheet, lastExpenseShareRow),
+					Values:     fmt.Sprintf("%s!$C$4:$C$%d", categoriesSheet, lastExpenseShareRow),
+				},
+			},
+			Title: []excelize.RichTextRun{
+				{Text: "Distribucion de egresos por categoria"},
+			},
+			VaryColors: &varyColors,
+			HoleSize:   62,
+			Legend: excelize.ChartLegend{
+				Position: "right",
+			},
+			PlotArea: excelize.ChartPlotArea{
+				ShowPercent: true,
+			},
+			Dimension: excelize.ChartDimension{
+				Width:  560,
+				Height: 320,
+			},
+		})
+	}
+
+	_ = file.SetCellValue(analysisSheet, "A1", "Analisis avanzado del periodo")
+	_ = file.MergeCell(analysisSheet, "A1", "E1")
+	_ = file.SetCellStyle(analysisSheet, "A1", "E1", summaryTitleStyle)
+	_ = file.SetCellValue(analysisSheet, "A2", fmt.Sprintf("Periodo: %s | Moneda: %s", periodLabel, strings.ToUpper(query.Currency)))
+	_ = file.MergeCell(analysisSheet, "A2", "E2")
+	_ = file.SetCellStyle(analysisSheet, "A2", "E2", subtitleStyle)
+	_ = file.SetCellValue(analysisSheet, "A4", "Indicador")
+	_ = file.SetCellValue(analysisSheet, "B4", "Valor")
+	_ = file.SetCellStyle(analysisSheet, "A4", "B4", headerStyle)
+
+	analysisRows := []struct {
+		Label string
+		Value any
+		Kind  string
+	}{
+		{Label: "Egreso diario promedio", Value: metrics.AvgDailyExpense, Kind: "money"},
+		{Label: "Ticket promedio", Value: metrics.AvgExpenseTicket, Kind: "money"},
+		{Label: "Ticket mediano", Value: metrics.MedianExpenseTicket, Kind: "money"},
+		{Label: "Share de gasto con tarjeta", Value: fmt.Sprintf("%.1f%%", metrics.CardExpenseShare), Kind: "text"},
+		{Label: "Share de gasto de caja/debito", Value: fmt.Sprintf("%.1f%%", metrics.CashExpenseShare), Kind: "text"},
+		{Label: "Concentracion top 3 categorias", Value: fmt.Sprintf("%.1f%%", metrics.CategoryConcentrationTop3), Kind: "text"},
+		{Label: "Tarjeta por pagar", Value: metrics.CardPending, Kind: "money"},
+	}
+	rowCursor := 5
+	for _, row := range analysisRows {
+		labelCell := fmt.Sprintf("A%d", rowCursor)
+		valueCell := fmt.Sprintf("B%d", rowCursor)
+		_ = file.SetCellValue(analysisSheet, labelCell, row.Label)
+		_ = file.SetCellValue(analysisSheet, valueCell, row.Value)
+		_ = file.SetCellStyle(analysisSheet, labelCell, labelCell, summaryLabelStyle)
+		if row.Kind == "money" {
+			_ = file.SetCellStyle(analysisSheet, valueCell, valueCell, summaryValueMoneyStyle)
+		} else {
+			_ = file.SetCellStyle(analysisSheet, valueCell, valueCell, summaryValueTextStyle)
+		}
+		rowCursor++
+	}
+
+	if metrics.LargestExpenseAmount > 0 {
+		_ = file.SetCellValue(analysisSheet, "D4", "Mayor egreso")
+		_ = file.SetCellStyle(analysisSheet, "D4", "E4", headerStyle)
+		_ = file.SetCellValue(analysisSheet, "D5", strings.TrimSpace(metrics.LargestExpenseName))
+		_ = file.SetCellValue(analysisSheet, "E5", formatReportAmount(metrics.LargestExpenseAmount, query.Currency))
+		_ = file.SetCellValue(analysisSheet, "D6", "Fecha")
+		_ = file.SetCellValue(analysisSheet, "E6", metrics.LargestExpenseDate.Format("2006-01-02"))
+		_ = file.SetCellStyle(analysisSheet, "D5", "E6", bodyStyle)
+	}
+	if metrics.LargestIncomeAmount > 0 {
+		_ = file.SetCellValue(analysisSheet, "D8", "Mayor ingreso")
+		_ = file.SetCellStyle(analysisSheet, "D8", "E8", headerStyle)
+		_ = file.SetCellValue(analysisSheet, "D9", strings.TrimSpace(metrics.LargestIncomeName))
+		_ = file.SetCellValue(analysisSheet, "E9", formatReportAmount(metrics.LargestIncomeAmount, query.Currency))
+		_ = file.SetCellValue(analysisSheet, "D10", "Fecha")
+		_ = file.SetCellValue(analysisSheet, "E10", metrics.LargestIncomeDate.Format("2006-01-02"))
+		_ = file.SetCellStyle(analysisSheet, "D9", "E10", bodyStyle)
+	}
+
+	insightStart := rowCursor + 1
+	_ = file.SetCellValue(analysisSheet, fmt.Sprintf("A%d", insightStart), "Insights inteligentes")
+	_ = file.MergeCell(analysisSheet, fmt.Sprintf("A%d", insightStart), fmt.Sprintf("E%d", insightStart))
+	_ = file.SetCellStyle(analysisSheet, fmt.Sprintf("A%d", insightStart), fmt.Sprintf("E%d", insightStart), summaryTitleStyle)
+	if len(insights) == 0 {
+		_ = file.SetCellValue(analysisSheet, fmt.Sprintf("A%d", insightStart+1), "No hubo suficientes datos para generar insights.")
+		_ = file.MergeCell(analysisSheet, fmt.Sprintf("A%d", insightStart+1), fmt.Sprintf("E%d", insightStart+1))
+		_ = file.SetCellStyle(analysisSheet, fmt.Sprintf("A%d", insightStart+1), fmt.Sprintf("E%d", insightStart+1), bodyStyle)
+	} else {
+		for idx, insight := range insights {
+			r := insightStart + 1 + idx
+			_ = file.SetCellValue(analysisSheet, fmt.Sprintf("A%d", r), fmt.Sprintf("%d.", idx+1))
+			_ = file.SetCellValue(analysisSheet, fmt.Sprintf("B%d", r), insight.Title)
+			_ = file.SetCellValue(analysisSheet, fmt.Sprintf("C%d", r), insight.Detail)
+			_ = file.MergeCell(analysisSheet, fmt.Sprintf("C%d", r), fmt.Sprintf("E%d", r))
+			_ = file.SetCellStyle(analysisSheet, fmt.Sprintf("A%d", r), fmt.Sprintf("E%d", r), bodyStyle)
+		}
+	}
+	_ = file.SetColWidth(analysisSheet, "A", "A", 6)
+	_ = file.SetColWidth(analysisSheet, "B", "B", 30)
+	_ = file.SetColWidth(analysisSheet, "C", "E", 36)
+
+	if len(categories) > 0 && lastCategoryRow >= 4 {
+		_ = file.AutoFilter(categoriesSheet, fmt.Sprintf("A3:F%d", lastCategoryRow), nil)
+	}
 
 	file.SetActiveSheet(1)
 
@@ -603,7 +993,13 @@ func buildMonthlyReportXLSX(expenses []storage.Expense, query monthlyReportQuery
 	return buffer, nil
 }
 
-func buildMonthlyReportPDF(expenses []storage.Expense, query monthlyReportQuery, metrics monthlyReportMetrics) (*bytes.Buffer, error) {
+func buildMonthlyReportPDF(
+	expenses []storage.Expense,
+	query monthlyReportQuery,
+	metrics monthlyReportMetrics,
+	categories []monthlyReportCategoryStat,
+	insights []monthlyReportInsight,
+) (*bytes.Buffer, error) {
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.SetMargins(10, 10, 10)
 	pdf.SetAutoPageBreak(true, 10)
@@ -649,25 +1045,25 @@ func buildMonthlyReportPDF(expenses []storage.Expense, query monthlyReportQuery,
 			TitleColor: [3]int{30, 64, 175},
 		},
 		{
+			Title:      "Dias activos",
+			Value:      fmt.Sprintf("%d", metrics.ActiveDays),
+			FillColor:  [3]int{243, 244, 246},
+			LineColor:  [3]int{209, 213, 219},
+			TitleColor: [3]int{55, 65, 81},
+		},
+		{
 			Title:      "Ingresos",
-			Value:      formatReportAmount(metrics.Income, query.Currency),
+			Value:      formatReportAmount(metrics.Income+metrics.Refund, query.Currency),
 			FillColor:  [3]int{236, 253, 245},
 			LineColor:  [3]int{110, 231, 183},
 			TitleColor: [3]int{6, 95, 70},
 		},
 		{
-			Title:      "Egresos",
+			Title:      "Egresos de caja",
 			Value:      formatReportAmount(metrics.Expense, query.Currency),
 			FillColor:  [3]int{254, 242, 242},
 			LineColor:  [3]int{252, 165, 165},
 			TitleColor: [3]int{153, 27, 27},
-		},
-		{
-			Title:      "Balance neto",
-			Value:      formatReportAmount(metrics.NetBalance, query.Currency),
-			FillColor:  [3]int{255, 251, 235},
-			LineColor:  [3]int{253, 186, 116},
-			TitleColor: [3]int{146, 64, 14},
 		},
 		{
 			Title:      "Tarjeta por pagar",
@@ -676,43 +1072,43 @@ func buildMonthlyReportPDF(expenses []storage.Expense, query monthlyReportQuery,
 			LineColor:  [3]int{165, 180, 252},
 			TitleColor: [3]int{55, 48, 163},
 		},
+		{
+			Title:      "Tasa de ahorro",
+			Value:      fmt.Sprintf("%.1f%%", metrics.SavingsRate),
+			FillColor:  [3]int{255, 251, 235},
+			LineColor:  [3]int{253, 186, 116},
+			TitleColor: [3]int{146, 64, 14},
+		},
 	}
 
 	cardW := 91.0
-	cardH := 16.0
+	cardH := 15.0
 	cardGap := 8.0
 	startCardY := 31.0
 	for idx, card := range cards {
-		x := pageLeft
-		y := startCardY
-		width := cardW
-		if idx < 4 {
-			col := idx % 2
-			row := idx / 2
-			x = pageLeft + float64(col)*(cardW+cardGap)
-			y = startCardY + float64(row)*(cardH+5)
-		} else {
-			// Last card spans full width to avoid awkward empty space.
-			x = pageLeft
-			y = startCardY + 2*(cardH+5)
-			width = pageWidth
-		}
+		col := idx % 2
+		row := idx / 2
+		x := pageLeft + float64(col)*(cardW+cardGap)
+		y := startCardY + float64(row)*(cardH+4.5)
 
 		pdf.SetDrawColor(card.LineColor[0], card.LineColor[1], card.LineColor[2])
 		pdf.SetFillColor(card.FillColor[0], card.FillColor[1], card.FillColor[2])
-		pdf.RoundedRect(x, y, width, cardH, 2, "1234", "DF")
-		pdf.SetXY(x+3, y+3)
+		pdf.RoundedRect(x, y, cardW, cardH, 2, "1234", "DF")
+		pdf.SetXY(x+3, y+2.8)
 		pdf.SetTextColor(card.TitleColor[0], card.TitleColor[1], card.TitleColor[2])
-		pdf.SetFont("Arial", "B", 9)
-		pdf.CellFormat(width-6, 4, card.Title, "", 2, "L", false, 0, "")
+		pdf.SetFont("Arial", "B", 8.5)
+		pdf.CellFormat(cardW-6, 3.8, card.Title, "", 2, "L", false, 0, "")
 		pdf.SetX(x + 3)
 		pdf.SetTextColor(15, 23, 42)
-		pdf.SetFont("Arial", "B", 11)
-		pdf.CellFormat(width-6, 5, card.Value, "", 0, "L", false, 0, "")
+		pdf.SetFont("Arial", "B", 10.5)
+		pdf.CellFormat(cardW-6, 4.5, card.Value, "", 0, "L", false, 0, "")
 	}
 
-	pdf.SetY(startCardY + 3*(cardH+5))
-	pdf.Ln(1)
+	pdf.SetY(startCardY + 3*(cardH+4.5) + 4)
+	drawPDFCategorySection(pdf, categories, query.Currency)
+	drawPDFInsightsSection(pdf, insights)
+
+	pdf.AddPage()
 	pdf.SetTextColor(15, 23, 42)
 	pdf.SetFont("Arial", "B", 11)
 	pdf.CellFormat(0, 7, "Detalle de movimientos", "", 1, "L", false, 0, "")
@@ -743,8 +1139,8 @@ func buildMonthlyReportPDF(expenses []storage.Expense, query monthlyReportQuery,
 		row := []string{
 			exp.Date.UTC().Format("2006-01-02"),
 			trimForPDF(exp.Name, 34),
-			trimForPDF(formatFlowLabel(exp.Flow), 14),
-			trimForPDF(exp.Category, 18),
+			trimForPDF(formatFlowLabelResolved(exp.Flow, exp.Amount), 14),
+			trimForPDF(formatCategoryLabel(exp.Category), 18),
 			formatReportAmount(exp.Amount, query.Currency),
 			trimForPDF(formatSourceLabel(exp.Source), 20),
 		}
@@ -763,6 +1159,89 @@ func buildMonthlyReportPDF(expenses []storage.Expense, query monthlyReportQuery,
 		return nil, err
 	}
 	return buffer, nil
+}
+
+func drawPDFCategorySection(pdf *gofpdf.Fpdf, categories []monthlyReportCategoryStat, currency string) {
+	pdf.SetTextColor(15, 23, 42)
+	pdf.SetFont("Arial", "B", 10.5)
+	pdf.CellFormat(0, 6, "Distribucion por categoria (egresos)", "", 1, "L", false, 0, "")
+
+	top := topCategoryStatsByExpense(categories, 6)
+	if len(top) == 0 {
+		pdf.SetFont("Arial", "", 9)
+		pdf.SetTextColor(71, 85, 105)
+		pdf.CellFormat(0, 6, "No hay egresos para el periodo.", "1", 1, "L", false, 0, "")
+		return
+	}
+
+	headers := []string{"Categoria", "Egreso", "Share"}
+	widths := []float64{110, 45, 35}
+	pdf.SetFont("Arial", "B", 9)
+	pdf.SetTextColor(255, 255, 255)
+	pdf.SetFillColor(30, 64, 175)
+	for idx, header := range headers {
+		align := "L"
+		if idx > 0 {
+			align = "R"
+		}
+		pdf.CellFormat(widths[idx], 6, header, "1", 0, align, true, 0, "")
+	}
+	pdf.Ln(-1)
+
+	pdf.SetFont("Arial", "", 8.7)
+	for idx, row := range top {
+		if idx%2 == 0 {
+			pdf.SetFillColor(255, 255, 255)
+		} else {
+			pdf.SetFillColor(248, 250, 252)
+		}
+		pdf.SetTextColor(15, 23, 42)
+		pdf.CellFormat(widths[0], 6, trimForPDF(row.Name, 44), "1", 0, "L", true, 0, "")
+		pdf.CellFormat(widths[1], 6, formatReportAmount(row.ExpenseTotal, currency), "1", 0, "R", true, 0, "")
+		pdf.CellFormat(widths[2], 6, fmt.Sprintf("%.1f%%", row.ExpenseShare), "1", 1, "R", true, 0, "")
+	}
+}
+
+func drawPDFInsightsSection(pdf *gofpdf.Fpdf, insights []monthlyReportInsight) {
+	pdf.Ln(3)
+	pdf.SetTextColor(15, 23, 42)
+	pdf.SetFont("Arial", "B", 10.5)
+	pdf.CellFormat(0, 6, "Analisis inteligente", "", 1, "L", false, 0, "")
+
+	if len(insights) == 0 {
+		pdf.SetFont("Arial", "", 9)
+		pdf.SetTextColor(71, 85, 105)
+		pdf.CellFormat(0, 5, "- No hubo suficientes datos para emitir conclusiones.", "", 1, "L", false, 0, "")
+		return
+	}
+
+	pdf.SetFont("Arial", "", 9)
+	pdf.SetTextColor(51, 65, 85)
+	limit := 6
+	if len(insights) < limit {
+		limit = len(insights)
+	}
+	for i := 0; i < limit; i++ {
+		line := fmt.Sprintf("- %s: %s", insights[i].Title, insights[i].Detail)
+		pdf.MultiCell(0, 5, line, "", "L", false)
+	}
+}
+
+func topCategoryStatsByExpense(rows []monthlyReportCategoryStat, limit int) []monthlyReportCategoryStat {
+	if limit <= 0 || len(rows) == 0 {
+		return nil
+	}
+	result := make([]monthlyReportCategoryStat, 0, limit)
+	for _, row := range rows {
+		if row.ExpenseTotal <= 0 {
+			continue
+		}
+		result = append(result, row)
+		if len(result) >= limit {
+			break
+		}
+	}
+	return result
 }
 
 func monthlyReportMonthName(month int) string {
@@ -855,6 +1334,21 @@ func formatFlowLabel(flow string) string {
 	default:
 		return "Gasto"
 	}
+}
+
+func formatFlowLabelResolved(flow string, amount float64) string {
+	return formatFlowLabel(normalizeReportFlow(flow, amount))
+}
+
+func formatCategoryLabel(category string) string {
+	trimmed := strings.TrimSpace(category)
+	if trimmed == "" {
+		return "Sin categoria"
+	}
+	if strings.EqualFold(trimmed, "_conciliacion") {
+		return "Conciliacion"
+	}
+	return trimmed
 }
 
 func normalizeReportFlow(flow string, amount float64) string {

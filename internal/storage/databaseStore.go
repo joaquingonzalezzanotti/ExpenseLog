@@ -1746,6 +1746,33 @@ func (s *databaseStore) GetAllExpenses(userID string) ([]Expense, error) {
 	return expenses, nil
 }
 
+func (s *databaseStore) GetExpensesByPeriodAndCurrency(userID string, start, end time.Time, currency string) ([]Expense, error) {
+	query := `
+		SELECT id, recurring_id, name, category, amount, currency, date, flow, tags, source, card, system_origin, system_locked
+		FROM expenses
+		WHERE user_id = $1
+			AND date >= $2
+			AND date < $3
+			AND LOWER(COALESCE(NULLIF(TRIM(currency), ''), $4)) = $4
+		ORDER BY date ASC, name ASC, id ASC
+	`
+	rows, err := s.db.Query(query, userID, start, end, strings.ToLower(strings.TrimSpace(currency)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query expenses by period and currency: %v", err)
+	}
+	defer rows.Close()
+
+	expenses := make([]Expense, 0)
+	for rows.Next() {
+		expense, err := scanExpense(rows)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan expense: %v", err)
+		}
+		expenses = append(expenses, expense)
+	}
+	return expenses, nil
+}
+
 func (s *databaseStore) GetExpense(userID, id string) (Expense, error) {
 	query := `SELECT id, recurring_id, name, category, amount, currency, date, flow, tags, source, card, system_origin, system_locked FROM expenses WHERE user_id = $1 AND id = $2`
 	expense, err := scanExpense(s.db.QueryRow(query, userID, id))

@@ -486,36 +486,36 @@ func buildMonthlyReportInsights(metrics monthlyReportMetrics, categories []month
 	case metrics.SavingsRate < 0:
 		insights = append(insights, monthlyReportInsight{
 			Title:  "Resultado de caja",
-			Detail: fmt.Sprintf("El mes cerro con deficit de caja (%.1f%%).", math.Abs(metrics.SavingsRate)),
+			Detail: fmt.Sprintf("El mes cerro con deficit de caja (%.1f%%) y conviene revisar gastos no esenciales.", math.Abs(metrics.SavingsRate)),
 		})
 	case metrics.SavingsRate < 15:
 		insights = append(insights, monthlyReportInsight{
 			Title:  "Resultado de caja",
-			Detail: fmt.Sprintf("El margen de ahorro fue bajo (%.1f%%).", metrics.SavingsRate),
+			Detail: fmt.Sprintf("El margen de ahorro fue acotado (%.1f%%), por debajo de una zona comoda.", metrics.SavingsRate),
 		})
 	default:
 		insights = append(insights, monthlyReportInsight{
 			Title:  "Resultado de caja",
-			Detail: fmt.Sprintf("El ahorro de caja fue saludable (%.1f%%).", metrics.SavingsRate),
+			Detail: fmt.Sprintf("El ahorro de caja fue saludable (%.1f%%), con capacidad de acumulacion.", metrics.SavingsRate),
 		})
 	}
 
 	if metrics.CategoryConcentrationTop3 >= 70 {
 		insights = append(insights, monthlyReportInsight{
 			Title:  "Concentracion de gasto",
-			Detail: fmt.Sprintf("Las 3 categorias top explican %.1f%% del egreso.", metrics.CategoryConcentrationTop3),
+			Detail: fmt.Sprintf("Las 3 categorias top explican %.1f%% del egreso: hay riesgo de dependencia en pocos rubros.", metrics.CategoryConcentrationTop3),
 		})
 	} else {
 		insights = append(insights, monthlyReportInsight{
 			Title:  "Concentracion de gasto",
-			Detail: fmt.Sprintf("Top 3 categorias representan %.1f%% del egreso.", metrics.CategoryConcentrationTop3),
+			Detail: fmt.Sprintf("Top 3 categorias representan %.1f%% del egreso, con perfil de gasto mas diversificado.", metrics.CategoryConcentrationTop3),
 		})
 	}
 
 	if metrics.CardExpenseShare > 55 {
 		insights = append(insights, monthlyReportInsight{
 			Title:  "Dependencia de tarjeta",
-			Detail: fmt.Sprintf("El %.1f%% del egreso se hizo con tarjeta.", metrics.CardExpenseShare),
+			Detail: fmt.Sprintf("El %.1f%% del egreso se realizo con tarjeta; conviene controlar cuota de resumen.", metrics.CardExpenseShare),
 		})
 	} else {
 		insights = append(insights, monthlyReportInsight{
@@ -1296,9 +1296,9 @@ func drawPDFAnalysisPage(pdf *gofpdf.Fpdf, query monthlyReportQuery, metrics mon
 	pdf.SetTextColor(71, 85, 105)
 	pdf.CellFormat(0, 5, fmt.Sprintf("Periodo: %s %d | Moneda: %s", monthlyReportMonthName(query.Month), query.Year, strings.ToUpper(query.Currency)), "", 1, "L", false, 0, "")
 
-	drawPDFWaterfallChart(pdf, 12, 28, 186, 74, metrics, query.Currency)
-	drawPDFTopCategoriesBarChart(pdf, 12, 112, 186, 62, categories, query.Currency)
-	drawPDFEconomicSummary(pdf, 12, 182, 186, metrics, insights, query.Currency)
+	drawPDFWaterfallChart(pdf, 12, 28, 186, 76, metrics, query.Currency)
+	drawPDFTopCategoriesBarChart(pdf, 12, 114, 186, 58, categories, query.Currency)
+	drawPDFEconomicSummary(pdf, 12, 178, 186, metrics, insights, query.Currency)
 }
 
 func drawPDFWaterfallChart(pdf *gofpdf.Fpdf, x, y, w, h float64, metrics monthlyReportMetrics, currency string) {
@@ -1322,8 +1322,12 @@ func drawPDFWaterfallChart(pdf *gofpdf.Fpdf, x, y, w, h float64, metrics monthly
 	minV -= padding
 	maxV += padding
 
+	labelBandH := 14.0
+	plotTop := y + 2
+	plotBottom := y + h - labelBandH
+	plotH := plotBottom - plotTop
 	toY := func(v float64) float64 {
-		return y + h - ((v-minV)/(maxV-minV))*h
+		return plotBottom - ((v-minV)/(maxV-minV))*plotH
 	}
 	zeroY := toY(0)
 	pdf.SetDrawColor(203, 213, 225)
@@ -1351,7 +1355,7 @@ func drawPDFWaterfallChart(pdf *gofpdf.Fpdf, x, y, w, h float64, metrics monthly
 		{"Cierre", 0, metrics.NetBalance, [3]int{99, 102, 241}},
 	}
 
-	pdf.SetFont("Arial", "", 7.8)
+	pdf.SetFont("Arial", "", 7.2)
 	for i, bar := range bars {
 		y1 := toY(bar.from)
 		y2 := toY(bar.to)
@@ -1364,7 +1368,7 @@ func drawPDFWaterfallChart(pdf *gofpdf.Fpdf, x, y, w, h float64, metrics monthly
 		pdf.SetDrawColor(255, 255, 255)
 		pdf.Rect(xs[i], top, barW, height, "FD")
 		pdf.SetTextColor(51, 65, 85)
-		pdf.SetXY(xs[i], y+h+1.5)
+		pdf.SetXY(xs[i], plotBottom+1.3)
 		pdf.CellFormat(barW, 4, trimForPDF(bar.label, 14), "", 2, "C", false, 0, "")
 		pdf.SetX(xs[i])
 		amount := bar.to
@@ -1374,7 +1378,9 @@ func drawPDFWaterfallChart(pdf *gofpdf.Fpdf, x, y, w, h float64, metrics monthly
 		if i == 2 {
 			amount = -metrics.Expense
 		}
-		pdf.CellFormat(barW, 4, trimForPDF(formatReportAmount(amount, currency), 14), "", 0, "C", false, 0, "")
+		pdf.SetFont("Arial", "B", 7.2)
+		pdf.CellFormat(barW, 4, formatCompactReportAmount(amount, currency), "", 0, "C", false, 0, "")
+		pdf.SetFont("Arial", "", 7.2)
 	}
 }
 
@@ -1425,20 +1431,42 @@ func drawPDFEconomicSummary(pdf *gofpdf.Fpdf, x, y, w float64, metrics monthlyRe
 	pdf.SetFont("Arial", "B", 10)
 	pdf.CellFormat(w, 5, "Conclusion economica", "", 1, "L", false, 0, "")
 
+	healthLabel, healthText, healthColor := classifyMonthlyReportHealth(metrics)
+	pdf.SetFillColor(healthColor[0], healthColor[1], healthColor[2])
+	pdf.SetDrawColor(healthColor[0], healthColor[1], healthColor[2])
+	pdf.RoundedRect(x, y+6, w, 8.5, 1.6, "1234", "DF")
+	pdf.SetTextColor(255, 255, 255)
+	pdf.SetFont("Arial", "B", 9)
+	pdf.SetXY(x+3, y+8)
+	pdf.CellFormat(w-6, 4.6, fmt.Sprintf("Estado del mes: %s | %s", healthLabel, healthText), "", 1, "L", false, 0, "")
+
+	pdf.SetY(y + 17)
 	pdf.SetFont("Arial", "", 9)
 	pdf.SetTextColor(51, 65, 85)
 	baseLines := []string{
-		fmt.Sprintf("- Balance neto de caja: %s", formatReportAmount(metrics.NetBalance, currency)),
-		fmt.Sprintf("- Tasa de ahorro: %.1f%% | Dependencia tarjeta: %.1f%%", metrics.SavingsRate, metrics.CardExpenseShare),
+		fmt.Sprintf("- Balance neto: %s | Tasa de ahorro: %.1f%%", formatReportAmount(metrics.NetBalance, currency), metrics.SavingsRate),
+		fmt.Sprintf("- Dependencia de tarjeta: %.1f%% | Concentracion top 3: %.1f%%", metrics.CardExpenseShare, metrics.CategoryConcentrationTop3),
 		fmt.Sprintf("- Ticket promedio: %s | Mediana: %s", formatReportAmount(metrics.AvgExpenseTicket, currency), formatReportAmount(metrics.MedianExpenseTicket, currency)),
-		fmt.Sprintf("- Concentracion top 3 categorias: %.1f%%", metrics.CategoryConcentrationTop3),
 	}
 	for _, line := range baseLines {
 		pdf.MultiCell(w, 4.8, line, "", "L", false)
 	}
 
+	actionPlan := buildMonthlyReportActionPlan(metrics, currency)
+	if len(actionPlan) > 0 {
+		pdf.Ln(0.5)
+		pdf.SetFont("Arial", "B", 9)
+		pdf.SetTextColor(15, 23, 42)
+		pdf.CellFormat(w, 4.8, "Plan sugerido (proximo mes)", "", 1, "L", false, 0, "")
+		pdf.SetFont("Arial", "", 8.8)
+		pdf.SetTextColor(51, 65, 85)
+		for _, action := range actionPlan {
+			pdf.MultiCell(w, 4.5, "- "+action, "", "L", false)
+		}
+	}
+
 	if len(insights) > 0 {
-		pdf.Ln(1)
+		pdf.Ln(0.5)
 		pdf.SetFont("Arial", "B", 9)
 		pdf.SetTextColor(15, 23, 42)
 		pdf.CellFormat(w, 4.8, "Hallazgos clave", "", 1, "L", false, 0, "")
@@ -1451,6 +1479,66 @@ func drawPDFEconomicSummary(pdf *gofpdf.Fpdf, x, y, w float64, metrics monthlyRe
 		for i := 0; i < limit; i++ {
 			pdf.MultiCell(w, 4.8, fmt.Sprintf("- %s: %s", insights[i].Title, insights[i].Detail), "", "L", false)
 		}
+	}
+}
+
+func classifyMonthlyReportHealth(metrics monthlyReportMetrics) (string, string, [3]int) {
+	switch {
+	case metrics.SavingsRate < 0:
+		return "En tension", "Hubo deficit de caja y el mes requiere ajuste inmediato.", [3]int{220, 38, 38}
+	case metrics.SavingsRate < 12 || metrics.CardExpenseShare > 65 || metrics.CategoryConcentrationTop3 > 75:
+		return "En observacion", "El resultado fue positivo pero con riesgos de concentracion y/o apalancamiento.", [3]int{217, 119, 6}
+	default:
+		return "Saludable", "La caja cierra con holgura y una estructura de gasto razonable.", [3]int{5, 150, 105}
+	}
+}
+
+func buildMonthlyReportActionPlan(metrics monthlyReportMetrics, currency string) []string {
+	actions := make([]string, 0, 3)
+
+	if metrics.SavingsRate < 12 {
+		incomeBase := metrics.Income + metrics.Refund
+		target := incomeBase * 0.15
+		if target > 0 {
+			actions = append(actions, fmt.Sprintf("Definir un objetivo de ahorro minimo de %s (15%% de ingresos).", formatReportAmount(target, currency)))
+		} else {
+			actions = append(actions, "Definir un objetivo de ahorro minimo y transferirlo al inicio del mes.")
+		}
+	}
+	if metrics.CardExpenseShare > 55 {
+		actions = append(actions, "Fijar tope de gasto con tarjeta y revisar consumo semanal para no sobredimensionar el resumen.")
+	}
+	if metrics.CategoryConcentrationTop3 > 70 {
+		actions = append(actions, "Presupuestar las 3 categorias principales con limite mensual para bajar la concentracion.")
+	}
+
+	if len(actions) == 0 {
+		actions = append(actions, "Mantener el ritmo de ahorro actual y consolidar un fondo de contingencia.")
+		actions = append(actions, "Sostener control semanal de categorias para evitar desvio de gasto.")
+	}
+	if len(actions) > 3 {
+		actions = actions[:3]
+	}
+	return actions
+}
+
+func formatCompactReportAmount(amount float64, currency string) string {
+	sign := ""
+	if amount < 0 {
+		sign = "-"
+	}
+	value := math.Abs(amount)
+	symbol := strings.ToUpper(currency)
+
+	switch {
+	case value >= 1_000_000_000:
+		return fmt.Sprintf("%s%s %.1fB", sign, symbol, value/1_000_000_000)
+	case value >= 1_000_000:
+		return fmt.Sprintf("%s%s %.1fM", sign, symbol, value/1_000_000)
+	case value >= 1_000:
+		return fmt.Sprintf("%s%s %.1fk", sign, symbol, value/1_000)
+	default:
+		return fmt.Sprintf("%s%s %.0f", sign, symbol, value)
 	}
 }
 

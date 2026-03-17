@@ -1773,6 +1773,23 @@ func (s *databaseStore) GetExpensesByPeriodAndCurrency(userID string, start, end
 	return expenses, nil
 }
 
+func (s *databaseStore) GetCashBalanceBeforeDate(userID string, before time.Time, currency string) (float64, error) {
+	query := `
+		SELECT COALESCE(SUM(amount), 0)
+		FROM expenses
+		WHERE user_id = $1
+			AND date < $2
+			AND LOWER(COALESCE(NULLIF(TRIM(currency), ''), $3)) = $3
+			AND UPPER(COALESCE(NULLIF(TRIM(source), ''), 'CA')) = 'CA'
+	`
+	var balance float64
+	err := s.db.QueryRow(query, userID, before, strings.ToLower(strings.TrimSpace(currency))).Scan(&balance)
+	if err != nil {
+		return 0, fmt.Errorf("failed to query cash balance before date: %v", err)
+	}
+	return balance, nil
+}
+
 func (s *databaseStore) GetExpense(userID, id string) (Expense, error) {
 	query := `SELECT id, recurring_id, name, category, amount, currency, date, flow, tags, source, card, system_origin, system_locked FROM expenses WHERE user_id = $1 AND id = $2`
 	expense, err := scanExpense(s.db.QueryRow(query, userID, id))

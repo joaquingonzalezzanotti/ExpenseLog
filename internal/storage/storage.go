@@ -65,6 +65,7 @@ type Storage interface {
 	// Expenses
 	GetAllExpenses(userID string) ([]Expense, error)
 	GetExpensesByPeriodAndCurrency(userID string, start, end time.Time, currency string) ([]Expense, error)
+	GetCashBalanceBeforeDate(userID string, before time.Time, currency string) (float64, error)
 	GetExpense(userID, id string) (Expense, error)
 	AddExpense(userID string, expense Expense) error
 	RemoveExpense(userID, id string) error

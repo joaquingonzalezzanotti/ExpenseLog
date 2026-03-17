@@ -42,7 +42,7 @@ func TestCalculateMonthlyReportMetrics(t *testing.T) {
 	}
 
 	categories := buildMonthlyReportCategoryStats(expenses)
-	metrics := calculateMonthlyReportMetrics(expenses, categories)
+	metrics := calculateMonthlyReportMetrics(expenses, categories, 1000)
 	if metrics.TransactionCount != 5 {
 		t.Fatalf("expected 5 transactions, got %d", metrics.TransactionCount)
 	}
@@ -52,8 +52,11 @@ func TestCalculateMonthlyReportMetrics(t *testing.T) {
 	if metrics.Expense != 5000 {
 		t.Fatalf("expected expense 5000, got %.2f", metrics.Expense)
 	}
-	if metrics.NetBalance != 6500 {
-		t.Fatalf("expected net balance 6500, got %.2f", metrics.NetBalance)
+	if metrics.InitialBalance != 1000 {
+		t.Fatalf("expected initial balance 1000, got %.2f", metrics.InitialBalance)
+	}
+	if metrics.NetBalance != 7500 {
+		t.Fatalf("expected net balance 7500, got %.2f", metrics.NetBalance)
 	}
 	if metrics.CardPending != 3000 {
 		t.Fatalf("expected card pending 3000, got %.2f", metrics.CardPending)

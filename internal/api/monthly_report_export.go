@@ -32,6 +32,7 @@ type monthlyReportQuery struct {
 
 type monthlyReportMetrics struct {
 	TransactionCount          int
+	InitialBalance            float64
 	Income                    float64
 	Refund                    float64
 	Expense                   float64
@@ -104,9 +105,14 @@ func (h *Handler) ExportMonthlyXLSX(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to retrieve expenses"})
 		return
 	}
+	initialBalance, err := h.storage.GetCashBalanceBeforeDate(userID, query.Start, query.Currency)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to retrieve initial balance"})
+		return
+	}
 
 	categories := buildMonthlyReportCategoryStats(expenses)
-	metrics := calculateMonthlyReportMetrics(expenses, categories)
+	metrics := calculateMonthlyReportMetrics(expenses, categories, initialBalance)
 	insights := buildMonthlyReportInsights(metrics, categories, query)
 
 	buffer, err := buildMonthlyReportXLSX(expenses, query, metrics, categories, insights)
@@ -157,9 +163,14 @@ func (h *Handler) ExportMonthlyPDF(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to retrieve expenses"})
 		return
 	}
+	initialBalance, err := h.storage.GetCashBalanceBeforeDate(userID, query.Start, query.Currency)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to retrieve initial balance"})
+		return
+	}
 
 	categories := buildMonthlyReportCategoryStats(expenses)
-	metrics := calculateMonthlyReportMetrics(expenses, categories)
+	metrics := calculateMonthlyReportMetrics(expenses, categories, initialBalance)
 	insights := buildMonthlyReportInsights(metrics, categories, query)
 
 	buffer, err := buildMonthlyReportPDF(expenses, query, metrics, categories, insights)
@@ -317,7 +328,7 @@ func buildMonthlyReportCategoryStats(expenses []storage.Expense) []monthlyReport
 	return rows
 }
 
-func calculateMonthlyReportMetrics(expenses []storage.Expense, categories []monthlyReportCategoryStat) monthlyReportMetrics {
+func calculateMonthlyReportMetrics(expenses []storage.Expense, categories []monthlyReportCategoryStat, initialBalance float64) monthlyReportMetrics {
 	var income float64
 	var refund float64
 	var expense float64
@@ -434,10 +445,11 @@ func calculateMonthlyReportMetrics(expenses []storage.Expense, categories []mont
 
 	return monthlyReportMetrics{
 		TransactionCount:          len(expenses),
+		InitialBalance:            initialBalance,
 		Income:                    income,
 		Refund:                    refund,
 		Expense:                   expense,
-		NetBalance:                income + refund - expense,
+		NetBalance:                initialBalance + income + refund - expense,
 		CardPending:               cardPending,
 		TotalOutflow:              totalOutflow,
 		CashOutflow:               cashOutflow,
@@ -790,7 +802,7 @@ func buildMonthlyReportXLSX(expenses []storage.Expense, query monthlyReportQuery
 		Value any
 		Kind  string
 	}{
-		{Label: "Movimientos", Value: metrics.TransactionCount, Kind: "text"},
+		{Label: "Saldo inicial", Value: metrics.InitialBalance, Kind: "money"},
 		{Label: "Dias con actividad", Value: metrics.ActiveDays, Kind: "text"},
 		{Label: "Ingresos", Value: metrics.Income, Kind: "money"},
 		{Label: "Reintegros", Value: metrics.Refund, Kind: "money"},
@@ -799,6 +811,7 @@ func buildMonthlyReportXLSX(expenses []storage.Expense, query monthlyReportQuery
 		{Label: "Egresos totales", Value: metrics.TotalOutflow, Kind: "money"},
 		{Label: "Balance neto de caja", Value: metrics.NetBalance, Kind: "money"},
 		{Label: "Tarjeta por pagar (periodo)", Value: metrics.CardPending, Kind: "money"},
+		{Label: "Movimientos", Value: metrics.TransactionCount, Kind: "text"},
 		{Label: "Ticket promedio de egreso", Value: metrics.AvgExpenseTicket, Kind: "money"},
 		{Label: "Ticket mediano de egreso", Value: metrics.MedianExpenseTicket, Kind: "money"},
 		{Label: "Concentracion top 3", Value: fmt.Sprintf("%.1f%%", metrics.CategoryConcentrationTop3), Kind: "text"},
@@ -1038,18 +1051,11 @@ func buildMonthlyReportPDF(
 		TitleColor [3]int
 	}{
 		{
-			Title:      "Movimientos",
-			Value:      fmt.Sprintf("%d", metrics.TransactionCount),
+			Title:      "Saldo inicial",
+			Value:      formatReportAmount(metrics.InitialBalance, query.Currency),
 			FillColor:  [3]int{239, 246, 255},
 			LineColor:  [3]int{147, 197, 253},
 			TitleColor: [3]int{30, 64, 175},
-		},
-		{
-			Title:      "Dias activos",
-			Value:      fmt.Sprintf("%d", metrics.ActiveDays),
-			FillColor:  [3]int{243, 244, 246},
-			LineColor:  [3]int{209, 213, 219},
-			TitleColor: [3]int{55, 65, 81},
 		},
 		{
 			Title:      "Ingresos",
@@ -1059,25 +1065,32 @@ func buildMonthlyReportPDF(
 			TitleColor: [3]int{6, 95, 70},
 		},
 		{
-			Title:      "Egresos de caja",
+			Title:      "Egresos",
 			Value:      formatReportAmount(metrics.Expense, query.Currency),
 			FillColor:  [3]int{254, 242, 242},
 			LineColor:  [3]int{252, 165, 165},
 			TitleColor: [3]int{153, 27, 27},
 		},
 		{
-			Title:      "Tarjeta por pagar",
-			Value:      formatReportAmount(metrics.CardPending, query.Currency),
+			Title:      "Balance neto",
+			Value:      formatReportAmount(metrics.NetBalance, query.Currency),
 			FillColor:  [3]int{238, 242, 255},
 			LineColor:  [3]int{165, 180, 252},
 			TitleColor: [3]int{55, 48, 163},
 		},
 		{
-			Title:      "Tasa de ahorro",
-			Value:      fmt.Sprintf("%.1f%%", metrics.SavingsRate),
+			Title:      "Gasto tarjeta",
+			Value:      formatReportAmount(metrics.CardOutflow, query.Currency),
 			FillColor:  [3]int{255, 251, 235},
 			LineColor:  [3]int{253, 186, 116},
 			TitleColor: [3]int{146, 64, 14},
+		},
+		{
+			Title:      "Movimientos",
+			Value:      fmt.Sprintf("%d", metrics.TransactionCount),
+			FillColor:  [3]int{243, 244, 246},
+			LineColor:  [3]int{209, 213, 219},
+			TitleColor: [3]int{55, 65, 81},
 		},
 	}
 

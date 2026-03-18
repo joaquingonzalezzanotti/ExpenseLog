@@ -971,6 +971,67 @@ function getUserTimeZone() {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
+const EXPENSE_FORM_PREFS_KEY = 'expenselog_expense_form_prefs_v1';
+
+function readExpenseFormPrefs() {
+    try {
+        const raw = localStorage.getItem(EXPENSE_FORM_PREFS_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return {};
+        return parsed;
+    } catch (_) {
+        return {};
+    }
+}
+
+function writeExpenseFormPrefs(next) {
+    try {
+        localStorage.setItem(EXPENSE_FORM_PREFS_KEY, JSON.stringify(next || {}));
+    } catch (_) {
+        // ignore storage failures
+    }
+}
+
+function getPreferredExpenseSource() {
+    const prefs = readExpenseFormPrefs();
+    const source = String(prefs.source || '').toUpperCase();
+    if (source === 'CA' || source === 'EFECTIVO' || source === 'TARJETA') {
+        return source;
+    }
+    return '';
+}
+
+function getPreferredExpenseCurrency(supportedCurrencyCodes = []) {
+    const prefs = readExpenseFormPrefs();
+    const currency = String(prefs.currency || '').toLowerCase();
+    if (!currency) return '';
+    if (Array.isArray(supportedCurrencyCodes) && supportedCurrencyCodes.length > 0) {
+        return supportedCurrencyCodes.includes(currency) ? currency : '';
+    }
+    return currency;
+}
+
+function rememberExpenseFormPrefs(input) {
+    const current = readExpenseFormPrefs();
+    const next = { ...current };
+    if (input && typeof input === 'object') {
+        if (input.source !== undefined) {
+            const source = String(input.source || '').toUpperCase();
+            if (source === 'CA' || source === 'EFECTIVO' || source === 'TARJETA') {
+                next.source = source;
+            }
+        }
+        if (input.currency !== undefined) {
+            const currency = String(input.currency || '').toLowerCase();
+            if (currency) {
+                next.currency = currency;
+            }
+        }
+    }
+    writeExpenseFormPrefs(next);
+}
+
 function formatMonth(date) {
     const formatted = date.toLocaleDateString('es-AR', {
         year: 'numeric',
@@ -987,7 +1048,8 @@ function getISODateWithLocalTime(dateInput) {
     const hours = now.getHours();
     const minutes = now.getMinutes();
     const seconds = now.getSeconds();
-    const localDateTime = new Date(year, month - 1, day, hours, minutes, seconds);
+    const milliseconds = now.getMilliseconds();
+    const localDateTime = new Date(year, month - 1, day, hours, minutes, seconds, milliseconds);
     return localDateTime.toISOString();
 }
 
@@ -1063,6 +1125,7 @@ function getMonthBounds(date) {
 
 function getComparableExpenseDate(exp) {
     const rawDate = new Date(exp?.date);
+    if (Number.isNaN(rawDate.getTime())) return new Date(0);
     if (!exp?.recurringID) return rawDate;
     const ymd = getDateInputValueFromISO(exp.date);
     if (!ymd) return rawDate;
@@ -1070,12 +1133,34 @@ function getComparableExpenseDate(exp) {
     return new Date(year, month - 1, day, 12, 0, 0, 0);
 }
 
+function getExpenseCreatedAtDate(exp) {
+    const created = exp?.createdAt ? new Date(exp.createdAt) : null;
+    if (created && !Number.isNaN(created.getTime())) return created;
+    return getComparableExpenseDate(exp);
+}
+
+function compareExpensesDesc(a, b) {
+    const primary = getComparableExpenseDate(b).getTime() - getComparableExpenseDate(a).getTime();
+    if (primary !== 0) return primary;
+    const byCreatedAt = getExpenseCreatedAtDate(b).getTime() - getExpenseCreatedAtDate(a).getTime();
+    if (byCreatedAt !== 0) return byCreatedAt;
+    return String(b?.id || '').localeCompare(String(a?.id || ''));
+}
+
+function compareExpensesAsc(a, b) {
+    const primary = getComparableExpenseDate(a).getTime() - getComparableExpenseDate(b).getTime();
+    if (primary !== 0) return primary;
+    const byCreatedAt = getExpenseCreatedAtDate(a).getTime() - getExpenseCreatedAtDate(b).getTime();
+    if (byCreatedAt !== 0) return byCreatedAt;
+    return String(a?.id || '').localeCompare(String(b?.id || ''));
+}
+
 function getMonthExpenses(expenses) {
     const { start, end } = getMonthBounds(currentDate);
     return expenses.filter(exp => {
         const expDate = getComparableExpenseDate(exp);
         return expDate >= start && expDate <= end;
-    }).sort((a, b) => getComparableExpenseDate(b) - getComparableExpenseDate(a));
+    }).sort(compareExpensesDesc);
 }
 
 function escapeHTML(str) {

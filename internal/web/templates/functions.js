@@ -47,6 +47,7 @@ let latestNotificationPayload = null;
 let currentVisibleNotificationItems = [];
 let notificationCenterDisabled = false;
 let notificationCenterFetchWarned = false;
+let logoutInFlight = false;
 
 const API_ROUTE_REGEX = /^\/(auth|config|categories|currency|startdate|reconciliation|expense|expenses|recurring-expense|recurring-expenses|alerts|export|import|version|card|telegram)(\/|$)/;
 const originalFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : null;
@@ -545,6 +546,8 @@ function teardownNotificationCenter() {
 }
 
 async function expenseLogLogout() {
+    if (logoutInFlight) return;
+    logoutInFlight = true;
     try {
         await fetch('/auth/logout', { method: 'POST' });
     } catch (error) {
@@ -585,11 +588,20 @@ function setupAuthUI() {
 
     const loginForm = document.getElementById('authLoginForm');
     if (loginForm) {
+        let loginPending = false;
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (loginPending) return;
+            loginPending = true;
             const email = document.getElementById('authLoginEmail').value.trim();
             const password = document.getElementById('authLoginPassword').value;
             const remember = !!document.getElementById('authLoginRemember')?.checked;
+            const submitButton = loginForm.querySelector('button[type="submit"]');
+            const previousButtonLabel = submitButton ? submitButton.textContent : '';
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.textContent = 'Ingresando...';
+            }
             try {
                 const response = await fetch('/auth/login', {
                     method: 'POST',
@@ -606,6 +618,12 @@ function setupAuthUI() {
             } catch (error) {
                 console.error('Login failed:', error);
                 showAuthOverlay('No se pudo iniciar sesion', 'error');
+            } finally {
+                loginPending = false;
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.textContent = previousButtonLabel || 'Ingresar';
+                }
             }
         });
     }

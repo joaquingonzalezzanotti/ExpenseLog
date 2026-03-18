@@ -113,13 +113,24 @@
                     </select>
                 </div>
 
-                <div class="form-group form-group-span-2 method-group">
+                <div class="form-group method-group">
                     <label for="sourceSelect">Metodo</label>
                     <select id="sourceSelect">
                         <option value="CA">Transferencia / Debito</option>
                         <option value="EFECTIVO">Efectivo (solo registro)</option>
                         <option value="TARJETA">Tarjeta de credito</option>
                     </select>
+                </div>
+
+                <div class="form-group currency-group">
+                    <label for="currencySelectForm">Moneda</label>
+                    <select id="currencySelectForm" required></select>
+                </div>
+
+                <div class="form-group form-group-span-2" id="cardGroup" style="display:none;">
+                    <label for="cardInput">Tarjeta</label>
+                    <input type="text" id="cardInput" placeholder="Ej: Visa, Amex">
+                    <div id="cardError" class="form-error"></div>
                 </div>
 
                 <div class="form-group form-group-span-2">
@@ -137,16 +148,11 @@
                     <input type="date" id="date" required>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group form-group-span-2 category-group">
                     <label for="category">Categoria</label>
                     <select id="category" required>
                         <option value="">Selecciona categoria</option>
                     </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="currencySelectForm">Moneda</label>
-                    <select id="currencySelectForm" required></select>
                 </div>
 
                 <div class="form-group form-group-span-2">
@@ -158,18 +164,12 @@
                     <div id="tags-dropdown" class="tags-dropdown"></div>
                 </div>
 
-                <div class="form-group form-group-span-2" id="cardGroup" style="display:none;">
-                    <label for="cardInput">Tarjeta</label>
-                    <input type="text" id="cardInput" placeholder="Ej: Visa, Amex">
-                    <div id="cardError" class="form-error"></div>
-                </div>
-
                 <div class="form-group form-group-span-2">
                     <div id="sourceImpactHint" class="form-help-text" aria-live="polite"></div>
                 </div>
 
-                <div class="form-actions">
-                    <button type="button" id="cancelExpenseFormBtn" class="nav-button button-secondary">Cancelar</button>
+                <div class="form-actions expense-modal-actions">
+                    <button type="button" id="cancelExpenseFormBtn" class="modal-link-button">Cancelar</button>
                     <button type="submit" class="nav-button button-primary">Agregar gasto</button>
                 </div>
             </form>
@@ -923,12 +923,7 @@
         }
 
         function computeRunningBalances(expenses) {
-            const sortedAsc = expenses.slice().sort((a, b) => {
-                const aTime = new Date(a.date).getTime();
-                const bTime = new Date(b.date).getTime();
-                if (aTime !== bTime) return aTime - bTime;
-                return (a.id || '').localeCompare(b.id || '');
-            });
+            const sortedAsc = expenses.slice().sort(compareExpensesAsc);
             const totalsByCurrency = {};
             const balanceById = {};
             sortedAsc.forEach(exp => {
@@ -1069,7 +1064,7 @@
             }
 
             expensesForTable = showAll
-                ? allExpenses.slice().sort((a, b) => new Date(b.date) - new Date(a.date))
+                ? allExpenses.slice().sort(compareExpensesDesc)
                 : getMonthExpenses(allExpenses);
 
             expensesForTable = applyCommonExpenseFilters(expensesForTable);
@@ -1242,7 +1237,9 @@
 
         function populateFormCurrency() {
             const select = document.getElementById('currencySelectForm');
-            select.innerHTML = supportedCurrencies.map(code => `<option value="${code}" ${code === currentCurrency ? 'selected' : ''}>${code.toUpperCase()}</option>`).join('');
+            const preferredCurrency = getPreferredExpenseCurrency(supportedCurrencies);
+            const selectedCurrency = preferredCurrency || currentCurrency;
+            select.innerHTML = supportedCurrencies.map(code => `<option value="${code}" ${code === selectedCurrency ? 'selected' : ''}>${code.toUpperCase()}</option>`).join('');
         }
 
         function populateTableFilters() {
@@ -1610,7 +1607,7 @@
             selectedTags.clear();
             delete form.dataset.editId;
             populateFormCurrency();
-            sourceSelect.value = 'CA';
+            sourceSelect.value = getPreferredExpenseSource() || 'CA';
             if (movementTypeSelect) movementTypeSelect.value = 'expense';
             refreshSourceUX();
             syncTableSubmitButtonLabel();
@@ -1669,6 +1666,10 @@
                         ? 'Ingreso actualizado con exito'
                         : (movementType === 'refund' ? 'Reintegro actualizado con exito' : 'Gasto actualizado con exito');
                     showToast(editId ? updateMessage : createMessage, 'success');
+                    rememberExpenseFormPrefs({
+                        source: sourceValue,
+                        currency: formData.currency,
+                    });
                     await initialize();
                     resetTableExpenseForm({ closeForm: isMobileTableView() });
                 } else {

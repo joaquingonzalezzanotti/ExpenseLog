@@ -2400,6 +2400,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 .expense-modal-form {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.95rem 1rem;
+    grid-auto-flow: row dense;
     align-items: end;
 }
 
@@ -2452,6 +2453,14 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 .expense-modal-form .form-group label {
     align-self: flex-start;
     font-weight: 600;
+    font-size: 0.84rem;
+}
+
+.expense-modal-form .form-group input,
+.expense-modal-form .form-group select {
+    min-height: 42px;
+    font-size: 0.96rem;
+    padding: 0.46rem 0.56rem;
 }
 
 .expense-modal-form .method-group #sourceSelect {
@@ -2465,8 +2474,54 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     overflow: hidden;
 }
 
+.expense-modal-form .currency-group #currencySelectForm {
+    min-height: 42px;
+    padding-right: 1.8rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.expense-modal-form .category-group #category {
+    min-height: 42px;
+}
+
 .expense-modal-form .form-actions {
     margin-top: 0.15rem;
+}
+
+.expense-modal-form .form-actions.expense-modal-actions {
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-top: 0.35rem;
+    padding-top: 0.55rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.35);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, var(--bg-primary) 46%);
+}
+
+.expense-modal-form .form-actions.expense-modal-actions .nav-button {
+    min-height: 44px;
+    font-weight: 700;
+}
+
+.modal-link-button {
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+    font-weight: 600;
+    padding: 0.2rem 0.35rem 0.1rem;
+    width: fit-content;
+    justify-self: center;
+    cursor: pointer;
+}
+
+.modal-link-button:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
 }
 
 .expense-modal-form > *,
@@ -2477,9 +2532,11 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 .expense-modal-form #sourceImpactHint {
     margin: 0;
     border-radius: 10px;
-    padding: 0.58rem 0.72rem;
+    padding: 0.48rem 0.62rem;
     border: 1px solid var(--border);
     background: var(--accent-soft);
+    font-size: 0.82rem;
+    line-height: 1.25;
 }
 
 .card-payment-module {
@@ -3821,6 +3878,11 @@ html[data-settings-route='telegram'] body.settings-page #telegramSection[hidden]
         font-size: 1.12rem;
     }
 
+    .entry-modal-title-wrap p {
+        font-size: 0.84rem;
+        margin-top: 0.2rem;
+    }
+
     .movement-pill {
         min-height: 38px;
         font-size: 0.92rem;
@@ -3841,6 +3903,17 @@ html[data-settings-route='telegram'] body.settings-page #telegramSection[hidden]
         font-size: 0.9rem;
         min-height: 40px;
         padding-right: 2rem;
+    }
+
+    .expense-modal-form .currency-group #currencySelectForm {
+        width: 100%;
+        font-size: 0.9rem;
+        min-height: 40px;
+        padding-right: 1.8rem;
+    }
+
+    .expense-modal-form .form-group {
+        gap: 0.35rem;
     }
 
     .expense-modal-form #sourceImpactHint {
@@ -3919,6 +3992,11 @@ html[data-settings-route='telegram'] body.settings-page #telegramSection[hidden]
     .expense-form.expense-modal-form .form-actions,
     .expense-form.card-payment-modal-form .form-actions {
         grid-template-columns: 1fr;
+    }
+
+    .expense-modal-form .form-actions.expense-modal-actions {
+        padding-top: 0.45rem;
+        margin-top: 0.25rem;
     }
 
     .expense-form.expense-modal-form .form-actions .nav-button,

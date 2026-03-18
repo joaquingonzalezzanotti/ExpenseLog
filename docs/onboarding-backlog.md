@@ -3,6 +3,20 @@
 ## Objetivo
 Convertir los primeros 10 minutos de uso en una experiencia guiada, clara y accionable para usuarios nuevos.
 
+## Estado (7 Mar 2026)
+1. Implementacion inicial comenzada en `internal/web/templates/index.html`, `table.html` y `style.css`.
+2. Ya existe:
+   - guia de 3 pasos para primer usuario en Home,
+   - empty states con CTAs en Home/Tabla/Calendario,
+   - ayuda contextual en `Tarjeta por pagar` sin saldo.
+3. Refactor de arquitectura aplicado en `onboarding`:
+   - logica extraida a `internal/web/templates/onboarding_ui.js`,
+   - estilos extraidos a `internal/web/templates/onboarding.css`,
+   - `index.html` y `table.html` quedan solo con integracion.
+4. Pendiente:
+   - QA manual completo por breakpoints,
+   - ajuste fino de copy y orden de CTAs segun feedback de uso real.
+
 ## Rama de trabajo
 1. Pasar a `onboarding`.
 2. Implementar todo el alcance de este documento en esa rama.

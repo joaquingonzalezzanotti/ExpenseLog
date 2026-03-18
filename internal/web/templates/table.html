@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="/app/fa.min.css">
     <link rel="icon" href="/app/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="/app/style.css">
+    <link rel="stylesheet" href="/app/onboarding.css">
     <script>
         (function() {
             const storedTheme = localStorage.getItem('theme');
@@ -340,6 +341,7 @@
     </div>
 
     <script src="/app/functions.js"></script>
+    <script src="/app/onboarding_ui.js"></script>
     <script>
         let currentCurrency = 'usd';
         let currentDate = new Date();
@@ -349,6 +351,7 @@
         let allTags = new Set();
         let selectedTags = new Set();
         const supportedCurrencies = Object.keys(currencyBehaviors);
+        const onboardingUI = (typeof ExpenseLogOnboarding !== 'undefined') ? ExpenseLogOnboarding : null;
         const sourceSelect = document.getElementById('sourceSelect');
         const cardGroup = document.getElementById('cardGroup');
         const movementTypeSelect = document.getElementById('movementType');
@@ -416,6 +419,86 @@
             if (clearTableFiltersBtn) {
                 const hasFilters = filterCurrency !== 'all' || filterSource !== 'all';
                 clearTableFiltersBtn.style.display = hasFilters ? 'inline-flex' : 'none';
+            }
+        }
+
+        function hasActiveCommonFilters() {
+            return !!searchQuery || filterCurrency !== 'all' || filterSource !== 'all';
+        }
+
+        function openTableExpenseFormWithPreset(options = {}) {
+            const movementType = options.movementType || 'expense';
+            const source = options.source || 'CA';
+            const suggestedName = options.suggestedName || '';
+            resetTableExpenseForm();
+            if (movementTypeSelect) {
+                movementTypeSelect.value = movementType;
+            }
+            if (sourceSelect) {
+                sourceSelect.value = source;
+            }
+            refreshSourceUX();
+            syncTableSubmitButtonLabel();
+            setExpenseFormVisible(true);
+            const nameInput = document.getElementById('name');
+            if (nameInput && suggestedName) {
+                nameInput.value = suggestedName;
+            }
+        }
+
+        function runTableEmptyAction(action) {
+            if (action === 'start-income') {
+                openTableExpenseFormWithPreset({
+                    movementType: 'income',
+                    source: 'CA',
+                    suggestedName: 'Sueldo',
+                });
+                return;
+            }
+            if (action === 'start-expense') {
+                openTableExpenseFormWithPreset({
+                    movementType: 'expense',
+                    source: 'CA',
+                    suggestedName: 'Supermercado',
+                });
+                return;
+            }
+            if (action === 'start-card-expense') {
+                openTableExpenseFormWithPreset({
+                    movementType: 'expense',
+                    source: 'TARJETA',
+                    suggestedName: 'Compra tarjeta',
+                });
+                return;
+            }
+            if (action === 'clear-filters') {
+                searchQuery = '';
+                filterCurrency = 'all';
+                filterSource = 'all';
+                calendarTypeFilter = 'all';
+                calendarCategoryFilter = 'all';
+                if (document.getElementById('tableSearch')) {
+                    document.getElementById('tableSearch').value = '';
+                }
+                if (document.getElementById('tableFilterCurrency')) {
+                    document.getElementById('tableFilterCurrency').value = 'all';
+                }
+                if (document.getElementById('tableFilterSource')) {
+                    document.getElementById('tableFilterSource').value = 'all';
+                }
+                if (calendarFilterType) {
+                    calendarFilterType.value = 'all';
+                }
+                if (calendarFilterCategory) {
+                    calendarFilterCategory.value = 'all';
+                }
+                showAllMobileRows = false;
+                selectedCalendarDayKey = '';
+                updateTable();
+                return;
+            }
+            if (action === 'go-calendar') {
+                navigateDataView('calendar');
             }
         }
 
@@ -731,6 +814,30 @@
             populateCalendarCategoryFilter(commonFilteredExpenses);
             const filteredExpenses = getCalendarFilteredExpenses(commonFilteredExpenses);
 
+            if (filteredExpenses.length === 0) {
+                const hasFilters = hasActiveCommonFilters() || calendarTypeFilter !== 'all' || calendarCategoryFilter !== 'all';
+                const isFirstUser = allExpenses.length === 0;
+                const title = isFirstUser
+                    ? 'Tu calendario financiero empezara con tu primer movimiento'
+                    : (hasFilters ? 'No hay movimientos con los filtros actuales' : 'No hay movimientos para este mes');
+                const description = isFirstUser
+                    ? 'Carga un ingreso y luego un gasto para ver dias con actividad.'
+                    : (hasFilters ? 'Limpia filtros para volver a ver actividad del mes.' : 'Puedes cargar un movimiento ahora o cambiar de mes.');
+                if (onboardingUI && typeof onboardingUI.buildCalendarEmptyState === 'function') {
+                    financialCalendarGrid.innerHTML = onboardingUI.buildCalendarEmptyState({
+                        title,
+                        description,
+                        hasFilters,
+                        isFirstUser,
+                    });
+                } else {
+                    financialCalendarGrid.innerHTML = `<div class="no-data">${title}</div>`;
+                }
+                financialCalendarDetails.innerHTML = '<div class="no-data">Cuando registres movimientos, podras abrir cada dia para ver detalle de ingresos y gastos.</div>';
+                selectedCalendarDayKey = '';
+                return;
+            }
+
             const buckets = new Map();
             filteredExpenses.forEach(exp => {
                 const expDate = getExpenseCalendarDate(exp);
@@ -852,9 +959,17 @@
 
         function createTable(expenses, runningBalances) {
             if (!expenses || expenses.length === 0) {
-                const message = document.getElementById('showAllToggle').checked ? 
-                                'No hay transacciones para mostrar' : 
-                                'No hay gastos cargados para este mes';
+                const showAll = document.getElementById('showAllToggle').checked;
+                const hasFilters = hasActiveCommonFilters();
+                const isFirstUser = allExpenses.length === 0;
+                if (onboardingUI && typeof onboardingUI.buildTableEmptyState === 'function') {
+                    return onboardingUI.buildTableEmptyState({
+                        showAll,
+                        hasFilters,
+                        isFirstUser,
+                    });
+                }
+                const message = showAll ? 'No hay transacciones para mostrar' : 'No hay gastos cargados para este mes';
                 return `<div class="no-data">${message}</div>`;
             }
             const compactAmounts = isMobileTableView();
@@ -1382,7 +1497,10 @@
 
         if (toggleExpenseFormBtn) {
             toggleExpenseFormBtn.addEventListener('click', () => {
-                setExpenseFormVisible(true);
+                openTableExpenseFormWithPreset({
+                    movementType: 'expense',
+                    source: 'CA',
+                });
             });
         }
         closeExpenseFormBtn?.addEventListener('click', () => {
@@ -1544,7 +1662,13 @@
                 if (response.ok) {
                     messageDiv.textContent = '';
                     messageDiv.className = 'form-message';
-                    showToast(editId ? 'Gasto actualizado con exito' : 'Gasto agregado con exito', 'success');
+                    const createMessage = movementType === 'income'
+                        ? 'Ingreso agregado con exito'
+                        : (movementType === 'refund' ? 'Reintegro agregado con exito' : 'Gasto agregado con exito');
+                    const updateMessage = movementType === 'income'
+                        ? 'Ingreso actualizado con exito'
+                        : (movementType === 'refund' ? 'Reintegro actualizado con exito' : 'Gasto actualizado con exito');
+                    showToast(editId ? updateMessage : createMessage, 'success');
                     await initialize();
                     resetTableExpenseForm({ closeForm: isMobileTableView() });
                 } else {
@@ -1621,6 +1745,13 @@
             document.getElementById('tableFilterSource').value = 'all';
             showAllMobileRows = false;
             updateTable();
+        });
+
+        document.addEventListener('click', (event) => {
+            const trigger = event.target.closest('[data-table-empty-action]');
+            if (!trigger) return;
+            event.preventDefault();
+            runTableEmptyAction(trigger.dataset.tableEmptyAction || '');
         });
 
         document.getElementById('tableContainer').addEventListener('click', (e) => {

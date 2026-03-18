@@ -30,6 +30,22 @@ Este documento es la fuente de verdad para avanzar en `dev`.
    - reintegros en `TARJETA`,
    - pagos propios registrados por el nuevo endpoint.
 
+## Estado de onboarding (7 Mar 2026)
+
+1. Se inicio una primera version de onboarding para primer usuario en rama `onboarding`.
+2. Home (`/app`) ahora incluye:
+   - guia inicial de 3 pasos (ingreso, gasto, gasto con tarjeta),
+   - CTAs directas que abren el formulario preconfigurado,
+   - opcion de ocultar la guia con persistencia en `localStorage`.
+3. Se agregaron empty states accionables:
+   - Home sin movimientos,
+   - Tabla sin movimientos (incluye variante para filtros),
+   - Calendario sin movimientos en el mes/filtros.
+4. El modulo `Tarjeta por pagar` muestra ayuda contextual cuando no hay saldo pendiente.
+5. Decision tecnica de SoC:
+   - onboarding aislado en `onboarding_ui.js` y `onboarding.css`,
+   - vistas principales (`index.html`, `table.html`) consumen el modulo sin concentrar reglas de onboarding.
+
 ## Prioridad #1 (cerrada): Arquitectura de rutas
 
 ### Objetivo

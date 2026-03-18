@@ -48,7 +48,7 @@ func (h *Handler) issueEmailVerification(user storage.User, r *http.Request) err
 	if err != nil {
 		return err
 	}
-	if err := sendVerificationEmail(user.Email, verifyURL); err != nil {
+	if err := sendVerificationEmailFn(user.Email, verifyURL); err != nil {
 		return err
 	}
 	success = true

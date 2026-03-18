@@ -375,7 +375,7 @@ func (h *Handler) AuthResetRequest(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to create reset code"})
 		return
 	}
-	if err := sendResetCodeEmail(email, code, appBaseURL); err != nil {
+	if err := sendResetCodeEmailFn(email, code, appBaseURL); err != nil {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to send reset code"})
 		return
 	}
@@ -458,7 +458,7 @@ func (h *Handler) AuthResetConfirm(w http.ResponseWriter, r *http.Request) {
 			now,
 		)
 		if !skipDispatch {
-			if notifyErr := sendPasswordChangedEmail(email, appBaseURL); notifyErr == nil {
+			if notifyErr := sendPasswordChangedEmailFn(email, appBaseURL); notifyErr == nil {
 				releaseDispatch(true)
 			} else {
 				releaseDispatch(false)

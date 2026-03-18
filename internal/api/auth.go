@@ -23,6 +23,8 @@ const (
 	minPasswordLength       = 8
 	resetCodeTTL            = 15 * time.Minute
 	verificationTokenTTL    = 24 * time.Hour
+	resetCodeEmailCooldown  = 30 * time.Second
+	passwordEmailCooldown   = 30 * time.Second
 	maxLoginAttempts        = 3
 	loginBlockDuration      = 10 * time.Minute
 	authThrottleWindow      = 10 * time.Minute
@@ -344,6 +346,19 @@ func (h *Handler) AuthResetRequest(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to process request"})
 		return
 	}
+	now := time.Now()
+	releaseDispatch, skipDispatch := reserveEmailDispatch(
+		emailDispatchKey("reset_code", email),
+		resetCodeEmailCooldown,
+		now,
+	)
+	if skipDispatch {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+		return
+	}
+	sendSuccess := false
+	defer releaseDispatch(sendSuccess)
+
 	code, err := newResetCode()
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to generate code"})
@@ -352,8 +367,8 @@ func (h *Handler) AuthResetRequest(w http.ResponseWriter, r *http.Request) {
 	reset := storage.PasswordReset{
 		UserID:      user.ID,
 		CodeHash:    hashResetCode(code),
-		CreatedAt:   time.Now(),
-		ExpiresAt:   time.Now().Add(resetCodeTTL),
+		CreatedAt:   now,
+		ExpiresAt:   now.Add(resetCodeTTL),
 		MaxAttempts: resetCodeMaxAttempts,
 	}
 	if err := h.storage.CreatePasswordReset(reset); err != nil {
@@ -364,6 +379,7 @@ func (h *Handler) AuthResetRequest(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to send reset code"})
 		return
 	}
+	sendSuccess = true
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
@@ -435,7 +451,19 @@ func (h *Handler) AuthResetConfirm(w http.ResponseWriter, r *http.Request) {
 	_ = h.storage.DeleteSessionsByUserID(user.ID)
 	// Best-effort notification to improve account security visibility.
 	if appBaseURL, baseErr := externalBaseURL(r); baseErr == nil {
-		_ = sendPasswordChangedEmail(email, appBaseURL)
+		now := time.Now()
+		releaseDispatch, skipDispatch := reserveEmailDispatch(
+			emailDispatchKey("password_changed", email),
+			passwordEmailCooldown,
+			now,
+		)
+		if !skipDispatch {
+			if notifyErr := sendPasswordChangedEmail(email, appBaseURL); notifyErr == nil {
+				releaseDispatch(true)
+			} else {
+				releaseDispatch(false)
+			}
+		}
 	}
 	clearAuthThrottle("reset-confirm|" + readClientIP(r) + "|" + email)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})

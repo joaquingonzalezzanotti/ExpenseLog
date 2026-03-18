@@ -100,7 +100,8 @@ const (
 		source VARCHAR(50),
 		card VARCHAR(100),
 		system_origin VARCHAR(50) NOT NULL DEFAULT 'user',
-		system_locked BOOLEAN NOT NULL DEFAULT FALSE
+		system_locked BOOLEAN NOT NULL DEFAULT FALSE,
+		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 	);`
 
 	createReconciliationsTableSQL = `
@@ -264,6 +265,7 @@ func createTables(db *sql.DB) error {
 		"ALTER TABLE expenses ADD COLUMN IF NOT EXISTS flow VARCHAR(20) NOT NULL DEFAULT 'expense'",
 		"ALTER TABLE expenses ADD COLUMN IF NOT EXISTS system_origin VARCHAR(50) NOT NULL DEFAULT 'user'",
 		"ALTER TABLE expenses ADD COLUMN IF NOT EXISTS system_locked BOOLEAN NOT NULL DEFAULT FALSE",
+		"ALTER TABLE expenses ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
 		"ALTER TABLE recurring_expenses ADD COLUMN IF NOT EXISTS user_id VARCHAR(36)",
 		"ALTER TABLE recurring_expenses ADD COLUMN IF NOT EXISTS currency VARCHAR(3) NOT NULL DEFAULT 'usd'",
 		"ALTER TABLE recurring_expenses ADD COLUMN IF NOT EXISTS flow VARCHAR(20) NOT NULL DEFAULT 'expense'",
@@ -313,6 +315,9 @@ func createTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS expenses_user_date_idx ON expenses (user_id, date DESC)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS expenses_user_date_created_idx ON expenses (user_id, date DESC, created_at DESC, id DESC)`); err != nil {
 		return err
 	}
 	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS expenses_user_system_locked_idx ON expenses (user_id, system_locked)`); err != nil {
@@ -1694,6 +1699,7 @@ func scanExpense(scanner interface{ Scan(...any) error }) (Expense, error) {
 		&expense.Amount,
 		&expense.Currency,
 		&expense.Date,
+		&expense.CreatedAt,
 		&expense.Flow,
 		&tagsStr,
 		&source,
@@ -1728,7 +1734,7 @@ func scanExpense(scanner interface{ Scan(...any) error }) (Expense, error) {
 }
 
 func (s *databaseStore) GetAllExpenses(userID string) ([]Expense, error) {
-	query := `SELECT id, recurring_id, name, category, amount, currency, date, flow, tags, source, card, system_origin, system_locked FROM expenses WHERE user_id = $1 ORDER BY date DESC`
+	query := `SELECT id, recurring_id, name, category, amount, currency, date, created_at, flow, tags, source, card, system_origin, system_locked FROM expenses WHERE user_id = $1 ORDER BY date DESC, created_at DESC, id DESC`
 	rows, err := s.db.Query(query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query expenses: %v", err)
@@ -1748,13 +1754,13 @@ func (s *databaseStore) GetAllExpenses(userID string) ([]Expense, error) {
 
 func (s *databaseStore) GetExpensesByPeriodAndCurrency(userID string, start, end time.Time, currency string) ([]Expense, error) {
 	query := `
-		SELECT id, recurring_id, name, category, amount, currency, date, flow, tags, source, card, system_origin, system_locked
+		SELECT id, recurring_id, name, category, amount, currency, date, created_at, flow, tags, source, card, system_origin, system_locked
 		FROM expenses
 		WHERE user_id = $1
 			AND date >= $2
 			AND date < $3
 			AND LOWER(COALESCE(NULLIF(TRIM(currency), ''), $4)) = $4
-		ORDER BY date ASC, name ASC, id ASC
+		ORDER BY date ASC, created_at ASC, id ASC
 	`
 	rows, err := s.db.Query(query, userID, start, end, strings.ToLower(strings.TrimSpace(currency)))
 	if err != nil {
@@ -1791,7 +1797,7 @@ func (s *databaseStore) GetCashBalanceBeforeDate(userID string, before time.Time
 }
 
 func (s *databaseStore) GetExpense(userID, id string) (Expense, error) {
-	query := `SELECT id, recurring_id, name, category, amount, currency, date, flow, tags, source, card, system_origin, system_locked FROM expenses WHERE user_id = $1 AND id = $2`
+	query := `SELECT id, recurring_id, name, category, amount, currency, date, created_at, flow, tags, source, card, system_origin, system_locked FROM expenses WHERE user_id = $1 AND id = $2`
 	expense, err := scanExpense(s.db.QueryRow(query, userID, id))
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -2040,7 +2046,7 @@ func (s *databaseStore) getReconciliationByIdempotencyTx(tx *sql.Tx, userID, ide
 }
 
 func (s *databaseStore) getExpenseTx(tx *sql.Tx, userID, id string) (Expense, error) {
-	query := `SELECT id, recurring_id, name, category, amount, currency, date, flow, tags, source, card, system_origin, system_locked FROM expenses WHERE user_id = $1 AND id = $2`
+	query := `SELECT id, recurring_id, name, category, amount, currency, date, created_at, flow, tags, source, card, system_origin, system_locked FROM expenses WHERE user_id = $1 AND id = $2`
 	expense, err := scanExpense(tx.QueryRow(query, userID, id))
 	if err != nil {
 		if err == sql.ErrNoRows {

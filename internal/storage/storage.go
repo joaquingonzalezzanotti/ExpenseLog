@@ -213,6 +213,7 @@ type Expense struct {
 	SystemOrigin string    `json:"systemOrigin,omitempty"`
 	SystemLocked bool      `json:"systemLocked,omitempty"`
 	Date         time.Time `json:"date"`
+	CreatedAt    time.Time `json:"createdAt,omitempty"`
 }
 
 type WalletIngestEvent struct {

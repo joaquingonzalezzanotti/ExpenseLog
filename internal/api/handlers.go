@@ -2,7 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"strconv"
@@ -719,6 +721,10 @@ func (h *Handler) ServeStaticFile(w http.ResponseWriter, r *http.Request) {
 		staticPath = strings.TrimPrefix(staticPath, "/app")
 	}
 	if err := web.ServeStatic(w, staticPath); err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			http.NotFound(w, r)
+			return
+		}
 		http.Error(w, "Failed to serve static file", http.StatusInternalServerError)
 	}
 }

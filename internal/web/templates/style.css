@@ -2304,6 +2304,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     display: grid;
     place-items: center;
     padding: 1rem;
+    box-sizing: border-box;
 }
 
 .entry-modal-overlay[hidden] {
@@ -2321,9 +2322,12 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 .entry-modal-card {
     position: relative;
     width: min(760px, 100%);
+    max-width: 100%;
     max-height: min(92vh, 820px);
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 1.2rem;
+    box-sizing: border-box;
     border-radius: 18px;
     border: 1px solid rgba(37, 99, 235, 0.22);
     background:
@@ -2331,6 +2335,10 @@ html[data-theme='dark'] .expense-table td.amount-balance {
         radial-gradient(circle at 0% 100%, rgba(16, 185, 129, 0.1), transparent 42%),
         linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 130%);
     box-shadow: 0 26px 48px rgba(8, 15, 30, 0.34);
+}
+
+.entry-modal-card > * {
+    min-width: 0;
 }
 
 .entry-modal-header {
@@ -2392,6 +2400,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 .expense-modal-form {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.95rem 1rem;
+    grid-auto-flow: row dense;
     align-items: end;
 }
 
@@ -2414,6 +2423,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 }
 
 .movement-pill {
+    min-width: 0;
     min-height: 42px;
     border-radius: 12px;
     border: 1px solid var(--border);
@@ -2421,6 +2431,9 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     color: var(--text-secondary);
     font-weight: 700;
     font-size: 0.92rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     cursor: pointer;
     transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
 }
@@ -2440,6 +2453,14 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 .expense-modal-form .form-group label {
     align-self: flex-start;
     font-weight: 600;
+    font-size: 0.84rem;
+}
+
+.expense-modal-form .form-group input,
+.expense-modal-form .form-group select {
+    min-height: 42px;
+    font-size: 0.96rem;
+    padding: 0.46rem 0.56rem;
 }
 
 .expense-modal-form .method-group #sourceSelect {
@@ -2453,16 +2474,69 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     overflow: hidden;
 }
 
+.expense-modal-form .currency-group #currencySelectForm {
+    min-height: 42px;
+    padding-right: 1.8rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.expense-modal-form .category-group #category {
+    min-height: 42px;
+}
+
 .expense-modal-form .form-actions {
     margin-top: 0.15rem;
+}
+
+.expense-modal-form .form-actions.expense-modal-actions {
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-top: 0.35rem;
+    padding-top: 0.55rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.35);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, var(--bg-primary) 46%);
+}
+
+.expense-modal-form .form-actions.expense-modal-actions .nav-button {
+    min-height: 44px;
+    font-weight: 700;
+}
+
+.modal-link-button {
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+    font-weight: 600;
+    padding: 0.2rem 0.35rem 0.1rem;
+    width: fit-content;
+    justify-self: center;
+    cursor: pointer;
+}
+
+.modal-link-button:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
+}
+
+.expense-modal-form > *,
+.card-payment-modal-form > * {
+    min-width: 0;
 }
 
 .expense-modal-form #sourceImpactHint {
     margin: 0;
     border-radius: 10px;
-    padding: 0.58rem 0.72rem;
+    padding: 0.48rem 0.62rem;
     border: 1px solid var(--border);
     background: var(--accent-soft);
+    font-size: 0.82rem;
+    line-height: 1.25;
 }
 
 .card-payment-module {
@@ -2689,6 +2763,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 }
 
 .payment-mode-pill {
+    min-width: 0;
     min-height: 42px;
     border-radius: 12px;
     border: 1px solid var(--border);
@@ -2696,6 +2771,9 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     color: var(--text-secondary);
     font-weight: 700;
     font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -3786,7 +3864,7 @@ html[data-settings-route='telegram'] body.settings-page #telegramSection[hidden]
     }
 
     .entry-modal-card {
-        width: min(410px, calc(100vw - 1rem));
+        width: min(410px, 100%);
         max-height: calc(100dvh - 1rem);
         padding: 0.82rem;
         border-radius: 14px;
@@ -3798,6 +3876,11 @@ html[data-settings-route='telegram'] body.settings-page #telegramSection[hidden]
 
     .entry-modal-title-wrap h3 {
         font-size: 1.12rem;
+    }
+
+    .entry-modal-title-wrap p {
+        font-size: 0.84rem;
+        margin-top: 0.2rem;
     }
 
     .movement-pill {
@@ -3820,6 +3903,17 @@ html[data-settings-route='telegram'] body.settings-page #telegramSection[hidden]
         font-size: 0.9rem;
         min-height: 40px;
         padding-right: 2rem;
+    }
+
+    .expense-modal-form .currency-group #currencySelectForm {
+        width: 100%;
+        font-size: 0.9rem;
+        min-height: 40px;
+        padding-right: 1.8rem;
+    }
+
+    .expense-modal-form .form-group {
+        gap: 0.35rem;
     }
 
     .expense-modal-form #sourceImpactHint {
@@ -3895,18 +3989,24 @@ html[data-settings-route='telegram'] body.settings-page #telegramSection[hidden]
         text-align: center;
     }
 
-    .expense-modal-form .form-actions,
-    .card-payment-modal-form .form-actions {
+    .expense-form.expense-modal-form .form-actions,
+    .expense-form.card-payment-modal-form .form-actions {
         grid-template-columns: 1fr;
     }
 
-    .card-payment-modal-form .form-actions .nav-button {
+    .expense-modal-form .form-actions.expense-modal-actions {
+        padding-top: 0.45rem;
+        margin-top: 0.25rem;
+    }
+
+    .expense-form.expense-modal-form .form-actions .nav-button,
+    .expense-form.card-payment-modal-form .form-actions .nav-button {
         width: 100%;
         min-width: 0;
     }
 
     .card-payment-modal-card {
-        width: min(410px, calc(100vw - 1rem));
+        width: min(410px, 100%);
     }
 
     .settings-detail-section .recurring-expense-form {
@@ -4290,6 +4390,21 @@ html[data-settings-route='telegram'] body.settings-page #telegramSection[hidden]
 }
 
 @media (max-width: 520px) {
+    .entry-modal-overlay {
+        padding: 0.4rem;
+    }
+
+    .entry-modal-card,
+    .card-payment-modal-card {
+        width: 100%;
+        max-height: calc(100dvh - 0.8rem);
+    }
+
+    .expense-modal-form,
+    .card-payment-modal-form {
+        grid-template-columns: 1fr;
+    }
+
     .settings-container.compact-pair {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }

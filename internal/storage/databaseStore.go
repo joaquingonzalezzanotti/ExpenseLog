@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -21,6 +22,10 @@ import (
 // databaseStore implements the Storage interface for PostgreSQL.
 type databaseStore struct {
 	db *sql.DB
+}
+
+func (s *databaseStore) HealthCheck(ctx context.Context) error {
+	return s.db.PingContext(ctx)
 }
 
 // SQL queries as constants for reusability and clarity.

@@ -24,6 +24,7 @@ func runServer(port int) {
 	}
 	defer storage.Close()
 	handler := api.NewHandler(storage)
+	observability := newObservabilityRegistry()
 
 	registerAPI := func(path string, h http.HandlerFunc) {
 		http.HandleFunc(path, h)
@@ -41,6 +42,7 @@ func runServer(port int) {
 	}
 	http.HandleFunc("/version", versionHandler)
 	http.HandleFunc("/api/version", versionHandler)
+	registerOperationalEndpoints(http.DefaultServeMux, version, observability, storage.HealthCheck)
 
 	// UI Handlers
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -202,8 +204,15 @@ func runServer(port int) {
 	registerAPI("/bot/expense", handler.RequireBotAuth(handler.CreateBotExpense))
 
 	server := &http.Server{
-		Addr:              fmt.Sprint(":", port),
-		Handler:           withSecurityHeaders(http.DefaultServeMux),
+		Addr: fmt.Sprint(":", port),
+		Handler: withRequestID(
+			withAccessLoggingAndMetrics(
+				observability,
+				withSecurityHeaders(
+					withRecovery(http.DefaultServeMux),
+				),
+			),
+		),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      30 * time.Second,

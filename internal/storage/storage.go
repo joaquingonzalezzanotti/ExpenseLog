@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -12,6 +13,7 @@ import (
 // Storage interface for all storage types
 type Storage interface {
 	Close() error
+	HealthCheck(ctx context.Context) error
 
 	// Users
 	CreateUser(email, passwordHash string) (User, error)

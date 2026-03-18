@@ -16,7 +16,21 @@ import (
 	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/storage"
 )
 
+const verificationEmailDispatchCooldown = 45 * time.Second
+
 func (h *Handler) issueEmailVerification(user storage.User, r *http.Request) error {
+	now := time.Now()
+	releaseDispatch, skip := reserveEmailDispatch(
+		emailDispatchKey("verification", user.ID),
+		verificationEmailDispatchCooldown,
+		now,
+	)
+	if skip {
+		return nil
+	}
+	success := false
+	defer releaseDispatch(success)
+
 	token, err := newVerificationToken()
 	if err != nil {
 		return err
@@ -24,8 +38,8 @@ func (h *Handler) issueEmailVerification(user storage.User, r *http.Request) err
 	verification := storage.EmailVerification{
 		UserID:    user.ID,
 		TokenHash: hashVerificationToken(token),
-		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().Add(verificationTokenTTL),
+		CreatedAt: now,
+		ExpiresAt: now.Add(verificationTokenTTL),
 	}
 	if err := h.storage.CreateEmailVerification(verification); err != nil {
 		return err
@@ -34,7 +48,11 @@ func (h *Handler) issueEmailVerification(user storage.User, r *http.Request) err
 	if err != nil {
 		return err
 	}
-	return sendVerificationEmail(user.Email, verifyURL)
+	if err := sendVerificationEmail(user.Email, verifyURL); err != nil {
+		return err
+	}
+	success = true
+	return nil
 }
 
 func newVerificationToken() (string, error) {

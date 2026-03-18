@@ -603,11 +603,20 @@ function setupAuthUI() {
 
     const registerForm = document.getElementById('authRegisterForm');
     if (registerForm) {
+        let registerPending = false;
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (registerPending) return;
+            registerPending = true;
             const email = document.getElementById('authRegisterEmail').value.trim();
             const password = document.getElementById('authRegisterPassword').value;
             const remember = !!document.getElementById('authRegisterRemember')?.checked;
+            const submitButton = registerForm.querySelector('button[type="submit"]');
+            const previousButtonLabel = submitButton ? submitButton.textContent : '';
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.textContent = 'Enviando...';
+            }
             try {
                 const response = await fetch('/auth/register', {
                     method: 'POST',
@@ -625,16 +634,31 @@ function setupAuthUI() {
             } catch (error) {
                 console.error('Register failed:', error);
                 showAuthOverlay('No se pudo registrar', 'error');
+            } finally {
+                registerPending = false;
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.textContent = previousButtonLabel || 'Crear cuenta';
+                }
             }
         });
     }
 
     const resetSendButton = document.getElementById('authSendResetCode');
     if (resetSendButton) {
+        let resetRequestPending = false;
         resetSendButton.addEventListener('click', async () => {
+            if (resetRequestPending) return;
+            resetRequestPending = true;
             const email = document.getElementById('authResetEmail')?.value.trim();
+            const previousButtonLabel = resetSendButton.textContent;
+            resetSendButton.disabled = true;
+            resetSendButton.textContent = 'Enviando...';
             if (!email) {
                 showAuthOverlay('Ingresa un email valido', 'error');
+                resetRequestPending = false;
+                resetSendButton.disabled = false;
+                resetSendButton.textContent = previousButtonLabel || 'Enviar codigo';
                 return;
             }
             try {
@@ -652,19 +676,37 @@ function setupAuthUI() {
             } catch (error) {
                 console.error('Reset request failed:', error);
                 showAuthOverlay('No se pudo enviar el codigo', 'error');
+            } finally {
+                resetRequestPending = false;
+                resetSendButton.disabled = false;
+                resetSendButton.textContent = previousButtonLabel || 'Enviar codigo';
             }
         });
     }
 
     const resetForm = document.getElementById('authResetForm');
     if (resetForm) {
+        let resetConfirmPending = false;
         resetForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (resetConfirmPending) return;
+            resetConfirmPending = true;
             const email = document.getElementById('authResetEmail')?.value.trim();
             const code = document.getElementById('authResetCode')?.value.trim();
             const password = document.getElementById('authResetPassword')?.value || '';
+            const submitButton = resetForm.querySelector('button[type="submit"]');
+            const previousButtonLabel = submitButton ? submitButton.textContent : '';
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.textContent = 'Enviando...';
+            }
             if (!email || !code || !password) {
                 showAuthOverlay('Completa todos los campos', 'error');
+                resetConfirmPending = false;
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.textContent = previousButtonLabel || 'Cambiar contraseña';
+                }
                 return;
             }
             try {
@@ -683,6 +725,12 @@ function setupAuthUI() {
             } catch (error) {
                 console.error('Reset confirm failed:', error);
                 showAuthOverlay('No se pudo actualizar la contraseña', 'error');
+            } finally {
+                resetConfirmPending = false;
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.textContent = previousButtonLabel || 'Cambiar contraseña';
+                }
             }
         });
     }

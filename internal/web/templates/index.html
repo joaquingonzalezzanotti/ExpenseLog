@@ -457,6 +457,8 @@
         let cardPayableByCurrency = {};
         let cardPaymentModalVisible = false;
         let cardPaymentMode = 'self';
+        let cardPaymentSubmitInFlight = false;
+        let expenseSubmitInFlight = false;
         const expenseForm = document.getElementById('expenseForm');
         const expenseSubmitButton = expenseForm ? expenseForm.querySelector('button[type="submit"]') : null;
         const movementTypeGroup = movementTypeSelect ? movementTypeSelect.closest('.form-group') : null;
@@ -1129,6 +1131,7 @@
         }
 
         async function submitCardPayment(paidBy = cardPaymentMode) {
+            if (cardPaymentSubmitInFlight) return;
             if (!cardPaymentAmountInput || !cardPaymentCurrencySelect) return;
             const currency = (cardPaymentCurrencySelect.value || baseCurrency).toLowerCase();
             const pending = Number(cardPayableByCurrency[currency] || 0);
@@ -1160,6 +1163,7 @@
                 date: new Date().toISOString(),
             };
 
+            cardPaymentSubmitInFlight = true;
             setCardPaymentPendingState(true);
             updateCardPaymentMessage('Guardando pago de tarjeta...');
             try {
@@ -1187,6 +1191,7 @@
                 updateCardPaymentMessage(error.message || 'No se pudo guardar el pago.', 'error');
             } finally {
                 setCardPaymentPendingState(false);
+                cardPaymentSubmitInFlight = false;
             }
         }
 
@@ -1836,6 +1841,7 @@
 
         document.getElementById('expenseForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (expenseSubmitInFlight) return;
             const movementType = movementTypeSelect ? movementTypeSelect.value : 'expense';
             let amount = parseFloat(document.getElementById('amount').value);
             if (movementType === 'expense') {
@@ -1848,6 +1854,11 @@
             if (sourceValue === 'TARJETA' && !document.getElementById('cardInput').value.trim()) {
                 document.getElementById('cardError').textContent = 'Especifica la tarjeta';
                 return;
+            }
+            expenseSubmitInFlight = true;
+            if (expenseSubmitButton) {
+                expenseSubmitButton.disabled = true;
+                expenseSubmitButton.textContent = 'Guardando...';
             }
             const formData = {
                 name: document.getElementById('name').value,
@@ -1890,6 +1901,12 @@
             } catch (error) {
                 console.error('Error adding expense:', error);
                 showToast('No se pudo agregar el gasto', 'error');
+            } finally {
+                expenseSubmitInFlight = false;
+                if (expenseSubmitButton) {
+                    expenseSubmitButton.disabled = false;
+                    syncExpenseSubmitButtonLabel();
+                }
             }
         });
 

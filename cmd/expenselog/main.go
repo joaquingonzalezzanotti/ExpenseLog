@@ -88,6 +88,10 @@ func runServer(port int) {
 			http.Redirect(w, r, "/app/wake", http.StatusPermanentRedirect)
 			return
 		}
+		if isAppStaticPath(r.URL.Path) {
+			handler.ServeStaticFile(w, r)
+			return
+		}
 		http.NotFound(w, r)
 	})
 	http.HandleFunc("/app/table", handler.ServeTableView)
@@ -236,6 +240,33 @@ func isHTTPSRequest(r *http.Request) bool {
 	}
 	parts := strings.Split(proto, ",")
 	return strings.EqualFold(strings.TrimSpace(parts[0]), "https")
+}
+
+func isAppStaticPath(path string) bool {
+	if strings.HasPrefix(path, "/app/pwa/") || strings.HasPrefix(path, "/app/webfonts/") {
+		return true
+	}
+	ext := strings.ToLower(strings.TrimSpace(strings.TrimPrefix(path, "/app")))
+	if ext == "" {
+		return false
+	}
+	switch {
+	case strings.HasSuffix(ext, ".js"),
+		strings.HasSuffix(ext, ".css"),
+		strings.HasSuffix(ext, ".png"),
+		strings.HasSuffix(ext, ".ico"),
+		strings.HasSuffix(ext, ".json"),
+		strings.HasSuffix(ext, ".xml"),
+		strings.HasSuffix(ext, ".txt"),
+		strings.HasSuffix(ext, ".woff"),
+		strings.HasSuffix(ext, ".woff2"),
+		strings.HasSuffix(ext, ".ttf"),
+		strings.HasSuffix(ext, ".eot"),
+		strings.HasSuffix(ext, ".svg"):
+		return true
+	default:
+		return false
+	}
 }
 
 func main() {

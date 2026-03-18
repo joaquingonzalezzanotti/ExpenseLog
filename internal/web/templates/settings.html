@@ -613,6 +613,9 @@
         let recurringExpenseToDelete = null;
         let recurringExpenseToEdit = null;
         let reconciliationSubmitInFlight = false;
+        let recurringCreateInFlight = false;
+        let recurringDeleteInFlight = false;
+        let recurringUpdateInFlight = false;
         let pendingConfirmResolver = null;
         let pendingSuccessResolver = null;
         let telegramCodeCountdownTimer = null;
@@ -1674,8 +1677,16 @@ async function saveCategoriesList(nextCategories) {
 
         async function confirmRecurringDelete(removeAll) {
             if (!recurringExpenseToDelete) return;
+            if (recurringDeleteInFlight) return;
+            recurringDeleteInFlight = true;
+            const idempotencyKey = (typeof window.expenseLogIdempotencyKey === 'function')
+                ? window.expenseLogIdempotencyKey(removeAll ? 'recurring-delete-all' : 'recurring-delete-future')
+                : `recurring-delete-${Date.now()}-${Math.random().toString(16).slice(2)}`;
             try {
-                const response = await fetch(`/recurring-expense/delete?id=${recurringExpenseToDelete}&removeAll=${removeAll}`, { method: 'DELETE' });
+                const response = await fetch(`/recurring-expense/delete?id=${recurringExpenseToDelete}&removeAll=${removeAll}`, {
+                    method: 'DELETE',
+                    headers: { 'Idempotency-Key': idempotencyKey },
+                });
                 if (!response.ok) throw new Error('No se pudo eliminar la transaccion recurrente');
                 showMessage('recurringExpenseMessage', 'Transaccion recurrente eliminada con exito', true);
                 fetchAndRenderRecurringExpenses();
@@ -1683,6 +1694,7 @@ async function saveCategoriesList(nextCategories) {
                 console.error('Error al eliminar la transaccion recurrente:', error);
                 showMessage('recurringExpenseMessage', 'No se pudo eliminar la transaccion recurrente', false);
             } finally {
+                recurringDeleteInFlight = false;
                 closeRecurringDeleteModal();
             }
         }
@@ -1710,6 +1722,8 @@ async function saveCategoriesList(nextCategories) {
 
         async function confirmRecurringUpdate(updateAll) {
             if (!recurringExpenseToEdit) return;
+            if (recurringUpdateInFlight) return;
+            recurringUpdateInFlight = true;
             const flow = document.getElementById('editRecurringFlow').value || 'expense';
             let amount = parseFloat(document.getElementById('editRecurringAmount').value);
             if (flow === 'expense') {
@@ -1729,11 +1743,17 @@ async function saveCategoriesList(nextCategories) {
                 occurrences: parseInt(document.getElementById('editRecurringOccurrences').value, 10),
                 flow: flow
             };
-            
+            const idempotencyKey = (typeof window.expenseLogIdempotencyKey === 'function')
+                ? window.expenseLogIdempotencyKey(updateAll ? 'recurring-update-all' : 'recurring-update-future')
+                : `recurring-update-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+             
             try {
                 const response = await fetch(`/recurring-expense/edit?id=${recurringExpenseToEdit.id}&updateAll=${updateAll}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Idempotency-Key': idempotencyKey,
+                    },
                     body: JSON.stringify(updatedData)
                 });
                 if (!response.ok) throw new Error('No se pudo actualizar la transaccion recurrente');
@@ -1743,6 +1763,7 @@ async function saveCategoriesList(nextCategories) {
                 console.error('Error al actualizar la transaccion recurrente:', error);
                 showMessage('recurringExpenseMessage', 'No se pudo actualizar la transaccion recurrente', false);
             } finally {
+                recurringUpdateInFlight = false;
                 closeRecurringEditModal();
             }
         }
@@ -2385,6 +2406,7 @@ async function saveCategoriesList(nextCategories) {
         });
         document.getElementById('recurringExpenseForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (recurringCreateInFlight) return;
             const flow = document.getElementById('recurringFlow').value || 'expense';
             let amount = parseFloat(document.getElementById('recurringAmount').value);
             if (flow === 'expense') {
@@ -2392,6 +2414,17 @@ async function saveCategoriesList(nextCategories) {
             } else {
                 amount = Math.abs(amount);
             }
+            recurringCreateInFlight = true;
+            const recurringForm = document.getElementById('recurringExpenseForm');
+            const recurringSubmitButton = recurringForm ? recurringForm.querySelector('button[type="submit"]') : null;
+            const previousSubmitLabel = recurringSubmitButton ? recurringSubmitButton.textContent : '';
+            if (recurringSubmitButton) {
+                recurringSubmitButton.disabled = true;
+                recurringSubmitButton.textContent = 'Guardando...';
+            }
+            const idempotencyKey = (typeof window.expenseLogIdempotencyKey === 'function')
+                ? window.expenseLogIdempotencyKey('recurring-add')
+                : `recurring-add-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
             const formData = {
                 name: document.getElementById('recurringName').value,
@@ -2407,7 +2440,10 @@ async function saveCategoriesList(nextCategories) {
             try {
                 const response = await fetch('/recurring-expense', {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Idempotency-Key': idempotencyKey,
+                    },
                     body: JSON.stringify(formData)
                 });
                 if (response.ok) {
@@ -2424,6 +2460,12 @@ async function saveCategoriesList(nextCategories) {
             } catch (error) {
                 console.error('Error adding recurring expense:', error);
                 showMessage('recurringExpenseMessage', 'Error: No se pudo agregar la transaccion recurrente', false);
+            } finally {
+                recurringCreateInFlight = false;
+                if (recurringSubmitButton) {
+                    recurringSubmitButton.disabled = false;
+                    recurringSubmitButton.textContent = previousSubmitLabel || 'Agregar transaccion recurrente';
+                }
             }
         });
 

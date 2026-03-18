@@ -1162,6 +1162,9 @@
                 paidBy,
                 date: new Date().toISOString(),
             };
+            const idempotencyKey = (typeof window.expenseLogIdempotencyKey === 'function')
+                ? window.expenseLogIdempotencyKey(paidBy === 'third_party' ? 'card-payment-third' : 'card-payment-self')
+                : `card-payment-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
             cardPaymentSubmitInFlight = true;
             setCardPaymentPendingState(true);
@@ -1169,7 +1172,10 @@
             try {
                 const response = await fetch('/api/card/payment', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Idempotency-Key': idempotencyKey,
+                    },
                     body: JSON.stringify(payload),
                 });
                 if (!response.ok) {
@@ -1856,6 +1862,9 @@
                 return;
             }
             expenseSubmitInFlight = true;
+            const idempotencyKey = (typeof window.expenseLogIdempotencyKey === 'function')
+                ? window.expenseLogIdempotencyKey('expense-add')
+                : `expense-add-${Date.now()}-${Math.random().toString(16).slice(2)}`;
             if (expenseSubmitButton) {
                 expenseSubmitButton.disabled = true;
                 expenseSubmitButton.textContent = 'Guardando...';
@@ -1874,7 +1883,10 @@
             try {
                 const response = await fetch('/expense', {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Idempotency-Key': idempotencyKey,
+                    },
                     body: JSON.stringify(formData)
                 });
                 const messageDiv = document.getElementById('formMessage');

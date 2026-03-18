@@ -376,6 +376,18 @@ func (h *Handler) AddExpense(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	releaseIdempotency, duplicate, idempoErr := beginMutationIdempotency(r, "expense:add:"+userID)
+	if idempoErr != nil {
+		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid Idempotency-Key"})
+		return
+	}
+	if duplicate {
+		writeJSON(w, http.StatusConflict, ErrorResponse{Error: "Duplicate request"})
+		return
+	}
+	idempotencySuccess := false
+	defer releaseIdempotency(idempotencySuccess)
+
 	var expense storage.Expense
 	if err := json.NewDecoder(r.Body).Decode(&expense); err != nil {
 		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid request body"})
@@ -408,6 +420,7 @@ func (h *Handler) AddExpense(w http.ResponseWriter, r *http.Request) {
 		log.Printf("API ERROR: Failed to save expense: %v\n", err)
 		return
 	}
+	idempotencySuccess = true
 	writeJSON(w, http.StatusOK, expense)
 }
 
@@ -443,6 +456,18 @@ func (h *Handler) EditExpense(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "ID parameter is required"})
 		return
 	}
+	releaseIdempotency, duplicate, idempoErr := beginMutationIdempotency(r, "expense:edit:"+userID+":"+id)
+	if idempoErr != nil {
+		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid Idempotency-Key"})
+		return
+	}
+	if duplicate {
+		writeJSON(w, http.StatusConflict, ErrorResponse{Error: "Duplicate request"})
+		return
+	}
+	idempotencySuccess := false
+	defer releaseIdempotency(idempotencySuccess)
+
 	var expense storage.Expense
 	if err := json.NewDecoder(r.Body).Decode(&expense); err != nil {
 		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid request body"})
@@ -485,6 +510,7 @@ func (h *Handler) EditExpense(w http.ResponseWriter, r *http.Request) {
 		log.Printf("API ERROR: Failed to edit expense: %v\n", err)
 		return
 	}
+	idempotencySuccess = true
 	writeJSON(w, http.StatusOK, expense)
 }
 
@@ -502,6 +528,18 @@ func (h *Handler) DeleteExpense(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "ID parameter is required"})
 		return
 	}
+	releaseIdempotency, duplicate, idempoErr := beginMutationIdempotency(r, "expense:delete:"+userID+":"+id)
+	if idempoErr != nil {
+		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid Idempotency-Key"})
+		return
+	}
+	if duplicate {
+		writeJSON(w, http.StatusConflict, ErrorResponse{Error: "Duplicate request"})
+		return
+	}
+	idempotencySuccess := false
+	defer releaseIdempotency(idempotencySuccess)
+
 	if err := h.storage.RemoveExpense(userID, id); err != nil {
 		if err == storage.ErrSystemLockedExpense {
 			writeJSON(w, http.StatusConflict, ErrorResponse{Error: "Este movimiento es de sistema. Reverti la conciliacion desde Ajustes."})
@@ -511,6 +549,7 @@ func (h *Handler) DeleteExpense(w http.ResponseWriter, r *http.Request) {
 		log.Printf("API ERROR: Failed to delete expense: %v\n", err)
 		return
 	}
+	idempotencySuccess = true
 	writeJSON(w, http.StatusOK, map[string]string{"status": "success"})
 }
 
@@ -523,6 +562,18 @@ func (h *Handler) DeleteMultipleExpenses(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
+	releaseIdempotency, duplicate, idempoErr := beginMutationIdempotency(r, "expense:delete_multiple:"+userID)
+	if idempoErr != nil {
+		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid Idempotency-Key"})
+		return
+	}
+	if duplicate {
+		writeJSON(w, http.StatusConflict, ErrorResponse{Error: "Duplicate request"})
+		return
+	}
+	idempotencySuccess := false
+	defer releaseIdempotency(idempotencySuccess)
+
 	var payload struct {
 		IDs []string `json:"ids"`
 	}
@@ -539,6 +590,7 @@ func (h *Handler) DeleteMultipleExpenses(w http.ResponseWriter, r *http.Request)
 		log.Printf("API ERROR: Failed to delete multiple expenses: %v\n", err)
 		return
 	}
+	idempotencySuccess = true
 	writeJSON(w, http.StatusOK, map[string]string{"status": "success"})
 }
 
@@ -555,6 +607,18 @@ func (h *Handler) AddRecurringExpense(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	releaseIdempotency, duplicate, idempoErr := beginMutationIdempotency(r, "recurring:add:"+userID)
+	if idempoErr != nil {
+		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid Idempotency-Key"})
+		return
+	}
+	if duplicate {
+		writeJSON(w, http.StatusConflict, ErrorResponse{Error: "Duplicate request"})
+		return
+	}
+	idempotencySuccess := false
+	defer releaseIdempotency(idempotencySuccess)
+
 	var re storage.RecurringExpense
 	if err := json.NewDecoder(r.Body).Decode(&re); err != nil {
 		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid request body"})
@@ -576,6 +640,7 @@ func (h *Handler) AddRecurringExpense(w http.ResponseWriter, r *http.Request) {
 		log.Printf("API ERROR: Failed to add recurring expense: %v\n", err)
 		return
 	}
+	idempotencySuccess = true
 	writeJSON(w, http.StatusCreated, re)
 }
 
@@ -612,6 +677,17 @@ func (h *Handler) UpdateRecurringExpense(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	updateAll, _ := strconv.ParseBool(r.URL.Query().Get("updateAll"))
+	releaseIdempotency, duplicate, idempoErr := beginMutationIdempotency(r, "recurring:update:"+userID+":"+id+":"+strconv.FormatBool(updateAll))
+	if idempoErr != nil {
+		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid Idempotency-Key"})
+		return
+	}
+	if duplicate {
+		writeJSON(w, http.StatusConflict, ErrorResponse{Error: "Duplicate request"})
+		return
+	}
+	idempotencySuccess := false
+	defer releaseIdempotency(idempotencySuccess)
 
 	var re storage.RecurringExpense
 	if err := json.NewDecoder(r.Body).Decode(&re); err != nil {
@@ -634,6 +710,7 @@ func (h *Handler) UpdateRecurringExpense(w http.ResponseWriter, r *http.Request)
 		log.Printf("API ERROR: Failed to update recurring expense: %v\n", err)
 		return
 	}
+	idempotencySuccess = true
 	writeJSON(w, http.StatusOK, map[string]string{"status": "success"})
 }
 
@@ -652,12 +729,24 @@ func (h *Handler) DeleteRecurringExpense(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	removeAll, _ := strconv.ParseBool(r.URL.Query().Get("removeAll"))
+	releaseIdempotency, duplicate, idempoErr := beginMutationIdempotency(r, "recurring:delete:"+userID+":"+id+":"+strconv.FormatBool(removeAll))
+	if idempoErr != nil {
+		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid Idempotency-Key"})
+		return
+	}
+	if duplicate {
+		writeJSON(w, http.StatusConflict, ErrorResponse{Error: "Duplicate request"})
+		return
+	}
+	idempotencySuccess := false
+	defer releaseIdempotency(idempotencySuccess)
 
 	if err := h.storage.RemoveRecurringExpense(userID, id, removeAll); err != nil {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to delete recurring expense"})
 		log.Printf("API ERROR: Failed to delete recurring expense: %v\n", err)
 		return
 	}
+	idempotencySuccess = true
 	writeJSON(w, http.StatusOK, map[string]string{"status": "success"})
 }
 

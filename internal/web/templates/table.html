@@ -359,6 +359,8 @@
         const sourceImpactHint = document.getElementById('sourceImpactHint');
         const expenseForm = document.getElementById('expenseForm');
         const expenseSubmitButton = expenseForm ? expenseForm.querySelector('button[type="submit"]') : null;
+        let tableExpenseSubmitInFlight = false;
+        let tableDeleteInFlight = false;
         let categories = [];
         let searchQuery = '';
         let filterCurrency = 'all';
@@ -520,6 +522,7 @@
 
         function syncTableSubmitButtonLabel() {
             if (!expenseSubmitButton || !expenseForm) return;
+            if (tableExpenseSubmitInFlight) return;
             if (expenseForm.dataset.editId) return;
             const movementType = movementTypeSelect ? movementTypeSelect.value : 'expense';
             expenseSubmitButton.textContent = getTableCreateSubmitLabel(movementType);
@@ -1579,9 +1582,15 @@
 
         async function confirmDelete() {
             if (!expenseToDelete) return;
+            if (tableDeleteInFlight) return;
+            tableDeleteInFlight = true;
+            const idempotencyKey = (typeof window.expenseLogIdempotencyKey === 'function')
+                ? window.expenseLogIdempotencyKey('expense-delete')
+                : `expense-delete-${Date.now()}-${Math.random().toString(16).slice(2)}`;
             try {
                 const response = await fetch(`/expense/delete?id=${expenseToDelete}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: { 'Idempotency-Key': idempotencyKey },
                 });
                 if (!response.ok) {
                     throw new Error('No se pudo eliminar el gasto');
@@ -1591,6 +1600,8 @@
             } catch (error) {
                 console.error('Error eliminando gasto:', error);
                 alert('No se pudo eliminar el gasto. Please try again.');
+            } finally {
+                tableDeleteInFlight = false;
             }
         }
 
@@ -1619,6 +1630,7 @@
 
         document.getElementById('expenseForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (tableExpenseSubmitInFlight) return;
             const form = e.target;
             const editId = form.dataset.editId;
             const movementType = movementTypeSelect ? movementTypeSelect.value : 'expense';
@@ -1635,6 +1647,15 @@
                 document.getElementById('cardError').textContent = 'Especifica la tarjeta';
                 return;
             }
+            tableExpenseSubmitInFlight = true;
+            const previousSubmitLabel = expenseSubmitButton ? expenseSubmitButton.textContent : '';
+            if (expenseSubmitButton) {
+                expenseSubmitButton.disabled = true;
+                expenseSubmitButton.textContent = 'Guardando...';
+            }
+            const idempotencyKey = (typeof window.expenseLogIdempotencyKey === 'function')
+                ? window.expenseLogIdempotencyKey(editId ? 'expense-edit' : 'expense-add')
+                : `expense-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
             const formData = {
                 name: document.getElementById('name').value,
@@ -1652,7 +1673,10 @@
                 const url = editId ? `/expense/edit?id=${editId}` : '/expense';
                 const response = await fetch(url, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Idempotency-Key': idempotencyKey,
+                    },
                     body: JSON.stringify(formData)
                 });
                 const messageDiv = document.getElementById('formMessage');
@@ -1681,6 +1705,13 @@
             } catch (error) {
                 console.error('Error saving expense:', error);
                 showToast('No se pudo guardar el gasto', 'error');
+            } finally {
+                tableExpenseSubmitInFlight = false;
+                if (expenseSubmitButton) {
+                    expenseSubmitButton.disabled = false;
+                    expenseSubmitButton.textContent = previousSubmitLabel || getTableCreateSubmitLabel(movementTypeSelect ? movementTypeSelect.value : 'expense');
+                    syncTableSubmitButtonLabel();
+                }
             }
         });
         cancelExpenseFormBtn?.addEventListener('click', () => {

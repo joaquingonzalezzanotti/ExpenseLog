@@ -59,6 +59,15 @@ if (originalFetch) {
     };
 }
 
+function buildIdempotencyKey(prefix = 'req') {
+    const normalized = String(prefix || 'req').trim().toLowerCase().replace(/[^a-z0-9_.-]/g, '-').slice(0, 32) || 'req';
+    const now = Date.now().toString(36);
+    const random = Math.random().toString(36).slice(2, 12);
+    return `${normalized}-${now}-${random}`;
+}
+
+window.expenseLogIdempotencyKey = buildIdempotencyKey;
+
 function setAuthPending(pending) {
     if (!document.body || !document.getElementById('authOverlay')) return;
     document.body.classList.toggle('auth-pending', !!pending);

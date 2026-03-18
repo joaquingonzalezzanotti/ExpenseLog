@@ -88,6 +88,17 @@ func (h *Handler) AddCardPayment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	releaseIdempotency, duplicate, idempoErr := beginMutationIdempotency(r, "card_payment:add:"+userID)
+	if idempoErr != nil {
+		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid Idempotency-Key"})
+		return
+	}
+	if duplicate {
+		writeJSON(w, http.StatusConflict, ErrorResponse{Error: "Duplicate request"})
+		return
+	}
+	idempotencySuccess := false
+	defer releaseIdempotency(idempotencySuccess)
 
 	var req cardPaymentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -129,5 +140,6 @@ func (h *Handler) AddCardPayment(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to save card payment"})
 		return
 	}
+	idempotencySuccess = true
 	writeJSON(w, http.StatusCreated, expense)
 }

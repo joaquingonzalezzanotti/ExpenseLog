@@ -575,6 +575,7 @@
     <script src="/app/functions.js"></script>
     <script>
         const SYSTEM_RECONCILIATION_CATEGORY = '_Conciliacion';
+        const SYSTEM_RECONCILIATION_DISPLAY_NAME = 'Conciliacion';
 
         function ensureSystemCategories(nextCategories) {
             const list = Array.isArray(nextCategories) ? [...nextCategories] : [];
@@ -585,6 +586,15 @@
 
         function isProtectedSystemCategory(category) {
             return (category || '').toLowerCase() === SYSTEM_RECONCILIATION_CATEGORY.toLowerCase();
+        }
+
+        function formatSettingsCategoryLabel(category) {
+            const raw = String(category || '').trim();
+            if (!raw) return '-';
+            if (raw.toLowerCase() === SYSTEM_RECONCILIATION_CATEGORY.toLowerCase()) {
+                return SYSTEM_RECONCILIATION_DISPLAY_NAME;
+            }
+            return raw;
         }
 
         let categories = ensureSystemCategories([]);
@@ -1223,7 +1233,7 @@ function renderCategories() {
         item.dataset.index = index;
         item.innerHTML = `
             <div class="category-handle-area">
-                <span class="category-name">${category}${isSystem ? ' <small class="category-system-label">(sistema)</small>' : ''}</span>
+                <span class="category-name">${formatSettingsCategoryLabel(category)}${isSystem ? ' <small class="category-system-label">(sistema)</small>' : ''}</span>
             </div>
             <div class="category-actions">
                 ${isSystem ? '<span class="category-system-lock" title="Categoría protegida">🔒</span>' : `
@@ -1245,7 +1255,7 @@ function sanitizeCategoryName(raw) {
 }
 
 function renderCategorySelects() {
-    const options = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+    const options = categories.map(c => `<option value="${c}">${formatSettingsCategoryLabel(c)}</option>`).join('');
     document.getElementById('recurringCategory').innerHTML = options;
     document.getElementById('editRecurringCategory').innerHTML = options;
 }
@@ -1353,7 +1363,7 @@ async function removeCategory(index) {
     const removed = categories[index];
     if (!removed) return;
     if (isProtectedSystemCategory(removed)) {
-        showMessage('categoriesMessage', 'La categoria _Conciliacion es de sistema y no se puede eliminar.', false);
+        showMessage('categoriesMessage', `La categoria ${SYSTEM_RECONCILIATION_DISPLAY_NAME} es de sistema y no se puede eliminar.`, false);
         return;
     }
     if (!confirm(`Eliminar la categoria "${removed}"?`)) return;
@@ -1369,7 +1379,7 @@ function startEditCategory(index) {
     if (!item) return;
     const current = categories[index] || '';
     if (isProtectedSystemCategory(current)) {
-        showMessage('categoriesMessage', 'La categoria _Conciliacion es de sistema y no se puede editar.', false);
+        showMessage('categoriesMessage', `La categoria ${SYSTEM_RECONCILIATION_DISPLAY_NAME} es de sistema y no se puede editar.`, false);
         return;
     }
     item.innerHTML = `
@@ -1407,7 +1417,7 @@ async function saveEditCategory(index, value) {
         return;
     }
     if (isProtectedSystemCategory(categories[index])) {
-        showMessage('categoriesMessage', 'La categoria _Conciliacion es de sistema y no se puede editar.', false);
+        showMessage('categoriesMessage', `La categoria ${SYSTEM_RECONCILIATION_DISPLAY_NAME} es de sistema y no se puede editar.`, false);
         return;
     }
     const updated = await renameCategoryOnServer(categories[index], name);

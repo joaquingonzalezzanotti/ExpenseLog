@@ -34,6 +34,48 @@ func TestNormalizeWalletAmount(t *testing.T) {
 	}
 }
 
+func TestParseWalletAmountString(t *testing.T) {
+	cases := []struct {
+		in   string
+		want float64
+		ok   bool
+	}{
+		{in: "$ 20,00", want: 20, ok: true},
+		{in: "ARS 1.234,56", want: 1234.56, ok: true},
+		{in: "1,234.56", want: 1234.56, ok: true},
+		{in: "15.5", want: 15.5, ok: true},
+		{in: "", want: 0, ok: false},
+	}
+	for _, tc := range cases {
+		got, ok := parseWalletAmountString(tc.in)
+		if ok != tc.ok {
+			t.Fatalf("parseWalletAmountString(%q) ok=%v, want %v", tc.in, ok, tc.ok)
+		}
+		if tc.ok && got != tc.want {
+			t.Fatalf("parseWalletAmountString(%q)=%v, want %v", tc.in, got, tc.want)
+		}
+	}
+}
+
+func TestMergeWalletPayloadFromRaw(t *testing.T) {
+	payload := appleWalletIngestRequest{}
+	raw := `{
+		"merchantRaw":"Merpago*pachigonzalez",
+		"shortcutInput":{"amount":"$ 20,00","paidAt":"2026-03-18T21:21:00-03:00"}
+	}`
+	mergeWalletPayloadFromRaw(&payload, raw)
+
+	if payload.Amount != 20 {
+		t.Fatalf("expected amount 20, got %.2f", payload.Amount)
+	}
+	if payload.MerchantRaw != "Merpago pachigonzalez" {
+		t.Fatalf("expected merchantRaw populated, got %q", payload.MerchantRaw)
+	}
+	if payload.PaidAt.IsZero() {
+		t.Fatalf("expected paidAt to be parsed")
+	}
+}
+
 func newAPIStoreForTest(t *testing.T) storage.Storage {
 	t.Helper()
 	uri := os.Getenv("TEST_DATABASE_URL")

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"math"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -83,6 +84,268 @@ func normalizeWalletAmount(raw float64) float64 {
 		return 0
 	}
 	return math.Round(raw*100) / 100
+}
+
+func lookupAnyByPath(root map[string]any, path ...string) (any, bool) {
+	var current any = root
+	for _, segment := range path {
+		m, ok := current.(map[string]any)
+		if !ok {
+			return nil, false
+		}
+		var next any
+		found := false
+		for key, value := range m {
+			if strings.EqualFold(strings.TrimSpace(key), strings.TrimSpace(segment)) {
+				next = value
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, false
+		}
+		current = next
+	}
+	return current, true
+}
+
+func parseWalletAmountString(raw string) (float64, bool) {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return 0, false
+	}
+	filtered := strings.Map(func(r rune) rune {
+		switch {
+		case r >= '0' && r <= '9':
+			return r
+		case r == '.' || r == ',' || r == '-':
+			return r
+		default:
+			return -1
+		}
+	}, value)
+	if filtered == "" || filtered == "-" {
+		return 0, false
+	}
+	lastComma := strings.LastIndex(filtered, ",")
+	lastDot := strings.LastIndex(filtered, ".")
+	switch {
+	case lastComma >= 0 && lastDot >= 0:
+		if lastComma > lastDot {
+			filtered = strings.ReplaceAll(filtered, ".", "")
+			filtered = strings.ReplaceAll(filtered, ",", ".")
+		} else {
+			filtered = strings.ReplaceAll(filtered, ",", "")
+		}
+	case lastComma >= 0:
+		filtered = strings.ReplaceAll(filtered, ",", ".")
+	}
+	parsed, err := strconv.ParseFloat(filtered, 64)
+	if err != nil || math.IsNaN(parsed) || math.IsInf(parsed, 0) {
+		return 0, false
+	}
+	return normalizeWalletAmount(parsed), true
+}
+
+func parseWalletAmountValue(raw any) (float64, bool) {
+	switch value := raw.(type) {
+	case float64:
+		return normalizeWalletAmount(value), true
+	case float32:
+		return normalizeWalletAmount(float64(value)), true
+	case int:
+		return normalizeWalletAmount(float64(value)), true
+	case int32:
+		return normalizeWalletAmount(float64(value)), true
+	case int64:
+		return normalizeWalletAmount(float64(value)), true
+	case json.Number:
+		parsed, err := value.Float64()
+		if err != nil {
+			return 0, false
+		}
+		return normalizeWalletAmount(parsed), true
+	case string:
+		return parseWalletAmountString(value)
+	default:
+		return 0, false
+	}
+}
+
+func parseWalletTimeValue(raw any) (time.Time, bool) {
+	switch value := raw.(type) {
+	case string:
+		candidate := strings.TrimSpace(value)
+		if candidate == "" {
+			return time.Time{}, false
+		}
+		layouts := []string{
+			time.RFC3339Nano,
+			time.RFC3339,
+			"2006-01-02 15:04:05 -0700",
+			"2006-01-02 15:04:05",
+			"2006-01-02 15:04",
+		}
+		for _, layout := range layouts {
+			parsed, err := time.Parse(layout, candidate)
+			if err == nil {
+				return parsed, true
+			}
+		}
+		return time.Time{}, false
+	case float64:
+		if value > 1e12 {
+			return time.UnixMilli(int64(value)), true
+		}
+		return time.Unix(int64(value), 0), true
+	case int64:
+		if value > 1e12 {
+			return time.UnixMilli(value), true
+		}
+		return time.Unix(value, 0), true
+	case int:
+		v := int64(value)
+		if v > 1e12 {
+			return time.UnixMilli(v), true
+		}
+		return time.Unix(v, 0), true
+	default:
+		return time.Time{}, false
+	}
+}
+
+func mergeWalletPayloadFromRaw(payload *appleWalletIngestRequest, rawPayload string) {
+	if payload == nil || strings.TrimSpace(rawPayload) == "" {
+		return
+	}
+	var root map[string]any
+	if err := json.Unmarshal([]byte(rawPayload), &root); err != nil {
+		return
+	}
+	amountPaths := [][]string{
+		{"amount"},
+		{"value"},
+		{"monto"},
+		{"importe"},
+		{"shortcutInput", "amount"},
+		{"shortcutInput", "monto"},
+		{"rawPayload", "amount"},
+		{"rawPayload", "shortcutInput", "amount"},
+		{"rawPayload", "shortcutInput", "monto"},
+	}
+	if payload.Amount <= 0 {
+		for _, path := range amountPaths {
+			rawValue, ok := lookupAnyByPath(root, path...)
+			if !ok {
+				continue
+			}
+			parsed, ok := parseWalletAmountValue(rawValue)
+			if ok && parsed > 0 {
+				payload.Amount = parsed
+				break
+			}
+		}
+	}
+	stringTargets := []struct {
+		dest *string
+		keys [][]string
+	}{
+		{
+			dest: &payload.Merchant,
+			keys: [][]string{
+				{"merchant"},
+				{"comercio"},
+				{"shortcutInput", "merchant"},
+				{"rawPayload", "merchant"},
+				{"rawPayload", "shortcutInput", "merchant"},
+			},
+		},
+		{
+			dest: &payload.MerchantRaw,
+			keys: [][]string{
+				{"merchantRaw"},
+				{"merchant_raw"},
+				{"description"},
+				{"shortcutInput", "merchantRaw"},
+				{"rawPayload", "merchantRaw"},
+				{"rawPayload", "shortcutInput", "merchantRaw"},
+				{"rawPayload", "shortcutInput", "description"},
+			},
+		},
+		{
+			dest: &payload.CardLabel,
+			keys: [][]string{
+				{"cardLabel"},
+				{"card"},
+				{"shortcutInput", "cardLabel"},
+				{"rawPayload", "cardLabel"},
+				{"rawPayload", "shortcutInput", "cardLabel"},
+			},
+		},
+		{
+			dest: &payload.PaymentMethod,
+			keys: [][]string{
+				{"paymentMethod"},
+				{"shortcutInput", "paymentMethod"},
+				{"rawPayload", "paymentMethod"},
+				{"rawPayload", "shortcutInput", "paymentMethod"},
+			},
+		},
+		{
+			dest: &payload.Source,
+			keys: [][]string{
+				{"source"},
+				{"shortcutInput", "source"},
+				{"rawPayload", "source"},
+				{"rawPayload", "shortcutInput", "source"},
+			},
+		},
+	}
+	for _, target := range stringTargets {
+		if strings.TrimSpace(*target.dest) != "" {
+			continue
+		}
+		for _, path := range target.keys {
+			rawValue, ok := lookupAnyByPath(root, path...)
+			if !ok {
+				continue
+			}
+			rawString, ok := rawValue.(string)
+			if !ok {
+				continue
+			}
+			candidate := strings.TrimSpace(storage.SanitizeString(rawString))
+			if candidate == "" {
+				continue
+			}
+			*target.dest = candidate
+			break
+		}
+	}
+	if payload.PaidAt.IsZero() {
+		timePaths := [][]string{
+			{"paidAt"},
+			{"paid_at"},
+			{"date"},
+			{"shortcutInput", "paidAt"},
+			{"shortcutInput", "date"},
+			{"rawPayload", "paidAt"},
+			{"rawPayload", "shortcutInput", "paidAt"},
+			{"rawPayload", "shortcutInput", "date"},
+		}
+		for _, path := range timePaths {
+			rawValue, ok := lookupAnyByPath(root, path...)
+			if !ok {
+				continue
+			}
+			parsed, ok := parseWalletTimeValue(rawValue)
+			if ok {
+				payload.PaidAt = parsed
+				break
+			}
+		}
+	}
 }
 
 func walletConfidenceForPayload(payload appleWalletIngestRequest, merchant string) string {
@@ -309,9 +572,10 @@ func (h *Handler) AppleWalletIngest(w http.ResponseWriter, r *http.Request) {
 	}
 	var payload appleWalletIngestRequest
 	if err := json.Unmarshal([]byte(rawPayload), &payload); err != nil {
-		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid request body"})
-		return
+		// Fallback for shortcuts/postman payloads where amount/date can come as localized strings.
+		payload = appleWalletIngestRequest{}
 	}
+	mergeWalletPayloadFromRaw(&payload, rawPayload)
 	payload.Amount = normalizeWalletAmount(payload.Amount)
 	merchantNormalized := normalizeMerchant(payload.Merchant)
 	if merchantNormalized == "" {

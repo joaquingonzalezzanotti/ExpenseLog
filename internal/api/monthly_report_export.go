@@ -17,17 +17,19 @@ import (
 )
 
 const (
-	reportCurrencyParam = "currency"
-	reportYearParam     = "year"
-	reportMonthParam    = "month"
+	reportCurrencyParam          = "currency"
+	reportYearParam              = "year"
+	reportMonthParam             = "month"
+	reportIncludeCreditCardParam = "include_credit_card"
 )
 
 type monthlyReportQuery struct {
-	Year     int
-	Month    int
-	Currency string
-	Start    time.Time
-	End      time.Time
+	Year              int
+	Month             int
+	Currency          string
+	Start             time.Time
+	End               time.Time
+	IncludeCreditCard bool
 }
 
 type monthlyReportMetrics struct {
@@ -105,6 +107,7 @@ func (h *Handler) ExportMonthlyXLSX(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to retrieve expenses"})
 		return
 	}
+	expenses = applyMonthlyReportScope(expenses, query.IncludeCreditCard)
 	initialBalance, err := h.storage.GetCashBalanceBeforeDate(userID, query.Start, query.Currency)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to retrieve initial balance"})
@@ -163,6 +166,7 @@ func (h *Handler) ExportMonthlyPDF(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to retrieve expenses"})
 		return
 	}
+	expenses = applyMonthlyReportScope(expenses, query.IncludeCreditCard)
 	initialBalance, err := h.storage.GetCashBalanceBeforeDate(userID, query.Start, query.Currency)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to retrieve initial balance"})
@@ -225,17 +229,37 @@ func (h *Handler) parseMonthlyReportQuery(r *http.Request, userID string) (month
 	if !slices.Contains(storage.SupportedCurrencies, currency) {
 		return monthlyReportQuery{}, fmt.Errorf("currency must be one of: ars, usd, eur")
 	}
+	includeCreditCard, err := parseMonthlyReportIncludeCreditCard(r.URL.Query().Get(reportIncludeCreditCardParam))
+	if err != nil {
+		return monthlyReportQuery{}, err
+	}
 
 	start := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
 	end := start.AddDate(0, 1, 0)
 
 	return monthlyReportQuery{
-		Year:     year,
-		Month:    month,
-		Currency: currency,
-		Start:    start,
-		End:      end,
+		Year:              year,
+		Month:             month,
+		Currency:          currency,
+		Start:             start,
+		End:               end,
+		IncludeCreditCard: includeCreditCard,
 	}, nil
+}
+
+func parseMonthlyReportIncludeCreditCard(value string) (bool, error) {
+	raw := strings.ToLower(strings.TrimSpace(value))
+	if raw == "" {
+		return true, nil
+	}
+	switch raw {
+	case "1", "true", "yes", "si", "on":
+		return true, nil
+	case "0", "false", "no", "off":
+		return false, nil
+	default:
+		return false, fmt.Errorf("include_credit_card parameter is invalid")
+	}
 }
 
 func (h *Handler) isPremiumUser(userID string) (bool, error) {
@@ -270,6 +294,20 @@ func filterExpensesForMonthlyReport(expenses []storage.Expense, query monthlyRep
 		return filtered[i].Date.Before(filtered[j].Date)
 	})
 
+	return filtered
+}
+
+func applyMonthlyReportScope(expenses []storage.Expense, includeCreditCard bool) []storage.Expense {
+	if includeCreditCard {
+		return expenses
+	}
+	filtered := make([]storage.Expense, 0, len(expenses))
+	for _, exp := range expenses {
+		if normalizeReportSource(exp.Source) == "TARJETA" {
+			continue
+		}
+		filtered = append(filtered, exp)
+	}
 	return filtered
 }
 
@@ -794,7 +832,7 @@ func buildMonthlyReportXLSX(expenses []storage.Expense, query monthlyReportQuery
 	_ = file.MergeCell(summarySheet, "A1", "D1")
 	_ = file.SetCellStyle(summarySheet, "A1", "D1", summaryTitleStyle)
 	_ = file.SetRowHeight(summarySheet, 1, 24)
-	_ = file.SetCellValue(summarySheet, "A2", fmt.Sprintf("Periodo: %s", periodLabel))
+	_ = file.SetCellValue(summarySheet, "A2", fmt.Sprintf("Periodo: %s | Alcance: %s", periodLabel, monthlyReportScopeLabel(query.IncludeCreditCard)))
 	_ = file.SetCellValue(summarySheet, "C2", fmt.Sprintf("Moneda: %s", strings.ToUpper(query.Currency)))
 
 	summaryRows := []struct {
@@ -807,6 +845,7 @@ func buildMonthlyReportXLSX(expenses []storage.Expense, query monthlyReportQuery
 		{Label: "Ingresos", Value: metrics.Income, Kind: "money"},
 		{Label: "Reintegros", Value: metrics.Refund, Kind: "money"},
 		{Label: "Egresos de caja", Value: metrics.Expense, Kind: "money"},
+		{Label: "Incluye gastos de tarjeta", Value: yesNoLabel(query.IncludeCreditCard), Kind: "text"},
 		{Label: "Consumo con tarjeta", Value: metrics.CardOutflow, Kind: "money"},
 		{Label: "Egresos totales", Value: metrics.TotalOutflow, Kind: "money"},
 		{Label: "Balance neto de caja", Value: metrics.NetBalance, Kind: "money"},
@@ -1104,7 +1143,12 @@ func drawPDFSummaryPage(pdf *gofpdf.Fpdf, query monthlyReportQuery, metrics mont
 	pdf.SetTextColor(51, 65, 85)
 	pdf.SetXY(pageLeft+3, 31)
 	pdf.SetFont("Arial", "", 10)
-	pdf.CellFormat(0, 5, fmt.Sprintf("Moneda: %s | Emitido: %s UTC", strings.ToUpper(query.Currency), time.Now().UTC().Format("2006-01-02 15:04")), "", 1, "L", false, 0, "")
+	pdf.CellFormat(0, 5, fmt.Sprintf("Moneda: %s | Alcance: %s | Emitido: %s UTC", strings.ToUpper(query.Currency), monthlyReportScopeLabel(query.IncludeCreditCard), time.Now().UTC().Format("2006-01-02 15:04")), "", 1, "L", false, 0, "")
+
+	cardExpenseValue := formatReportAmount(metrics.CardOutflow, query.Currency)
+	if !query.IncludeCreditCard {
+		cardExpenseValue = "No incluido"
+	}
 
 	cards := []struct {
 		Title      string
@@ -1143,7 +1187,7 @@ func drawPDFSummaryPage(pdf *gofpdf.Fpdf, query monthlyReportQuery, metrics mont
 		},
 		{
 			Title:      "Gasto tarjeta",
-			Value:      formatReportAmount(metrics.CardOutflow, query.Currency),
+			Value:      cardExpenseValue,
 			FillColor:  [3]int{255, 251, 235},
 			LineColor:  [3]int{253, 186, 116},
 			TitleColor: [3]int{146, 64, 14},
@@ -1294,11 +1338,11 @@ func drawPDFAnalysisPage(pdf *gofpdf.Fpdf, query monthlyReportQuery, metrics mon
 	pdf.CellFormat(0, 8, "Analisis economico del mes", "", 1, "L", false, 0, "")
 	pdf.SetFont("Arial", "", 9)
 	pdf.SetTextColor(71, 85, 105)
-	pdf.CellFormat(0, 5, fmt.Sprintf("Periodo: %s %d | Moneda: %s", monthlyReportMonthName(query.Month), query.Year, strings.ToUpper(query.Currency)), "", 1, "L", false, 0, "")
+	pdf.CellFormat(0, 5, fmt.Sprintf("Periodo: %s %d | Moneda: %s | Alcance: %s", monthlyReportMonthName(query.Month), query.Year, strings.ToUpper(query.Currency), monthlyReportScopeLabel(query.IncludeCreditCard)), "", 1, "L", false, 0, "")
 
 	drawPDFWaterfallChart(pdf, 12, 28, 186, 76, metrics, query.Currency)
 	drawPDFTopCategoriesBarChart(pdf, 12, 114, 186, 58, categories, query.Currency)
-	drawPDFEconomicSummary(pdf, 12, 178, 186, metrics, insights, query.Currency)
+	drawPDFEconomicSummary(pdf, 12, 178, 186, metrics, insights, query.Currency, query.IncludeCreditCard)
 }
 
 func drawPDFWaterfallChart(pdf *gofpdf.Fpdf, x, y, w, h float64, metrics monthlyReportMetrics, currency string) {
@@ -1425,7 +1469,7 @@ func drawPDFTopCategoriesBarChart(pdf *gofpdf.Fpdf, x, y, w, h float64, categori
 	}
 }
 
-func drawPDFEconomicSummary(pdf *gofpdf.Fpdf, x, y, w float64, metrics monthlyReportMetrics, insights []monthlyReportInsight, currency string) {
+func drawPDFEconomicSummary(pdf *gofpdf.Fpdf, x, y, w float64, metrics monthlyReportMetrics, insights []monthlyReportInsight, currency string, includeCreditCard bool) {
 	pdf.SetXY(x, y)
 	pdf.SetTextColor(15, 23, 42)
 	pdf.SetFont("Arial", "B", 10)
@@ -1445,7 +1489,7 @@ func drawPDFEconomicSummary(pdf *gofpdf.Fpdf, x, y, w float64, metrics monthlyRe
 	pdf.SetTextColor(51, 65, 85)
 	baseLines := []string{
 		fmt.Sprintf("- Balance neto: %s | Tasa de ahorro: %.1f%%", formatReportAmount(metrics.NetBalance, currency), metrics.SavingsRate),
-		fmt.Sprintf("- Dependencia de tarjeta: %.1f%% | Concentracion top 3: %.1f%%", metrics.CardExpenseShare, metrics.CategoryConcentrationTop3),
+		fmt.Sprintf("- Dependencia de tarjeta: %s | Concentracion top 3: %.1f%%", formatCardDependency(metrics.CardExpenseShare, includeCreditCard), metrics.CategoryConcentrationTop3),
 		fmt.Sprintf("- Ticket promedio: %s | Mediana: %s", formatReportAmount(metrics.AvgExpenseTicket, currency), formatReportAmount(metrics.MedianExpenseTicket, currency)),
 	}
 	for _, line := range baseLines {
@@ -1540,6 +1584,27 @@ func formatCompactReportAmount(amount float64, currency string) string {
 	default:
 		return fmt.Sprintf("%s%s %.0f", sign, symbol, value)
 	}
+}
+
+func yesNoLabel(value bool) string {
+	if value {
+		return "Si"
+	}
+	return "No"
+}
+
+func monthlyReportScopeLabel(includeCreditCard bool) string {
+	if includeCreditCard {
+		return "Con tarjeta de credito"
+	}
+	return "Sin tarjeta de credito"
+}
+
+func formatCardDependency(cardShare float64, includeCreditCard bool) string {
+	if !includeCreditCard {
+		return "N/A (tarjeta excluida)"
+	}
+	return fmt.Sprintf("%.1f%%", cardShare)
 }
 
 func monthlyReportPalette() [][3]int {

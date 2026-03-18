@@ -173,7 +173,7 @@
                 </button>
 
                 <button class="settings-nav-item" id="openTelegramSection" type="button" data-settings-section="telegramSection" data-settings-route="/app/telegram" aria-expanded="false">
-                    <span class="settings-nav-item-label"> 🤖 Telegram Bot <span class="settings-reports-badge">Premium</span></span>
+                    <span class="settings-nav-item-label">🤖 Telegram Bot <span class="settings-reports-badge">Premium</span></span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
             </div>
@@ -212,6 +212,15 @@
                             <option value="usd">USD</option>
                             <option value="eur">EUR</option>
                         </select>
+                    </div>
+                </div>
+                <div class="settings-preference-item">
+                    <label for="reportIncludeCreditCardCheckbox">Gasto tarjeta</label>
+                    <div class="settings-preference-control">
+                        <label class="checkbox-inline">
+                            <input id="reportIncludeCreditCardCheckbox" type="checkbox" class="styled-checkbox" checked>
+                            <span>Incluir gastos con tarjeta de credito</span>
+                        </label>
                     </div>
                 </div>
             </div>
@@ -566,6 +575,7 @@
     <script src="/app/functions.js"></script>
     <script>
         const SYSTEM_RECONCILIATION_CATEGORY = '_Conciliacion';
+        const SYSTEM_RECONCILIATION_DISPLAY_NAME = 'Conciliacion';
 
         function ensureSystemCategories(nextCategories) {
             const list = Array.isArray(nextCategories) ? [...nextCategories] : [];
@@ -576,6 +586,15 @@
 
         function isProtectedSystemCategory(category) {
             return (category || '').toLowerCase() === SYSTEM_RECONCILIATION_CATEGORY.toLowerCase();
+        }
+
+        function formatSettingsCategoryLabel(category) {
+            const raw = String(category || '').trim();
+            if (!raw) return '-';
+            if (raw.toLowerCase() === SYSTEM_RECONCILIATION_CATEGORY.toLowerCase()) {
+                return SYSTEM_RECONCILIATION_DISPLAY_NAME;
+            }
+            return raw;
         }
 
         let categories = ensureSystemCategories([]);
@@ -624,6 +643,7 @@
         const reportMonthSelect = document.getElementById('reportMonthSelect');
         const reportYearInput = document.getElementById('reportYearInput');
         const reportCurrencySelect = document.getElementById('reportCurrencySelect');
+        const reportIncludeCreditCardCheckbox = document.getElementById('reportIncludeCreditCardCheckbox');
         const downloadMonthlyXLSXBtn = document.getElementById('downloadMonthlyXLSXBtn');
         const downloadMonthlyPDFBtn = document.getElementById('downloadMonthlyPDFBtn');
         const telegramStatusBanner = document.getElementById('telegramStatusBanner');
@@ -795,6 +815,7 @@
             const monthParam = parseInt(params.get('month') || '', 10);
             const yearParam = parseInt(params.get('year') || '', 10);
             const currencyParam = String(params.get('currency') || '').trim().toLowerCase();
+            const includeCreditCardParam = String(params.get('include_credit_card') || '').trim().toLowerCase();
 
             if (reportMonthSelect && Number.isInteger(monthParam) && monthParam >= 1 && monthParam <= 12) {
                 reportMonthSelect.value = String(monthParam);
@@ -808,6 +829,13 @@
                 );
                 if (hasCurrencyOption) {
                     reportCurrencySelect.value = currencyParam;
+                }
+            }
+            if (reportIncludeCreditCardCheckbox && includeCreditCardParam) {
+                const isTruthy = ['1', 'true', 'yes', 'si', 'on'].includes(includeCreditCardParam);
+                const isFalsy = ['0', 'false', 'no', 'off'].includes(includeCreditCardParam);
+                if (isTruthy || isFalsy) {
+                    reportIncludeCreditCardCheckbox.checked = isTruthy;
                 }
             }
         }
@@ -824,14 +852,17 @@
             }
 
             const now = new Date();
-            if (reportMonthSelect && !reportMonthSelect.value) {
+            if (reportMonthSelect) {
                 reportMonthSelect.value = String(now.getMonth() + 1);
             }
-            if (reportYearInput && !reportYearInput.value) {
+            if (reportYearInput) {
                 reportYearInput.value = String(now.getFullYear());
             }
             if (reportCurrencySelect) {
                 reportCurrencySelect.value = currentCurrency || 'ars';
+            }
+            if (reportIncludeCreditCardCheckbox) {
+                reportIncludeCreditCardCheckbox.checked = true;
             }
             applyReportContextFromURL();
             renderReportAccessState();
@@ -866,6 +897,7 @@
             const month = parseInt(reportMonthSelect?.value || '', 10);
             const year = parseInt(reportYearInput?.value || '', 10);
             const currency = (reportCurrencySelect?.value || currentCurrency || 'ars').toLowerCase();
+            const includeCreditCard = reportIncludeCreditCardCheckbox ? !!reportIncludeCreditCardCheckbox.checked : true;
 
             if (!Number.isInteger(month) || month < 1 || month > 12) {
                 showMessage('reportExportMessage', 'Mes invalido para exportacion.', false);
@@ -881,6 +913,7 @@
                 year: String(year),
                 month: String(month),
                 currency,
+                include_credit_card: includeCreditCard ? 'true' : 'false',
             });
             const endpoint = `/api/export/monthly/${ext}?${params.toString()}`;
 
@@ -1200,7 +1233,7 @@ function renderCategories() {
         item.dataset.index = index;
         item.innerHTML = `
             <div class="category-handle-area">
-                <span class="category-name">${category}${isSystem ? ' <small class="category-system-label">(sistema)</small>' : ''}</span>
+                <span class="category-name">${formatSettingsCategoryLabel(category)}${isSystem ? ' <small class="category-system-label">(sistema)</small>' : ''}</span>
             </div>
             <div class="category-actions">
                 ${isSystem ? '<span class="category-system-lock" title="Categoría protegida">🔒</span>' : `
@@ -1222,7 +1255,7 @@ function sanitizeCategoryName(raw) {
 }
 
 function renderCategorySelects() {
-    const options = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+    const options = categories.map(c => `<option value="${c}">${formatSettingsCategoryLabel(c)}</option>`).join('');
     document.getElementById('recurringCategory').innerHTML = options;
     document.getElementById('editRecurringCategory').innerHTML = options;
 }
@@ -1330,7 +1363,7 @@ async function removeCategory(index) {
     const removed = categories[index];
     if (!removed) return;
     if (isProtectedSystemCategory(removed)) {
-        showMessage('categoriesMessage', 'La categoria _Conciliacion es de sistema y no se puede eliminar.', false);
+        showMessage('categoriesMessage', `La categoria ${SYSTEM_RECONCILIATION_DISPLAY_NAME} es de sistema y no se puede eliminar.`, false);
         return;
     }
     if (!confirm(`Eliminar la categoria "${removed}"?`)) return;
@@ -1346,7 +1379,7 @@ function startEditCategory(index) {
     if (!item) return;
     const current = categories[index] || '';
     if (isProtectedSystemCategory(current)) {
-        showMessage('categoriesMessage', 'La categoria _Conciliacion es de sistema y no se puede editar.', false);
+        showMessage('categoriesMessage', `La categoria ${SYSTEM_RECONCILIATION_DISPLAY_NAME} es de sistema y no se puede editar.`, false);
         return;
     }
     item.innerHTML = `
@@ -1384,7 +1417,7 @@ async function saveEditCategory(index, value) {
         return;
     }
     if (isProtectedSystemCategory(categories[index])) {
-        showMessage('categoriesMessage', 'La categoria _Conciliacion es de sistema y no se puede editar.', false);
+        showMessage('categoriesMessage', `La categoria ${SYSTEM_RECONCILIATION_DISPLAY_NAME} es de sistema y no se puede editar.`, false);
         return;
     }
     const updated = await renameCategoryOnServer(categories[index], name);

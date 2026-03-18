@@ -118,3 +118,60 @@ func TestBuildMonthlyReportInsights(t *testing.T) {
 		t.Fatalf("expected at least 4 insights, got %d", len(insights))
 	}
 }
+
+func TestParseMonthlyReportIncludeCreditCard(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    bool
+		wantErr bool
+	}{
+		{name: "default empty", input: "", want: true},
+		{name: "explicit true", input: "true", want: true},
+		{name: "explicit one", input: "1", want: true},
+		{name: "explicit false", input: "false", want: false},
+		{name: "explicit zero", input: "0", want: false},
+		{name: "invalid", input: "maybe", wantErr: true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := parseMonthlyReportIncludeCreditCard(tc.input)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("expected error for input %q", tc.input)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tc.want {
+				t.Fatalf("expected %v, got %v", tc.want, got)
+			}
+		})
+	}
+}
+
+func TestApplyMonthlyReportScope(t *testing.T) {
+	expenses := []storage.Expense{
+		{Name: "Ingreso CA", Source: "CA", Amount: 1000},
+		{Name: "Compra credito", Source: "TARJETA", Amount: -300},
+		{Name: "Compra debito", Source: "CA", Amount: -200},
+		{Name: "Reintegro tarjeta", Source: "TARJETA", Amount: 50},
+	}
+
+	withCard := applyMonthlyReportScope(expenses, true)
+	if len(withCard) != 4 {
+		t.Fatalf("expected 4 rows when include_credit_card=true, got %d", len(withCard))
+	}
+
+	withoutCard := applyMonthlyReportScope(expenses, false)
+	if len(withoutCard) != 2 {
+		t.Fatalf("expected 2 rows when include_credit_card=false, got %d", len(withoutCard))
+	}
+	for _, exp := range withoutCard {
+		if normalizeReportSource(exp.Source) == "TARJETA" {
+			t.Fatalf("did not expect TARJETA source in scoped dataset")
+		}
+	}
+}

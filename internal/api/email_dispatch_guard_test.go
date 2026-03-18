@@ -6,7 +6,14 @@ import (
 	"time"
 )
 
+func resetEmailDispatchGuardState() {
+	emailDispatchGuardMu.Lock()
+	defer emailDispatchGuardMu.Unlock()
+	emailDispatchGuardLastByKey = map[string]time.Time{}
+}
+
 func TestReserveEmailDispatchCooldown(t *testing.T) {
+	resetEmailDispatchGuardState()
 	key := fmt.Sprintf("test-cooldown-%d", time.Now().UnixNano())
 	now := time.Now()
 	cooldown := 30 * time.Second
@@ -24,6 +31,7 @@ func TestReserveEmailDispatchCooldown(t *testing.T) {
 }
 
 func TestReserveEmailDispatchRollbackOnFailure(t *testing.T) {
+	resetEmailDispatchGuardState()
 	key := fmt.Sprintf("test-rollback-%d", time.Now().UnixNano())
 	now := time.Now()
 	cooldown := 30 * time.Second
@@ -40,3 +48,23 @@ func TestReserveEmailDispatchRollbackOnFailure(t *testing.T) {
 	}
 }
 
+func TestReserveEmailDispatchPurgesStaleKeys(t *testing.T) {
+	resetEmailDispatchGuardState()
+
+	staleNow := time.Now().Add(-(emailDispatchGuardRetention + time.Hour))
+	staleKey := "stale-key"
+	activeKey := "active-key"
+	emailDispatchGuardLastByKey[staleKey] = staleNow
+	emailDispatchGuardLastByKey[activeKey] = time.Now()
+
+	_, _ = reserveEmailDispatch("fresh-key", 30*time.Second, time.Now())
+
+	emailDispatchGuardMu.Lock()
+	defer emailDispatchGuardMu.Unlock()
+	if _, ok := emailDispatchGuardLastByKey[staleKey]; ok {
+		t.Fatalf("expected stale key to be removed")
+	}
+	if _, ok := emailDispatchGuardLastByKey[activeKey]; !ok {
+		t.Fatalf("expected active key to remain")
+	}
+}

@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -232,7 +233,7 @@ func logAccess(r *http.Request, status int, duration time.Duration) {
 		"durationMs":  duration.Milliseconds(),
 		"remoteIp":    remoteIP,
 		"userAgent":   r.UserAgent(),
-		"queryString": r.URL.RawQuery,
+		"queryString": redactQueryString(r.URL.RawQuery),
 	}
 	raw, err := json.Marshal(payload)
 	if err != nil {
@@ -254,6 +255,42 @@ func readRemoteIP(remoteAddr string) string {
 		return host
 	}
 	return strings.TrimSpace(remoteAddr)
+}
+
+func redactQueryString(rawQuery string) string {
+	rawQuery = strings.TrimSpace(rawQuery)
+	if rawQuery == "" {
+		return ""
+	}
+	values, err := url.ParseQuery(rawQuery)
+	if err != nil {
+		return "[redacted]"
+	}
+	for key := range values {
+		if isSensitiveQueryKey(key) {
+			values[key] = []string{"[REDACTED]"}
+		}
+	}
+	return values.Encode()
+}
+
+func isSensitiveQueryKey(key string) bool {
+	key = strings.ToLower(strings.TrimSpace(key))
+	switch key {
+	case "code",
+		"token",
+		"access_token",
+		"refresh_token",
+		"id_token",
+		"password",
+		"reset_code",
+		"verification_code",
+		"otp",
+		"state":
+		return true
+	default:
+		return false
+	}
 }
 
 func requestIDFromContext(ctx context.Context) string {

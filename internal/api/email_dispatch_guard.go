@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+const emailDispatchGuardRetention = 24 * time.Hour
+
 var emailDispatchGuardMu = &sync.Mutex{}
 var emailDispatchGuardLastByKey = map[string]time.Time{}
 
@@ -15,7 +17,12 @@ func reserveEmailDispatch(key string, cooldown time.Duration, now time.Time) (fu
 		return func(bool) {}, false
 	}
 
+	if now.IsZero() {
+		now = time.Now()
+	}
+
 	emailDispatchGuardMu.Lock()
+	purgeStaleEmailDispatchGuardEntries(now)
 	if lastDispatch, ok := emailDispatchGuardLastByKey[normalizedKey]; ok {
 		if now.Sub(lastDispatch) < cooldown {
 			emailDispatchGuardMu.Unlock()
@@ -39,4 +46,13 @@ func reserveEmailDispatch(key string, cooldown time.Duration, now time.Time) (fu
 
 func emailDispatchKey(kind, recipient string) string {
 	return strings.ToLower(strings.TrimSpace(kind)) + "|" + strings.ToLower(strings.TrimSpace(recipient))
+}
+
+func purgeStaleEmailDispatchGuardEntries(now time.Time) {
+	cutoff := now.Add(-emailDispatchGuardRetention)
+	for key, lastDispatch := range emailDispatchGuardLastByKey {
+		if lastDispatch.Before(cutoff) {
+			delete(emailDispatchGuardLastByKey, key)
+		}
+	}
 }

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 )
 
@@ -110,5 +111,30 @@ func TestWithAccessLoggingAndMetricsRecordsRequest(t *testing.T) {
 	}
 	if route.Requests != 1 {
 		t.Fatalf("expected 1 request for route, got %d", route.Requests)
+	}
+}
+
+func TestRedactQueryString(t *testing.T) {
+	raw := "code=secret&state=opaque&view=table"
+	sanitized := redactQueryString(raw)
+	parsed, err := url.ParseQuery(sanitized)
+	if err != nil {
+		t.Fatalf("expected valid sanitized query, got %v", err)
+	}
+
+	if parsed.Get("code") != "[REDACTED]" {
+		t.Fatalf("expected code to be redacted, got %q", parsed.Get("code"))
+	}
+	if parsed.Get("state") != "[REDACTED]" {
+		t.Fatalf("expected state to be redacted, got %q", parsed.Get("state"))
+	}
+	if parsed.Get("view") != "table" {
+		t.Fatalf("expected non-sensitive key to remain, got %q", parsed.Get("view"))
+	}
+}
+
+func TestRedactQueryStringInvalidInput(t *testing.T) {
+	if got := redactQueryString("%zz"); got != "[redacted]" {
+		t.Fatalf("expected invalid query marker, got %q", got)
 	}
 }

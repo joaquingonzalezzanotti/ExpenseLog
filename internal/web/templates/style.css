@@ -3449,6 +3449,7 @@ html[data-settings-route='categories'] body.settings-page .settings-shell-sectio
 html[data-settings-route='recurring'] body.settings-page .settings-shell-section,
 html[data-settings-route='reconciliation'] body.settings-page .settings-shell-section,
 html[data-settings-route='reports'] body.settings-page .settings-shell-section,
+html[data-settings-route='applewallet'] body.settings-page .settings-shell-section,
 html[data-settings-route='telegram'] body.settings-page .settings-shell-section {
     display: none !important;
 }
@@ -3457,8 +3458,65 @@ html[data-settings-route='categories'] body.settings-page #categoriesSection[hid
 html[data-settings-route='recurring'] body.settings-page #recurringSection[hidden],
 html[data-settings-route='reconciliation'] body.settings-page #reconciliationSection[hidden],
 html[data-settings-route='reports'] body.settings-page #reportsSection[hidden],
+html[data-settings-route='applewallet'] body.settings-page #appleWalletSection[hidden],
 html[data-settings-route='telegram'] body.settings-page #telegramSection[hidden] {
     display: block !important;
+}
+
+.settings-wallet-events-list {
+    display: grid;
+    gap: 0.85rem;
+    margin-top: 0.8rem;
+}
+
+.settings-wallet-event {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    background: var(--bg-secondary);
+    padding: 0.9rem;
+}
+
+.settings-wallet-event-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.settings-wallet-event-status {
+    font-size: 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.2rem 0.6rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.settings-wallet-event-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1rem;
+    margin-top: 0.55rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.settings-wallet-hints {
+    margin: 0.65rem 0 0 1rem;
+    color: var(--text-secondary);
+}
+
+.settings-wallet-event-note {
+    margin-top: 0.55rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.settings-wallet-event-actions {
+    margin-top: 0.75rem;
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
 }
 
 .settings-subtitle {

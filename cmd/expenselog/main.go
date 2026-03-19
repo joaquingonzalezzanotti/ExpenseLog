@@ -104,6 +104,7 @@ func runServer(port int) {
 	http.HandleFunc("/app/conciliacion", handler.ServeSettingsReconciliationPage)
 	http.HandleFunc("/app/reportes", handler.ServeSettingsReportsPage)
 	http.HandleFunc("/app/telegram", handler.ServeSettingsTelegramPage)
+	http.HandleFunc("/app/apple-wallet", handler.ServeSettingsAppleWalletPage)
 	http.HandleFunc("/table", handler.ServeTableView)
 	http.HandleFunc("/settings", handler.ServeSettingsPage)
 	http.HandleFunc("/perfil", handler.ServeSettingsPage)
@@ -112,6 +113,7 @@ func runServer(port int) {
 	http.HandleFunc("/conciliacion", handler.ServeSettingsReconciliationPage)
 	http.HandleFunc("/reportes", handler.ServeSettingsReportsPage)
 	http.HandleFunc("/telegram", handler.ServeSettingsTelegramPage)
+	http.HandleFunc("/apple-wallet", handler.ServeSettingsAppleWalletPage)
 
 	// Static File Handlers
 	staticPaths := []string{
@@ -180,6 +182,8 @@ func runServer(port int) {
 	registerAPI("/integrations/apple-wallet/debug", handler.RequireAuth(handler.AppleWalletDebug))
 	registerAPI("/integrations/apple-wallet/token-status", handler.RequireAuth(handler.GetAppleWalletIngestTokenStatus))
 	registerAPI("/integrations/apple-wallet/token", handler.RequireAuth(handler.CreateAppleWalletIngestToken))
+	registerAPI("/integrations/apple-wallet/events", handler.RequireAuth(handler.ListAppleWalletEvents))
+	registerAPI("/integrations/apple-wallet/events/resolve", handler.RequireAuth(handler.ResolveAppleWalletEvent))
 	registerAPI("/integrations/apple-wallet/ingest", handler.AppleWalletIngest)
 
 	// Recurring Expenses

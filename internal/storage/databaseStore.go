@@ -2686,3 +2686,104 @@ func (s *databaseStore) FindPotentialDuplicateWalletIngestEvent(userID string, a
 	}
 	return event, nil
 }
+
+func (s *databaseStore) GetWalletIngestEventByID(userID, eventID string) (WalletIngestEvent, error) {
+	query := `
+		SELECT id, user_id, source, COALESCE(amount, 0), COALESCE(merchant, ''), COALESCE(merchant_raw, ''),
+			COALESCE(card_label, ''), COALESCE(wallet_category, ''), paid_at,
+			raw_payload::text, COALESCE(request_headers::text, ''), status, confidence,
+			COALESCE(created_transaction_id, ''), COALESCE(duplicate_of_event_id, ''), created_at, updated_at
+		FROM wallet_ingest_events
+		WHERE user_id = $1 AND id = $2
+		LIMIT 1
+	`
+	var event WalletIngestEvent
+	if err := s.db.QueryRow(query, userID, eventID).Scan(
+		&event.ID,
+		&event.UserID,
+		&event.Source,
+		&event.Amount,
+		&event.Merchant,
+		&event.MerchantRaw,
+		&event.CardLabel,
+		&event.WalletCategory,
+		&event.PaidAt,
+		&event.RawPayload,
+		&event.RequestHeaders,
+		&event.Status,
+		&event.Confidence,
+		&event.CreatedTransactionID,
+		&event.DuplicateOfEventID,
+		&event.CreatedAt,
+		&event.UpdatedAt,
+	); err != nil {
+		return WalletIngestEvent{}, err
+	}
+	return event, nil
+}
+
+func (s *databaseStore) ListWalletIngestEvents(userID, status string, limit int) ([]WalletIngestEvent, error) {
+	if limit <= 0 {
+		limit = 25
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	baseSelect := `
+		SELECT id, user_id, source, COALESCE(amount, 0), COALESCE(merchant, ''), COALESCE(merchant_raw, ''),
+			COALESCE(card_label, ''), COALESCE(wallet_category, ''), paid_at,
+			raw_payload::text, COALESCE(request_headers::text, ''), status, confidence,
+			COALESCE(created_transaction_id, ''), COALESCE(duplicate_of_event_id, ''), created_at, updated_at
+		FROM wallet_ingest_events
+		WHERE user_id = $1
+	`
+	args := []any{userID}
+	query := baseSelect
+
+	statusNormalized := strings.TrimSpace(strings.ToLower(status))
+	if statusNormalized != "" && statusNormalized != "all" {
+		query += ` AND status = $2`
+		args = append(args, statusNormalized)
+	}
+
+	query += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d", len(args)+1)
+	args = append(args, limit)
+
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := make([]WalletIngestEvent, 0)
+	for rows.Next() {
+		var event WalletIngestEvent
+		if err := rows.Scan(
+			&event.ID,
+			&event.UserID,
+			&event.Source,
+			&event.Amount,
+			&event.Merchant,
+			&event.MerchantRaw,
+			&event.CardLabel,
+			&event.WalletCategory,
+			&event.PaidAt,
+			&event.RawPayload,
+			&event.RequestHeaders,
+			&event.Status,
+			&event.Confidence,
+			&event.CreatedTransactionID,
+			&event.DuplicateOfEventID,
+			&event.CreatedAt,
+			&event.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, event)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

@@ -23,6 +23,7 @@
                 if (normalized === 'recurring' || normalized === 'recurrentes') return 'recurring';
                 if (normalized === 'reconciliation' || normalized === 'conciliacion') return 'reconciliation';
                 if (normalized === 'reports' || normalized === 'reportes') return 'reports';
+                if (normalized === 'applewallet' || normalized === 'apple-wallet' || normalized === 'wallet') return 'applewallet';
                 if (normalized === 'telegram' || normalized === 'telegrambot' || normalized === 'bottelegram') return 'telegram';
                 if (normalized === 'profile' || normalized === 'perfil' || normalized === 'settings') return 'profile';
                 return '';
@@ -37,6 +38,7 @@
                 if (path === '/app/recurrentes' || path === '/recurrentes') return 'recurring';
                 if (path === '/app/conciliacion' || path === '/conciliacion') return 'reconciliation';
                 if (path === '/app/reportes' || path === '/reportes') return 'reports';
+                if (path === '/app/apple-wallet' || path === '/apple-wallet') return 'applewallet';
                 if (path === '/app/telegram' || path === '/telegram') return 'telegram';
                 if (path === '/app/perfil' || path === '/perfil' || path === '/app/settings' || path === '/settings') return 'profile';
                 return '';
@@ -91,6 +93,7 @@
                     <a href="/app/recurrentes" class="mobile-drawer-link"><i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i><span>Recurrentes</span></a>
                     <a href="/app/conciliacion" class="mobile-drawer-link"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i><span>Conciliacion</span></a>
                     <a href="/app/reportes" class="mobile-drawer-link"><i class="fa-regular fa-file-lines" aria-hidden="true"></i><span>Reportes</span></a>
+                    <a href="/app/apple-wallet" class="mobile-drawer-link"><i class="fa-brands fa-apple-pay" aria-hidden="true"></i><span>Apple Wallet</span></a>
                 </nav>
             </aside>
 
@@ -169,6 +172,11 @@
                 </button>
                 <button class="settings-nav-item" id="openReportsSection" type="button" data-settings-section="reportsSection" data-settings-route="/app/reportes" aria-expanded="false">
                     <span>🧾 Reportes mensuales <span class="settings-reports-badge">Premium</span></span>
+                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
+
+                <button class="settings-nav-item" id="openAppleWalletSection" type="button" data-settings-section="appleWalletSection" data-settings-route="/app/apple-wallet" aria-expanded="false">
+                    <span class="settings-nav-item-label"><i class="fa-brands fa-apple-pay" aria-hidden="true"></i> Apple Wallet <span class="settings-reports-badge">Premium</span></span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
 
@@ -260,6 +268,43 @@
             </div>
             <p class="settings-reports-caption">Genera un codigo para abrir Telegram con vinculacion rapida.</p>
             <div id="telegramBotMessage" class="form-message"></div>
+        </section>
+        <section id="appleWalletSection" class="form-container settings-section settings-detail-section settings-wallet-section" hidden>
+            <div class="settings-detail-header">
+                <h2><i class="fa-brands fa-apple-pay"></i> Apple Wallet</h2>
+                <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="appleWalletSection" aria-label="Cerrar Apple Wallet" title="Cerrar Apple Wallet">
+                    <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+                </button>
+            </div>
+            <p class="settings-helper-text settings-wallet-helper">Conecta tu Shortcut para importar compras y resolver rapidamente los eventos pendientes.</p>
+            <div id="appleWalletStatusBanner" class="telegram-status-box telegram-status-info">Cargando estado de Apple Wallet...</div>
+            <p id="appleWalletStatusHint" class="settings-helper-text settings-telegram-hint"></p>
+            <div id="appleWalletTokenWrap" class="settings-telegram-code-wrap" hidden>
+                <div class="settings-telegram-code-label">Token para Shortcut</div>
+                <div id="appleWalletTokenValue" class="settings-telegram-code-value">----</div>
+                <div id="appleWalletTokenMeta" class="settings-telegram-code-meta"></div>
+            </div>
+            <div class="settings-export-actions settings-telegram-actions">
+                <button id="appleWalletGenerateTokenBtn" class="nav-button button-primary" type="button">Generar token</button>
+                <button id="appleWalletRefreshStatusBtn" class="nav-button button-secondary" type="button">Actualizar estado</button>
+                <button id="appleWalletRefreshEventsBtn" class="nav-button button-secondary" type="button">Actualizar bandeja</button>
+            </div>
+            <div class="settings-preference-item settings-report-field">
+                <label for="appleWalletEventsStatusFilter">Filtrar eventos</label>
+                <div class="settings-preference-control settings-report-select-wrap">
+                    <select id="appleWalletEventsStatusFilter">
+                        <option value="needs_review">Por revisar</option>
+                        <option value="received">Recibidos</option>
+                        <option value="draft_transaction_created">Borrador creado</option>
+                        <option value="duplicate">Duplicados</option>
+                        <option value="rejected">Descartados</option>
+                        <option value="all">Todos</option>
+                    </select>
+                </div>
+            </div>
+            <div id="appleWalletEventsList" class="settings-wallet-events-list"></div>
+            <p class="settings-reports-caption">Tip: prioriza "Por revisar" para mantener tus reportes al dia.</p>
+            <div id="appleWalletMessage" class="form-message"></div>
         </section>
         <section id="categoriesSection" class="form-container settings-section settings-detail-section" hidden>
             <div class="settings-detail-header">
@@ -666,6 +711,23 @@
         const telegramOpenBotBtn = document.getElementById('telegramOpenBotBtn');
         const telegramGenerateCodeBtn = document.getElementById('telegramGenerateCodeBtn');
         const telegramRefreshStatusBtn = document.getElementById('telegramRefreshStatusBtn');
+        const appleWalletStatusBanner = document.getElementById('appleWalletStatusBanner');
+        const appleWalletStatusHint = document.getElementById('appleWalletStatusHint');
+        const appleWalletTokenWrap = document.getElementById('appleWalletTokenWrap');
+        const appleWalletTokenValue = document.getElementById('appleWalletTokenValue');
+        const appleWalletTokenMeta = document.getElementById('appleWalletTokenMeta');
+        const appleWalletGenerateTokenBtn = document.getElementById('appleWalletGenerateTokenBtn');
+        const appleWalletRefreshStatusBtn = document.getElementById('appleWalletRefreshStatusBtn');
+        const appleWalletRefreshEventsBtn = document.getElementById('appleWalletRefreshEventsBtn');
+        const appleWalletEventsStatusFilter = document.getElementById('appleWalletEventsStatusFilter');
+        const appleWalletEventsList = document.getElementById('appleWalletEventsList');
+        let appleWalletState = {
+            premium: false,
+            hasToken: false,
+            token: '',
+            createdAt: '',
+            lastUsedAt: '',
+        };
 
         function setSettingsSection(sectionId, expanded) {
             const section = document.getElementById(sectionId);
@@ -678,7 +740,7 @@
         }
 
         function showOnlySettingsSection(sectionId, options = {}) {
-            const targets = ['categoriesSection', 'recurringSection', 'reconciliationSection', 'reportsSection', 'telegramSection'];
+            const targets = ['categoriesSection', 'recurringSection', 'reconciliationSection', 'reportsSection', 'appleWalletSection', 'telegramSection'];
             targets.forEach((id) => setSettingsSection(id, id === sectionId));
             setRecurringComposerVisible(false);
             const shouldScroll = options.scroll !== false;
@@ -1185,6 +1247,207 @@
             } finally {
                 if (telegramGenerateCodeBtn) telegramGenerateCodeBtn.disabled = !(currentPlanTier === 'premium');
             }
+        }
+
+        function setAppleWalletStatusBox(message, tone = 'info') {
+            if (!appleWalletStatusBanner) return;
+            appleWalletStatusBanner.textContent = message;
+            appleWalletStatusBanner.className = `telegram-status-box telegram-status-${tone}`;
+        }
+
+        function formatAppleWalletDate(value) {
+            const parsed = Date.parse(String(value || ''));
+            if (!Number.isFinite(parsed)) return '-';
+            return new Intl.DateTimeFormat('es-AR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            }).format(new Date(parsed));
+        }
+
+        function escapeWalletHTML(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function renderAppleWalletTokenPanel() {
+            if (!appleWalletTokenWrap || !appleWalletTokenValue || !appleWalletTokenMeta) return;
+            if (!appleWalletState.token) {
+                appleWalletTokenWrap.hidden = true;
+                appleWalletTokenValue.textContent = '----';
+                appleWalletTokenMeta.textContent = '';
+                return;
+            }
+            appleWalletTokenWrap.hidden = false;
+            appleWalletTokenValue.textContent = appleWalletState.token;
+            const createdAtText = formatAppleWalletDate(appleWalletState.createdAt);
+            const lastUsedText = appleWalletState.lastUsedAt ? formatAppleWalletDate(appleWalletState.lastUsedAt) : 'sin uso';
+            appleWalletTokenMeta.textContent = `Creado: ${createdAtText} · Ultimo uso: ${lastUsedText}`;
+        }
+
+        function renderAppleWalletState() {
+            const isPremium = currentPlanTier === 'premium' && !!appleWalletState.premium;
+            if (appleWalletGenerateTokenBtn) appleWalletGenerateTokenBtn.disabled = !isPremium;
+            if (appleWalletRefreshStatusBtn) appleWalletRefreshStatusBtn.disabled = false;
+            if (appleWalletRefreshEventsBtn) appleWalletRefreshEventsBtn.disabled = !isPremium;
+            if (appleWalletEventsStatusFilter) appleWalletEventsStatusFilter.disabled = !isPremium;
+
+            if (!isPremium) {
+                setAppleWalletStatusBox('Disponible solo para cuentas Premium.', 'warning');
+                if (appleWalletStatusHint) {
+                    appleWalletStatusHint.textContent = 'Activa Premium para generar token y revisar eventos de Apple Wallet.';
+                }
+                appleWalletState.token = '';
+                renderAppleWalletTokenPanel();
+                if (appleWalletEventsList) {
+                    appleWalletEventsList.innerHTML = '<div class="no-data">Apple Wallet requiere Premium para habilitar la bandeja de revision.</div>';
+                }
+                return;
+            }
+
+            if (appleWalletState.hasToken) {
+                setAppleWalletStatusBox('Token activo para ingestion desde Shortcut.', 'success');
+                if (appleWalletStatusHint) {
+                    appleWalletStatusHint.textContent = 'Usa el token en tu Shortcut con Authorization: Bearer <token>.';
+                }
+            } else {
+                setAppleWalletStatusBox('Aun no tienes token activo para Shortcut.', 'info');
+                if (appleWalletStatusHint) {
+                    appleWalletStatusHint.textContent = 'Genera un token para empezar a recibir eventos desde Apple Wallet.';
+                }
+            }
+            renderAppleWalletTokenPanel();
+        }
+
+        function appleWalletStatusLabel(status) {
+            const normalized = String(status || '').trim().toLowerCase();
+            if (normalized === 'needs_review') return 'Por revisar';
+            if (normalized === 'received') return 'Recibido';
+            if (normalized === 'draft_transaction_created') return 'Borrador creado';
+            if (normalized === 'duplicate') return 'Duplicado';
+            if (normalized === 'rejected') return 'Descartado';
+            return normalized || '-';
+        }
+
+        function renderAppleWalletEvents(items) {
+            if (!appleWalletEventsList) return;
+            const safeItems = Array.isArray(items) ? items : [];
+            if (!safeItems.length) {
+                appleWalletEventsList.innerHTML = '<div class="no-data">No hay eventos para el filtro seleccionado.</div>';
+                return;
+            }
+
+            appleWalletEventsList.innerHTML = safeItems.map((item) => {
+                const amount = Number(item.amount || 0);
+                const amountLabel = Number.isFinite(amount)
+                    ? formatCurrency(Math.abs(amount), currentCurrency || 'ars')
+                    : '-';
+                const hints = Array.isArray(item.reviewHints) ? item.reviewHints : [];
+                const hintsHTML = hints.length
+                    ? `<ul class="settings-wallet-hints">${hints.map((hint) => `<li>${escapeWalletHTML(hint)}</li>`).join('')}</ul>`
+                    : '';
+                const eventId = escapeWalletHTML(item.id);
+                const createdTx = String(item.createdTransactionId || '').trim();
+                const createBtnLabel = item.canCreateDraft ? 'Crear borrador' : 'Completar monto y crear';
+                return `
+                    <article class="settings-wallet-event">
+                        <header class="settings-wallet-event-head">
+                            <strong>${escapeWalletHTML(item.merchantRaw || item.merchant || 'Compra Apple Wallet')}</strong>
+                            <span class="settings-wallet-event-status">${escapeWalletHTML(appleWalletStatusLabel(item.status))}</span>
+                        </header>
+                        <div class="settings-wallet-event-meta">
+                            <span>Monto: ${escapeWalletHTML(amountLabel)}</span>
+                            <span>Fecha: ${escapeWalletHTML(formatAppleWalletDate(item.paidAt || item.createdAt))}</span>
+                            <span>Confianza: ${escapeWalletHTML(String(item.confidence || '-'))}</span>
+                        </div>
+                        ${hintsHTML}
+                        ${createdTx ? `<div class="settings-wallet-event-note">Borrador vinculado: ${escapeWalletHTML(createdTx)}</div>` : ''}
+                        <div class="settings-wallet-event-actions">
+                            ${createdTx ? '' : `<button class="nav-button button-primary" type="button" data-wallet-action="create_draft" data-wallet-event-id="${eventId}" data-wallet-can-create="${item.canCreateDraft ? '1' : '0'}">${escapeWalletHTML(createBtnLabel)}</button>`}
+                            ${createdTx ? '' : `<button class="nav-button button-secondary" type="button" data-wallet-action="reject" data-wallet-event-id="${eventId}">Descartar</button>`}
+                        </div>
+                    </article>
+                `;
+            }).join('');
+        }
+
+        async function fetchAppleWalletTokenStatus() {
+            const response = await fetch('/api/integrations/apple-wallet/token-status', { cache: 'no-store' });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(payload.error || 'No se pudo obtener estado de Apple Wallet');
+            }
+            appleWalletState.premium = !!payload.premium;
+            appleWalletState.hasToken = !!payload.has_token;
+            appleWalletState.createdAt = payload.created_at || '';
+            appleWalletState.lastUsedAt = payload.last_used_at || '';
+            if (!appleWalletState.hasToken) {
+                appleWalletState.token = '';
+            }
+            renderAppleWalletState();
+            return payload;
+        }
+
+        async function fetchAppleWalletEvents() {
+            if (currentPlanTier !== 'premium') return;
+            const status = String(appleWalletEventsStatusFilter?.value || 'needs_review').trim().toLowerCase();
+            const response = await fetch(`/api/integrations/apple-wallet/events?status=${encodeURIComponent(status)}&limit=40`, { cache: 'no-store' });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(payload.error || 'No se pudo obtener eventos de Apple Wallet');
+            }
+            renderAppleWalletEvents(Array.isArray(payload.items) ? payload.items : []);
+        }
+
+        async function generateAppleWalletToken() {
+            if (currentPlanTier !== 'premium') {
+                showMessage('appleWalletMessage', 'Disponible solo para cuentas Premium.', false);
+                return;
+            }
+            if (appleWalletGenerateTokenBtn) appleWalletGenerateTokenBtn.disabled = true;
+            try {
+                const response = await fetch('/api/integrations/apple-wallet/token', { method: 'POST' });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(payload.error || 'No se pudo generar token');
+                }
+                appleWalletState.token = String(payload.token || '').trim();
+                appleWalletState.hasToken = appleWalletState.token !== '';
+                appleWalletState.createdAt = payload.created_at || new Date().toISOString();
+                renderAppleWalletState();
+                showMessage('appleWalletMessage', 'Token generado. Guardalo en tu Shortcut.', true);
+            } catch (error) {
+                console.error('Error generando token Apple Wallet:', error);
+                showMessage('appleWalletMessage', error.message || 'No se pudo generar token', false);
+            } finally {
+                if (appleWalletGenerateTokenBtn) appleWalletGenerateTokenBtn.disabled = !(currentPlanTier === 'premium');
+            }
+        }
+
+        async function resolveAppleWalletEvent(eventID, action, options = {}) {
+            const payload = {
+                eventId: eventID,
+                action,
+            };
+            if (typeof options.amount === 'number' && Number.isFinite(options.amount) && options.amount > 0) {
+                payload.amount = options.amount;
+            }
+            const response = await fetch('/api/integrations/apple-wallet/events/resolve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(result.error || 'No se pudo resolver el evento');
+            }
+            return result;
         }
 
         function openModal(modal) {
@@ -2059,6 +2322,7 @@ async function saveCategoriesList(nextCategories) {
             if (normalized === 'recurring' || normalized === 'recurrentes') return 'recurring';
             if (normalized === 'reconciliation' || normalized === 'conciliacion') return 'reconciliation';
             if (normalized === 'reports' || normalized === 'reportes') return 'reports';
+            if (normalized === 'applewallet' || normalized === 'apple-wallet' || normalized === 'wallet') return 'applewallet';
             if (normalized === 'telegram' || normalized === 'telegrambot' || normalized === 'bottelegram') return 'telegram';
             if (normalized === 'profile' || normalized === 'perfil' || normalized === 'settings') return 'profile';
             return '';
@@ -2074,6 +2338,7 @@ async function saveCategoriesList(nextCategories) {
             if (normalizedPath === '/app/recurrentes' || normalizedPath === '/recurrentes') return 'recurring';
             if (normalizedPath === '/app/conciliacion' || normalizedPath === '/conciliacion') return 'reconciliation';
             if (normalizedPath === '/app/reportes' || normalizedPath === '/reportes') return 'reports';
+            if (normalizedPath === '/app/apple-wallet' || normalizedPath === '/apple-wallet') return 'applewallet';
             if (normalizedPath === '/app/telegram' || normalizedPath === '/telegram') return 'telegram';
             if (
                 normalizedPath === '/app/perfil' ||
@@ -2116,6 +2381,7 @@ async function saveCategoriesList(nextCategories) {
                 case 'recurring': return '/app/recurrentes';
                 case 'reconciliation': return '/app/conciliacion';
                 case 'reports': return '/app/reportes';
+                case 'applewallet': return '/app/apple-wallet';
                 case 'telegram': return '/app/telegram';
                 case 'profile':
                 default:
@@ -2227,6 +2493,10 @@ async function saveCategoriesList(nextCategories) {
                 showOnlySettingsSection('reportsSection', { scroll: false });
                 return;
             }
+            if (activeSection === 'applewallet') {
+                showOnlySettingsSection('appleWalletSection', { scroll: false });
+                return;
+            }
             if (activeSection === 'telegram') {
                 showOnlySettingsSection('telegramSection', { scroll: false });
                 return;
@@ -2237,6 +2507,7 @@ async function saveCategoriesList(nextCategories) {
             hideSettingsSection('recurringSection');
             hideSettingsSection('reconciliationSection');
             hideSettingsSection('reportsSection');
+            hideSettingsSection('appleWalletSection');
             hideSettingsSection('telegramSection');
         }
 
@@ -2305,6 +2576,19 @@ async function saveCategoriesList(nextCategories) {
                     setTelegramStatusBox('No se pudo cargar el estado de Telegram.', 'error');
                     if (telegramStatusHint) {
                         telegramStatusHint.textContent = 'Reintenta con "Actualizar estado".';
+                    }
+                });
+                await fetchAppleWalletTokenStatus().catch((error) => {
+                    console.error('No se pudo cargar estado de Apple Wallet:', error);
+                    setAppleWalletStatusBox('No se pudo cargar estado de Apple Wallet.', 'error');
+                    if (appleWalletStatusHint) {
+                        appleWalletStatusHint.textContent = 'Reintenta con "Actualizar estado".';
+                    }
+                });
+                await fetchAppleWalletEvents().catch((error) => {
+                    console.error('No se pudo cargar bandeja Apple Wallet:', error);
+                    if (appleWalletEventsList) {
+                        appleWalletEventsList.innerHTML = '<div class="no-data">No se pudo cargar la bandeja de eventos.</div>';
                     }
                 });
 
@@ -2447,6 +2731,83 @@ async function saveCategoriesList(nextCategories) {
                 showMessage('telegramBotMessage', error.message || 'No se pudo actualizar estado', false);
             } finally {
                 if (telegramRefreshStatusBtn) telegramRefreshStatusBtn.disabled = false;
+            }
+        });
+        appleWalletGenerateTokenBtn?.addEventListener('click', async () => {
+            await generateAppleWalletToken();
+        });
+        appleWalletRefreshStatusBtn?.addEventListener('click', async () => {
+            if (appleWalletRefreshStatusBtn) appleWalletRefreshStatusBtn.disabled = true;
+            try {
+                await fetchAppleWalletTokenStatus();
+                showMessage('appleWalletMessage', 'Estado actualizado.', true);
+            } catch (error) {
+                console.error('No se pudo actualizar estado Apple Wallet:', error);
+                showMessage('appleWalletMessage', error.message || 'No se pudo actualizar estado', false);
+            } finally {
+                if (appleWalletRefreshStatusBtn) appleWalletRefreshStatusBtn.disabled = false;
+            }
+        });
+        appleWalletRefreshEventsBtn?.addEventListener('click', async () => {
+            if (appleWalletRefreshEventsBtn) appleWalletRefreshEventsBtn.disabled = true;
+            try {
+                await fetchAppleWalletEvents();
+                showMessage('appleWalletMessage', 'Bandeja actualizada.', true);
+            } catch (error) {
+                console.error('No se pudo actualizar bandeja Apple Wallet:', error);
+                showMessage('appleWalletMessage', error.message || 'No se pudo actualizar bandeja', false);
+            } finally {
+                if (appleWalletRefreshEventsBtn) appleWalletRefreshEventsBtn.disabled = !(currentPlanTier === 'premium');
+            }
+        });
+        appleWalletEventsStatusFilter?.addEventListener('change', async () => {
+            try {
+                await fetchAppleWalletEvents();
+            } catch (error) {
+                console.error('No se pudo cambiar filtro Apple Wallet:', error);
+                showMessage('appleWalletMessage', error.message || 'No se pudo actualizar filtro', false);
+            }
+        });
+        appleWalletEventsList?.addEventListener('click', async (event) => {
+            const button = event.target.closest('[data-wallet-action][data-wallet-event-id]');
+            if (!button) return;
+            const eventID = String(button.dataset.walletEventId || '').trim();
+            const action = String(button.dataset.walletAction || '').trim().toLowerCase();
+            if (!eventID || !action) return;
+            const previousLabel = button.textContent;
+            button.disabled = true;
+            if (action === 'create_draft') {
+                button.textContent = 'Creando...';
+            } else {
+                button.textContent = 'Aplicando...';
+            }
+            try {
+                let amountValue;
+                if (action === 'create_draft' && String(button.dataset.walletCanCreate || '') !== '1') {
+                    const requested = window.prompt('Falta monto en el evento. Ingresa monto para crear el borrador:', '');
+                    if (requested === null) {
+                        button.disabled = false;
+                        button.textContent = previousLabel;
+                        return;
+                    }
+                    const parsed = Number(String(requested).replace(',', '.'));
+                    if (!Number.isFinite(parsed) || parsed <= 0) {
+                        showMessage('appleWalletMessage', 'Monto invalido.', false);
+                        button.disabled = false;
+                        button.textContent = previousLabel;
+                        return;
+                    }
+                    amountValue = parsed;
+                }
+                await resolveAppleWalletEvent(eventID, action, { amount: amountValue });
+                await fetchAppleWalletEvents();
+                showMessage('appleWalletMessage', action === 'reject' ? 'Evento descartado.' : 'Borrador creado.', true);
+            } catch (error) {
+                console.error('No se pudo resolver evento Apple Wallet:', error);
+                showMessage('appleWalletMessage', error.message || 'No se pudo resolver el evento', false);
+            } finally {
+                button.disabled = false;
+                button.textContent = previousLabel;
             }
         });
         toggleRecurringCreateBtn?.addEventListener('click', () => {
@@ -2595,3 +2956,5 @@ async function saveCategoriesList(nextCategories) {
     </script>
 </body>
 </html>
+
+

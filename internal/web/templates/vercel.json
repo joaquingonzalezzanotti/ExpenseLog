@@ -51,6 +51,11 @@
       "permanent": true
     },
     {
+      "source": "/apple-wallet",
+      "destination": "/app/apple-wallet",
+      "permanent": true
+    },
+    {
       "source": "/app/index",
       "destination": "/app",
       "permanent": true

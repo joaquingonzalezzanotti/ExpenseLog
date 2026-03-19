@@ -72,6 +72,48 @@ type appleWalletIngestResponse struct {
 	NextStep           string `json:"nextStep,omitempty"`
 }
 
+type appleWalletEventReviewItem struct {
+	ID                   string    `json:"id"`
+	Status               string    `json:"status"`
+	Confidence           string    `json:"confidence"`
+	Source               string    `json:"source"`
+	Amount               float64   `json:"amount"`
+	Merchant             string    `json:"merchant"`
+	MerchantRaw          string    `json:"merchantRaw"`
+	CardLabel            string    `json:"cardLabel"`
+	WalletCategory       string    `json:"walletCategory"`
+	PaidAt               time.Time `json:"paidAt"`
+	CreatedAt            time.Time `json:"createdAt"`
+	UpdatedAt            time.Time `json:"updatedAt"`
+	CreatedTransactionID string    `json:"createdTransactionId,omitempty"`
+	DuplicateOfEventID   string    `json:"duplicateOfEventId,omitempty"`
+	CanCreateDraft       bool      `json:"canCreateDraft"`
+	ReviewHints          []string  `json:"reviewHints,omitempty"`
+}
+
+type appleWalletEventListResponse struct {
+	Items []appleWalletEventReviewItem `json:"items"`
+}
+
+type appleWalletResolveEventRequest struct {
+	EventID   string    `json:"eventId"`
+	Action    string    `json:"action"`
+	Name      string    `json:"name"`
+	Category  string    `json:"category"`
+	Amount    float64   `json:"amount"`
+	Currency  string    `json:"currency"`
+	Source    string    `json:"source"`
+	CardLabel string    `json:"cardLabel"`
+	PaidAt    time.Time `json:"paidAt"`
+}
+
+type appleWalletResolveEventResponse struct {
+	Status        string `json:"status"`
+	EventID       string `json:"eventId"`
+	TransactionID string `json:"transactionId,omitempty"`
+	Message       string `json:"message,omitempty"`
+}
+
 func normalizeMerchant(raw string) string {
 	clean := storage.SanitizeString(raw)
 	clean = strings.ToLower(strings.TrimSpace(clean))
@@ -417,6 +459,74 @@ func requestHeadersForDebug(r *http.Request) string {
 	return string(encoded)
 }
 
+func walletStatusFromQuery(raw string) string {
+	status := strings.TrimSpace(strings.ToLower(raw))
+	switch status {
+	case "", "all":
+		return "all"
+	case walletEventStatusReceived,
+		walletEventStatusNeedsReview,
+		walletEventStatusDraftCreated,
+		walletEventStatusDuplicate,
+		walletEventStatusRejected:
+		return status
+	default:
+		return "all"
+	}
+}
+
+func walletCanCreateDraftFromEvent(event storage.WalletIngestEvent) bool {
+	return normalizeWalletAmount(event.Amount) > 0
+}
+
+func walletEventReviewHints(event storage.WalletIngestEvent) []string {
+	hints := make([]string, 0, 4)
+	if normalizeWalletAmount(event.Amount) <= 0 {
+		hints = append(hints, "Falta monto valido para crear borrador.")
+	}
+	if strings.TrimSpace(event.Merchant) == "" && strings.TrimSpace(event.MerchantRaw) == "" {
+		hints = append(hints, "Falta comercio o descripcion legible.")
+	}
+	if event.PaidAt.IsZero() {
+		hints = append(hints, "No se detecto fecha de pago; se puede completar manualmente.")
+	}
+	if strings.TrimSpace(event.CardLabel) == "" {
+		hints = append(hints, "Tarjeta sin etiqueta (opcional).")
+	}
+	return hints
+}
+
+func walletEventToReviewItem(event storage.WalletIngestEvent) appleWalletEventReviewItem {
+	return appleWalletEventReviewItem{
+		ID:                   event.ID,
+		Status:               event.Status,
+		Confidence:           event.Confidence,
+		Source:               event.Source,
+		Amount:               normalizeWalletAmount(event.Amount),
+		Merchant:             event.Merchant,
+		MerchantRaw:          event.MerchantRaw,
+		CardLabel:            event.CardLabel,
+		WalletCategory:       event.WalletCategory,
+		PaidAt:               event.PaidAt,
+		CreatedAt:            event.CreatedAt,
+		UpdatedAt:            event.UpdatedAt,
+		CreatedTransactionID: event.CreatedTransactionID,
+		DuplicateOfEventID:   event.DuplicateOfEventID,
+		CanCreateDraft:       walletCanCreateDraftFromEvent(event),
+		ReviewHints:          walletEventReviewHints(event),
+	}
+}
+
+func normalizeWalletCurrency(raw string) string {
+	currency := strings.TrimSpace(strings.ToLower(raw))
+	for _, candidate := range storage.SupportedCurrencies {
+		if currency == candidate {
+			return currency
+		}
+	}
+	return ""
+}
+
 func decodeRequestBodyAsRawJSON(r *http.Request) (string, error) {
 	defer r.Body.Close()
 	var payload any
@@ -530,6 +640,228 @@ func (h *Handler) CreateAppleWalletIngestToken(w http.ResponseWriter, r *http.Re
 		Token:     token,
 		CreatedAt: stored.CreatedAt,
 	})
+}
+
+func (h *Handler) ListAppleWalletEvents(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{Error: "Method not allowed"})
+		return
+	}
+	userID, ok := requireUserID(w, r)
+	if !ok {
+		return
+	}
+	premium, err := h.isUserPremium(userID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to validate plan"})
+		return
+	}
+	if !premium {
+		writeJSON(w, http.StatusForbidden, map[string]string{
+			"error": "Disponible solo para cuentas Premium",
+			"code":  "premium_required",
+		})
+		return
+	}
+
+	statusFilter := walletStatusFromQuery(r.URL.Query().Get("status"))
+	limit := 25
+	if rawLimit := strings.TrimSpace(r.URL.Query().Get("limit")); rawLimit != "" {
+		if parsed, parseErr := strconv.Atoi(rawLimit); parseErr == nil {
+			limit = parsed
+		}
+	}
+	if limit <= 0 {
+		limit = 25
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	events, err := h.storage.ListWalletIngestEvents(userID, statusFilter, limit)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to list ingest events"})
+		return
+	}
+
+	items := make([]appleWalletEventReviewItem, 0, len(events))
+	for _, event := range events {
+		items = append(items, walletEventToReviewItem(event))
+	}
+	writeJSON(w, http.StatusOK, appleWalletEventListResponse{Items: items})
+}
+
+func (h *Handler) ResolveAppleWalletEvent(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{Error: "Method not allowed"})
+		return
+	}
+	userID, ok := requireUserID(w, r)
+	if !ok {
+		return
+	}
+	premium, err := h.isUserPremium(userID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to validate plan"})
+		return
+	}
+	if !premium {
+		writeJSON(w, http.StatusForbidden, map[string]string{
+			"error": "Disponible solo para cuentas Premium",
+			"code":  "premium_required",
+		})
+		return
+	}
+
+	defer r.Body.Close()
+	var req appleWalletResolveEventRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid request body"})
+		return
+	}
+	req.EventID = strings.TrimSpace(req.EventID)
+	action := strings.TrimSpace(strings.ToLower(req.Action))
+	if req.EventID == "" {
+		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "eventId is required"})
+		return
+	}
+
+	event, err := h.storage.GetWalletIngestEventByID(userID, req.EventID)
+	if err == sql.ErrNoRows {
+		writeJSON(w, http.StatusNotFound, ErrorResponse{Error: "Wallet ingest event not found"})
+		return
+	}
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to load ingest event"})
+		return
+	}
+
+	switch action {
+	case "reject":
+		if event.Status == walletEventStatusDraftCreated && strings.TrimSpace(event.CreatedTransactionID) != "" {
+			writeJSON(w, http.StatusConflict, ErrorResponse{Error: "Evento ya convertido en borrador. Elimina o edita la transaccion desde Tabla."})
+			return
+		}
+		if err := h.storage.UpdateWalletIngestEventResult(event.ID, walletEventStatusRejected, "", "", ""); err != nil {
+			writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to update event"})
+			return
+		}
+		writeJSON(w, http.StatusOK, appleWalletResolveEventResponse{
+			Status:  walletEventStatusRejected,
+			EventID: event.ID,
+			Message: "Evento marcado como descartado.",
+		})
+		return
+
+	case "create_draft":
+		if event.Status == walletEventStatusDraftCreated && strings.TrimSpace(event.CreatedTransactionID) != "" {
+			writeJSON(w, http.StatusOK, appleWalletResolveEventResponse{
+				Status:        walletEventStatusDraftCreated,
+				EventID:       event.ID,
+				TransactionID: event.CreatedTransactionID,
+				Message:       "El evento ya tiene un borrador asociado.",
+			})
+			return
+		}
+
+		requestedAmount := normalizeWalletAmount(req.Amount)
+		if requestedAmount <= 0 {
+			requestedAmount = normalizeWalletAmount(event.Amount)
+		}
+		if requestedAmount <= 0 {
+			writeJSON(w, http.StatusUnprocessableEntity, ErrorResponse{Error: "Amount is required to create draft transaction"})
+			return
+		}
+
+		draftPaidAt := req.PaidAt
+		if draftPaidAt.IsZero() {
+			draftPaidAt = event.PaidAt
+		}
+		if draftPaidAt.IsZero() {
+			draftPaidAt = time.Now().UTC()
+		}
+
+		draftName := strings.TrimSpace(storage.SanitizeString(req.Name))
+		if draftName == "" {
+			draftName = strings.TrimSpace(storage.SanitizeString(event.MerchantRaw))
+		}
+		if draftName == "" {
+			draftName = strings.TrimSpace(storage.SanitizeString(event.Merchant))
+		}
+		if draftName == "" {
+			draftName = walletDraftFallbackName
+		}
+
+		draftCategory := strings.TrimSpace(storage.SanitizeString(req.Category))
+		if draftCategory == "" {
+			draftCategory = walletDraftCategoryNeedsReview
+		}
+
+		draftSource := strings.TrimSpace(req.Source)
+		if draftSource == "" {
+			draftSource = event.Source
+		}
+		draftPaymentMethod := normalizeWalletPaymentMethod(draftSource)
+
+		draftCardLabel := strings.TrimSpace(storage.SanitizeString(req.CardLabel))
+		if draftCardLabel == "" {
+			draftCardLabel = strings.TrimSpace(storage.SanitizeString(event.CardLabel))
+		}
+
+		currency := normalizeWalletCurrency(req.Currency)
+		if currency == "" {
+			resolvedCurrency, currErr := h.storage.GetCurrency(userID)
+			if currErr != nil {
+				writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to resolve currency"})
+				return
+			}
+			currency = normalizeWalletCurrency(resolvedCurrency)
+			if currency == "" {
+				currency = "ars"
+			}
+		}
+
+		flow, amount, flowErr := normalizeFlow("expense", requestedAmount)
+		if flowErr != nil {
+			writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: flowErr.Error()})
+			return
+		}
+		expense := storage.Expense{
+			ID:           uuid.New().String(),
+			Name:         draftName,
+			Category:     draftCategory,
+			Amount:       amount,
+			Currency:     currency,
+			Flow:         flow,
+			Source:       draftPaymentMethod,
+			Card:         draftCardLabel,
+			Date:         draftPaidAt,
+			SystemOrigin: walletDraftSystemOrigin,
+		}
+		if validateErr := expense.Validate(); validateErr != nil {
+			writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: validateErr.Error()})
+			return
+		}
+		if addErr := h.storage.AddExpense(userID, expense); addErr != nil {
+			writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to create draft transaction"})
+			return
+		}
+		if updateErr := h.storage.UpdateWalletIngestEventResult(event.ID, walletEventStatusDraftCreated, "", expense.ID, ""); updateErr != nil {
+			writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to update ingest event"})
+			return
+		}
+		writeJSON(w, http.StatusCreated, appleWalletResolveEventResponse{
+			Status:        walletEventStatusDraftCreated,
+			EventID:       event.ID,
+			TransactionID: expense.ID,
+			Message:       "Borrador creado correctamente.",
+		})
+		return
+
+	default:
+		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid action. Use create_draft or reject"})
+		return
+	}
 }
 
 func (h *Handler) AppleWalletIngest(w http.ResponseWriter, r *http.Request) {

@@ -96,6 +96,8 @@ type Storage interface {
 	CreateWalletIngestEvent(event WalletIngestEvent) (WalletIngestEvent, error)
 	UpdateWalletIngestEventResult(eventID, status, confidence, createdTransactionID, duplicateOfEventID string) error
 	FindPotentialDuplicateWalletIngestEvent(userID string, amount float64, merchantNormalized string, paidAt time.Time, window time.Duration) (WalletIngestEvent, error)
+	GetWalletIngestEventByID(userID, eventID string) (WalletIngestEvent, error)
+	ListWalletIngestEvents(userID, status string, limit int) ([]WalletIngestEvent, error)
 
 	// Potential Future Feature: Multi-currency
 	// GetConversions() (map[string]float64, error)

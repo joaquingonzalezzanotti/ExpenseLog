@@ -251,3 +251,159 @@ func TestAppleWalletIngestPremiumRequired(t *testing.T) {
 		t.Fatalf("unexpected status: %d body=%s", rec.Code, rec.Body.String())
 	}
 }
+
+func TestAppleWalletListEventsPremiumRequired(t *testing.T) {
+	store := newAPIStoreForTest(t)
+	h := NewHandler(store)
+	user, sessionID := createUserAndSession(t, store)
+	setUserPlanTier(t, user.ID, storage.PlanTierFree)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/integrations/apple-wallet/events?status=all&limit=10", nil)
+	req.AddCookie(&http.Cookie{Name: sessionCookieName, Value: sessionID})
+	rec := httptest.NewRecorder()
+	h.RequireAuth(h.ListAppleWalletEvents).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("unexpected status: %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestAppleWalletListEventsByStatus(t *testing.T) {
+	store := newAPIStoreForTest(t)
+	h := NewHandler(store)
+	user, sessionID := createUserAndSession(t, store)
+	setUserPlanTier(t, user.ID, storage.PlanTierPremium)
+
+	now := time.Now().UTC()
+	if _, err := store.CreateWalletIngestEvent(storage.WalletIngestEvent{
+		UserID:      user.ID,
+		Source:      walletSourceDefault,
+		Amount:      0,
+		MerchantRaw: "SIN DATOS",
+		PaidAt:      now,
+		RawPayload:  `{"test":"needs_review"}`,
+		Status:      walletEventStatusNeedsReview,
+		Confidence:  walletConfidenceLow,
+	}); err != nil {
+		t.Fatalf("create needs_review event: %v", err)
+	}
+	if _, err := store.CreateWalletIngestEvent(storage.WalletIngestEvent{
+		UserID:               user.ID,
+		Source:               walletSourceDefault,
+		Amount:               1000,
+		Merchant:             "cafe",
+		MerchantRaw:          "Cafe",
+		PaidAt:               now.Add(-1 * time.Hour),
+		RawPayload:           `{"test":"draft"}`,
+		Status:               walletEventStatusDraftCreated,
+		Confidence:           walletConfidenceMedium,
+		CreatedTransactionID: "tx-demo-1",
+	}); err != nil {
+		t.Fatalf("create draft event: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/integrations/apple-wallet/events?status=needs_review&limit=20", nil)
+	req.AddCookie(&http.Cookie{Name: sessionCookieName, Value: sessionID})
+	rec := httptest.NewRecorder()
+	h.RequireAuth(h.ListAppleWalletEvents).ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("unexpected status: %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	var body appleWalletEventListResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode events response: %v", err)
+	}
+	if len(body.Items) == 0 {
+		t.Fatalf("expected at least one event in list")
+	}
+	for _, item := range body.Items {
+		if item.Status != walletEventStatusNeedsReview {
+			t.Fatalf("expected only %q status, got %q", walletEventStatusNeedsReview, item.Status)
+		}
+	}
+}
+
+func TestAppleWalletResolveEventCreateDraft(t *testing.T) {
+	store := newAPIStoreForTest(t)
+	h := NewHandler(store)
+	user, sessionID := createUserAndSession(t, store)
+	setUserPlanTier(t, user.ID, storage.PlanTierPremium)
+
+	event, err := store.CreateWalletIngestEvent(storage.WalletIngestEvent{
+		UserID:      user.ID,
+		Source:      walletSourceDefault,
+		Amount:      0,
+		MerchantRaw: "Cafe de prueba",
+		PaidAt:      time.Now().UTC(),
+		RawPayload:  `{"test":"resolve_create_draft"}`,
+		Status:      walletEventStatusNeedsReview,
+		Confidence:  walletConfidenceLow,
+	})
+	if err != nil {
+		t.Fatalf("create wallet ingest event: %v", err)
+	}
+
+	reqBody := `{"eventId":"` + event.ID + `","action":"create_draft","amount":1234.5}`
+	req := httptest.NewRequest(http.MethodPost, "/api/integrations/apple-wallet/events/resolve", bytes.NewBufferString(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(&http.Cookie{Name: sessionCookieName, Value: sessionID})
+	rec := httptest.NewRecorder()
+	h.RequireAuth(h.ResolveAppleWalletEvent).ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("unexpected status: %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	var body appleWalletResolveEventResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode resolve response: %v", err)
+	}
+	if body.TransactionID == "" {
+		t.Fatalf("expected transactionId in response")
+	}
+
+	updated, err := store.GetWalletIngestEventByID(user.ID, event.ID)
+	if err != nil {
+		t.Fatalf("reload wallet event: %v", err)
+	}
+	if updated.Status != walletEventStatusDraftCreated {
+		t.Fatalf("expected status %q, got %q", walletEventStatusDraftCreated, updated.Status)
+	}
+	if updated.CreatedTransactionID != body.TransactionID {
+		t.Fatalf("expected created_transaction_id %q, got %q", body.TransactionID, updated.CreatedTransactionID)
+	}
+}
+
+func TestAppleWalletResolveEventRejectConflict(t *testing.T) {
+	store := newAPIStoreForTest(t)
+	h := NewHandler(store)
+	user, sessionID := createUserAndSession(t, store)
+	setUserPlanTier(t, user.ID, storage.PlanTierPremium)
+
+	event, err := store.CreateWalletIngestEvent(storage.WalletIngestEvent{
+		UserID:               user.ID,
+		Source:               walletSourceDefault,
+		Amount:               8900,
+		Merchant:             "resto",
+		MerchantRaw:          "Resto",
+		PaidAt:               time.Now().UTC(),
+		RawPayload:           `{"test":"reject_conflict"}`,
+		Status:               walletEventStatusDraftCreated,
+		Confidence:           walletConfidenceHigh,
+		CreatedTransactionID: "tx-existing-1",
+	})
+	if err != nil {
+		t.Fatalf("create wallet ingest event: %v", err)
+	}
+
+	reqBody := `{"eventId":"` + event.ID + `","action":"reject"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/integrations/apple-wallet/events/resolve", bytes.NewBufferString(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(&http.Cookie{Name: sessionCookieName, Value: sessionID})
+	rec := httptest.NewRecorder()
+	h.RequireAuth(h.ResolveAppleWalletEvent).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("unexpected status: %d body=%s", rec.Code, rec.Body.String())
+	}
+}

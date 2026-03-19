@@ -792,6 +792,7 @@ function setupMobileDrawer() {
             '/recurrentes': '/app/recurrentes',
             '/conciliacion': '/app/conciliacion',
             '/reportes': '/app/reportes',
+            '/apple-wallet': '/app/apple-wallet',
             '/telegram': '/app/telegram',
             '/app/settings': '/app/perfil',
         };
@@ -1016,9 +1017,9 @@ function setupRoutePrefetch() {
             return ['/app/table?view=calendar', '/app', '/app/reportes', '/app/perfil'];
         }
         if (path.startsWith('/app/perfil') || path.startsWith('/app/settings')) {
-            return ['/app/reportes', '/app/telegram', '/app/table', '/app/categorias', '/app/recurrentes', '/app'];
+            return ['/app/reportes', '/app/apple-wallet', '/app/telegram', '/app/table', '/app/categorias', '/app/recurrentes', '/app'];
         }
-        if (path.startsWith('/app/categorias') || path.startsWith('/app/recurrentes') || path.startsWith('/app/conciliacion') || path.startsWith('/app/reportes') || path.startsWith('/app/telegram')) {
+        if (path.startsWith('/app/categorias') || path.startsWith('/app/recurrentes') || path.startsWith('/app/conciliacion') || path.startsWith('/app/reportes') || path.startsWith('/app/apple-wallet') || path.startsWith('/app/telegram')) {
             return ['/app/perfil', '/app/table', '/app/table?view=calendar', '/app'];
         }
         return ['/app', '/app/table', '/app/table?view=calendar', '/app/reportes'];

@@ -2129,6 +2129,25 @@ async function saveCategoriesList(nextCategories) {
             }
         }
 
+        function runSettingsViewTransition(updateFn) {
+            if (typeof updateFn !== 'function') return;
+            if (typeof document.startViewTransition !== 'function') {
+                updateFn();
+                return;
+            }
+
+            try {
+                const transition = document.startViewTransition(() => {
+                    updateFn();
+                });
+                if (transition?.finished?.catch) {
+                    transition.finished.catch(() => {});
+                }
+            } catch (error) {
+                updateFn();
+            }
+        }
+
         function navigateSettingsSection(sectionKey, options = {}) {
             const normalized = normalizeSettingsSection(sectionKey) || 'profile';
             const targetPath = routeForSettingsSection(normalized);
@@ -2151,11 +2170,7 @@ async function saveCategoriesList(nextCategories) {
                 window.dispatchEvent(new CustomEvent('expenselog:routechange'));
             };
 
-            if (document.startViewTransition) {
-                document.startViewTransition(applySectionNavigation);
-            } else {
-                applySectionNavigation();
-            }
+            runSettingsViewTransition(applySectionNavigation);
         }
 
         function bindSettingsRouteAnchors() {
@@ -2484,11 +2499,7 @@ async function saveCategoriesList(nextCategories) {
                 openSectionFromURL();
                 window.dispatchEvent(new CustomEvent('expenselog:routechange'));
             };
-            if (document.startViewTransition) {
-                document.startViewTransition(applyHistoryNavigation);
-            } else {
-                applyHistoryNavigation();
-            }
+            runSettingsViewTransition(applyHistoryNavigation);
         });
         bindSettingsRouteAnchors();
         document.getElementById('reconciliation-history-list')?.addEventListener('click', async (e) => {

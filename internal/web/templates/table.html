@@ -709,6 +709,25 @@
             return requested === 'calendar' ? 'calendar' : 'table';
         }
 
+        function runDataViewTransition(updateFn) {
+            if (typeof updateFn !== 'function') return;
+            if (typeof document.startViewTransition !== 'function') {
+                updateFn();
+                return;
+            }
+
+            try {
+                const transition = document.startViewTransition(() => {
+                    updateFn();
+                });
+                if (transition?.finished?.catch) {
+                    transition.finished.catch(() => {});
+                }
+            } catch (error) {
+                updateFn();
+            }
+        }
+
         function navigateDataView(view, options = {}) {
             const normalizedView = view === 'calendar' ? 'calendar' : 'table';
             const targetRoute = routeForDataView(normalizedView);
@@ -730,11 +749,7 @@
                 window.dispatchEvent(new CustomEvent('expenselog:routechange'));
             };
 
-            if (document.startViewTransition) {
-                document.startViewTransition(applyView);
-            } else {
-                applyView();
-            }
+            runDataViewTransition(applyView);
         }
 
         function bindTableViewRouteAnchors() {
@@ -1624,11 +1639,7 @@
                 }
                 window.dispatchEvent(new CustomEvent('expenselog:routechange'));
             };
-            if (document.startViewTransition) {
-                document.startViewTransition(applyHistoryView);
-            } else {
-                applyHistoryView();
-            }
+            runDataViewTransition(applyHistoryView);
         });
         bindTableViewRouteAnchors();
 

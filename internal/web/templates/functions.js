@@ -780,6 +780,7 @@ function setupMobileDrawer() {
     const drawerLinks = Array.from(drawer.querySelectorAll('.mobile-drawer-link'));
     let isOpen = false;
     let restoreFocusElement = toggleButton;
+    const supportsInert = 'inert' in HTMLElement.prototype;
 
     const normalizeRoute = (pathname, search = '') => {
         const cleanedPath = String(pathname || '/').replace(/\/+$/, '') || '/';
@@ -830,6 +831,17 @@ function setupMobileDrawer() {
         });
     };
 
+    const syncDrawerVisibility = () => {
+        drawer.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+        overlay.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+        if (supportsInert) {
+            drawer.inert = !isOpen;
+            overlay.inert = !isOpen;
+        }
+    };
+
+    syncDrawerVisibility();
+
     const handleKeyDown = (event) => {
         if (!isOpen) return;
         if (event.key === 'Escape') {
@@ -871,11 +883,22 @@ function setupMobileDrawer() {
         const shouldOpen = Boolean(nextOpen);
         if (shouldOpen === isOpen) return;
 
+        if (!shouldOpen) {
+            const activeElement = document.activeElement;
+            const focusInsideDrawer = activeElement instanceof Node && drawer.contains(activeElement);
+            if (focusInsideDrawer) {
+                if (options.restoreFocus !== false && restoreFocusElement instanceof HTMLElement) {
+                    restoreFocusElement.focus({ preventScroll: true });
+                } else if (activeElement instanceof HTMLElement) {
+                    activeElement.blur();
+                }
+            }
+        }
+
         isOpen = shouldOpen;
         document.body.classList.toggle('mobile-drawer-open', isOpen);
         toggleButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-        drawer.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
-        overlay.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+        syncDrawerVisibility();
 
         if (isOpen) {
             restoreFocusElement = document.activeElement instanceof HTMLElement
@@ -889,7 +912,11 @@ function setupMobileDrawer() {
         }
 
         document.removeEventListener('keydown', handleKeyDown);
-        if (options.restoreFocus !== false && restoreFocusElement instanceof HTMLElement) {
+        if (
+            options.restoreFocus !== false &&
+            restoreFocusElement instanceof HTMLElement &&
+            document.activeElement !== restoreFocusElement
+        ) {
             restoreFocusElement.focus();
         }
     };

@@ -74,7 +74,7 @@
                     <div class="empty-state-actions">
                         <button type="button" class="nav-button button-primary" data-onboarding-action="start-income">Cargar ingreso</button>
                         <button type="button" class="nav-button button-secondary" data-onboarding-action="start-expense">Cargar gasto</button>
-                        <button type="button" class="nav-button button-secondary" data-onboarding-action="go-table">Ir a tabla</button>
+                        <button type="button" class="nav-button button-secondary" data-onboarding-action="go-table">Ver tabla</button>
                     </div>
                 </div>
             `;
@@ -85,7 +85,7 @@
             return `
                 <div class="empty-state-guide">
                     <strong>No hay gastos en ${currency}.</strong>
-                    <p>Puedes cargar un gasto en moneda base o revisar tus movimientos en Tabla.</p>
+                    <p>Podes cargar un gasto en moneda base o revisar tus movimientos en Tabla.</p>
                     <div class="empty-state-actions">
                         <button type="button" class="nav-button button-primary" data-onboarding-action="start-expense">Cargar gasto</button>
                         <button type="button" class="nav-button button-secondary" data-onboarding-action="go-table">Ver tabla</button>
@@ -94,7 +94,7 @@
             `;
         }
 
-        return "<strong>Aun no hay gastos.</strong> Carga el primero con Agregar gasto.";
+        return "<strong>Aun no hay movimientos.</strong> Carga el primero con Agregar gasto.";
     }
 
     function buildTableEmptyState(options) {
@@ -129,11 +129,11 @@
             `;
         }
 
-        const message = showAll ? "No hay transacciones para mostrar" : "No hay gastos cargados para este mes";
+        const message = showAll ? "No hay movimientos para mostrar" : "No hay movimientos cargados para este mes";
         return `
             <section class="context-empty-state">
                 <h4>${escapeHTML(message)}</h4>
-                <p>Puedes registrar un movimiento ahora y volver a esta vista.</p>
+                <p>Podes registrar un movimiento ahora y volver a esta vista.</p>
                 <div class="context-empty-actions">
                     <button type="button" class="nav-button button-primary" data-table-empty-action="start-expense">Agregar movimiento</button>
                 </div>

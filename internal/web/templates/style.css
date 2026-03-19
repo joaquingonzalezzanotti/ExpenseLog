@@ -2304,23 +2304,38 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     margin-top: 0.85rem;
 }
 
+.settings-reports-section .settings-export-actions {
+    flex-direction: column;
+    gap: 0.78rem;
+    margin-top: 0.95rem;
+}
+
 .settings-reports-section .settings-export-actions .nav-button {
-    flex: 1 1 0;
+    width: 100%;
     min-width: 0;
-    border-radius: 14px;
-    min-height: 64px;
+    border-radius: 999px;
+    min-height: 72px;
     justify-content: center;
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    text-align: left;
-    box-shadow: 0 7px 18px rgba(37, 99, 235, 0.12);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    align-items: center;
+    text-align: center;
+    font-size: clamp(1.05rem, 1.8vw, 1.12rem);
+    line-height: 1.2;
+    font-weight: 700;
+    padding: 0.8rem 1.2rem;
+    box-shadow: 0 10px 24px rgba(37, 99, 235, 0.12);
+    transition: filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.settings-reports-section .settings-export-actions .button-secondary {
+    background: var(--bg-primary);
+    border-color: rgba(148, 163, 184, 0.45);
+    color: var(--text-primary);
 }
 
 .settings-reports-section .settings-export-actions .nav-button:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 9px 22px rgba(37, 99, 235, 0.16);
+    filter: brightness(1.02);
+    box-shadow: 0 12px 26px rgba(37, 99, 235, 0.15);
 }
 
 .settings-export-btn-label {
@@ -2509,10 +2524,15 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     position: fixed;
     inset: 0;
     z-index: 11000;
-    display: grid;
-    place-items: center;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
     padding: 1rem;
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
     box-sizing: border-box;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .entry-modal-overlay[hidden] {
@@ -2529,12 +2549,13 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
 .entry-modal-card {
     position: relative;
-    width: min(760px, 100%);
+    width: min(760px, calc(100vw - 2rem));
     max-width: 100%;
-    max-height: min(92vh, 820px);
+    max-height: calc(100dvh - 2rem);
     overflow-y: auto;
     overflow-x: hidden;
     padding: 1.2rem;
+    margin: auto 0;
     box-sizing: border-box;
     border-radius: 18px;
     border: 1px solid rgba(37, 99, 235, 0.22);
@@ -2543,6 +2564,8 @@ html[data-theme='dark'] .expense-table td.amount-balance {
         radial-gradient(circle at 0% 100%, rgba(16, 185, 129, 0.1), transparent 42%),
         linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 130%);
     box-shadow: 0 26px 48px rgba(8, 15, 30, 0.34);
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
 }
 
 .entry-modal-card > * {
@@ -4072,7 +4095,7 @@ html[data-settings-route='telegram'] body.settings-page #telegramSection[hidden]
     }
 
     .entry-modal-card {
-        width: min(410px, 100%);
+        width: min(410px, calc(100vw - 1rem));
         max-height: calc(100dvh - 1rem);
         padding: 0.82rem;
         border-radius: 14px;
@@ -4604,7 +4627,7 @@ html[data-settings-route='telegram'] body.settings-page #telegramSection[hidden]
 
     .entry-modal-card,
     .card-payment-modal-card {
-        width: 100%;
+        width: calc(100vw - 0.8rem);
         max-height: calc(100dvh - 0.8rem);
     }
 

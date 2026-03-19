@@ -1,4 +1,4 @@
-const SW_VERSION = '2026-03-18-v8';
+const SW_VERSION = '2026-03-19-v9';
 const STATIC_CACHE = `expenselog-static-${SW_VERSION}`;
 const PAGE_CACHE = `expenselog-pages-${SW_VERSION}`;
 
@@ -79,9 +79,9 @@ self.addEventListener('activate', (event) => {
         }));
         if (self.registration.navigationPreload) {
             try {
-                await self.registration.navigationPreload.enable();
+                await self.registration.navigationPreload.disable();
             } catch (_) {
-                // Ignore if browser rejects enablement.
+                // Ignore if browser rejects disablement.
             }
         }
         await self.clients.claim();
@@ -183,7 +183,7 @@ self.addEventListener('fetch', (event) => {
     if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/auth/')) return;
 
     if (request.mode === 'navigate' || request.destination === 'document') {
-        event.respondWith(handleNavigate(request, event.preloadResponse));
+        event.respondWith(handleNavigate(request, null));
         return;
     }
 

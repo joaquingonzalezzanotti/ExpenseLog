@@ -211,16 +211,13 @@
                 <div class="settings-export-grid settings-export-grid-advanced">
                     <div class="settings-preference-item settings-report-field">
                         <label for="reportCurrencySelect">Moneda</label>
-                        <div class="settings-currency-switch" role="radiogroup" aria-label="Moneda del reporte">
-                            <button type="button" class="settings-chip-button" data-report-currency="ars" aria-pressed="false">ARS</button>
-                            <button type="button" class="settings-chip-button" data-report-currency="usd" aria-pressed="false">USD</button>
-                            <button type="button" class="settings-chip-button" data-report-currency="eur" aria-pressed="false">EUR</button>
+                        <div class="settings-preference-control settings-report-select-wrap">
+                            <select id="reportCurrencySelect">
+                                <option value="ars">ARS</option>
+                                <option value="usd">USD</option>
+                                <option value="eur">EUR</option>
+                            </select>
                         </div>
-                        <select id="reportCurrencySelect" class="settings-report-input-hidden" aria-hidden="true" tabindex="-1">
-                            <option value="ars">ARS</option>
-                            <option value="usd">USD</option>
-                            <option value="eur">EUR</option>
-                        </select>
                     </div>
                     <div class="settings-preference-item settings-report-field">
                         <label for="reportIncludeCreditCardCheckbox">Tarjeta</label>
@@ -237,7 +234,7 @@
                         <span class="settings-export-btn-label"><i class="fa-regular fa-file-excel" aria-hidden="true"></i> Descargar Excel (.xlsx)</span>
                         <span class="settings-export-btn-note">Ideal para analisis y tablas dinamicas</span>
                     </button>
-                    <button id="downloadMonthlyPDFBtn" class="nav-button button-primary" type="button">
+                    <button id="downloadMonthlyPDFBtn" class="nav-button button-secondary settings-export-btn-pdf" type="button">
                         <span class="settings-export-btn-label"><i class="fa-regular fa-file-pdf" aria-hidden="true"></i> Descargar PDF (.pdf)</span>
                         <span class="settings-export-btn-note">Listo para compartir y presentar</span>
                     </button>

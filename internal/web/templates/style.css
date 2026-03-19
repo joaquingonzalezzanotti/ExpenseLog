@@ -2190,6 +2190,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 }
 
 .settings-export-grid-main {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     margin-bottom: 0.78rem;
 }
 
@@ -2208,12 +2209,20 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 .settings-report-select-wrap input {
     border-radius: 12px;
     min-height: 46px;
+    height: 46px;
     border-color: rgba(37, 99, 235, 0.2);
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(37, 99, 235, 0.04) 100%);
 }
 
 .settings-report-select-wrap input {
     font-weight: 600;
+    appearance: textfield;
+}
+
+.settings-report-select-wrap input::-webkit-outer-spin-button,
+.settings-report-select-wrap input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 .settings-currency-switch,
@@ -2311,6 +2320,22 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
 .settings-reports-section .button-primary .settings-export-btn-note {
     color: rgba(6, 32, 58, 0.78);
+}
+
+.settings-export-btn-pdf {
+    border-color: rgba(220, 38, 38, 0.45) !important;
+    color: #fca5a5 !important;
+    background: rgba(127, 29, 29, 0.24) !important;
+}
+
+.settings-export-btn-pdf:hover:not(:disabled) {
+    background: rgba(127, 29, 29, 0.34) !important;
+    border-color: rgba(220, 38, 38, 0.68) !important;
+    color: #fecaca !important;
+}
+
+.settings-export-btn-pdf .settings-export-btn-note {
+    color: rgba(254, 202, 202, 0.82);
 }
 
 .settings-reports-caption {

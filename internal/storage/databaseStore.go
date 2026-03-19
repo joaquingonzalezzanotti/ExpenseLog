@@ -104,6 +104,7 @@ const (
 		tags TEXT,
 		source VARCHAR(50),
 		card VARCHAR(100),
+		review_status VARCHAR(20) NOT NULL DEFAULT 'reviewed',
 		system_origin VARCHAR(50) NOT NULL DEFAULT 'user',
 		system_locked BOOLEAN NOT NULL DEFAULT FALSE,
 		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -268,6 +269,7 @@ func createTables(db *sql.DB) error {
 		"ALTER TABLE expenses ADD COLUMN IF NOT EXISTS source VARCHAR(50)",
 		"ALTER TABLE expenses ADD COLUMN IF NOT EXISTS card VARCHAR(100)",
 		"ALTER TABLE expenses ADD COLUMN IF NOT EXISTS flow VARCHAR(20) NOT NULL DEFAULT 'expense'",
+		"ALTER TABLE expenses ADD COLUMN IF NOT EXISTS review_status VARCHAR(20) NOT NULL DEFAULT 'reviewed'",
 		"ALTER TABLE expenses ADD COLUMN IF NOT EXISTS system_origin VARCHAR(50) NOT NULL DEFAULT 'user'",
 		"ALTER TABLE expenses ADD COLUMN IF NOT EXISTS system_locked BOOLEAN NOT NULL DEFAULT FALSE",
 		"ALTER TABLE expenses ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
@@ -326,6 +328,9 @@ func createTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS expenses_user_system_locked_idx ON expenses (user_id, system_locked)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS expenses_user_review_status_idx ON expenses (user_id, review_status)`); err != nil {
 		return err
 	}
 	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS reconciliations_adjustment_expense_key ON reconciliations (adjustment_expense_id)`); err != nil {
@@ -1694,6 +1699,7 @@ func scanExpense(scanner interface{ Scan(...any) error }) (Expense, error) {
 	var recurringID sql.NullString
 	var source sql.NullString
 	var card sql.NullString
+	var reviewStatus sql.NullString
 	var systemOrigin sql.NullString
 	var systemLocked sql.NullBool
 	err := scanner.Scan(
@@ -1709,6 +1715,7 @@ func scanExpense(scanner interface{ Scan(...any) error }) (Expense, error) {
 		&tagsStr,
 		&source,
 		&card,
+		&reviewStatus,
 		&systemOrigin,
 		&systemLocked,
 	)
@@ -1723,6 +1730,11 @@ func scanExpense(scanner interface{ Scan(...any) error }) (Expense, error) {
 	}
 	if card.Valid {
 		expense.Card = card.String
+	}
+	if reviewStatus.Valid {
+		expense.ReviewStatus = NormalizeExpenseReviewStatus(reviewStatus.String)
+	} else {
+		expense.ReviewStatus = ExpenseReviewStatusReviewed
 	}
 	if systemOrigin.Valid {
 		expense.SystemOrigin = systemOrigin.String
@@ -1739,7 +1751,7 @@ func scanExpense(scanner interface{ Scan(...any) error }) (Expense, error) {
 }
 
 func (s *databaseStore) GetAllExpenses(userID string) ([]Expense, error) {
-	query := `SELECT id, recurring_id, name, category, amount, currency, date, created_at, flow, tags, source, card, system_origin, system_locked FROM expenses WHERE user_id = $1 ORDER BY date DESC, created_at DESC, id DESC`
+	query := `SELECT id, recurring_id, name, category, amount, currency, date, created_at, flow, tags, source, card, review_status, system_origin, system_locked FROM expenses WHERE user_id = $1 ORDER BY date DESC, created_at DESC, id DESC`
 	rows, err := s.db.Query(query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query expenses: %v", err)
@@ -1759,7 +1771,7 @@ func (s *databaseStore) GetAllExpenses(userID string) ([]Expense, error) {
 
 func (s *databaseStore) GetExpensesByPeriodAndCurrency(userID string, start, end time.Time, currency string) ([]Expense, error) {
 	query := `
-		SELECT id, recurring_id, name, category, amount, currency, date, created_at, flow, tags, source, card, system_origin, system_locked
+		SELECT id, recurring_id, name, category, amount, currency, date, created_at, flow, tags, source, card, review_status, system_origin, system_locked
 		FROM expenses
 		WHERE user_id = $1
 			AND date >= $2
@@ -1802,7 +1814,7 @@ func (s *databaseStore) GetCashBalanceBeforeDate(userID string, before time.Time
 }
 
 func (s *databaseStore) GetExpense(userID, id string) (Expense, error) {
-	query := `SELECT id, recurring_id, name, category, amount, currency, date, created_at, flow, tags, source, card, system_origin, system_locked FROM expenses WHERE user_id = $1 AND id = $2`
+	query := `SELECT id, recurring_id, name, category, amount, currency, date, created_at, flow, tags, source, card, review_status, system_origin, system_locked FROM expenses WHERE user_id = $1 AND id = $2`
 	expense, err := scanExpense(s.db.QueryRow(query, userID, id))
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -1836,16 +1848,17 @@ func (s *databaseStore) AddExpense(userID string, expense Expense) error {
 	if expense.SystemOrigin == "" {
 		expense.SystemOrigin = systemOriginUser
 	}
+	expense.ReviewStatus = NormalizeExpenseReviewStatus(expense.ReviewStatus)
 	expense.SystemLocked = false
 	tagsJSON, err := json.Marshal(expense.Tags)
 	if err != nil {
 		return err
 	}
 	query := `
-		INSERT INTO expenses (id, user_id, recurring_id, name, category, amount, currency, date, flow, tags, source, card, system_origin, system_locked)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+		INSERT INTO expenses (id, user_id, recurring_id, name, category, amount, currency, date, flow, tags, source, card, review_status, system_origin, system_locked)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 	`
-	_, err = s.db.Exec(query, expense.ID, userID, expense.RecurringID, expense.Name, expense.Category, expense.Amount, expense.Currency, expense.Date, expense.Flow, string(tagsJSON), expense.Source, expense.Card, expense.SystemOrigin, expense.SystemLocked)
+	_, err = s.db.Exec(query, expense.ID, userID, expense.RecurringID, expense.Name, expense.Category, expense.Amount, expense.Currency, expense.Date, expense.Flow, string(tagsJSON), expense.Source, expense.Card, expense.ReviewStatus, expense.SystemOrigin, expense.SystemLocked)
 	return err
 }
 
@@ -1878,12 +1891,13 @@ func (s *databaseStore) UpdateExpense(userID, id string, expense Expense) error 
 			expense.Flow = "expense"
 		}
 	}
+	expense.ReviewStatus = NormalizeExpenseReviewStatus(expense.ReviewStatus)
 	query := `
 		UPDATE expenses
-		SET name = $1, category = $2, amount = $3, currency = $4, date = $5, flow = $6, tags = $7, recurring_id = $8, source = $9, card = $10
-		WHERE user_id = $11 AND id = $12
+		SET name = $1, category = $2, amount = $3, currency = $4, date = $5, flow = $6, tags = $7, recurring_id = $8, source = $9, card = $10, review_status = $11
+		WHERE user_id = $12 AND id = $13
 	`
-	result, err := s.db.Exec(query, expense.Name, expense.Category, expense.Amount, expense.Currency, expense.Date, expense.Flow, string(tagsJSON), expense.RecurringID, expense.Source, expense.Card, userID, id)
+	result, err := s.db.Exec(query, expense.Name, expense.Category, expense.Amount, expense.Currency, expense.Date, expense.Flow, string(tagsJSON), expense.RecurringID, expense.Source, expense.Card, expense.ReviewStatus, userID, id)
 	if err != nil {
 		return fmt.Errorf("failed to update expense: %v", err)
 	}
@@ -2051,7 +2065,7 @@ func (s *databaseStore) getReconciliationByIdempotencyTx(tx *sql.Tx, userID, ide
 }
 
 func (s *databaseStore) getExpenseTx(tx *sql.Tx, userID, id string) (Expense, error) {
-	query := `SELECT id, recurring_id, name, category, amount, currency, date, created_at, flow, tags, source, card, system_origin, system_locked FROM expenses WHERE user_id = $1 AND id = $2`
+	query := `SELECT id, recurring_id, name, category, amount, currency, date, created_at, flow, tags, source, card, review_status, system_origin, system_locked FROM expenses WHERE user_id = $1 AND id = $2`
 	expense, err := scanExpense(tx.QueryRow(query, userID, id))
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -2079,14 +2093,15 @@ func (s *databaseStore) insertSystemExpenseTx(tx *sql.Tx, userID string, expense
 	if expense.Date.IsZero() {
 		expense.Date = time.Now()
 	}
+	expense.ReviewStatus = NormalizeExpenseReviewStatus(expense.ReviewStatus)
 	tagsJSON, err := json.Marshal(expense.Tags)
 	if err != nil {
 		return err
 	}
 	_, err = tx.Exec(`
-		INSERT INTO expenses (id, user_id, recurring_id, name, category, amount, currency, date, flow, tags, source, card, system_origin, system_locked)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-	`, expense.ID, userID, expense.RecurringID, expense.Name, expense.Category, expense.Amount, expense.Currency, expense.Date, expense.Flow, string(tagsJSON), expense.Source, expense.Card, expense.SystemOrigin, expense.SystemLocked)
+		INSERT INTO expenses (id, user_id, recurring_id, name, category, amount, currency, date, flow, tags, source, card, review_status, system_origin, system_locked)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+	`, expense.ID, userID, expense.RecurringID, expense.Name, expense.Category, expense.Amount, expense.Currency, expense.Date, expense.Flow, string(tagsJSON), expense.Source, expense.Card, expense.ReviewStatus, expense.SystemOrigin, expense.SystemLocked)
 	return err
 }
 

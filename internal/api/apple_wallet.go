@@ -18,19 +18,19 @@ import (
 )
 
 const (
-	walletSourceDefault            = "apple_wallet_shortcut"
-	walletEventStatusReceived      = "received"
-	walletEventStatusNeedsReview   = "needs_review"
-	walletEventStatusDraftCreated  = "draft_transaction_created"
-	walletEventStatusDuplicate     = "duplicate"
-	walletEventStatusRejected      = "rejected"
-	walletConfidenceLow            = "low"
-	walletConfidenceMedium         = "medium"
-	walletConfidenceHigh           = "high"
-	walletDraftSystemOrigin        = "apple_wallet_shortcut_draft"
-	walletDraftFallbackName        = "Apple Wallet purchase"
-	walletDraftCategoryNeedsReview = "Por revisar"
-	walletIngestTokenBytes         = 24
+	walletSourceDefault           = "apple_wallet_shortcut"
+	walletEventStatusReceived     = "received"
+	walletEventStatusNeedsReview  = "needs_review"
+	walletEventStatusDraftCreated = "draft_transaction_created"
+	walletEventStatusDuplicate    = "duplicate"
+	walletEventStatusRejected     = "rejected"
+	walletConfidenceLow           = "low"
+	walletConfidenceMedium        = "medium"
+	walletConfidenceHigh          = "high"
+	walletDraftSystemOrigin       = "apple_wallet_shortcut_draft"
+	walletDraftFallbackName       = "Apple Wallet purchase"
+	walletDraftCategoryFallback   = "Varios"
+	walletIngestTokenBytes        = 24
 )
 
 type appleWalletIngestRequest struct {
@@ -794,7 +794,7 @@ func (h *Handler) ResolveAppleWalletEvent(w http.ResponseWriter, r *http.Request
 
 		draftCategory := strings.TrimSpace(storage.SanitizeString(req.Category))
 		if draftCategory == "" {
-			draftCategory = walletDraftCategoryNeedsReview
+			draftCategory = walletDraftCategoryFallback
 		}
 
 		draftSource := strings.TrimSpace(req.Source)
@@ -835,6 +835,7 @@ func (h *Handler) ResolveAppleWalletEvent(w http.ResponseWriter, r *http.Request
 			Flow:         flow,
 			Source:       draftPaymentMethod,
 			Card:         draftCardLabel,
+			ReviewStatus: storage.ExpenseReviewStatusPending,
 			Date:         draftPaidAt,
 			SystemOrigin: walletDraftSystemOrigin,
 		}
@@ -997,12 +998,13 @@ func (h *Handler) AppleWalletIngest(w http.ResponseWriter, r *http.Request) {
 	expense := storage.Expense{
 		ID:           uuid.New().String(),
 		Name:         draftName,
-		Category:     walletDraftCategoryNeedsReview,
+		Category:     walletDraftCategoryFallback,
 		Amount:       amount,
 		Currency:     currency,
 		Flow:         flow,
 		Source:       paymentMethod,
 		Card:         strings.TrimSpace(payload.CardLabel),
+		ReviewStatus: storage.ExpenseReviewStatusPending,
 		Date:         payload.PaidAt,
 		SystemOrigin: walletDraftSystemOrigin,
 	}

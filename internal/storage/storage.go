@@ -214,6 +214,7 @@ type Expense struct {
 	Currency     string    `json:"currency"`
 	Source       string    `json:"source"`
 	Card         string    `json:"card"`
+	ReviewStatus string    `json:"reviewStatus,omitempty"`
 	SystemOrigin string    `json:"systemOrigin,omitempty"`
 	SystemLocked bool      `json:"systemLocked,omitempty"`
 	Date         time.Time `json:"date"`
@@ -314,6 +315,23 @@ const (
 	PlanTierFree    = "free"
 	PlanTierPremium = "premium"
 )
+
+const (
+	ExpenseReviewStatusPending   = "pending"
+	ExpenseReviewStatusReviewed  = "reviewed"
+	ExpenseReviewStatusDiscarded = "discarded"
+)
+
+func NormalizeExpenseReviewStatus(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case ExpenseReviewStatusPending:
+		return ExpenseReviewStatusPending
+	case ExpenseReviewStatusDiscarded:
+		return ExpenseReviewStatusDiscarded
+	default:
+		return ExpenseReviewStatusReviewed
+	}
+}
 
 func NormalizePlanTier(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {

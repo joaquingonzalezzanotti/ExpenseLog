@@ -61,7 +61,6 @@
                     <a href="/app/recurrentes" class="mobile-drawer-link"><i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i><span>Recurrentes</span></a>
                     <a href="/app/conciliacion" class="mobile-drawer-link"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i><span>Conciliacion</span></a>
                     <a href="/app/reportes" class="mobile-drawer-link"><i class="fa-regular fa-file-lines" aria-hidden="true"></i><span>Reportes</span></a>
-                    <a href="/app/apple-wallet" class="mobile-drawer-link"><i class="fa-brands fa-apple-pay" aria-hidden="true"></i><span>Apple Wallet</span></a>
                 </nav>
             </aside>
 
@@ -207,6 +206,15 @@
                 <span class="filter-label">Medio de pago</span>
                 <select id="tableFilterSource" class="filter-select">
                     <option value="all">Todos</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">Revision</span>
+                <select id="tableFilterReview" class="filter-select">
+                    <option value="all">Todas</option>
+                    <option value="pending">Por revisar</option>
+                    <option value="reviewed">Revisadas</option>
+                    <option value="discarded">Descartadas</option>
                 </select>
             </div>
             <button id="clearTableFilters" class="nav-button button-secondary">Limpiar filtros</button>
@@ -367,6 +375,7 @@
         let searchQuery = '';
         let filterCurrency = 'all';
         let filterSource = 'all';
+        let filterReviewStatus = 'all';
         const MOBILE_TABLE_BREAKPOINT = 768;
         const MOBILE_TABLE_LIMIT = 10;
         let showAllMobileRows = false;
@@ -461,13 +470,13 @@
                 clearSearchBtn.style.display = searchQuery ? 'inline-flex' : 'none';
             }
             if (clearTableFiltersBtn) {
-                const hasFilters = filterCurrency !== 'all' || filterSource !== 'all';
+                const hasFilters = filterCurrency !== 'all' || filterSource !== 'all' || filterReviewStatus !== 'all';
                 clearTableFiltersBtn.style.display = hasFilters ? 'inline-flex' : 'none';
             }
         }
 
         function hasActiveCommonFilters() {
-            return !!searchQuery || filterCurrency !== 'all' || filterSource !== 'all';
+            return !!searchQuery || filterCurrency !== 'all' || filterSource !== 'all' || filterReviewStatus !== 'all';
         }
 
         function openTableExpenseFormWithPreset(options = {}) {
@@ -609,6 +618,7 @@
                 searchQuery = '';
                 filterCurrency = 'all';
                 filterSource = 'all';
+                filterReviewStatus = 'all';
                 calendarTypeFilter = 'all';
                 calendarCategoryFilter = 'all';
                 if (document.getElementById('tableSearch')) {
@@ -619,6 +629,9 @@
                 }
                 if (document.getElementById('tableFilterSource')) {
                     document.getElementById('tableFilterSource').value = 'all';
+                }
+                if (document.getElementById('tableFilterReview')) {
+                    document.getElementById('tableFilterReview').value = 'all';
                 }
                 if (calendarFilterType) {
                     calendarFilterType.value = 'all';
@@ -814,11 +827,13 @@
             let filtered = (expenses || []).filter(exp => {
                 const currency = (exp.currency || currentCurrency).toLowerCase();
                 const source = normalizeSourceCode(exp.source || 'CA');
+                const reviewStatus = normalizeExpenseReviewStatus(exp.reviewStatus);
                 const currencyMatch = filterCurrency === 'all' || currency === filterCurrency;
                 const sourceMatch = filterSource === 'all'
                     || (filterSource === 'CA' && (source === '' || source === 'CA'))
                     || source === filterSource;
-                return currencyMatch && sourceMatch;
+                const reviewMatch = filterReviewStatus === 'all' || reviewStatus === filterReviewStatus;
+                return currencyMatch && sourceMatch && reviewMatch;
             });
 
             if (searchQuery) {
@@ -1102,6 +1117,13 @@
             return source.includes('apple_wallet_shortcut') || source.includes('apple_wallet');
         }
 
+        function normalizeExpenseReviewStatus(value) {
+            const normalized = String(value || '').trim().toLowerCase();
+            if (normalized === 'pending') return 'pending';
+            if (normalized === 'discarded') return 'discarded';
+            return 'reviewed';
+        }
+
         function createTable(expenses, runningBalances) {
             if (!expenses || expenses.length === 0) {
                 const showAll = document.getElementById('showAllToggle').checked;
@@ -1140,6 +1162,8 @@
                             const sourceLabel = formatSourceLabel(sourceCode);
                             const isTelegramExpense = isTelegramBotExpense(expense);
                             const isAppleWalletDraft = isAppleWalletDraftExpense(expense);
+                            const reviewStatus = normalizeExpenseReviewStatus(expense.reviewStatus);
+                            const isPendingReview = reviewStatus === 'pending';
                             return `
                             <tr>
                                 <td>
@@ -1148,6 +1172,7 @@
                                         ${expense.recurringID ? '<span class="recurring-badge">Recurrente</span>' : ''}
                                         ${isTelegramExpense ? '<span class="recurring-badge">BotTelegram</span>' : ''}
                                         ${isAppleWalletDraft ? '<span class="recurring-badge">ApplePay</span>' : ''}
+                                        ${isPendingReview ? '<span class="recurring-badge">Por revisar</span>' : ''}
                                         ${expense.systemLocked ? '<span class="recurring-badge">Sistema</span>' : ''}
                                     </div>
                                     <div class="expense-meta-mobile">
@@ -1157,8 +1182,8 @@
                                         <span>${formatDateDDMMYYYY(expense.date)}</span>
                                     </div>
                                 </td>
-                                <td class="secondary-col col-left"><span class="${expense.systemLocked ? '' : 'editable'}" data-edit="category" data-id="${expense.id}">${highlightText(formatCategoryLabel(expense.category), searchQuery)}</span></td>
-                                <td class="amount amount-value ${amountFlowClass} col-right"><span class="${expense.systemLocked ? '' : 'editable'}" data-edit="amount" data-id="${expense.id}">${formatCurrencyWithCurrency(expense.amount, expense.currency || currentCurrency, compactAmounts)}</span></td>
+                                <td class="secondary-col col-left"><span class="${(expense.systemLocked || isPendingReview) ? '' : 'editable'}" data-edit="category" data-id="${expense.id}">${highlightText(formatCategoryLabel(expense.category), searchQuery)}</span></td>
+                                <td class="amount amount-value ${amountFlowClass} col-right"><span class="${(expense.systemLocked || isPendingReview) ? '' : 'editable'}" data-edit="amount" data-id="${expense.id}">${formatCurrencyWithCurrency(expense.amount, expense.currency || currentCurrency, compactAmounts)}</span></td>
                                 <td class="amount amount-balance col-right">${runningBalances[expense.id] ? formatCurrencyWithCurrency(runningBalances[expense.id].amount, runningBalances[expense.id].currency, compactAmounts) : '-'}</td>
                                 <td class="secondary-col col-center">${escapeHTML(sourceLabel)}</td>
                                 <td class="secondary-col col-center">${sourceCode === 'TARJETA' ? escapeHTML(expense.card || '-') : '-'}</td>
@@ -1169,6 +1194,9 @@
                                         ${expense.systemLocked ? `
                                             <button class="nav-button button-secondary" type="button" onclick="goToReconciliationSettings()">Gestionar en Ajustes</button>
                                         ` : `
+                                            ${isPendingReview ? `
+                                                <button class="nav-button button-secondary" type="button" onclick="startReviewByIndex(${index})">Revisar</button>
+                                            ` : ''}
                                             <button class="edit-button" onclick="editExpenseByIndex(${index})">
                                                 <i class="fa-solid fa-pen-to-square"></i>
                                             </button>
@@ -1187,6 +1215,11 @@
                                                     <i class="fa-solid fa-sliders"></i> Gestionar conciliacion
                                                 </button>
                                             ` : `
+                                                ${isPendingReview ? `
+                                                    <button type="button" class="row-menu-item" data-row-action="review" data-row-index="${index}">
+                                                        <i class="fa-solid fa-check"></i> Revisar y guardar
+                                                    </button>
+                                                ` : ''}
                                                 <button type="button" class="row-menu-item" data-row-action="edit" data-row-index="${index}">
                                                     <i class="fa-solid fa-pen-to-square"></i> Editar
                                                 </button>
@@ -1249,8 +1282,22 @@
                     showToast('Este movimiento es de sistema. Reverti la conciliacion desde Ajustes.', 'error');
                     return;
                 }
-                editExpense(expense.id, expense.name, expense.category, expense.amount, (expense.tags || []), expense.date);
+                editExpense(expense.id, expense.name, expense.category, expense.amount, (expense.tags || []), expense.date, {
+                    reviewMode: false,
+                });
             }
+        }
+
+        function startReviewByIndex(index) {
+            const expense = expensesForTable[index];
+            if (!expense) return;
+            if (expense.systemLocked) {
+                showToast('Este movimiento es de sistema. Reverti la conciliacion desde Ajustes.', 'error');
+                return;
+            }
+            editExpense(expense.id, expense.name, expense.category, expense.amount, (expense.tags || []), expense.date, {
+                reviewMode: normalizeExpenseReviewStatus(expense.reviewStatus) === 'pending',
+            });
         }
 
         function renderSelectedTags(tags) {
@@ -1274,7 +1321,7 @@
             });
         }
 
-        function editExpense(id, name, category, amount, tags, date) {
+        function editExpense(id, name, category, amount, tags, date, options = {}) {
             document.getElementById('name').value = name;
             document.getElementById('category').value = category;
             document.getElementById('amount').value = Math.abs(amount);
@@ -1296,8 +1343,13 @@
             
             const form = document.getElementById('expenseForm');
             form.dataset.editId = id;
+            if (options.reviewMode) {
+                form.dataset.reviewMode = 'pending_to_reviewed';
+            } else {
+                delete form.dataset.reviewMode;
+            }
             const submitButton = form.querySelector('button[type="submit"]');
-            submitButton.textContent = "Actualizar gasto";
+            submitButton.textContent = options.reviewMode ? "Guardar revision" : "Actualizar gasto";
             setExpenseFormVisible(true);
         }
 
@@ -1405,6 +1457,19 @@
                 <option value="TARJETA">${formatSourceLabel('TARJETA')}</option>
             `;
             sourceFilterSelect.value = ['all', 'CA', 'EFECTIVO', 'TARJETA'].includes(filterSource) ? filterSource : 'all';
+
+            const reviewFilterSelect = document.getElementById('tableFilterReview');
+            if (reviewFilterSelect) {
+                reviewFilterSelect.innerHTML = `
+                    <option value="all">Todas</option>
+                    <option value="pending">Por revisar</option>
+                    <option value="reviewed">Revisadas</option>
+                    <option value="discarded">Descartadas</option>
+                `;
+                reviewFilterSelect.value = ['all', 'pending', 'reviewed', 'discarded'].includes(filterReviewStatus)
+                    ? filterReviewStatus
+                    : 'all';
+            }
         }
 
         function readConfigCache() {
@@ -1586,6 +1651,7 @@
                     currency: exp.currency || currentCurrency,
                     source: exp.source || '',
                     card: exp.card || '',
+                    reviewStatus: normalizeExpenseReviewStatus(exp.reviewStatus),
                     flow: resolveFlow(exp),
                 }));
                 
@@ -1760,6 +1826,7 @@
             document.getElementById('selected-tags').innerHTML = '';
             selectedTags.clear();
             delete form.dataset.editId;
+            delete form.dataset.reviewMode;
             populateFormCurrency();
             sourceSelect.value = getPreferredExpenseSource() || 'CA';
             if (movementTypeSelect) movementTypeSelect.value = 'expense';
@@ -1776,6 +1843,7 @@
             if (tableExpenseSubmitInFlight) return;
             const form = e.target;
             const editId = form.dataset.editId;
+            const reviewMode = form.dataset.reviewMode === 'pending_to_reviewed';
             const movementType = movementTypeSelect ? movementTypeSelect.value : 'expense';
             let amount = parseFloat(document.getElementById('amount').value);
             if (movementType === 'expense') {
@@ -1811,6 +1879,7 @@
                 card: sourceValue === 'TARJETA' ? document.getElementById('cardInput').value : '',
                 flow: movementType,
                 recurringID: editingExpense?.recurringID || '',
+                reviewStatus: reviewMode ? 'reviewed' : normalizeExpenseReviewStatus(editingExpense?.reviewStatus),
             };
             try {
                 const url = editId ? `/expense/edit?id=${editId}` : '/expense';
@@ -1832,7 +1901,10 @@
                     const updateMessage = movementType === 'income'
                         ? 'Ingreso actualizado con exito'
                         : (movementType === 'refund' ? 'Reintegro actualizado con exito' : 'Gasto actualizado con exito');
-                    showToast(editId ? updateMessage : createMessage, 'success');
+                    const successMessage = reviewMode
+                        ? 'Revision guardada'
+                        : (editId ? updateMessage : createMessage);
+                    showToast(successMessage, 'success');
                     rememberExpenseFormPrefs({
                         source: sourceValue,
                         currency: formData.currency,
@@ -1913,11 +1985,19 @@
             updateTable();
         });
 
+        document.getElementById('tableFilterReview').addEventListener('change', (e) => {
+            filterReviewStatus = e.target.value;
+            showAllMobileRows = false;
+            updateTable();
+        });
+
         document.getElementById('clearTableFilters').addEventListener('click', () => {
             filterCurrency = 'all';
             filterSource = 'all';
+            filterReviewStatus = 'all';
             document.getElementById('tableFilterCurrency').value = 'all';
             document.getElementById('tableFilterSource').value = 'all';
+            document.getElementById('tableFilterReview').value = 'all';
             showAllMobileRows = false;
             updateTable();
         });
@@ -1950,11 +2030,15 @@
                 const rowAction = e.target.closest('[data-row-action]');
                 if (rowAction) {
                     const action = rowAction.dataset.rowAction;
-                    if (action === 'edit') {
+                    if (action === 'edit' || action === 'review') {
                         const index = Number(rowAction.dataset.rowIndex);
-                    if (!Number.isNaN(index)) {
-                        editExpenseByIndex(index);
-                    }
+                        if (!Number.isNaN(index)) {
+                            if (action === 'review') {
+                                startReviewByIndex(index);
+                            } else {
+                                editExpenseByIndex(index);
+                            }
+                        }
                     } else if (action === 'delete') {
                         const expenseId = rowAction.dataset.rowId;
                         if (expenseId) {
@@ -2028,6 +2112,7 @@
         }
 
         window.editExpenseByIndex = editExpenseByIndex;
+        window.startReviewByIndex = startReviewByIndex;
 </script>
 <script>
     (function loadVercelTelemetry() {

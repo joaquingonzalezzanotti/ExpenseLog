@@ -198,6 +198,20 @@ func TestAppleWalletIngestCompleteAndDuplicate(t *testing.T) {
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("unexpected first ingest status: %d body=%s", rec.Code, rec.Body.String())
 	}
+	var firstBody appleWalletIngestResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &firstBody); err != nil {
+		t.Fatalf("decode first ingest response: %v", err)
+	}
+	if firstBody.TransactionID == "" {
+		t.Fatalf("expected transactionId in first ingest response")
+	}
+	firstExpense, err := store.GetExpense(user.ID, firstBody.TransactionID)
+	if err != nil {
+		t.Fatalf("load first created expense: %v", err)
+	}
+	if firstExpense.ReviewStatus != storage.ExpenseReviewStatusPending {
+		t.Fatalf("expected review status %q, got %q", storage.ExpenseReviewStatusPending, firstExpense.ReviewStatus)
+	}
 
 	dupReq := httptest.NewRequest(http.MethodPost, "/api/integrations/apple-wallet/ingest", bytes.NewBufferString(payload))
 	dupReq.Header.Set("Authorization", "Bearer "+token)
@@ -371,6 +385,13 @@ func TestAppleWalletResolveEventCreateDraft(t *testing.T) {
 	}
 	if updated.CreatedTransactionID != body.TransactionID {
 		t.Fatalf("expected created_transaction_id %q, got %q", body.TransactionID, updated.CreatedTransactionID)
+	}
+	createdExpense, err := store.GetExpense(user.ID, body.TransactionID)
+	if err != nil {
+		t.Fatalf("load created expense: %v", err)
+	}
+	if createdExpense.ReviewStatus != storage.ExpenseReviewStatusPending {
+		t.Fatalf("expected review status %q, got %q", storage.ExpenseReviewStatusPending, createdExpense.ReviewStatus)
 	}
 }
 

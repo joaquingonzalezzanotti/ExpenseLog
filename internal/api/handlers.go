@@ -485,6 +485,9 @@ func (h *Handler) EditExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	expense.RecurringID = existingExpense.RecurringID
+	if strings.TrimSpace(expense.ReviewStatus) == "" {
+		expense.ReviewStatus = existingExpense.ReviewStatus
+	}
 	if err := expense.Validate(); err != nil {
 		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 		return

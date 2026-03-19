@@ -74,6 +74,7 @@
                     <div class="empty-state-actions">
                         <button type="button" class="nav-button button-primary" data-onboarding-action="start-income">Cargar ingreso</button>
                         <button type="button" class="nav-button button-secondary" data-onboarding-action="start-expense">Cargar gasto</button>
+                        <button type="button" class="nav-button button-secondary" data-onboarding-action="load-template">Cargar 3 ejemplos</button>
                         <button type="button" class="nav-button button-secondary" data-onboarding-action="go-table">Ver tabla</button>
                     </div>
                 </div>
@@ -111,6 +112,7 @@
                     <div class="context-empty-actions">
                         <button type="button" class="nav-button button-primary" data-table-empty-action="start-income">Cargar ingreso</button>
                         <button type="button" class="nav-button button-secondary" data-table-empty-action="start-expense">Cargar gasto</button>
+                        <button type="button" class="nav-button button-secondary" data-table-empty-action="load-template">Cargar 3 ejemplos</button>
                         <button type="button" class="nav-button button-secondary" data-table-empty-action="go-calendar">Ver calendario</button>
                     </div>
                 </section>
@@ -152,6 +154,7 @@
             ? `
                 <button type="button" class="nav-button button-primary" data-table-empty-action="start-income">Cargar ingreso</button>
                 <button type="button" class="nav-button button-secondary" data-table-empty-action="start-expense">Cargar gasto</button>
+                <button type="button" class="nav-button button-secondary" data-table-empty-action="load-template">Cargar 3 ejemplos</button>
               `
             : (hasFilters
                 ? `<button type="button" class="nav-button button-secondary" data-table-empty-action="clear-filters">Limpiar filtros</button>`

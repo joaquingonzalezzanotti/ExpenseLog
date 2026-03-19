@@ -136,6 +136,7 @@
                 </li>
             </ol>
             <div class="first-user-onboarding-actions">
+                <button type="button" class="nav-button button-primary" data-onboarding-action="load-template">Cargar 3 ejemplos</button>
                 <button type="button" class="nav-button button-secondary" data-onboarding-action="go-table">Ver tabla</button>
                 <button type="button" class="nav-button button-secondary" data-onboarding-action="go-calendar">Ver calendario</button>
                 <button type="button" class="nav-button button-secondary" data-onboarding-action="dismiss">Saltar por ahora</button>
@@ -459,6 +460,7 @@
         let cardPaymentMode = 'self';
         let cardPaymentSubmitInFlight = false;
         let expenseSubmitInFlight = false;
+        let onboardingTemplateInFlight = false;
         const expenseForm = document.getElementById('expenseForm');
         const expenseSubmitButton = expenseForm ? expenseForm.querySelector('button[type="submit"]') : null;
         const movementTypeGroup = movementTypeSelect ? movementTypeSelect.closest('.form-group') : null;
@@ -551,6 +553,95 @@
             startDate = Number(config?.startDate) || 1;
             populateFormCurrency();
             populateFilters();
+        }
+
+        function resolveOnboardingTemplateCategory(flow) {
+            const normalized = categories
+                .map((value) => String(value || '').trim())
+                .filter(Boolean);
+            if (!normalized.length) return '';
+            const lower = normalized.map((value) => value.toLowerCase());
+            if (flow === 'income') {
+                const incomeMatch = ['ingresos', 'ingreso', 'sueldo', 'salario']
+                    .map((term) => lower.indexOf(term))
+                    .find((index) => index >= 0);
+                if (typeof incomeMatch === 'number' && incomeMatch >= 0) {
+                    return normalized[incomeMatch];
+                }
+            } else {
+                const expenseMatch = ['comida', 'supermercado', 'hogar', 'gastos', 'otros']
+                    .map((term) => lower.indexOf(term))
+                    .find((index) => index >= 0);
+                if (typeof expenseMatch === 'number' && expenseMatch >= 0) {
+                    return normalized[expenseMatch];
+                }
+            }
+            return normalized[0];
+        }
+
+        async function createOnboardingTemplateEntries() {
+            if (onboardingTemplateInFlight) return;
+            if (allExpenses.length > 0) {
+                showToast('La plantilla es solo para cuentas nuevas.', 'error');
+                return;
+            }
+            if (!categories.length) {
+                showToast('No hay categorias disponibles para cargar ejemplos.', 'error');
+                return;
+            }
+
+            const incomeCategory = resolveOnboardingTemplateCategory('income');
+            const expenseCategory = resolveOnboardingTemplateCategory('expense');
+            if (!incomeCategory || !expenseCategory) {
+                showToast('No se pudo resolver categorias para los ejemplos.', 'error');
+                return;
+            }
+
+            const now = new Date();
+            const ymd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const entryDate = getISODateWithLocalTime(ymd);
+            const templateEntries = [
+                { name: 'Sueldo ejemplo', category: incomeCategory, amount: 250000, source: 'CA', flow: 'income', card: '' },
+                { name: 'Supermercado ejemplo', category: expenseCategory, amount: -28500, source: 'CA', flow: 'expense', card: '' },
+                { name: 'Compra tarjeta ejemplo', category: expenseCategory, amount: -15200, source: 'TARJETA', flow: 'expense', card: 'Visa' },
+            ];
+
+            onboardingTemplateInFlight = true;
+            try {
+                for (let index = 0; index < templateEntries.length; index += 1) {
+                    const entry = templateEntries[index];
+                    const idempotencyKey = (typeof window.expenseLogIdempotencyKey === 'function')
+                        ? window.expenseLogIdempotencyKey(`onboarding-template-${index}`)
+                        : `onboarding-template-${index}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+                    const response = await fetch('/expense', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Idempotency-Key': idempotencyKey,
+                        },
+                        body: JSON.stringify({
+                            ...entry,
+                            tags: ['Ejemplo'],
+                            currency: baseCurrency,
+                            date: entryDate,
+                        }),
+                    });
+                    if (!response.ok) {
+                        const errorPayload = await response.json().catch(() => ({}));
+                        throw new Error(errorPayload.error || 'No se pudieron cargar los ejemplos');
+                    }
+                }
+                if (onboardingUI && typeof onboardingUI.dismissHomeOnboarding === 'function') {
+                    onboardingUI.dismissHomeOnboarding();
+                }
+                await initialize();
+                showToast('Listo: cargamos 3 ejemplos para arrancar.', 'success');
+            } catch (error) {
+                console.error('Failed to create onboarding template:', error);
+                showToast(error.message || 'No se pudieron cargar los ejemplos', 'error');
+            } finally {
+                onboardingTemplateInFlight = false;
+            }
         }
 
         function userDisplayNameFromEmail(email) {
@@ -2023,7 +2114,7 @@
             });
         });
 
-        document.addEventListener('click', (event) => {
+        document.addEventListener('click', async (event) => {
             const target = event.target.closest('[data-onboarding-action]');
             if (!target) return;
             const action = target.dataset.onboardingAction || '';
@@ -2049,6 +2140,10 @@
                     source: 'TARJETA',
                     suggestedName: 'Compra tarjeta',
                 });
+                return;
+            }
+            if (action === 'load-template') {
+                await createOnboardingTemplateEntries();
                 return;
             }
             if (action === 'go-table') {

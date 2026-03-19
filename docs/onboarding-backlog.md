@@ -22,7 +22,11 @@ Convertir los primeros 10 minutos de uso en una experiencia guiada, clara y acci
 2. `dev` ya fue integrado en `onboarding` antes de continuar desarrollo (flujo de ramas aplicado).
 3. Se definio checklist ejecutable de sprint en:
    - `docs/sprints/onboarding-sprint-1-execution-2026-03-19.md`
-4. Objetivo inmediato:
+4. Iteracion aplicada:
+   - accion opcional `Cargar 3 ejemplos` en Home/Tabla/Calendario para usuarios nuevos,
+   - hardening de copy en empty states,
+   - tests unitarios de `onboarding_ui.js`.
+5. Objetivo inmediato:
    - cerrar QA + copy,
    - preparar decision de merge `onboarding -> dev`.
 

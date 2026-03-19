@@ -70,3 +70,15 @@ Cerrar onboarding para decision de merge a `dev` con QA completo, copy consisten
 3. Bloqueos:
 4. Decision del dia:
 
+## Daily 2026-03-19
+1. Hecho:
+   - `dev -> onboarding` sincronizado,
+   - checklist de sprint documentado,
+   - accion `Cargar 3 ejemplos` agregada a onboarding Home/Tabla/Calendario,
+   - tests de `onboarding_ui.js` agregados.
+2. En curso:
+   - QA manual por breakpoints y smoke funcional completo.
+3. Bloqueos:
+   - ninguno tecnico por ahora.
+4. Decision del dia:
+   - mantener alcance en hardening + QA; no abrir Apple Wallet hasta cerrar merge de onboarding.

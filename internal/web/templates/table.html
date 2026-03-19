@@ -361,6 +361,7 @@
         const expenseSubmitButton = expenseForm ? expenseForm.querySelector('button[type="submit"]') : null;
         let tableExpenseSubmitInFlight = false;
         let tableDeleteInFlight = false;
+        let onboardingTemplateInFlight = false;
         let categories = [];
         let searchQuery = '';
         let filterCurrency = 'all';
@@ -448,7 +449,93 @@
             }
         }
 
-        function runTableEmptyAction(action) {
+        function resolveOnboardingTemplateCategory(flow) {
+            const normalized = categories
+                .map((value) => String(value || '').trim())
+                .filter(Boolean);
+            if (!normalized.length) return '';
+            const lower = normalized.map((value) => value.toLowerCase());
+            if (flow === 'income') {
+                const incomeMatch = ['ingresos', 'ingreso', 'sueldo', 'salario']
+                    .map((term) => lower.indexOf(term))
+                    .find((index) => index >= 0);
+                if (typeof incomeMatch === 'number' && incomeMatch >= 0) {
+                    return normalized[incomeMatch];
+                }
+            } else {
+                const expenseMatch = ['comida', 'supermercado', 'hogar', 'gastos', 'otros']
+                    .map((term) => lower.indexOf(term))
+                    .find((index) => index >= 0);
+                if (typeof expenseMatch === 'number' && expenseMatch >= 0) {
+                    return normalized[expenseMatch];
+                }
+            }
+            return normalized[0];
+        }
+
+        async function createOnboardingTemplateEntries() {
+            if (onboardingTemplateInFlight) return;
+            if (allExpenses.length > 0) {
+                showToast('La plantilla es solo para cuentas nuevas.', 'error');
+                return;
+            }
+            if (!categories.length) {
+                showToast('No hay categorias disponibles para cargar ejemplos.', 'error');
+                return;
+            }
+
+            const incomeCategory = resolveOnboardingTemplateCategory('income');
+            const expenseCategory = resolveOnboardingTemplateCategory('expense');
+            if (!incomeCategory || !expenseCategory) {
+                showToast('No se pudo resolver categorias para los ejemplos.', 'error');
+                return;
+            }
+
+            const now = new Date();
+            const ymd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const entryDate = getISODateWithLocalTime(ymd);
+            const templateEntries = [
+                { name: 'Sueldo ejemplo', category: incomeCategory, amount: 250000, source: 'CA', flow: 'income', card: '' },
+                { name: 'Supermercado ejemplo', category: expenseCategory, amount: -28500, source: 'CA', flow: 'expense', card: '' },
+                { name: 'Compra tarjeta ejemplo', category: expenseCategory, amount: -15200, source: 'TARJETA', flow: 'expense', card: 'Visa' },
+            ];
+
+            onboardingTemplateInFlight = true;
+            try {
+                for (let index = 0; index < templateEntries.length; index += 1) {
+                    const entry = templateEntries[index];
+                    const idempotencyKey = (typeof window.expenseLogIdempotencyKey === 'function')
+                        ? window.expenseLogIdempotencyKey(`onboarding-template-${index}`)
+                        : `onboarding-template-${index}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+                    const response = await fetch('/expense', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Idempotency-Key': idempotencyKey,
+                        },
+                        body: JSON.stringify({
+                            ...entry,
+                            tags: ['Ejemplo'],
+                            currency: currentCurrency,
+                            date: entryDate,
+                        }),
+                    });
+                    if (!response.ok) {
+                        const errorPayload = await response.json().catch(() => ({}));
+                        throw new Error(errorPayload.error || 'No se pudieron cargar los ejemplos');
+                    }
+                }
+                await initialize();
+                showToast('Listo: cargamos 3 ejemplos para arrancar.', 'success');
+            } catch (error) {
+                console.error('Failed to create onboarding template:', error);
+                showToast(error.message || 'No se pudieron cargar los ejemplos', 'error');
+            } finally {
+                onboardingTemplateInFlight = false;
+            }
+        }
+
+        async function runTableEmptyAction(action) {
             if (action === 'start-income') {
                 openTableExpenseFormWithPreset({
                     movementType: 'income',
@@ -471,6 +558,10 @@
                     source: 'TARJETA',
                     suggestedName: 'Compra tarjeta',
                 });
+                return;
+            }
+            if (action === 'load-template') {
+                await createOnboardingTemplateEntries();
                 return;
             }
             if (action === 'clear-filters') {
@@ -1779,11 +1870,11 @@
             updateTable();
         });
 
-        document.addEventListener('click', (event) => {
+        document.addEventListener('click', async (event) => {
             const trigger = event.target.closest('[data-table-empty-action]');
             if (!trigger) return;
             event.preventDefault();
-            runTableEmptyAction(trigger.dataset.tableEmptyAction || '');
+            await runTableEmptyAction(trigger.dataset.tableEmptyAction || '');
         });
 
         document.getElementById('tableContainer').addEventListener('click', (e) => {

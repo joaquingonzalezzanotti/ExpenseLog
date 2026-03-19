@@ -2205,78 +2205,40 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     grid-column: 1 / -1;
 }
 
-.settings-report-toggle {
+.settings-report-check {
     width: 100%;
-    display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: center;
-    gap: 0.7rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.22rem;
     border: 1px solid rgba(37, 99, 235, 0.16);
     border-radius: 12px;
-    padding: 0.58rem 0.65rem;
+    padding: 0.62rem 0.7rem;
     background: rgba(15, 23, 42, 0.05);
+}
+
+.settings-report-check-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-primary);
     cursor: pointer;
 }
 
-.settings-report-toggle input {
-    position: absolute;
-    opacity: 0;
-    width: 1px;
-    height: 1px;
+.settings-report-check-input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    margin: 0;
+    flex-shrink: 0;
 }
 
-.settings-report-toggle-slider {
-    width: 44px;
-    height: 24px;
-    border-radius: 999px;
-    background: rgba(148, 163, 184, 0.45);
-    border: 1px solid rgba(148, 163, 184, 0.6);
-    position: relative;
-    transition: all 0.22s ease;
-}
-
-.settings-report-toggle-slider::before {
-    content: '';
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: #fff;
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.24);
-    transition: transform 0.22s ease;
-}
-
-.settings-report-toggle input:checked + .settings-report-toggle-slider {
-    background: rgba(37, 99, 235, 0.68);
-    border-color: rgba(37, 99, 235, 0.85);
-}
-
-.settings-report-toggle input:checked + .settings-report-toggle-slider::before {
-    transform: translateX(20px);
-}
-
-.settings-report-toggle input:focus-visible + .settings-report-toggle-slider {
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.22);
-}
-
-.settings-report-toggle-copy {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    line-height: 1.25;
-}
-
-.settings-report-toggle-copy strong {
-    font-size: 0.86rem;
-    color: var(--text-primary);
-}
-
-.settings-report-toggle-copy small {
-    margin-top: 0.14rem;
+.settings-report-check small {
     color: var(--text-secondary);
     font-size: 0.76rem;
+    line-height: 1.25;
+    padding-left: 1.5rem;
 }
 
 .settings-export-actions {
@@ -2316,6 +2278,10 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     color: var(--text-secondary);
     margin-top: 0.14rem;
     line-height: 1.2;
+}
+
+.settings-reports-section .button-primary .settings-export-btn-note {
+    color: rgba(6, 32, 58, 0.78);
 }
 
 .settings-reports-preview {

@@ -2134,6 +2134,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.06),
         0 14px 30px rgba(15, 23, 42, 0.12);
+    overflow-x: clip;
 }
 
 .settings-reports-headline h2 {
@@ -2205,13 +2206,31 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     margin-bottom: 0.28rem;
 }
 
+.settings-report-field {
+    min-width: 0;
+}
+
+.settings-report-select-wrap {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
 .settings-report-select-wrap select,
 .settings-report-select-wrap input {
     border-radius: 12px;
     min-height: 46px;
     height: 46px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     border-color: rgba(37, 99, 235, 0.2);
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(37, 99, 235, 0.04) 100%);
+}
+
+.settings-report-select-wrap select {
+    display: block;
 }
 
 .settings-report-select-wrap input {
@@ -2320,22 +2339,6 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
 .settings-reports-section .button-primary .settings-export-btn-note {
     color: rgba(6, 32, 58, 0.78);
-}
-
-.settings-export-btn-pdf {
-    border-color: rgba(220, 38, 38, 0.45) !important;
-    color: #fca5a5 !important;
-    background: rgba(127, 29, 29, 0.24) !important;
-}
-
-.settings-export-btn-pdf:hover:not(:disabled) {
-    background: rgba(127, 29, 29, 0.34) !important;
-    border-color: rgba(220, 38, 38, 0.68) !important;
-    color: #fecaca !important;
-}
-
-.settings-export-btn-pdf .settings-export-btn-note {
-    color: rgba(254, 202, 202, 0.82);
 }
 
 .settings-reports-caption {
@@ -2472,6 +2475,17 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     .settings-reports-section .settings-export-actions .nav-button {
         width: 100%;
         min-width: 0;
+    }
+
+    .settings-reports-section .settings-preference-control {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .settings-report-select-wrap select,
+    .settings-report-select-wrap input {
+        font-size: 16px;
     }
 
     .settings-currency-switch,

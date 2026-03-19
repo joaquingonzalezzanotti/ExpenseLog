@@ -3,6 +3,18 @@
 .vscode
 .idea
 
+# Not needed for the Go app image
+telegram-receipt-bot
+expenselog-ai-parser
+assets
+email-previews
+
+# Build artifacts / local deps (any depth)
+**/node_modules
+**/dist
+**/coverage
+**/tmp
+
 tmp
 dist
 bin

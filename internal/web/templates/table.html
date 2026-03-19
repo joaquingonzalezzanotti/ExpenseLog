@@ -396,23 +396,63 @@
         let calendarTypeFilter = 'all';
         let calendarCategoryFilter = 'all';
         let selectedCalendarDayKey = '';
+        const supportsModalInert = 'inert' in HTMLElement.prototype;
+        let expenseFormRestoreFocusElement = toggleExpenseFormBtn;
 
         function isMobileTableView() {
             return window.innerWidth <= MOBILE_TABLE_BREAKPOINT;
         }
 
-        function setExpenseFormVisible(visible) {
+        function setExpenseFormVisible(visible, options = {}) {
             if (!addExpenseContainer) return;
-            addExpenseContainer.hidden = !visible;
-            addExpenseContainer.setAttribute('aria-hidden', visible ? 'false' : 'true');
-            if (toggleExpenseFormBtn) {
-                toggleExpenseFormBtn.setAttribute('aria-expanded', visible ? 'true' : 'false');
+            const shouldShow = Boolean(visible);
+            const isCurrentlyVisible = !addExpenseContainer.hidden && addExpenseContainer.getAttribute('aria-hidden') !== 'true';
+
+            if (shouldShow && !isCurrentlyVisible) {
+                expenseFormRestoreFocusElement = document.activeElement instanceof HTMLElement
+                    ? document.activeElement
+                    : toggleExpenseFormBtn;
             }
-            if (visible) {
+
+            if (!shouldShow && isCurrentlyVisible) {
+                const activeElement = document.activeElement;
+                const focusInsideModal = activeElement instanceof Node && addExpenseContainer.contains(activeElement);
+                if (focusInsideModal) {
+                    const shouldRestoreFocus = options.restoreFocus !== false;
+                    const restoreTarget = (
+                        shouldRestoreFocus &&
+                        expenseFormRestoreFocusElement instanceof HTMLElement &&
+                        expenseFormRestoreFocusElement.isConnected &&
+                        !addExpenseContainer.contains(expenseFormRestoreFocusElement)
+                    )
+                        ? expenseFormRestoreFocusElement
+                        : (toggleExpenseFormBtn instanceof HTMLElement ? toggleExpenseFormBtn : null);
+
+                    if (restoreTarget) {
+                        restoreTarget.focus({ preventScroll: true });
+                    } else if (activeElement instanceof HTMLElement) {
+                        activeElement.blur();
+                    }
+                }
+            }
+
+            addExpenseContainer.hidden = !shouldShow;
+            addExpenseContainer.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
+            if (supportsModalInert) {
+                addExpenseContainer.inert = !shouldShow;
+            }
+            if (toggleExpenseFormBtn) {
+                toggleExpenseFormBtn.setAttribute('aria-expanded', shouldShow ? 'true' : 'false');
+            }
+            if (shouldShow) {
                 window.setTimeout(() => {
                     document.getElementById('name')?.focus();
                 }, 0);
             }
+        }
+
+        if (addExpenseContainer && supportsModalInert) {
+            addExpenseContainer.inert = true;
         }
 
         function updateClearButtonsVisibility() {

@@ -193,83 +193,56 @@
                     <span>Incluye resumen ejecutivo, desglose por categoria y detalle completo de movimientos.</span>
                 </div>
             </div>
-            <div class="settings-reports-layout">
-                <div class="settings-reports-form">
-                    <div class="settings-export-grid">
-                        <div class="settings-preference-item settings-report-field">
-                            <label for="reportMonthSelect">Mes</label>
-                            <div class="settings-preference-control">
-                                <select id="reportMonthSelect"></select>
-                            </div>
-                        </div>
-                        <div class="settings-preference-item settings-report-field">
-                            <label for="reportYearInput">A&ntilde;o</label>
-                            <div class="settings-preference-control">
-                                <input id="reportYearInput" type="number" min="2000" max="2100" step="1" placeholder="2026" inputmode="numeric">
-                            </div>
-                        </div>
-                        <div class="settings-preference-item settings-report-field">
-                            <label for="reportCurrencySelect">Moneda</label>
-                            <div class="settings-preference-control">
-                                <select id="reportCurrencySelect">
-                                    <option value="ars">ARS</option>
-                                    <option value="usd">USD</option>
-                                    <option value="eur">EUR</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="settings-preference-item settings-report-field settings-report-field-toggle">
-                            <label for="reportIncludeCreditCardCheckbox">Gasto tarjeta</label>
-                            <div class="settings-preference-control">
-                                <div class="settings-report-check">
-                                    <label class="settings-report-check-label">
-                                        <input id="reportIncludeCreditCardCheckbox" type="checkbox" class="settings-report-check-input" checked>
-                                        <span>Incluir gastos con tarjeta de credito</span>
-                                    </label>
-                                    <small>Suma consumos y cuotas al reporte mensual.</small>
-                                </div>
-                            </div>
+            <div class="settings-reports-form">
+                <div class="settings-export-grid settings-export-grid-main">
+                    <div class="settings-preference-item settings-report-field">
+                        <label for="reportMonthSelect">Mes</label>
+                        <div class="settings-preference-control settings-report-select-wrap">
+                            <select id="reportMonthSelect"></select>
                         </div>
                     </div>
-                    <div class="settings-export-actions">
-                        <button id="downloadMonthlyXLSXBtn" class="nav-button button-secondary" type="button">
-                            <span class="settings-export-btn-label"><i class="fa-regular fa-file-excel" aria-hidden="true"></i> Descargar Excel (.xlsx)</span>
-                            <span class="settings-export-btn-note">Ideal para analisis y tablas dinamicas</span>
-                        </button>
-                        <button id="downloadMonthlyPDFBtn" class="nav-button button-primary" type="button">
-                            <span class="settings-export-btn-label"><i class="fa-regular fa-file-pdf" aria-hidden="true"></i> Descargar PDF (.pdf)</span>
-                            <span class="settings-export-btn-note">Listo para compartir y presentar</span>
-                        </button>
+                    <div class="settings-preference-item settings-report-field">
+                        <label for="reportYearInput">A&ntilde;o</label>
+                        <div class="settings-preference-control settings-report-select-wrap">
+                            <input id="reportYearInput" type="number" min="2000" max="2100" step="1" placeholder="2026" inputmode="numeric">
+                        </div>
                     </div>
-                    <p class="settings-reports-caption">Sugerencia: usa el mismo mes y moneda de tu analisis para compartir resultados claros.</p>
                 </div>
-                <aside class="settings-reports-preview" aria-live="polite">
-                    <h3>Vista previa del reporte</h3>
-                    <p>Chequea estos datos antes de exportar para evitar descargas repetidas.</p>
-                    <dl class="settings-reports-preview-meta">
-                        <div>
-                            <dt>Periodo</dt>
-                            <dd id="reportPreviewPeriod">-</dd>
+                <div class="settings-export-grid settings-export-grid-advanced">
+                    <div class="settings-preference-item settings-report-field">
+                        <label for="reportCurrencySelect">Moneda</label>
+                        <div class="settings-currency-switch" role="radiogroup" aria-label="Moneda del reporte">
+                            <button type="button" class="settings-chip-button" data-report-currency="ars" aria-pressed="false">ARS</button>
+                            <button type="button" class="settings-chip-button" data-report-currency="usd" aria-pressed="false">USD</button>
+                            <button type="button" class="settings-chip-button" data-report-currency="eur" aria-pressed="false">EUR</button>
                         </div>
-                        <div>
-                            <dt>Moneda</dt>
-                            <dd id="reportPreviewCurrency">-</dd>
+                        <select id="reportCurrencySelect" class="settings-report-input-hidden" aria-hidden="true" tabindex="-1">
+                            <option value="ars">ARS</option>
+                            <option value="usd">USD</option>
+                            <option value="eur">EUR</option>
+                        </select>
+                    </div>
+                    <div class="settings-preference-item settings-report-field">
+                        <label for="reportIncludeCreditCardCheckbox">Tarjeta</label>
+                        <div class="settings-card-switch" role="group" aria-label="Incluir gastos con tarjeta">
+                            <button type="button" class="settings-chip-button" data-report-card="true" aria-pressed="false">Con tarjeta</button>
+                            <button type="button" class="settings-chip-button" data-report-card="false" aria-pressed="false">Sin tarjeta</button>
                         </div>
-                        <div>
-                            <dt>Tarjeta</dt>
-                            <dd id="reportPreviewCreditCard">-</dd>
-                        </div>
-                        <div>
-                            <dt>Formato elegido</dt>
-                            <dd id="reportPreviewFormat">Sin seleccionar</dd>
-                        </div>
-                    </dl>
-                    <ul class="settings-reports-preview-list">
-                        <li><i class="fa-solid fa-check" aria-hidden="true"></i> Resumen ejecutivo del mes.</li>
-                        <li><i class="fa-solid fa-check" aria-hidden="true"></i> Desglose por categoria y tipo.</li>
-                        <li><i class="fa-solid fa-check" aria-hidden="true"></i> Detalle completo para auditoria.</li>
-                    </ul>
-                </aside>
+                        <input id="reportIncludeCreditCardCheckbox" type="checkbox" class="settings-report-input-hidden" checked>
+                    </div>
+                </div>
+                <p id="reportSelectionSummary" class="settings-report-summary" aria-live="polite"></p>
+                <div class="settings-export-actions">
+                    <button id="downloadMonthlyXLSXBtn" class="nav-button button-secondary" type="button">
+                        <span class="settings-export-btn-label"><i class="fa-regular fa-file-excel" aria-hidden="true"></i> Descargar Excel (.xlsx)</span>
+                        <span class="settings-export-btn-note">Ideal para analisis y tablas dinamicas</span>
+                    </button>
+                    <button id="downloadMonthlyPDFBtn" class="nav-button button-primary" type="button">
+                        <span class="settings-export-btn-label"><i class="fa-regular fa-file-pdf" aria-hidden="true"></i> Descargar PDF (.pdf)</span>
+                        <span class="settings-export-btn-note">Listo para compartir y presentar</span>
+                    </button>
+                </div>
+                <p class="settings-reports-caption">Sugerencia: usa el mismo mes y moneda de tu analisis para compartir resultados claros.</p>
             </div>
             <div id="reportExportMessage" class="form-message"></div>
         </section>
@@ -691,10 +664,9 @@
         const reportIncludeCreditCardCheckbox = document.getElementById('reportIncludeCreditCardCheckbox');
         const downloadMonthlyXLSXBtn = document.getElementById('downloadMonthlyXLSXBtn');
         const downloadMonthlyPDFBtn = document.getElementById('downloadMonthlyPDFBtn');
-        const reportPreviewPeriod = document.getElementById('reportPreviewPeriod');
-        const reportPreviewCurrency = document.getElementById('reportPreviewCurrency');
-        const reportPreviewCreditCard = document.getElementById('reportPreviewCreditCard');
-        const reportPreviewFormat = document.getElementById('reportPreviewFormat');
+        const reportCurrencyButtons = Array.from(document.querySelectorAll('[data-report-currency]'));
+        const reportCardButtons = Array.from(document.querySelectorAll('[data-report-card]'));
+        const reportSelectionSummary = document.getElementById('reportSelectionSummary');
         const telegramStatusBanner = document.getElementById('telegramStatusBanner');
         const telegramStatusHint = document.getElementById('telegramStatusHint');
         const telegramCodeWrap = document.getElementById('telegramCodeWrap');
@@ -848,39 +820,55 @@
             return months[(month || 0) - 1] || '-';
         }
 
-        function updateReportPreview(formatHint) {
+        function updateReportSummary(formatHint) {
             const month = parseInt(reportMonthSelect?.value || '', 10);
             const year = parseInt(reportYearInput?.value || '', 10);
             const currency = String(reportCurrencySelect?.value || currentCurrency || 'ars').trim().toUpperCase();
             const includeCreditCard = reportIncludeCreditCardCheckbox ? !!reportIncludeCreditCardCheckbox.checked : true;
 
-            if (reportPreviewPeriod) {
-                const monthText = Number.isInteger(month) && month >= 1 && month <= 12 ? reportMonthLabel(month) : '-';
-                const yearText = Number.isInteger(year) && year >= 2000 && year <= 2100 ? String(year) : '-';
-                reportPreviewPeriod.textContent = `${monthText} ${yearText}`.trim();
+            const monthText = Number.isInteger(month) && month >= 1 && month <= 12 ? reportMonthLabel(month) : '-';
+            const yearText = Number.isInteger(year) && year >= 2000 && year <= 2100 ? String(year) : '-';
+            const cardText = includeCreditCard ? 'con tarjeta' : 'sin tarjeta';
+            const formatText = formatHint === 'xlsx' ? 'Excel' : (formatHint === 'pdf' ? 'PDF' : '');
+
+            if (reportSelectionSummary) {
+                reportSelectionSummary.textContent = formatText
+                    ? `${monthText} ${yearText} · ${currency} · ${cardText} · ${formatText}`
+                    : `${monthText} ${yearText} · ${currency} · ${cardText}`;
             }
-            if (reportPreviewCurrency) {
-                reportPreviewCurrency.textContent = currency || '-';
-            }
-            if (reportPreviewCreditCard) {
-                reportPreviewCreditCard.textContent = includeCreditCard ? 'Incluida' : 'No incluida';
-            }
-            if (reportPreviewFormat) {
-                if (formatHint === 'xlsx') {
-                    reportPreviewFormat.textContent = 'Excel (.xlsx)';
-                } else if (formatHint === 'pdf') {
-                    reportPreviewFormat.textContent = 'PDF (.pdf)';
-                } else {
-                    reportPreviewFormat.textContent = 'Sin seleccionar';
-                }
-            }
+        }
+
+        function syncReportCurrencyButtons() {
+            const selected = String(reportCurrencySelect?.value || '').trim().toLowerCase();
+            reportCurrencyButtons.forEach((button) => {
+                const value = String(button.dataset.reportCurrency || '').trim().toLowerCase();
+                const active = selected !== '' && value === selected;
+                button.classList.toggle('active', active);
+                button.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+        }
+
+        function syncReportCardButtons() {
+            const include = reportIncludeCreditCardCheckbox ? !!reportIncludeCreditCardCheckbox.checked : true;
+            reportCardButtons.forEach((button) => {
+                const value = String(button.dataset.reportCard || '').trim().toLowerCase() === 'true';
+                const active = value === include;
+                button.classList.toggle('active', active);
+                button.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+        }
+
+        function updateReportSelectionState(formatHint) {
+            syncReportCurrencyButtons();
+            syncReportCardButtons();
+            updateReportSummary(formatHint);
         }
 
         function renderReportAccessState() {
             const isPremium = currentPlanTier === 'premium';
             if (downloadMonthlyXLSXBtn) downloadMonthlyXLSXBtn.disabled = !isPremium;
             if (downloadMonthlyPDFBtn) downloadMonthlyPDFBtn.disabled = !isPremium;
-            updateReportPreview();
+            updateReportSelectionState();
             const messageDiv = document.getElementById('reportExportMessage');
             if (!messageDiv) return;
             if (isPremium) {
@@ -924,7 +912,7 @@
                     reportIncludeCreditCardCheckbox.checked = isTruthy;
                 }
             }
-            updateReportPreview();
+            updateReportSelectionState();
         }
 
         function populateReportPeriodControls() {
@@ -953,7 +941,7 @@
             }
             applyReportContextFromURL();
             renderReportAccessState();
-            updateReportPreview();
+            updateReportSelectionState();
         }
 
         function parseAttachmentFilename(contentDisposition, fallbackName) {
@@ -1005,7 +993,7 @@
             });
             const endpoint = `/api/export/monthly/${ext}?${params.toString()}`;
 
-            updateReportPreview(ext);
+            updateReportSelectionState(ext);
             setReportDownloadButtonsDisabled(true);
             showMessage('reportExportMessage', `Generando reporte ${ext.toUpperCase()}...`, true);
 
@@ -2411,11 +2399,27 @@ async function saveCategoriesList(nextCategories) {
             }
         });
         document.getElementById('currencySelect').addEventListener('change', saveCurrency);
-        reportMonthSelect?.addEventListener('change', () => updateReportPreview());
-        reportYearInput?.addEventListener('input', () => updateReportPreview());
-        reportYearInput?.addEventListener('change', () => updateReportPreview());
-        reportCurrencySelect?.addEventListener('change', () => updateReportPreview());
-        reportIncludeCreditCardCheckbox?.addEventListener('change', () => updateReportPreview());
+        reportMonthSelect?.addEventListener('change', () => updateReportSelectionState());
+        reportYearInput?.addEventListener('input', () => updateReportSelectionState());
+        reportYearInput?.addEventListener('change', () => updateReportSelectionState());
+        reportCurrencySelect?.addEventListener('change', () => updateReportSelectionState());
+        reportIncludeCreditCardCheckbox?.addEventListener('change', () => updateReportSelectionState());
+        reportCurrencyButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const currency = String(button.dataset.reportCurrency || '').trim().toLowerCase();
+                if (!currency || !reportCurrencySelect) return;
+                reportCurrencySelect.value = currency;
+                updateReportSelectionState();
+            });
+        });
+        reportCardButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                if (!reportIncludeCreditCardCheckbox) return;
+                const include = String(button.dataset.reportCard || '').trim().toLowerCase() === 'true';
+                reportIncludeCreditCardCheckbox.checked = include;
+                updateReportSelectionState();
+            });
+        });
         downloadMonthlyXLSXBtn?.addEventListener('click', () => downloadMonthlyReport('xlsx'));
         downloadMonthlyPDFBtn?.addEventListener('click', () => downloadMonthlyReport('pdf'));
         telegramOpenBotBtn?.addEventListener('click', () => {

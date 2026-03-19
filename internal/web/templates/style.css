@@ -2178,13 +2178,6 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     white-space: nowrap;
 }
 
-.settings-reports-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
-    gap: 1.1rem;
-    align-items: start;
-}
-
 .settings-reports-form {
     min-width: 0;
 }
@@ -2192,59 +2185,95 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 .settings-export-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.9rem;
+    gap: 0.82rem;
     margin-top: 0;
 }
 
+.settings-export-grid-main {
+    margin-bottom: 0.78rem;
+}
+
+.settings-export-grid-advanced {
+    grid-template-columns: 1fr;
+    margin-bottom: 0.66rem;
+}
+
 .settings-report-field label {
-    font-size: 0.83rem;
+    font-size: 0.8rem;
     letter-spacing: 0.01em;
+    margin-bottom: 0.28rem;
 }
 
-.settings-report-field-toggle {
-    grid-column: 1 / -1;
-}
-
-.settings-report-check {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 0.22rem;
-    border: 1px solid rgba(37, 99, 235, 0.16);
+.settings-report-select-wrap select,
+.settings-report-select-wrap input {
     border-radius: 12px;
-    padding: 0.62rem 0.7rem;
-    background: rgba(15, 23, 42, 0.05);
+    min-height: 46px;
+    border-color: rgba(37, 99, 235, 0.2);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(37, 99, 235, 0.04) 100%);
 }
 
-.settings-report-check-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.55rem;
-    font-size: 0.88rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    cursor: pointer;
+.settings-report-select-wrap input {
+    font-weight: 600;
 }
 
-.settings-report-check-input {
-    width: 16px;
-    height: 16px;
-    accent-color: var(--accent);
-    margin: 0;
-    flex-shrink: 0;
+.settings-currency-switch,
+.settings-card-switch {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
 }
 
-.settings-report-check small {
+.settings-card-switch {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.settings-chip-button {
+    min-height: 40px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background-color: var(--bg-primary);
     color: var(--text-secondary);
-    font-size: 0.76rem;
-    line-height: 1.25;
-    padding-left: 1.5rem;
+    font-weight: 700;
+    font-size: 0.84rem;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.settings-chip-button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.settings-chip-button.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-contrast);
+    box-shadow: 0 6px 14px rgba(37, 99, 235, 0.22);
+}
+
+.settings-chip-button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.22);
+}
+
+.settings-report-input-hidden {
+    display: none !important;
+}
+
+.settings-report-summary {
+    margin: 0.2rem 0 0.1rem;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    border: 1px dashed rgba(37, 99, 235, 0.26);
+    border-radius: 10px;
+    padding: 0.42rem 0.6rem;
+    background: rgba(37, 99, 235, 0.05);
 }
 
 .settings-export-actions {
     display: flex;
-    gap: 0.8rem;
-    margin-top: 1rem;
+    gap: 0.68rem;
+    margin-top: 0.85rem;
 }
 
 .settings-reports-section .settings-export-actions .nav-button {
@@ -2284,78 +2313,6 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     color: rgba(6, 32, 58, 0.78);
 }
 
-.settings-reports-preview {
-    border: 1px solid rgba(37, 99, 235, 0.15);
-    border-radius: 14px;
-    padding: 0.95rem;
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(37, 99, 235, 0.05) 100%);
-}
-
-.settings-reports-preview h3 {
-    margin: 0;
-    font-size: 0.95rem;
-}
-
-.settings-reports-preview > p {
-    margin: 0.22rem 0 0.75rem;
-    color: var(--text-secondary);
-    font-size: 0.82rem;
-    line-height: 1.35;
-}
-
-.settings-reports-preview-meta {
-    margin: 0;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.52rem;
-}
-
-.settings-reports-preview-meta div {
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 0.52rem 0.58rem;
-    background: var(--bg-secondary);
-}
-
-.settings-reports-preview-meta dt {
-    margin: 0;
-    font-size: 0.71rem;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    color: var(--text-secondary);
-}
-
-.settings-reports-preview-meta dd {
-    margin: 0.12rem 0 0;
-    font-weight: 700;
-    font-size: 0.88rem;
-    color: var(--text-primary);
-}
-
-.settings-reports-preview-list {
-    margin: 0.7rem 0 0;
-    padding: 0;
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-}
-
-.settings-reports-preview-list li {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.4rem;
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-}
-
-.settings-reports-preview-list i {
-    color: var(--success);
-    margin-top: 0.12rem;
-}
-
 .settings-reports-caption {
     margin: 0.8rem 0 0;
     color: var(--text-secondary);
@@ -2369,7 +2326,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
 @media (prefers-reduced-motion: no-preference) {
     .settings-reports-hero,
-    .settings-reports-preview {
+    .settings-reports-form {
         animation: settings-report-rise 0.34s ease both;
     }
 }
@@ -2473,17 +2430,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     min-width: 190px;
 }
 
-@media (max-width: 980px) {
-    .settings-reports-layout {
-        grid-template-columns: 1fr;
-    }
-}
-
 @media (max-width: 640px) {
-    .settings-reports-layout {
-        grid-template-columns: 1fr;
-    }
-
     .settings-export-grid {
         grid-template-columns: 1fr;
     }
@@ -2491,10 +2438,6 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     .settings-reports-highlight {
         flex-direction: column;
         align-items: flex-start;
-    }
-
-    .settings-reports-preview-meta {
-        grid-template-columns: 1fr;
     }
 
     .settings-reports-section .settings-export-actions {
@@ -2506,8 +2449,9 @@ html[data-theme='dark'] .expense-table td.amount-balance {
         min-width: 0;
     }
 
-    .settings-reports-preview {
-        padding: 0.82rem;
+    .settings-currency-switch,
+    .settings-card-switch {
+        grid-template-columns: 1fr;
     }
 
     .settings-export-btn-note {

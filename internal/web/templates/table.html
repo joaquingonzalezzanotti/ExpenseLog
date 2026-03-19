@@ -361,6 +361,7 @@
         const expenseSubmitButton = expenseForm ? expenseForm.querySelector('button[type="submit"]') : null;
         let tableExpenseSubmitInFlight = false;
         let tableDeleteInFlight = false;
+        let onboardingTemplateInFlight = false;
         let categories = [];
         let searchQuery = '';
         let filterCurrency = 'all';
@@ -395,23 +396,63 @@
         let calendarTypeFilter = 'all';
         let calendarCategoryFilter = 'all';
         let selectedCalendarDayKey = '';
+        const supportsModalInert = 'inert' in HTMLElement.prototype;
+        let expenseFormRestoreFocusElement = toggleExpenseFormBtn;
 
         function isMobileTableView() {
             return window.innerWidth <= MOBILE_TABLE_BREAKPOINT;
         }
 
-        function setExpenseFormVisible(visible) {
+        function setExpenseFormVisible(visible, options = {}) {
             if (!addExpenseContainer) return;
-            addExpenseContainer.hidden = !visible;
-            addExpenseContainer.setAttribute('aria-hidden', visible ? 'false' : 'true');
-            if (toggleExpenseFormBtn) {
-                toggleExpenseFormBtn.setAttribute('aria-expanded', visible ? 'true' : 'false');
+            const shouldShow = Boolean(visible);
+            const isCurrentlyVisible = !addExpenseContainer.hidden && addExpenseContainer.getAttribute('aria-hidden') !== 'true';
+
+            if (shouldShow && !isCurrentlyVisible) {
+                expenseFormRestoreFocusElement = document.activeElement instanceof HTMLElement
+                    ? document.activeElement
+                    : toggleExpenseFormBtn;
             }
-            if (visible) {
+
+            if (!shouldShow && isCurrentlyVisible) {
+                const activeElement = document.activeElement;
+                const focusInsideModal = activeElement instanceof Node && addExpenseContainer.contains(activeElement);
+                if (focusInsideModal) {
+                    const shouldRestoreFocus = options.restoreFocus !== false;
+                    const restoreTarget = (
+                        shouldRestoreFocus &&
+                        expenseFormRestoreFocusElement instanceof HTMLElement &&
+                        expenseFormRestoreFocusElement.isConnected &&
+                        !addExpenseContainer.contains(expenseFormRestoreFocusElement)
+                    )
+                        ? expenseFormRestoreFocusElement
+                        : (toggleExpenseFormBtn instanceof HTMLElement ? toggleExpenseFormBtn : null);
+
+                    if (restoreTarget) {
+                        restoreTarget.focus({ preventScroll: true });
+                    } else if (activeElement instanceof HTMLElement) {
+                        activeElement.blur();
+                    }
+                }
+            }
+
+            addExpenseContainer.hidden = !shouldShow;
+            addExpenseContainer.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
+            if (supportsModalInert) {
+                addExpenseContainer.inert = !shouldShow;
+            }
+            if (toggleExpenseFormBtn) {
+                toggleExpenseFormBtn.setAttribute('aria-expanded', shouldShow ? 'true' : 'false');
+            }
+            if (shouldShow) {
                 window.setTimeout(() => {
                     document.getElementById('name')?.focus();
                 }, 0);
             }
+        }
+
+        if (addExpenseContainer && supportsModalInert) {
+            addExpenseContainer.inert = true;
         }
 
         function updateClearButtonsVisibility() {
@@ -448,7 +489,93 @@
             }
         }
 
-        function runTableEmptyAction(action) {
+        function resolveOnboardingTemplateCategory(flow) {
+            const normalized = categories
+                .map((value) => String(value || '').trim())
+                .filter(Boolean);
+            if (!normalized.length) return '';
+            const lower = normalized.map((value) => value.toLowerCase());
+            if (flow === 'income') {
+                const incomeMatch = ['ingresos', 'ingreso', 'sueldo', 'salario']
+                    .map((term) => lower.indexOf(term))
+                    .find((index) => index >= 0);
+                if (typeof incomeMatch === 'number' && incomeMatch >= 0) {
+                    return normalized[incomeMatch];
+                }
+            } else {
+                const expenseMatch = ['comida', 'supermercado', 'hogar', 'gastos', 'otros']
+                    .map((term) => lower.indexOf(term))
+                    .find((index) => index >= 0);
+                if (typeof expenseMatch === 'number' && expenseMatch >= 0) {
+                    return normalized[expenseMatch];
+                }
+            }
+            return normalized[0];
+        }
+
+        async function createOnboardingTemplateEntries() {
+            if (onboardingTemplateInFlight) return;
+            if (allExpenses.length > 0) {
+                showToast('La plantilla es solo para cuentas nuevas.', 'error');
+                return;
+            }
+            if (!categories.length) {
+                showToast('No hay categorias disponibles para cargar ejemplos.', 'error');
+                return;
+            }
+
+            const incomeCategory = resolveOnboardingTemplateCategory('income');
+            const expenseCategory = resolveOnboardingTemplateCategory('expense');
+            if (!incomeCategory || !expenseCategory) {
+                showToast('No se pudo resolver categorias para los ejemplos.', 'error');
+                return;
+            }
+
+            const now = new Date();
+            const ymd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const entryDate = getISODateWithLocalTime(ymd);
+            const templateEntries = [
+                { name: 'Sueldo ejemplo', category: incomeCategory, amount: 250000, source: 'CA', flow: 'income', card: '' },
+                { name: 'Supermercado ejemplo', category: expenseCategory, amount: -28500, source: 'CA', flow: 'expense', card: '' },
+                { name: 'Compra tarjeta ejemplo', category: expenseCategory, amount: -15200, source: 'TARJETA', flow: 'expense', card: 'Visa' },
+            ];
+
+            onboardingTemplateInFlight = true;
+            try {
+                for (let index = 0; index < templateEntries.length; index += 1) {
+                    const entry = templateEntries[index];
+                    const idempotencyKey = (typeof window.expenseLogIdempotencyKey === 'function')
+                        ? window.expenseLogIdempotencyKey(`onboarding-template-${index}`)
+                        : `onboarding-template-${index}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+                    const response = await fetch('/expense', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Idempotency-Key': idempotencyKey,
+                        },
+                        body: JSON.stringify({
+                            ...entry,
+                            tags: ['Ejemplo'],
+                            currency: currentCurrency,
+                            date: entryDate,
+                        }),
+                    });
+                    if (!response.ok) {
+                        const errorPayload = await response.json().catch(() => ({}));
+                        throw new Error(errorPayload.error || 'No se pudieron cargar los ejemplos');
+                    }
+                }
+                await initialize();
+                showToast('Listo: cargamos 3 ejemplos para arrancar.', 'success');
+            } catch (error) {
+                console.error('Failed to create onboarding template:', error);
+                showToast(error.message || 'No se pudieron cargar los ejemplos', 'error');
+            } finally {
+                onboardingTemplateInFlight = false;
+            }
+        }
+
+        async function runTableEmptyAction(action) {
             if (action === 'start-income') {
                 openTableExpenseFormWithPreset({
                     movementType: 'income',
@@ -471,6 +598,10 @@
                     source: 'TARJETA',
                     suggestedName: 'Compra tarjeta',
                 });
+                return;
+            }
+            if (action === 'load-template') {
+                await createOnboardingTemplateEntries();
                 return;
             }
             if (action === 'clear-filters') {
@@ -618,6 +749,25 @@
             return requested === 'calendar' ? 'calendar' : 'table';
         }
 
+        function runDataViewTransition(updateFn) {
+            if (typeof updateFn !== 'function') return;
+            if (typeof document.startViewTransition !== 'function') {
+                updateFn();
+                return;
+            }
+
+            try {
+                const transition = document.startViewTransition(() => {
+                    updateFn();
+                });
+                if (transition?.finished?.catch) {
+                    transition.finished.catch(() => {});
+                }
+            } catch (error) {
+                updateFn();
+            }
+        }
+
         function navigateDataView(view, options = {}) {
             const normalizedView = view === 'calendar' ? 'calendar' : 'table';
             const targetRoute = routeForDataView(normalizedView);
@@ -639,11 +789,7 @@
                 window.dispatchEvent(new CustomEvent('expenselog:routechange'));
             };
 
-            if (document.startViewTransition) {
-                document.startViewTransition(applyView);
-            } else {
-                applyView();
-            }
+            runDataViewTransition(applyView);
         }
 
         function bindTableViewRouteAnchors() {
@@ -1533,11 +1679,7 @@
                 }
                 window.dispatchEvent(new CustomEvent('expenselog:routechange'));
             };
-            if (document.startViewTransition) {
-                document.startViewTransition(applyHistoryView);
-            } else {
-                applyHistoryView();
-            }
+            runDataViewTransition(applyHistoryView);
         });
         bindTableViewRouteAnchors();
 
@@ -1779,11 +1921,11 @@
             updateTable();
         });
 
-        document.addEventListener('click', (event) => {
+        document.addEventListener('click', async (event) => {
             const trigger = event.target.closest('[data-table-empty-action]');
             if (!trigger) return;
             event.preventDefault();
-            runTableEmptyAction(trigger.dataset.tableEmptyAction || '');
+            await runTableEmptyAction(trigger.dataset.tableEmptyAction || '');
         });
 
         document.getElementById('tableContainer').addEventListener('click', (e) => {

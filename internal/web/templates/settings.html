@@ -230,14 +230,8 @@
                 </div>
                 <p id="reportSelectionSummary" class="settings-report-summary" aria-live="polite"></p>
                 <div class="settings-export-actions">
-                    <button id="downloadMonthlyXLSXBtn" class="nav-button button-secondary" type="button">
-                        <span class="settings-export-btn-label"><i class="fa-regular fa-file-excel" aria-hidden="true"></i> Descargar Excel (.xlsx)</span>
-                        <span class="settings-export-btn-note">Ideal para analisis y tablas dinamicas</span>
-                    </button>
-                    <button id="downloadMonthlyPDFBtn" class="nav-button button-secondary" type="button">
-                        <span class="settings-export-btn-label"><i class="fa-regular fa-file-pdf" aria-hidden="true"></i> Descargar PDF (.pdf)</span>
-                        <span class="settings-export-btn-note">Listo para compartir y presentar</span>
-                    </button>
+                    <button id="downloadMonthlyXLSXBtn" class="nav-button button-secondary" type="button">Descargar Excel (.xlsx)</button>
+                    <button id="downloadMonthlyPDFBtn" class="nav-button button-primary" type="button">Descargar PDF (.pdf)</button>
                 </div>
                 <p class="settings-reports-caption">Sugerencia: usa el mismo mes y moneda de tu analisis para compartir resultados claros.</p>
             </div>
@@ -2129,6 +2123,25 @@ async function saveCategoriesList(nextCategories) {
             }
         }
 
+        function runSettingsViewTransition(updateFn) {
+            if (typeof updateFn !== 'function') return;
+            if (typeof document.startViewTransition !== 'function') {
+                updateFn();
+                return;
+            }
+
+            try {
+                const transition = document.startViewTransition(() => {
+                    updateFn();
+                });
+                if (transition?.finished?.catch) {
+                    transition.finished.catch(() => {});
+                }
+            } catch (error) {
+                updateFn();
+            }
+        }
+
         function navigateSettingsSection(sectionKey, options = {}) {
             const normalized = normalizeSettingsSection(sectionKey) || 'profile';
             const targetPath = routeForSettingsSection(normalized);
@@ -2151,11 +2164,7 @@ async function saveCategoriesList(nextCategories) {
                 window.dispatchEvent(new CustomEvent('expenselog:routechange'));
             };
 
-            if (document.startViewTransition) {
-                document.startViewTransition(applySectionNavigation);
-            } else {
-                applySectionNavigation();
-            }
+            runSettingsViewTransition(applySectionNavigation);
         }
 
         function bindSettingsRouteAnchors() {
@@ -2484,11 +2493,7 @@ async function saveCategoriesList(nextCategories) {
                 openSectionFromURL();
                 window.dispatchEvent(new CustomEvent('expenselog:routechange'));
             };
-            if (document.startViewTransition) {
-                document.startViewTransition(applyHistoryNavigation);
-            } else {
-                applyHistoryNavigation();
-            }
+            runSettingsViewTransition(applyHistoryNavigation);
         });
         bindSettingsRouteAnchors();
         document.getElementById('reconciliation-history-list')?.addEventListener('click', async (e) => {

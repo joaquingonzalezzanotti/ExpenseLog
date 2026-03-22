@@ -145,7 +145,7 @@
 
                 <div class="form-group">
                     <label for="date">Fecha</label>
-                    <input type="date" id="date" lang="es-AR" required>
+                    <input type="text" id="date" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" autocomplete="off" required>
                 </div>
 
                 <div class="form-group form-group-span-2 category-group">
@@ -1138,11 +1138,7 @@
             document.getElementById('cardInput').value = exp?.card || '';
             refreshSourceUX();
             
-            const localDate = new Date(date);
-            const year = localDate.getFullYear();
-            const month = String(localDate.getMonth() + 1).padStart(2, '0');
-            const day = String(localDate.getDate()).padStart(2, '0');
-            document.getElementById('date').value = `${year}-${month}-${day}`;
+            document.getElementById('date').value = formatCalendarDateDisplayFromISO(date);
             
             const form = document.getElementById('expenseForm');
             form.dataset.editId = id;
@@ -1357,11 +1353,7 @@
         function setTableDateToToday() {
             const dateInput = document.getElementById('date');
             if (!dateInput) return;
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            dateInput.value = `${year}-${month}-${day}`;
+            dateInput.value = getTodayCalendarDateDisplay();
         }
 
         function highlightText(text, query) {
@@ -1635,12 +1627,20 @@
                 document.getElementById('cardError').textContent = 'Especifica la tarjeta';
                 return;
             }
+            const dateInputEl = document.getElementById('date');
+            const displayDate = formatCalendarDateDisplay(dateInputEl ? dateInputEl.value : '');
+            const isoDate = getISODateWithLocalTime(displayDate);
+            if (!isoDate) {
+                showToast('Fecha invalida. Usa formato DD/MM/AAAA.', 'error');
+                return;
+            }
+            if (dateInputEl) dateInputEl.value = displayDate;
 
             const formData = {
                 name: document.getElementById('name').value,
                 category: document.getElementById('category').value,
                 amount: amount,
-                date: getISODateWithLocalTime(document.getElementById('date').value),
+                date: isoDate,
                 tags: Array.from(selectedTags),
                 currency: document.getElementById('currencySelectForm').value || currentCurrency,
                 source: sourceValue,

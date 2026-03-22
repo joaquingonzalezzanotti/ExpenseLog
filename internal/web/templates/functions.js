@@ -1090,21 +1090,89 @@ function formatMonth(date) {
     return formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }
 
+function parseCalendarDateInput(dateInput) {
+    const raw = String(dateInput || '').trim();
+    if (!raw) return null;
+    let year;
+    let month;
+    let day;
+
+    const ymdMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (ymdMatch) {
+        year = Number(ymdMatch[1]);
+        month = Number(ymdMatch[2]);
+        day = Number(ymdMatch[3]);
+    } else {
+        const dmyMatch = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if (!dmyMatch) return null;
+        day = Number(dmyMatch[1]);
+        month = Number(dmyMatch[2]);
+        year = Number(dmyMatch[3]);
+    }
+
+    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+        return null;
+    }
+
+    const parsed = new Date(year, month - 1, day);
+    if (
+        Number.isNaN(parsed.getTime()) ||
+        parsed.getFullYear() !== year ||
+        parsed.getMonth() + 1 !== month ||
+        parsed.getDate() !== day
+    ) {
+        return null;
+    }
+
+    return { year, month, day };
+}
+
+function formatCalendarDateDisplayFromParts(year, month, day) {
+    return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${String(year).padStart(4, '0')}`;
+}
+
+function formatCalendarDateDisplay(dateInput) {
+    const parsed = parseCalendarDateInput(dateInput);
+    if (!parsed) return '';
+    return formatCalendarDateDisplayFromParts(parsed.year, parsed.month, parsed.day);
+}
+
+function formatCalendarDateDisplayFromISO(isoDateString) {
+    const ymd = getDateInputValueFromISO(isoDateString);
+    if (!ymd) return '';
+    return formatCalendarDateDisplay(ymd);
+}
+
+function getTodayCalendarDateDisplay() {
+    const today = new Date();
+    return formatCalendarDateDisplayFromParts(
+        today.getFullYear(),
+        today.getMonth() + 1,
+        today.getDate()
+    );
+}
+
 function getISODateWithLocalTime(dateInput) {
-    const [year, month, day] = dateInput.split('-').map(Number);
+    const parsed = parseCalendarDateInput(dateInput);
+    if (!parsed) return '';
+    const { year, month, day } = parsed;
     const now = new Date();
     const hours = now.getHours();
     const minutes = now.getMinutes();
     const seconds = now.getSeconds();
     const milliseconds = now.getMilliseconds();
     const localDateTime = new Date(year, month - 1, day, hours, minutes, seconds, milliseconds);
+    if (Number.isNaN(localDateTime.getTime())) return '';
     return localDateTime.toISOString();
 }
 
 // Stores date-only fields (like recurring start date) at local noon to avoid timezone day-shifts.
 function getISODateWithLocalNoon(dateInput) {
-    const [year, month, day] = dateInput.split('-').map(Number);
+    const parsed = parseCalendarDateInput(dateInput);
+    if (!parsed) return '';
+    const { year, month, day } = parsed;
     const localNoon = new Date(year, month - 1, day, 12, 0, 0, 0);
+    if (Number.isNaN(localNoon.getTime())) return '';
     return localNoon.toISOString();
 }
 

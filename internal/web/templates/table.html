@@ -143,9 +143,12 @@
                     <input type="number" id="amount" step="0.01" min="0.01" max="9000000000000000" required>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group date-input-group">
                     <label for="date">Fecha</label>
-                    <input type="text" id="date" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" autocomplete="off" required>
+                    <div class="native-date-shell">
+                        <input type="date" id="date" lang="es-AR" required>
+                        <span id="dateDisplayText" class="native-date-display" aria-hidden="true">DD/MM/AAAA</span>
+                    </div>
                 </div>
 
                 <div class="form-group form-group-span-2 category-group">
@@ -1138,7 +1141,8 @@
             document.getElementById('cardInput').value = exp?.card || '';
             refreshSourceUX();
             
-            document.getElementById('date').value = formatCalendarDateDisplayFromISO(date);
+            document.getElementById('date').value = getDateInputValueFromISO(date);
+            syncTableDateDisplay();
             
             const form = document.getElementById('expenseForm');
             form.dataset.editId = id;
@@ -1353,7 +1357,17 @@
         function setTableDateToToday() {
             const dateInput = document.getElementById('date');
             if (!dateInput) return;
-            dateInput.value = getTodayCalendarDateDisplay();
+            dateInput.value = getTodayDateInputValue();
+            syncTableDateDisplay();
+        }
+
+        function syncTableDateDisplay() {
+            const dateInput = document.getElementById('date');
+            const display = document.getElementById('dateDisplayText');
+            if (!dateInput || !display) return;
+            const formatted = formatCalendarDateDisplay(dateInput.value);
+            display.textContent = formatted || 'DD/MM/AAAA';
+            display.dataset.empty = formatted ? 'false' : 'true';
         }
 
         function highlightText(text, query) {
@@ -1628,13 +1642,11 @@
                 return;
             }
             const dateInputEl = document.getElementById('date');
-            const displayDate = formatCalendarDateDisplay(dateInputEl ? dateInputEl.value : '');
-            const isoDate = getISODateWithLocalTime(displayDate);
+            const isoDate = getISODateWithLocalTime(dateInputEl ? dateInputEl.value : '');
             if (!isoDate) {
-                showToast('Fecha invalida. Usa formato DD/MM/AAAA.', 'error');
+                showToast('Selecciona una fecha valida.', 'error');
                 return;
             }
-            if (dateInputEl) dateInputEl.value = displayDate;
 
             const formData = {
                 name: document.getElementById('name').value,
@@ -1696,6 +1708,11 @@
 
         sourceSelect.addEventListener('change', refreshSourceUX);
         refreshSourceUX();
+        const tableDateInput = document.getElementById('date');
+        if (tableDateInput) {
+            tableDateInput.addEventListener('change', syncTableDateDisplay);
+            tableDateInput.addEventListener('input', syncTableDateDisplay);
+        }
         if (movementTypeSelect) {
             movementTypeSelect.addEventListener('change', () => {
                 syncTableSubmitButtonLabel();

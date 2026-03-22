@@ -4634,6 +4634,45 @@ html[data-settings-route='telegram'] body.settings-page #telegramSection[hidden]
     border-color: var(--accent);
 }
 
+.date-input-group .native-date-shell {
+    position: relative;
+}
+
+.date-input-group .native-date-shell input[type="date"] {
+    position: relative;
+    z-index: 1;
+    color: transparent;
+    caret-color: transparent;
+}
+
+.date-input-group .native-date-shell input[type="date"]::-webkit-datetime-edit {
+    color: transparent;
+}
+
+.date-input-group .native-date-shell input[type="date"]::-webkit-date-and-time-value {
+    color: transparent;
+}
+
+.date-input-group .native-date-shell input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 1;
+    cursor: pointer;
+}
+
+.date-input-group .native-date-display {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    font-size: 1rem;
+    line-height: 1;
+    color: var(--text-primary);
+}
+
+.date-input-group .native-date-display[data-empty="true"] {
+    color: var(--text-secondary);
+}
+
 .form-message {
     margin: 0;
     padding: 0;

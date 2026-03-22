@@ -1452,7 +1452,7 @@
                 const balance = carry + income + refund - expense;
                 if (balance === 0 && income === 0 && refund === 0 && expense === 0 && carry === 0) return;
                 const row = document.createElement('div');
-                row.className = 'cashflow-row';
+                row.className = `cashflow-row currency-${cur.toLowerCase()}`;
                 row.innerHTML = `
                     <div class="cashflow-item balance">
                         <div class="cashflow-label">Balance ${cur.toUpperCase()}</div>

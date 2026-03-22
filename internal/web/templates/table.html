@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-AR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -143,12 +143,9 @@
                     <input type="number" id="amount" step="0.01" min="0.01" max="9000000000000000" required>
                 </div>
 
-                <div class="form-group date-input-group">
+                <div class="form-group">
                     <label for="date">Fecha</label>
-                    <div class="native-date-shell">
-                        <input type="date" id="date" lang="es-AR" required>
-                        <span id="dateDisplayText" class="native-date-display" aria-hidden="true">DD/MM/AAAA</span>
-                    </div>
+                    <input type="date" id="date" lang="es-AR" required>
                 </div>
 
                 <div class="form-group form-group-span-2 category-group">
@@ -1141,8 +1138,11 @@
             document.getElementById('cardInput').value = exp?.card || '';
             refreshSourceUX();
             
-            document.getElementById('date').value = getDateInputValueFromISO(date);
-            syncTableDateDisplay();
+            const localDate = new Date(date);
+            const year = localDate.getFullYear();
+            const month = String(localDate.getMonth() + 1).padStart(2, '0');
+            const day = String(localDate.getDate()).padStart(2, '0');
+            document.getElementById('date').value = `${year}-${month}-${day}`;
             
             const form = document.getElementById('expenseForm');
             form.dataset.editId = id;
@@ -1357,17 +1357,11 @@
         function setTableDateToToday() {
             const dateInput = document.getElementById('date');
             if (!dateInput) return;
-            dateInput.value = getTodayDateInputValue();
-            syncTableDateDisplay();
-        }
-
-        function syncTableDateDisplay() {
-            const dateInput = document.getElementById('date');
-            const display = document.getElementById('dateDisplayText');
-            if (!dateInput || !display) return;
-            const formatted = formatCalendarDateDisplay(dateInput.value);
-            display.textContent = formatted || 'DD/MM/AAAA';
-            display.dataset.empty = formatted ? 'false' : 'true';
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}`;
         }
 
         function highlightText(text, query) {
@@ -1708,11 +1702,6 @@
 
         sourceSelect.addEventListener('change', refreshSourceUX);
         refreshSourceUX();
-        const tableDateInput = document.getElementById('date');
-        if (tableDateInput) {
-            tableDateInput.addEventListener('change', syncTableDateDisplay);
-            tableDateInput.addEventListener('input', syncTableDateDisplay);
-        }
         if (movementTypeSelect) {
             movementTypeSelect.addEventListener('change', () => {
                 syncTableSubmitButtonLabel();

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-AR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -202,12 +202,9 @@
                         <input type="number" id="amount" step="0.01" min="0.01" max="9000000000000000" required>
                     </div>
 
-                    <div class="form-group date-input-group">
+                    <div class="form-group">
                         <label for="date">Fecha</label>
-                        <div class="native-date-shell">
-                            <input type="date" id="date" lang="es-AR" required>
-                            <span id="dateDisplayText" class="native-date-display" aria-hidden="true">DD/MM/AAAA</span>
-                        </div>
+                        <input type="date" id="date" lang="es-AR" required>
                     </div>
 
                     <div class="form-group form-group-span-2 category-group">
@@ -1769,17 +1766,11 @@
         function setDateToToday() {
             const dateInput = document.getElementById('date');
             if (!dateInput) return;
-            dateInput.value = getTodayDateInputValue();
-            syncHomeDateDisplay();
-        }
-
-        function syncHomeDateDisplay() {
-            const dateInput = document.getElementById('date');
-            const display = document.getElementById('dateDisplayText');
-            if (!dateInput || !display) return;
-            const formatted = formatCalendarDateDisplay(dateInput.value);
-            display.textContent = formatted || 'DD/MM/AAAA';
-            display.dataset.empty = formatted ? 'false' : 'true';
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}`;
         }
 
         function resetExpenseFormState() {
@@ -2166,13 +2157,7 @@
 
         setExpenseFormVisible(false);
         setCardPaymentModalVisible(false);
-        const homeDateInput = document.getElementById('date');
-        if (homeDateInput) {
-            homeDateInput.addEventListener('change', syncHomeDateDisplay);
-            homeDateInput.addEventListener('input', syncHomeDateDisplay);
-        }
         setDateToToday();
-        syncHomeDateDisplay();
         setCardPaymentMode('self');
         refreshSourceUX();
         syncExpenseSubmitButtonLabel();

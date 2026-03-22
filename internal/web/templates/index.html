@@ -272,35 +272,39 @@
             </div>
         </div>
 
-        <section id="cardPaymentModule" class="card-payment-module" style="display: none;">
-            <article class="card-payment-visual" aria-label="Tarjeta por pagar">
-                <span class="card-payment-chip" aria-hidden="true"></span>
-                <div class="card-payment-head">
-                    <div class="card-payment-toggle-copy">
-                        <span class="card-payment-eyebrow">💳 Resumen de credito</span>
-                        <span class="card-payment-title">Tarjeta por pagar</span>
-                        <span id="cardPaymentStatus" class="card-payment-status">Registra pagos para bajar el saldo pendiente.</span>
+        <section class="home-credit-fx-grid">
+            <section id="cardPaymentModule" class="card-payment-module" style="display: none;">
+                <article class="card-payment-visual" aria-label="Tarjeta por pagar">
+                    <span class="card-payment-chip" aria-hidden="true"></span>
+                    <div class="card-payment-head">
+                        <div class="card-payment-toggle-copy">
+                            <span class="card-payment-eyebrow">💳 Resumen de credito</span>
+                            <span class="card-payment-title">Tarjeta por pagar</span>
+                            <span id="cardPaymentStatus" class="card-payment-status">Registra pagos para bajar el saldo pendiente.</span>
+                        </div>
+                        <div class="card-payment-toggle-kpi card-payment-kpi-panel">
+                            <span id="cardPayableValue" class="card-payment-value">$0.00</span>
+                            <span id="cardPayableSub" class="card-payment-sub"></span>
+                        </div>
                     </div>
-                    <div class="card-payment-toggle-kpi card-payment-kpi-panel">
-                        <span id="cardPayableValue" class="card-payment-value">$0.00</span>
-                        <span id="cardPayableSub" class="card-payment-sub"></span>
+                    <div class="card-payment-brandline">
+                        <span>ExpenseLog</span>
+                        <span id="cardPaymentDueDate" class="card-payment-due">Vence --/---</span>
+                        <span>****  ****</span>
                     </div>
+                </article>
+                <div id="cardPayableBreakdown" class="card-payment-breakdown"></div>
+                <div class="card-payment-actions">
+                    <button id="openCardPaymentModalBtn" type="button" class="nav-button button-primary">Registrar pago</button>
                 </div>
-                <div class="card-payment-brandline">
-                    <span>ExpenseLog</span>
-                    <span id="cardPaymentDueDate" class="card-payment-due">Vence --/---</span>
-                    <span>****  ****</span>
+                <div id="cardPaymentEmptyHelp" class="card-payment-empty-help" style="display: none;">
+                    <strong>Cuando aparece Tarjeta por pagar?</strong>
+                    <p>Se completa cuando registras un gasto con metodo Tarjeta de credito. Luego podes registrar el pago desde este modulo.</p>
+                    <button type="button" class="nav-button button-secondary" data-onboarding-action="start-card-expense">Cargar gasto con tarjeta</button>
                 </div>
-            </article>
-            <div id="cardPayableBreakdown" class="card-payment-breakdown"></div>
-            <div class="card-payment-actions">
-                <button id="openCardPaymentModalBtn" type="button" class="nav-button button-primary">Registrar pago</button>
-            </div>
-            <div id="cardPaymentEmptyHelp" class="card-payment-empty-help" style="display: none;">
-                <strong>Cuando aparece Tarjeta por pagar?</strong>
-                <p>Se completa cuando registras un gasto con metodo Tarjeta de credito. Luego podes registrar el pago desde este modulo.</p>
-                <button type="button" class="nav-button button-secondary" data-onboarding-action="start-card-expense">Cargar gasto con tarjeta</button>
-            </div>
+            </section>
+
+            <div id="cashflow-section" class="cashflow-container"></div>
         </section>
 
         <div id="cardPaymentOverlay" class="entry-modal-overlay" hidden aria-hidden="true">
@@ -352,7 +356,6 @@
             </div>
         </div>
 
-        <div id="cashflow-section" class="cashflow-container"></div>
     </div>
     <div id="toastContainer" class="toast-container"></div>
 

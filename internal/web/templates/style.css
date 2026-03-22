@@ -3174,17 +3174,19 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
     .home-credit-fx-grid > #cashflow-section .cashflow-item {
         height: 100%;
-        min-height: 180px;
+        min-height: 0;
     }
 
     .home-credit-fx-grid > #cashflow-section .cashflow-item.balance {
         position: relative;
         border-radius: 14px;
         border-width: 1px;
-        padding: 1.05rem 0.95rem 0.9rem;
+        border-color: rgba(148, 163, 184, 0.28);
+        background: linear-gradient(180deg, rgba(248, 250, 252, 0.9) 0%, rgba(241, 245, 249, 0.96) 100%);
+        padding: 1rem 0.95rem 0.92rem;
         box-shadow:
-            0 8px 16px rgba(15, 23, 42, 0.08),
-            inset 0 1px 0 rgba(255, 255, 255, 0.42);
+            0 5px 12px rgba(15, 23, 42, 0.05),
+            inset 0 1px 0 rgba(255, 255, 255, 0.56);
     }
 
     .home-credit-fx-grid > #cashflow-section .cashflow-item.balance::before {
@@ -3193,30 +3195,30 @@ html[data-theme='dark'] .expense-table td.amount-balance {
         left: 0;
         top: 0;
         bottom: 0;
-        width: 5px;
+        width: 4px;
         border-radius: 14px 0 0 14px;
-        background: rgba(59, 130, 246, 0.3);
+        background: rgba(148, 163, 184, 0.38);
     }
 
     .home-credit-fx-grid > #cashflow-section .cashflow-label {
-        font-size: 1.05rem;
+        font-size: 0.98rem;
         font-weight: 700;
         letter-spacing: 0.01em;
-        color: #1f3554;
+        color: #1e293b;
     }
 
     .home-credit-fx-grid > #cashflow-section .cashflow-value {
-        font-size: 2rem;
-        line-height: 1.05;
-        margin-bottom: 0.15rem;
+        font-size: 2.2rem;
+        line-height: 1.08;
+        margin-bottom: 0.2rem;
     }
 
     .home-credit-fx-grid > #cashflow-section .cashflow-sub {
-        margin-top: 0.5rem;
+        margin-top: 0.42rem;
         display: grid;
-        gap: 0.12rem;
-        font-size: 0.9rem;
-        line-height: 1.28;
+        gap: 0.1rem;
+        font-size: 0.8rem;
+        line-height: 1.25;
     }
 
     .home-credit-fx-grid > #cashflow-section .cashflow-sub span {
@@ -3224,46 +3226,42 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     }
 
     .home-credit-fx-grid > #cashflow-section .cashflow-row.currency-usd .cashflow-item.balance {
-        border-color: rgba(22, 163, 74, 0.25);
-        background:
-            linear-gradient(180deg, rgba(220, 252, 231, 0.82) 0%, rgba(240, 253, 244, 0.94) 100%);
+        border-color: rgba(16, 185, 129, 0.28);
     }
 
     .home-credit-fx-grid > #cashflow-section .cashflow-row.currency-usd .cashflow-item.balance::before {
-        background: rgba(22, 163, 74, 0.42);
+        background: rgba(16, 185, 129, 0.52);
     }
 
     .home-credit-fx-grid > #cashflow-section .cashflow-row.currency-eur .cashflow-item.balance {
-        border-color: rgba(37, 99, 235, 0.25);
-        background:
-            linear-gradient(180deg, rgba(219, 234, 254, 0.84) 0%, rgba(239, 246, 255, 0.95) 100%);
+        border-color: rgba(59, 130, 246, 0.28);
     }
 
     .home-credit-fx-grid > #cashflow-section .cashflow-row.currency-eur .cashflow-item.balance::before {
-        background: rgba(37, 99, 235, 0.42);
+        background: rgba(59, 130, 246, 0.52);
     }
 }
 
 html[data-theme='dark'] .home-credit-fx-grid > #cashflow-section .cashflow-label {
-    color: #dbeafe;
+    color: #e2e8f0;
 }
 
 html[data-theme='dark'] .home-credit-fx-grid > #cashflow-section .cashflow-row.currency-usd .cashflow-item.balance {
-    border-color: rgba(34, 197, 94, 0.38);
-    background: linear-gradient(180deg, rgba(5, 46, 22, 0.88) 0%, rgba(8, 58, 30, 0.95) 100%);
+    border-color: rgba(34, 197, 94, 0.35);
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.94) 0%, rgba(15, 23, 42, 0.98) 100%);
 }
 
 html[data-theme='dark'] .home-credit-fx-grid > #cashflow-section .cashflow-row.currency-usd .cashflow-item.balance::before {
-    background: rgba(34, 197, 94, 0.7);
+    background: rgba(34, 197, 94, 0.65);
 }
 
 html[data-theme='dark'] .home-credit-fx-grid > #cashflow-section .cashflow-row.currency-eur .cashflow-item.balance {
-    border-color: rgba(59, 130, 246, 0.4);
-    background: linear-gradient(180deg, rgba(18, 34, 70, 0.9) 0%, rgba(22, 45, 90, 0.95) 100%);
+    border-color: rgba(96, 165, 250, 0.38);
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.94) 0%, rgba(15, 23, 42, 0.98) 100%);
 }
 
 html[data-theme='dark'] .home-credit-fx-grid > #cashflow-section .cashflow-row.currency-eur .cashflow-item.balance::before {
-    background: rgba(59, 130, 246, 0.72);
+    background: rgba(96, 165, 250, 0.68);
 }
 
 .import-section {

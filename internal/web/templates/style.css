@@ -2799,6 +2799,8 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     border-radius: 18px;
     border: 1px solid rgba(148, 163, 184, 0.3);
     padding: 1rem;
+    display: flex;
+    flex-direction: column;
     background:
         radial-gradient(circle at 80% 8%, var(--card-visual-glow), transparent 35%),
         linear-gradient(132deg, var(--card-visual-start) 0%, var(--card-visual-mid) 52%, var(--card-visual-end) 100%);
@@ -2889,10 +2891,11 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 }
 
 .card-payment-value {
-    font-size: 1.5rem;
+    font-size: 1.62rem;
     font-weight: 800;
     color: var(--card-visual-text);
-    line-height: 1.05;
+    line-height: 1.02;
+    font-variant-numeric: tabular-nums;
     text-shadow: 0 1px 5px rgba(15, 23, 42, 0.2);
 }
 
@@ -2949,6 +2952,10 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     margin-top: 0.15rem;
 }
 
+.card-payment-breakdown:empty {
+    display: none;
+}
+
 .card-breakdown-chip {
     display: inline-flex;
     align-items: center;
@@ -2974,7 +2981,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 }
 
 .card-payment-actions .nav-button {
-    min-width: 180px;
+    min-width: 190px;
     width: 100%;
     max-width: 240px;
 }
@@ -3134,33 +3141,66 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     line-height: 1.35;
 }
 
+.cashflow-fx-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.cashflow-fx-panel-title {
+    display: none;
+}
+
 @media (min-width: 769px) {
     .home-credit-fx-grid {
         display: grid;
-        grid-template-columns: minmax(0, 3fr) minmax(260px, 1fr);
-        grid-template-rows: repeat(2, minmax(0, 1fr));
-        align-items: stretch;
-        gap: 1rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+        gap: 0.8rem;
+    }
+
+    .home-credit-fx-grid.home-credit-fx-grid--no-fx {
+        grid-template-columns: 1fr;
     }
 
     .home-credit-fx-grid > #cardPaymentModule {
         grid-column: 1;
-        grid-row: 1 / span 2;
         margin: 0;
         max-width: none;
-        height: 100%;
+        width: 100%;
+        height: auto;
+        align-content: start;
+        align-self: start;
+        border: none;
+        background: transparent;
+        padding: 0;
+        gap: 0.5rem;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .home-credit-fx-grid > #cardPaymentModule .card-payment-visual {
+        min-height: 186px;
+        height: auto;
+        justify-content: flex-start;
+        gap: 0.55rem;
+        padding: 0.86rem 0.9rem;
+    }
+
+    .home-credit-fx-grid > #cardPaymentModule .card-payment-brandline {
+        margin-top: 0.32rem;
+    }
+
+    .home-credit-fx-grid.home-credit-fx-grid--no-fx > #cardPaymentModule {
+        grid-column: 1 / -1;
     }
 
     .home-credit-fx-grid > #cashflow-section {
         grid-column: 2;
-        grid-row: 1 / span 2;
-        display: grid;
-        grid-template-columns: 1fr;
-        grid-auto-rows: minmax(0, 1fr);
-        gap: 0.9rem;
         margin: 0;
         max-width: none;
-        align-content: start;
+        align-self: start;
+        height: auto;
     }
 
     .home-credit-fx-grid > #cardPaymentModule[style*="display: none"] ~ #cashflow-section {
@@ -3172,6 +3212,50 @@ html[data-theme='dark'] .expense-table td.amount-balance {
         margin: 0;
     }
 
+    .home-credit-fx-grid > #cashflow-section .cashflow-fx-panel {
+        min-height: 186px;
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(248, 250, 252, 0.96) 0%, rgba(241, 245, 249, 0.96) 100%);
+        box-shadow:
+            0 4px 10px rgba(15, 23, 42, 0.04),
+            inset 0 1px 0 rgba(255, 255, 255, 0.5);
+        padding: 0.9rem 0.95rem;
+        display: grid;
+        gap: 0.62rem;
+        grid-template-columns: repeat(var(--fx-count, 1), minmax(0, 1fr));
+        grid-template-rows: minmax(0, 1fr);
+    }
+
+    .home-credit-fx-grid > #cashflow-section .cashflow-fx-panel--single {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(0, 1fr);
+    }
+
+    .home-credit-fx-grid > #cashflow-section .cashflow-fx-panel--split {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: minmax(0, 1fr);
+    }
+
+    .home-credit-fx-grid > #cashflow-section .cashflow-fx-panel--single .cashflow-row + .cashflow-row {
+        margin-top: 0;
+        padding-top: 0.62rem;
+        border-top: 1px solid rgba(148, 163, 184, 0.22);
+    }
+
+    .home-credit-fx-grid > #cashflow-section .cashflow-fx-panel--split .cashflow-row + .cashflow-row {
+        margin-top: 0;
+        padding-top: 0;
+        border-top: none;
+        margin-left: 0.08rem;
+        padding-left: 0.72rem;
+        border-left: 1px solid rgba(148, 163, 184, 0.22);
+    }
+
+    .home-credit-fx-grid > #cardPaymentModule .card-payment-actions {
+        margin-top: 0;
+    }
+
     .home-credit-fx-grid > #cashflow-section .cashflow-item {
         height: 100%;
         min-height: 0;
@@ -3179,46 +3263,45 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
     .home-credit-fx-grid > #cashflow-section .cashflow-item.balance {
         position: relative;
-        border-radius: 14px;
-        border-width: 1px;
-        border-color: rgba(148, 163, 184, 0.28);
-        background: linear-gradient(180deg, rgba(248, 250, 252, 0.9) 0%, rgba(241, 245, 249, 0.96) 100%);
-        padding: 1rem 0.95rem 0.92rem;
-        box-shadow:
-            0 5px 12px rgba(15, 23, 42, 0.05),
-            inset 0 1px 0 rgba(255, 255, 255, 0.56);
+        border: none;
+        background: transparent;
+        padding: 0 0 0 0.7rem;
+        min-height: 0;
+        box-shadow: none;
+        justify-content: flex-start;
     }
 
     .home-credit-fx-grid > #cashflow-section .cashflow-item.balance::before {
         content: "";
         position: absolute;
         left: 0;
-        top: 0;
-        bottom: 0;
-        width: 4px;
-        border-radius: 14px 0 0 14px;
-        background: rgba(148, 163, 184, 0.38);
+        top: 0.15rem;
+        bottom: 0.15rem;
+        width: 3px;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.46);
     }
 
     .home-credit-fx-grid > #cashflow-section .cashflow-label {
-        font-size: 0.98rem;
+        font-size: 1.02rem;
         font-weight: 700;
         letter-spacing: 0.01em;
         color: #1e293b;
     }
 
     .home-credit-fx-grid > #cashflow-section .cashflow-value {
-        font-size: 2.2rem;
-        line-height: 1.08;
-        margin-bottom: 0.2rem;
+        font-size: 1.92rem;
+        line-height: 1.1;
+        margin-bottom: 0.08rem;
+        font-variant-numeric: tabular-nums;
     }
 
     .home-credit-fx-grid > #cashflow-section .cashflow-sub {
-        margin-top: 0.42rem;
+        margin-top: 0.28rem;
         display: grid;
-        gap: 0.1rem;
-        font-size: 0.8rem;
-        line-height: 1.25;
+        gap: 0.08rem;
+        font-size: 0.84rem;
+        line-height: 1.22;
     }
 
     .home-credit-fx-grid > #cashflow-section .cashflow-sub span {
@@ -3226,19 +3309,19 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     }
 
     .home-credit-fx-grid > #cashflow-section .cashflow-row.currency-usd .cashflow-item.balance {
-        border-color: rgba(16, 185, 129, 0.28);
+        background: transparent;
     }
 
     .home-credit-fx-grid > #cashflow-section .cashflow-row.currency-usd .cashflow-item.balance::before {
-        background: rgba(16, 185, 129, 0.52);
+        background: rgba(16, 185, 129, 0.68);
     }
 
     .home-credit-fx-grid > #cashflow-section .cashflow-row.currency-eur .cashflow-item.balance {
-        border-color: rgba(59, 130, 246, 0.28);
+        background: transparent;
     }
 
     .home-credit-fx-grid > #cashflow-section .cashflow-row.currency-eur .cashflow-item.balance::before {
-        background: rgba(59, 130, 246, 0.52);
+        background: rgba(59, 130, 246, 0.68);
     }
 }
 
@@ -3246,22 +3329,36 @@ html[data-theme='dark'] .home-credit-fx-grid > #cashflow-section .cashflow-label
     color: #e2e8f0;
 }
 
-html[data-theme='dark'] .home-credit-fx-grid > #cashflow-section .cashflow-row.currency-usd .cashflow-item.balance {
-    border-color: rgba(34, 197, 94, 0.35);
+html[data-theme='dark'] .home-credit-fx-grid > #cashflow-section .cashflow-fx-panel {
+    border-color: rgba(71, 85, 105, 0.56);
     background: linear-gradient(180deg, rgba(30, 41, 59, 0.94) 0%, rgba(15, 23, 42, 0.98) 100%);
+    box-shadow:
+        0 4px 10px rgba(2, 6, 23, 0.34),
+        inset 0 1px 0 rgba(148, 163, 184, 0.16);
+}
+
+html[data-theme='dark'] .home-credit-fx-grid > #cashflow-section .cashflow-fx-panel--single .cashflow-row + .cashflow-row {
+    border-top-color: rgba(148, 163, 184, 0.26);
+}
+
+html[data-theme='dark'] .home-credit-fx-grid > #cashflow-section .cashflow-fx-panel--split .cashflow-row + .cashflow-row {
+    border-left-color: rgba(148, 163, 184, 0.26);
+}
+
+html[data-theme='dark'] .home-credit-fx-grid > #cashflow-section .cashflow-row.currency-usd .cashflow-item.balance {
+    background: transparent;
 }
 
 html[data-theme='dark'] .home-credit-fx-grid > #cashflow-section .cashflow-row.currency-usd .cashflow-item.balance::before {
-    background: rgba(34, 197, 94, 0.65);
+    background: rgba(34, 197, 94, 0.72);
 }
 
 html[data-theme='dark'] .home-credit-fx-grid > #cashflow-section .cashflow-row.currency-eur .cashflow-item.balance {
-    border-color: rgba(96, 165, 250, 0.38);
-    background: linear-gradient(180deg, rgba(30, 41, 59, 0.94) 0%, rgba(15, 23, 42, 0.98) 100%);
+    background: transparent;
 }
 
 html[data-theme='dark'] .home-credit-fx-grid > #cashflow-section .cashflow-row.currency-eur .cashflow-item.balance::before {
-    background: rgba(96, 165, 250, 0.68);
+    background: rgba(96, 165, 250, 0.74);
 }
 
 .import-section {
@@ -4333,6 +4430,7 @@ html[data-settings-route='telegram'] body.settings-page #telegramSection[hidden]
     .card-payment-actions .nav-button {
         width: 100%;
         min-width: 0;
+        max-width: none;
     }
 
     .card-payment-modal-form {

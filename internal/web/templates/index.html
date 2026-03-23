@@ -1322,6 +1322,7 @@
             const emptyStateBanner = document.getElementById('emptyStateBanner');
             const baseSummary = document.getElementById('baseSummary');
             const toggleChart = document.getElementById('toggleChart');
+            const homeCreditFxGrid = document.querySelector('.home-credit-fx-grid');
 
             const hasTransactions = monthExpensesAll.length > 0;
             const hasBaseExpenses = monthExpensesAll.some(e => (e.currency || baseCurrency) === baseCurrency && e.amount < 0);
@@ -1339,15 +1340,22 @@
                 emptyStateBanner.style.display = 'block';
                 emptyStateBanner.innerHTML = getHomeEmptyStateHTML(allExpenses.length === 0 ? 'first_user' : 'default');
                 renderCashflowByCurrency([], {});
+                if (homeCreditFxGrid) {
+                    homeCreditFxGrid.classList.add('home-credit-fx-grid--no-fx');
+                }
                 renderRecentMovements([]);
                 renderFirstUserOnboarding();
                 return;
             }
 
-            // Cashflow por moneda (usa todas las monedas)
-            renderCashflowByCurrency(monthExpenses, carryoverByCurrency);
-            cashflowSection.style.display = cashflowSection.innerHTML.trim() ? 'flex' : 'none';
-            baseSummary.style.display = baseSummary.innerHTML.trim() ? 'flex' : 'none';
+            // Cashflow por moneda (siempre usando todas las monedas del periodo visible)
+            // para que no desaparezcan USD/EUR cuando se activa el filtro ARS del grafico.
+            renderCashflowByCurrency(monthExpensesAll, carryoverByCurrency);
+            cashflowSection.style.display = cashflowSection.innerHTML.trim() ? '' : 'none';
+            baseSummary.style.display = baseSummary.innerHTML.trim() ? '' : 'none';
+            if (homeCreditFxGrid) {
+                homeCreditFxGrid.classList.toggle('home-credit-fx-grid--no-fx', !cashflowSection.innerHTML.trim());
+            }
             noDataMessage.style.display = 'none';
             emptyStateBanner.style.display = 'none';
             renderRecentMovements(monthExpenses);
@@ -1442,7 +1450,8 @@
                 baseContainer.appendChild(baseWrapper);
             }
 
-            // Other currencies as single rows
+            // Other currencies grouped in one panel
+            const fxRows = [];
             supportedCurrencies.filter(cur => cur !== baseCurrency).forEach(cur => {
                 const data = byCurrency[cur];
                 const carry = carryover[cur] || 0;
@@ -1464,8 +1473,17 @@
                         </div>
                     </div>
                 `;
-                container.appendChild(row);
+                fxRows.push(row);
             });
+
+            if (fxRows.length > 0) {
+                const panel = document.createElement('section');
+                panel.className = 'cashflow-fx-panel';
+                panel.style.setProperty('--fx-count', String(fxRows.length));
+                panel.classList.add(fxRows.length > 1 ? 'cashflow-fx-panel--split' : 'cashflow-fx-panel--single');
+                fxRows.forEach((row) => panel.appendChild(row));
+                container.appendChild(panel);
+            }
         }
 
         function renderRecentMovements(expenses) {

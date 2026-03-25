@@ -1,7 +1,9 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -720,6 +722,16 @@ func (h *Handler) ServeStaticFile(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(staticPath, "/app/") {
 		staticPath = strings.TrimPrefix(staticPath, "/app")
 	}
+	if staticPath == "/robots.txt" {
+		serveRobotsTXT(w, r)
+		return
+	}
+	if staticPath == "/sitemap.xml" {
+		if err := serveSitemapXML(w, r); err != nil {
+			http.Error(w, "Failed to build sitemap", http.StatusInternalServerError)
+		}
+		return
+	}
 	if err := web.ServeStatic(w, staticPath); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			http.NotFound(w, r)
@@ -727,4 +739,64 @@ func (h *Handler) ServeStaticFile(w http.ResponseWriter, r *http.Request) {
 		}
 		http.Error(w, "Failed to serve static file", http.StatusInternalServerError)
 	}
+}
+
+func resolvePublicBaseURL(r *http.Request) string {
+	if base, ok := configuredAppBaseURL(); ok {
+		return base
+	}
+	if base := requestBaseURL(r); base != "" {
+		return base
+	}
+	return "https://www.expenselog.com.ar"
+}
+
+func serveRobotsTXT(w http.ResponseWriter, r *http.Request) {
+	base := strings.TrimRight(resolvePublicBaseURL(r), "/")
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=300")
+	fmt.Fprintf(w, "User-agent: *\n")
+	fmt.Fprintf(w, "Disallow: /app\n")
+	fmt.Fprintf(w, "Disallow: /table\n")
+	fmt.Fprintf(w, "Disallow: /settings\n")
+	fmt.Fprintf(w, "Disallow: /auth/\n")
+	fmt.Fprintf(w, "Disallow: /config\n")
+	fmt.Fprintf(w, "Disallow: /categories\n")
+	fmt.Fprintf(w, "Disallow: /expense\n")
+	fmt.Fprintf(w, "Disallow: /expenses\n")
+	fmt.Fprintf(w, "Disallow: /recurring-expense\n")
+	fmt.Fprintf(w, "Disallow: /recurring-expenses\n")
+	fmt.Fprintf(w, "Disallow: /import\n")
+	fmt.Fprintf(w, "Disallow: /export\n")
+	fmt.Fprintf(w, "Disallow: /api/\n\n")
+	fmt.Fprintf(w, "Sitemap: %s/sitemap.xml\n", base)
+}
+
+func serveSitemapXML(w http.ResponseWriter, r *http.Request) error {
+	type sitemapURL struct {
+		Loc string `xml:"loc"`
+	}
+	type sitemapURLSet struct {
+		XMLName xml.Name     `xml:"urlset"`
+		Xmlns   string       `xml:"xmlns,attr"`
+		URLs    []sitemapURL `xml:"url"`
+	}
+	base := strings.TrimRight(resolvePublicBaseURL(r), "/")
+	payload := sitemapURLSet{
+		Xmlns: "http://www.sitemaps.org/schemas/sitemap/0.9",
+		URLs: []sitemapURL{
+			{Loc: base + "/"},
+		},
+	}
+	var buf bytes.Buffer
+	buf.WriteString(xml.Header)
+	enc := xml.NewEncoder(&buf)
+	enc.Indent("", "    ")
+	if err := enc.Encode(payload); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=300")
+	_, err := w.Write(buf.Bytes())
+	return err
 }

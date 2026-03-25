@@ -223,11 +223,29 @@ func withSecurityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
 		w.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
+		if shouldNoIndexPath(r.URL.Path) {
+			w.Header().Set("X-Robots-Tag", "noindex, nofollow")
+		}
 		if isHTTPSRequest(r) {
 			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func shouldNoIndexPath(path string) bool {
+	clean := strings.TrimSpace(path)
+	if clean == "" || clean == "/" || clean == "/robots.txt" || clean == "/sitemap.xml" {
+		return false
+	}
+	if strings.HasPrefix(clean, "/api/") {
+		return true
+	}
+	switch clean {
+	case "/app", "/table", "/settings", "/perfil", "/categorias", "/recurrentes", "/conciliacion", "/reportes", "/telegram":
+		return true
+	}
+	return strings.HasPrefix(clean, "/app/")
 }
 
 func isHTTPSRequest(r *http.Request) bool {

@@ -24,6 +24,7 @@
                 if (normalized === 'reconciliation' || normalized === 'conciliacion') return 'reconciliation';
                 if (normalized === 'reports' || normalized === 'reportes') return 'reports';
                 if (normalized === 'telegram' || normalized === 'telegrambot' || normalized === 'bottelegram') return 'telegram';
+                if (normalized === 'whatsapp' || normalized === 'wsp' || normalized === 'wspbot' || normalized === 'botwhatsapp' || normalized === 'kapso') return 'whatsapp';
                 if (normalized === 'profile' || normalized === 'perfil' || normalized === 'settings') return 'profile';
                 return '';
             };
@@ -38,6 +39,7 @@
                 if (path === '/app/conciliacion' || path === '/conciliacion') return 'reconciliation';
                 if (path === '/app/reportes' || path === '/reportes') return 'reports';
                 if (path === '/app/telegram' || path === '/telegram') return 'telegram';
+                if (path === '/app/whatsapp' || path === '/whatsapp') return 'whatsapp';
                 if (path === '/app/perfil' || path === '/perfil' || path === '/app/settings' || path === '/settings') return 'profile';
                 return '';
             })();
@@ -176,6 +178,10 @@
                     <span class="settings-nav-item-label">🤖 Telegram Bot <span class="settings-reports-badge">Premium</span></span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
+                <button class="settings-nav-item" id="openWhatsAppSection" type="button" data-settings-section="whatsappSection" data-settings-route="/app/whatsapp" aria-expanded="false">
+                    <span class="settings-nav-item-label"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> WhatsApp Bot (Kapso)</span>
+                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
             </div>
         </section>
 
@@ -254,6 +260,27 @@
             </div>
             <p class="settings-reports-caption">Genera un codigo para abrir Telegram con vinculacion rapida.</p>
             <div id="telegramBotMessage" class="form-message"></div>
+        </section>
+        <section id="whatsappSection" class="form-container settings-section settings-detail-section settings-whatsapp-section" hidden>
+            <div class="settings-detail-header">
+                <h2><i class="fa-brands fa-whatsapp"></i> WhatsApp Bot (Kapso)</h2>
+                <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="whatsappSection" aria-label="Cerrar WhatsApp Bot" title="Cerrar WhatsApp Bot">
+                    <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+                </button>
+            </div>
+            <p class="settings-helper-text settings-whatsapp-helper">Usa este canal de WhatsApp (Kapso) para cargar comprobantes. El numero se toma de configuracion del servidor.</p>
+            <div id="whatsappStatusBanner" class="whatsapp-status-box whatsapp-status-info">Cargando configuracion...</div>
+            <p id="whatsappStatusHint" class="settings-helper-text settings-whatsapp-hint"></p>
+            <div id="whatsappNumberWrap" class="settings-whatsapp-number-wrap" hidden>
+                <div class="settings-whatsapp-number-label">Numero cargado</div>
+                <div id="whatsappNumberValue" class="settings-whatsapp-number-value">----</div>
+            </div>
+            <div class="settings-export-actions settings-whatsapp-actions">
+                <button id="whatsappOpenBotBtn" class="nav-button button-primary" type="button"><i class="fa-brands fa-whatsapp"></i> Abrir chat</button>
+                <button id="whatsappRefreshStatusBtn" class="nav-button button-secondary" type="button">Actualizar numero</button>
+            </div>
+            <p class="settings-reports-caption">Configura <code>WHATSAPP_KAPSO_NUMBER</code> para cargar tu numero.</p>
+            <div id="whatsappBotMessage" class="form-message"></div>
         </section>
         <section id="categoriesSection" class="form-container settings-section settings-detail-section" hidden>
             <div class="settings-detail-header">
@@ -629,6 +656,13 @@
             generated_code: '',
             generated_expires_at: '',
         };
+        let whatsappState = {
+            provider: 'Kapso',
+            available: false,
+            number: '',
+            number_display: '',
+            chat_url: '',
+        };
         const SHARED_CONFIG_CACHE_KEY = 'expenselog_config_cache_v1';
         const settingsSectionButtons = Array.from(document.querySelectorAll('[data-settings-section]'));
         const settingsCloseButtons = Array.from(document.querySelectorAll('[data-settings-close]'));
@@ -654,6 +688,12 @@
         const telegramOpenBotBtn = document.getElementById('telegramOpenBotBtn');
         const telegramGenerateCodeBtn = document.getElementById('telegramGenerateCodeBtn');
         const telegramRefreshStatusBtn = document.getElementById('telegramRefreshStatusBtn');
+        const whatsappStatusBanner = document.getElementById('whatsappStatusBanner');
+        const whatsappStatusHint = document.getElementById('whatsappStatusHint');
+        const whatsappNumberWrap = document.getElementById('whatsappNumberWrap');
+        const whatsappNumberValue = document.getElementById('whatsappNumberValue');
+        const whatsappOpenBotBtn = document.getElementById('whatsappOpenBotBtn');
+        const whatsappRefreshStatusBtn = document.getElementById('whatsappRefreshStatusBtn');
 
         function setSettingsSection(sectionId, expanded) {
             const section = document.getElementById(sectionId);
@@ -666,7 +706,7 @@
         }
 
         function showOnlySettingsSection(sectionId, options = {}) {
-            const targets = ['categoriesSection', 'recurringSection', 'reconciliationSection', 'reportsSection', 'telegramSection'];
+            const targets = ['categoriesSection', 'recurringSection', 'reconciliationSection', 'reportsSection', 'telegramSection', 'whatsappSection'];
             targets.forEach((id) => setSettingsSection(id, id === sectionId));
             setRecurringComposerVisible(false);
             const shouldScroll = options.scroll !== false;
@@ -1117,6 +1157,51 @@
             } finally {
                 if (telegramGenerateCodeBtn) telegramGenerateCodeBtn.disabled = !(currentPlanTier === 'premium');
             }
+        }
+
+        function setWhatsAppStatusBox(message, tone = 'info') {
+            if (!whatsappStatusBanner) return;
+            whatsappStatusBanner.textContent = message;
+            whatsappStatusBanner.className = `whatsapp-status-box whatsapp-status-${tone}`;
+        }
+
+        function renderWhatsAppState() {
+            const isAvailable = !!whatsappState.available && !!whatsappState.chat_url;
+            if (whatsappOpenBotBtn) whatsappOpenBotBtn.disabled = !isAvailable;
+
+            if (!isAvailable) {
+                setWhatsAppStatusBox('Estado: canal de WhatsApp no configurado.', 'warning');
+                if (whatsappStatusHint) {
+                    whatsappStatusHint.textContent = 'Define WHATSAPP_KAPSO_NUMBER para habilitar el canal.';
+                }
+                if (whatsappNumberWrap) whatsappNumberWrap.hidden = true;
+                if (whatsappNumberValue) whatsappNumberValue.textContent = '----';
+                return;
+            }
+
+            const provider = String(whatsappState.provider || 'Kapso').trim() || 'Kapso';
+            const displayNumber = String(whatsappState.number_display || whatsappState.number || '').trim();
+            setWhatsAppStatusBox(`Estado: numero cargado en ${provider}.`, 'success');
+            if (whatsappStatusHint) {
+                whatsappStatusHint.textContent = `Numero activo: ${displayNumber || 'sin formato'}.`;
+            }
+            if (whatsappNumberWrap) whatsappNumberWrap.hidden = false;
+            if (whatsappNumberValue) whatsappNumberValue.textContent = displayNumber || whatsappState.number || '----';
+        }
+
+        async function fetchWhatsAppContact() {
+            const response = await fetch('/api/whatsapp/contact', { method: 'GET', cache: 'no-store' });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(payload.error || 'No se pudo obtener configuracion de WhatsApp');
+            }
+            whatsappState.provider = String(payload.provider || 'Kapso').trim() || 'Kapso';
+            whatsappState.available = !!payload.available;
+            whatsappState.number = String(payload.number || '').trim();
+            whatsappState.number_display = String(payload.number_display || '').trim();
+            whatsappState.chat_url = String(payload.chat_url || '').trim();
+            renderWhatsAppState();
+            return payload;
         }
 
         function openModal(modal) {
@@ -1974,6 +2059,7 @@ async function saveCategoriesList(nextCategories) {
             if (normalized === 'reconciliation' || normalized === 'conciliacion') return 'reconciliation';
             if (normalized === 'reports' || normalized === 'reportes') return 'reports';
             if (normalized === 'telegram' || normalized === 'telegrambot' || normalized === 'bottelegram') return 'telegram';
+            if (normalized === 'whatsapp' || normalized === 'wsp' || normalized === 'wspbot' || normalized === 'botwhatsapp' || normalized === 'kapso') return 'whatsapp';
             if (normalized === 'profile' || normalized === 'perfil' || normalized === 'settings') return 'profile';
             return '';
         }
@@ -1989,6 +2075,7 @@ async function saveCategoriesList(nextCategories) {
             if (normalizedPath === '/app/conciliacion' || normalizedPath === '/conciliacion') return 'reconciliation';
             if (normalizedPath === '/app/reportes' || normalizedPath === '/reportes') return 'reports';
             if (normalizedPath === '/app/telegram' || normalizedPath === '/telegram') return 'telegram';
+            if (normalizedPath === '/app/whatsapp' || normalizedPath === '/whatsapp') return 'whatsapp';
             if (
                 normalizedPath === '/app/perfil' ||
                 normalizedPath === '/perfil' ||
@@ -2031,6 +2118,7 @@ async function saveCategoriesList(nextCategories) {
                 case 'reconciliation': return '/app/conciliacion';
                 case 'reports': return '/app/reportes';
                 case 'telegram': return '/app/telegram';
+                case 'whatsapp': return '/app/whatsapp';
                 case 'profile':
                 default:
                     return '/app/perfil';
@@ -2130,6 +2218,10 @@ async function saveCategoriesList(nextCategories) {
                 showOnlySettingsSection('telegramSection', { scroll: false });
                 return;
             }
+            if (activeSection === 'whatsapp') {
+                showOnlySettingsSection('whatsappSection', { scroll: false });
+                return;
+            }
 
             setRecurringComposerVisible(false);
             hideSettingsSection('categoriesSection');
@@ -2137,6 +2229,7 @@ async function saveCategoriesList(nextCategories) {
             hideSettingsSection('reconciliationSection');
             hideSettingsSection('reportsSection');
             hideSettingsSection('telegramSection');
+            hideSettingsSection('whatsappSection');
         }
 
         // --- Initialization ---
@@ -2195,6 +2288,7 @@ async function saveCategoriesList(nextCategories) {
                 hideSettingsSection('reconciliationSection');
                 hideSettingsSection('reportsSection');
                 hideSettingsSection('telegramSection');
+                hideSettingsSection('whatsappSection');
                 setRecurringComposerVisible(false);
                 openSectionFromURL();
                 renderSettingsReconciliationPreview();
@@ -2204,6 +2298,13 @@ async function saveCategoriesList(nextCategories) {
                     setTelegramStatusBox('No se pudo cargar el estado de Telegram.', 'error');
                     if (telegramStatusHint) {
                         telegramStatusHint.textContent = 'Reintenta con "Actualizar estado".';
+                    }
+                });
+                await fetchWhatsAppContact().catch((error) => {
+                    console.error('No se pudo cargar configuracion de WhatsApp:', error);
+                    setWhatsAppStatusBox('No se pudo cargar la configuracion de WhatsApp.', 'error');
+                    if (whatsappStatusHint) {
+                        whatsappStatusHint.textContent = 'Reintenta con "Actualizar numero".';
                     }
                 });
 
@@ -2325,6 +2426,26 @@ async function saveCategoriesList(nextCategories) {
                 showMessage('telegramBotMessage', error.message || 'No se pudo actualizar estado', false);
             } finally {
                 if (telegramRefreshStatusBtn) telegramRefreshStatusBtn.disabled = false;
+            }
+        });
+        whatsappOpenBotBtn?.addEventListener('click', () => {
+            const targetURL = String(whatsappState.chat_url || '').trim();
+            if (!targetURL) {
+                showMessage('whatsappBotMessage', 'Configura WHATSAPP_KAPSO_NUMBER para habilitar este boton.', false);
+                return;
+            }
+            window.open(targetURL, '_blank', 'noopener');
+        });
+        whatsappRefreshStatusBtn?.addEventListener('click', async () => {
+            if (whatsappRefreshStatusBtn) whatsappRefreshStatusBtn.disabled = true;
+            try {
+                await fetchWhatsAppContact();
+                showMessage('whatsappBotMessage', 'Numero actualizado.', true);
+            } catch (error) {
+                console.error('No se pudo actualizar configuracion de WhatsApp:', error);
+                showMessage('whatsappBotMessage', error.message || 'No se pudo actualizar el numero', false);
+            } finally {
+                if (whatsappRefreshStatusBtn) whatsappRefreshStatusBtn.disabled = false;
             }
         });
         toggleRecurringCreateBtn?.addEventListener('click', () => {

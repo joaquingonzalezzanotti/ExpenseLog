@@ -700,6 +700,10 @@ func (h *Handler) ServeSettingsTelegramPage(w http.ResponseWriter, r *http.Reque
 	h.serveSettingsPageWithSection(w, r, "telegram")
 }
 
+func (h *Handler) ServeSettingsWhatsAppPage(w http.ResponseWriter, r *http.Request) {
+	h.serveSettingsPageWithSection(w, r, "whatsapp")
+}
+
 func (h *Handler) serveSettingsPageWithSection(w http.ResponseWriter, r *http.Request, _ string) {
 	if r.Method != http.MethodGet {
 		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{Error: "Method not allowed"})

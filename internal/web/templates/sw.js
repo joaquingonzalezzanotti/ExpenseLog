@@ -28,6 +28,7 @@ const APP_ROUTES = [
     '/app/conciliacion',
     '/app/reportes',
     '/app/telegram',
+    '/app/whatsapp',
 ];
 
 function normalizeAppPath(pathname) {

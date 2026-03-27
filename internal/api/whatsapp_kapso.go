@@ -5,10 +5,13 @@ import (
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/storage"
 )
 
 type whatsappKapsoContactResponse struct {
 	Provider      string `json:"provider"`
+	Premium       bool   `json:"premium"`
 	Available     bool   `json:"available"`
 	Number        string `json:"number,omitempty"`
 	NumberDisplay string `json:"number_display,omitempty"`
@@ -64,13 +67,26 @@ func (h *Handler) GetWhatsAppKapsoContact(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	userID, ok := requireUserID(w, r)
+	if !ok {
+		return
+	}
+
+	planTier, err := h.storage.GetUserPlanTier(userID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "Failed to get user plan"})
+		return
+	}
+	premium := storage.NormalizePlanTier(planTier) == storage.PlanTierPremium
+
 	number := whatsappKapsoNumberFromEnv()
 	response := whatsappKapsoContactResponse{
 		Provider:  "Kapso",
-		Available: number != "",
+		Premium:   premium,
+		Available: premium && number != "",
 	}
 
-	if number != "" {
+	if premium && number != "" {
 		response.Number = number
 		response.NumberDisplay = formatWhatsAppDisplayNumber(number)
 		response.ChatURL = whatsappKapsoChatURL(number, whatsappKapsoDefaultMessageFromEnv())

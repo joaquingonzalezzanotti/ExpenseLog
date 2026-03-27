@@ -179,7 +179,7 @@
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
                 <button class="settings-nav-item" id="openWhatsAppSection" type="button" data-settings-section="whatsappSection" data-settings-route="/app/whatsapp" aria-expanded="false">
-                    <span class="settings-nav-item-label"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> WhatsApp Bot (Kapso)</span>
+                    <span class="settings-nav-item-label"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> WhatsApp Bot (Kapso) <span class="settings-reports-badge">Premium</span></span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
             </div>
@@ -657,6 +657,7 @@
             generated_expires_at: '',
         };
         let whatsappState = {
+            premium: false,
             provider: 'Kapso',
             available: false,
             number: '',
@@ -688,6 +689,7 @@
         const telegramOpenBotBtn = document.getElementById('telegramOpenBotBtn');
         const telegramGenerateCodeBtn = document.getElementById('telegramGenerateCodeBtn');
         const telegramRefreshStatusBtn = document.getElementById('telegramRefreshStatusBtn');
+        const openWhatsAppSection = document.getElementById('openWhatsAppSection');
         const whatsappStatusBanner = document.getElementById('whatsappStatusBanner');
         const whatsappStatusHint = document.getElementById('whatsappStatusHint');
         const whatsappNumberWrap = document.getElementById('whatsappNumberWrap');
@@ -1166,8 +1168,24 @@
         }
 
         function renderWhatsAppState() {
+            const isPremium = currentPlanTier === 'premium' && !!whatsappState.premium;
+            if (openWhatsAppSection) openWhatsAppSection.hidden = !isPremium;
+
+            if (!isPremium) {
+                if (whatsappOpenBotBtn) whatsappOpenBotBtn.disabled = true;
+                if (whatsappRefreshStatusBtn) whatsappRefreshStatusBtn.disabled = true;
+                setWhatsAppStatusBox('Estado: disponible solo para cuentas Premium.', 'warning');
+                if (whatsappStatusHint) {
+                    whatsappStatusHint.textContent = 'Activa Premium para habilitar el bot de WhatsApp (Kapso).';
+                }
+                if (whatsappNumberWrap) whatsappNumberWrap.hidden = true;
+                if (whatsappNumberValue) whatsappNumberValue.textContent = '----';
+                return;
+            }
+
             const isAvailable = !!whatsappState.available && !!whatsappState.chat_url;
             if (whatsappOpenBotBtn) whatsappOpenBotBtn.disabled = !isAvailable;
+            if (whatsappRefreshStatusBtn) whatsappRefreshStatusBtn.disabled = false;
 
             if (!isAvailable) {
                 setWhatsAppStatusBox('Estado: canal de WhatsApp no configurado.', 'warning');
@@ -1195,6 +1213,7 @@
             if (!response.ok) {
                 throw new Error(payload.error || 'No se pudo obtener configuracion de WhatsApp');
             }
+            whatsappState.premium = !!payload.premium;
             whatsappState.provider = String(payload.provider || 'Kapso').trim() || 'Kapso';
             whatsappState.available = !!payload.available;
             whatsappState.number = String(payload.number || '').trim();
@@ -2188,37 +2207,38 @@ async function saveCategoriesList(nextCategories) {
             const hashSection = normalizeSettingsSection((window.location.hash || '').replace(/^#/, ''));
             const pathSection = sectionFromPath(window.location.pathname);
             const activeSection = querySection || hashSection || pathSection || 'profile';
-            document.documentElement.setAttribute('data-settings-route', activeSection);
-            const isModuleRoute = activeSection !== 'profile' && (
+            const resolvedSection = (activeSection === 'whatsapp' && currentPlanTier !== 'premium') ? 'profile' : activeSection;
+            document.documentElement.setAttribute('data-settings-route', resolvedSection);
+            const isModuleRoute = resolvedSection !== 'profile' && (
                 pathSection !== '' ||
                 querySection !== '' ||
                 hashSection !== ''
             );
 
             setShellSectionsHidden(isModuleRoute);
-            setActiveMobilePrimaryNav(activeSection === 'reports' ? 'reports' : 'user');
+            setActiveMobilePrimaryNav(resolvedSection === 'reports' ? 'reports' : 'user');
 
-            if (activeSection === 'reconciliation') {
+            if (resolvedSection === 'reconciliation') {
                 showOnlySettingsSection('reconciliationSection', { scroll: false });
                 return;
             }
-            if (activeSection === 'categories') {
+            if (resolvedSection === 'categories') {
                 showOnlySettingsSection('categoriesSection', { scroll: false });
                 return;
             }
-            if (activeSection === 'recurring') {
+            if (resolvedSection === 'recurring') {
                 showOnlySettingsSection('recurringSection', { scroll: false });
                 return;
             }
-            if (activeSection === 'reports') {
+            if (resolvedSection === 'reports') {
                 showOnlySettingsSection('reportsSection', { scroll: false });
                 return;
             }
-            if (activeSection === 'telegram') {
+            if (resolvedSection === 'telegram') {
                 showOnlySettingsSection('telegramSection', { scroll: false });
                 return;
             }
-            if (activeSection === 'whatsapp') {
+            if (resolvedSection === 'whatsapp') {
                 showOnlySettingsSection('whatsappSection', { scroll: false });
                 return;
             }

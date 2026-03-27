@@ -2473,6 +2473,85 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     min-width: 190px;
 }
 
+.settings-whatsapp-section {
+    border: 1px solid rgba(22, 163, 74, 0.28);
+    background:
+        radial-gradient(circle at 100% 0%, rgba(22, 163, 74, 0.16), transparent 40%),
+        radial-gradient(circle at 0% 100%, rgba(13, 148, 136, 0.1), transparent 35%),
+        linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 130%);
+}
+
+.settings-whatsapp-helper {
+    margin-bottom: 0.8rem;
+}
+
+.whatsapp-status-box {
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    padding: 0.7rem 0.85rem;
+    margin-bottom: 0.55rem;
+    font-weight: 600;
+}
+
+.whatsapp-status-info {
+    background: rgba(22, 163, 74, 0.14);
+    border-color: rgba(22, 163, 74, 0.38);
+    color: #166534;
+}
+
+html[data-theme='dark'] .whatsapp-status-info {
+    color: #86efac;
+}
+
+.whatsapp-status-success {
+    background: var(--success-soft);
+    border-color: rgba(5, 150, 105, 0.38);
+    color: var(--success);
+}
+
+.whatsapp-status-warning {
+    background: var(--warning-soft);
+    border-color: rgba(180, 83, 9, 0.35);
+    color: var(--warning);
+}
+
+.whatsapp-status-error {
+    background: var(--danger-soft);
+    border-color: rgba(220, 38, 38, 0.35);
+    color: var(--danger);
+}
+
+.settings-whatsapp-hint {
+    margin-bottom: 0.6rem;
+}
+
+.settings-whatsapp-number-wrap {
+    border: 1px dashed rgba(22, 163, 74, 0.45);
+    border-radius: 12px;
+    padding: 0.7rem 0.85rem;
+    background: rgba(22, 163, 74, 0.08);
+    margin-bottom: 0.75rem;
+}
+
+.settings-whatsapp-number-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+}
+
+.settings-whatsapp-number-value {
+    font-size: 1.2rem;
+    font-weight: 800;
+    margin-top: 0.2rem;
+    letter-spacing: 0.04em;
+    color: var(--text-primary);
+}
+
+.settings-whatsapp-actions .nav-button {
+    min-width: 190px;
+}
+
 @media (max-width: 640px) {
     .settings-export-grid {
         grid-template-columns: 1fr;
@@ -3682,7 +3761,8 @@ html[data-settings-route='categories'] body.settings-page .settings-shell-sectio
 html[data-settings-route='recurring'] body.settings-page .settings-shell-section,
 html[data-settings-route='reconciliation'] body.settings-page .settings-shell-section,
 html[data-settings-route='reports'] body.settings-page .settings-shell-section,
-html[data-settings-route='telegram'] body.settings-page .settings-shell-section {
+html[data-settings-route='telegram'] body.settings-page .settings-shell-section,
+html[data-settings-route='whatsapp'] body.settings-page .settings-shell-section {
     display: none !important;
 }
 
@@ -3690,7 +3770,8 @@ html[data-settings-route='categories'] body.settings-page #categoriesSection[hid
 html[data-settings-route='recurring'] body.settings-page #recurringSection[hidden],
 html[data-settings-route='reconciliation'] body.settings-page #reconciliationSection[hidden],
 html[data-settings-route='reports'] body.settings-page #reportsSection[hidden],
-html[data-settings-route='telegram'] body.settings-page #telegramSection[hidden] {
+html[data-settings-route='telegram'] body.settings-page #telegramSection[hidden],
+html[data-settings-route='whatsapp'] body.settings-page #whatsappSection[hidden] {
     display: block !important;
 }
 

@@ -49,7 +49,7 @@ let notificationCenterDisabled = false;
 let notificationCenterFetchWarned = false;
 let logoutInFlight = false;
 
-const API_ROUTE_REGEX = /^\/(auth|config|categories|currency|startdate|reconciliation|expense|expenses|recurring-expense|recurring-expenses|alerts|export|import|version|card|telegram)(\/|$)/;
+const API_ROUTE_REGEX = /^\/(auth|config|categories|currency|startdate|reconciliation|expense|expenses|recurring-expense|recurring-expenses|alerts|export|import|version|card|telegram|whatsapp)(\/|$)/;
 const originalFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : null;
 if (originalFetch) {
     window.fetch = (input, init) => {
@@ -793,6 +793,7 @@ function setupMobileDrawer() {
             '/conciliacion': '/app/conciliacion',
             '/reportes': '/app/reportes',
             '/telegram': '/app/telegram',
+            '/whatsapp': '/app/whatsapp',
             '/app/settings': '/app/perfil',
         };
         const canonicalPath = aliases[cleanedPath] || cleanedPath;
@@ -1016,9 +1017,9 @@ function setupRoutePrefetch() {
             return ['/app/table?view=calendar', '/app', '/app/reportes', '/app/perfil'];
         }
         if (path.startsWith('/app/perfil') || path.startsWith('/app/settings')) {
-            return ['/app/reportes', '/app/telegram', '/app/table', '/app/categorias', '/app/recurrentes', '/app'];
+            return ['/app/reportes', '/app/telegram', '/app/whatsapp', '/app/table', '/app/categorias', '/app/recurrentes', '/app'];
         }
-        if (path.startsWith('/app/categorias') || path.startsWith('/app/recurrentes') || path.startsWith('/app/conciliacion') || path.startsWith('/app/reportes') || path.startsWith('/app/telegram')) {
+        if (path.startsWith('/app/categorias') || path.startsWith('/app/recurrentes') || path.startsWith('/app/conciliacion') || path.startsWith('/app/reportes') || path.startsWith('/app/telegram') || path.startsWith('/app/whatsapp')) {
             return ['/app/perfil', '/app/table', '/app/table?view=calendar', '/app'];
         }
         return ['/app', '/app/table', '/app/table?view=calendar', '/app/reportes'];

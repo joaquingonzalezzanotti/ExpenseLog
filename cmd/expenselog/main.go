@@ -104,6 +104,7 @@ func runServer(port int) {
 	http.HandleFunc("/app/conciliacion", handler.ServeSettingsReconciliationPage)
 	http.HandleFunc("/app/reportes", handler.ServeSettingsReportsPage)
 	http.HandleFunc("/app/telegram", handler.ServeSettingsTelegramPage)
+	http.HandleFunc("/app/whatsapp", handler.ServeSettingsWhatsAppPage)
 	http.HandleFunc("/table", handler.ServeTableView)
 	http.HandleFunc("/settings", handler.ServeSettingsPage)
 	http.HandleFunc("/perfil", handler.ServeSettingsPage)
@@ -112,6 +113,7 @@ func runServer(port int) {
 	http.HandleFunc("/conciliacion", handler.ServeSettingsReconciliationPage)
 	http.HandleFunc("/reportes", handler.ServeSettingsReportsPage)
 	http.HandleFunc("/telegram", handler.ServeSettingsTelegramPage)
+	http.HandleFunc("/whatsapp", handler.ServeSettingsWhatsAppPage)
 
 	// Static File Handlers
 	staticPaths := []string{
@@ -162,6 +164,7 @@ func runServer(port int) {
 	registerAPI("/telegram/link-status", handler.RequireAuth(handler.GetTelegramLinkStatus))
 	registerAPI("/telegram/link-code", handler.RequireAuth(handler.CreateTelegramLinkCode))
 	registerAPI("/telegram/refresh-status", handler.RequireAuth(handler.RefreshTelegramLinkStatus))
+	registerAPI("/whatsapp/contact", handler.RequireAuth(handler.GetWhatsAppKapsoContact))
 	// http.HandleFunc("/tags", handler.GetTags)
 	// http.HandleFunc("/tags/edit", handler.UpdateTags)
 

@@ -163,6 +163,7 @@ func runServer(port int) {
 	registerAPI("/telegram/link-code", handler.RequireAuth(handler.CreateTelegramLinkCode))
 	registerAPI("/telegram/refresh-status", handler.RequireAuth(handler.RefreshTelegramLinkStatus))
 	registerAPI("/whatsapp/contact", handler.RequireAuth(handler.GetWhatsAppKapsoContact))
+	registerAPI("/webhooks/kapso/whatsapp", handler.HandleKapsoWhatsAppWebhook)
 	// http.HandleFunc("/tags", handler.GetTags)
 	// http.HandleFunc("/tags/edit", handler.UpdateTags)
 

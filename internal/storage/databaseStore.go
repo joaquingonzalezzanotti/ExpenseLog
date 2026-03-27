@@ -175,6 +175,26 @@ const (
 		used_telegram_username TEXT
 	);`
 
+	createWhatsAppUserLinksTableSQL = `
+	CREATE TABLE IF NOT EXISTS whatsapp_user_links (
+		id VARCHAR(36) PRIMARY KEY,
+		user_id VARCHAR(36) NOT NULL,
+		whatsapp_phone VARCHAR(32) NOT NULL,
+		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+	);`
+
+	createWhatsAppLinkCodesTableSQL = `
+	CREATE TABLE IF NOT EXISTS whatsapp_link_codes (
+		id VARCHAR(36) PRIMARY KEY,
+		user_id VARCHAR(36) NOT NULL,
+		code_hash VARCHAR(128) NOT NULL,
+		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		expires_at TIMESTAMPTZ NOT NULL,
+		used_at TIMESTAMPTZ,
+		used_by_whatsapp_phone VARCHAR(32)
+	);`
+
 	createWalletIngestTokensTableSQL = `
 	CREATE TABLE IF NOT EXISTS wallet_ingest_tokens (
 		id VARCHAR(36) PRIMARY KEY,
@@ -250,6 +270,8 @@ func createTables(db *sql.DB) error {
 		createCategoriesTableSQL,
 		createTelegramUserLinksTableSQL,
 		createTelegramLinkCodesTableSQL,
+		createWhatsAppUserLinksTableSQL,
+		createWhatsAppLinkCodesTableSQL,
 		createWalletIngestTokensTableSQL,
 		createWalletIngestEventsTableSQL,
 	} {
@@ -288,6 +310,11 @@ func createTables(db *sql.DB) error {
 		"ALTER TABLE telegram_link_codes ADD COLUMN IF NOT EXISTS used_at TIMESTAMPTZ",
 		"ALTER TABLE telegram_link_codes ADD COLUMN IF NOT EXISTS used_by_telegram_user_id BIGINT",
 		"ALTER TABLE telegram_link_codes ADD COLUMN IF NOT EXISTS used_telegram_username TEXT",
+		"ALTER TABLE whatsapp_user_links ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+		"ALTER TABLE whatsapp_user_links ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+		"ALTER TABLE whatsapp_user_links ADD COLUMN IF NOT EXISTS whatsapp_phone VARCHAR(32)",
+		"ALTER TABLE whatsapp_link_codes ADD COLUMN IF NOT EXISTS used_at TIMESTAMPTZ",
+		"ALTER TABLE whatsapp_link_codes ADD COLUMN IF NOT EXISTS used_by_whatsapp_phone VARCHAR(32)",
 		"ALTER TABLE wallet_ingest_tokens ADD COLUMN IF NOT EXISTS token_hash VARCHAR(128)",
 		"ALTER TABLE wallet_ingest_tokens ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
 		"ALTER TABLE wallet_ingest_tokens ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
@@ -366,6 +393,18 @@ func createTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS telegram_link_codes_user_created_idx ON telegram_link_codes (user_id, created_at DESC)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS whatsapp_user_links_user_key ON whatsapp_user_links (user_id)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS whatsapp_user_links_phone_key ON whatsapp_user_links (whatsapp_phone)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS whatsapp_link_codes_code_hash_key ON whatsapp_link_codes (code_hash)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS whatsapp_link_codes_user_created_idx ON whatsapp_link_codes (user_id, created_at DESC)`); err != nil {
 		return err
 	}
 	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS wallet_ingest_tokens_user_key ON wallet_ingest_tokens (user_id)`); err != nil {
@@ -462,6 +501,8 @@ func ensureForeignKeys(db *sql.DB) error {
 		{name: "reconciliations_user_fk", table: "reconciliations", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "telegram_user_links_user_fk", table: "telegram_user_links", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "telegram_link_codes_user_fk", table: "telegram_link_codes", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
+		{name: "whatsapp_user_links_user_fk", table: "whatsapp_user_links", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
+		{name: "whatsapp_link_codes_user_fk", table: "whatsapp_link_codes", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "wallet_ingest_tokens_user_fk", table: "wallet_ingest_tokens", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "wallet_ingest_events_user_fk", table: "wallet_ingest_events", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "reconciliations_adjustment_fk", table: "reconciliations", column: "adjustment_expense_id", refTable: "expenses", refColumn: "id", onDelete: "RESTRICT"},
@@ -1233,6 +1274,38 @@ func scanTelegramLinkCode(scanner interface{ Scan(...any) error }) (TelegramLink
 	return code, nil
 }
 
+func scanWhatsAppUserLink(scanner interface{ Scan(...any) error }) (WhatsAppUserLink, error) {
+	var link WhatsAppUserLink
+	if err := scanner.Scan(&link.ID, &link.UserID, &link.WhatsAppPhone, &link.CreatedAt, &link.UpdatedAt); err != nil {
+		return WhatsAppUserLink{}, err
+	}
+	return link, nil
+}
+
+func scanWhatsAppLinkCode(scanner interface{ Scan(...any) error }) (WhatsAppLinkCode, error) {
+	var code WhatsAppLinkCode
+	var usedAt sql.NullTime
+	var usedByPhone sql.NullString
+	if err := scanner.Scan(
+		&code.ID,
+		&code.UserID,
+		&code.CodeHash,
+		&code.CreatedAt,
+		&code.ExpiresAt,
+		&usedAt,
+		&usedByPhone,
+	); err != nil {
+		return WhatsAppLinkCode{}, err
+	}
+	if usedAt.Valid {
+		code.UsedAt = &usedAt.Time
+	}
+	if usedByPhone.Valid {
+		code.UsedByWhatsAppPhone = usedByPhone.String
+	}
+	return code, nil
+}
+
 func scanWalletIngestToken(scanner interface{ Scan(...any) error }) (WalletIngestToken, error) {
 	var token WalletIngestToken
 	var lastUsed sql.NullTime
@@ -1458,6 +1531,215 @@ func (s *databaseStore) ConsumeTelegramLinkCode(codeHash string, telegramUserID 
 
 	if err := tx.Commit(); err != nil {
 		return TelegramUserLink{}, err
+	}
+	return link, nil
+}
+
+func normalizeWhatsAppPhone(raw string) string {
+	var b strings.Builder
+	for _, r := range strings.TrimSpace(raw) {
+		if r >= '0' && r <= '9' {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+func (s *databaseStore) GetWhatsAppUserLinkByUserID(userID string) (WhatsAppUserLink, error) {
+	query := `
+		SELECT id, user_id, whatsapp_phone, created_at, updated_at
+		FROM whatsapp_user_links
+		WHERE user_id = $1
+	`
+	link, err := scanWhatsAppUserLink(s.db.QueryRow(query, userID))
+	if err != nil {
+		return WhatsAppUserLink{}, err
+	}
+	return link, nil
+}
+
+func (s *databaseStore) GetWhatsAppUserLinkByPhone(whatsAppPhone string) (WhatsAppUserLink, error) {
+	phone := normalizeWhatsAppPhone(whatsAppPhone)
+	query := `
+		SELECT id, user_id, whatsapp_phone, created_at, updated_at
+		FROM whatsapp_user_links
+		WHERE whatsapp_phone = $1
+	`
+	link, err := scanWhatsAppUserLink(s.db.QueryRow(query, phone))
+	if err != nil {
+		return WhatsAppUserLink{}, err
+	}
+	return link, nil
+}
+
+func (s *databaseStore) GetActiveWhatsAppLinkCode(userID string, now time.Time) (WhatsAppLinkCode, error) {
+	query := `
+		SELECT id, user_id, code_hash, created_at, expires_at, used_at, used_by_whatsapp_phone
+		FROM whatsapp_link_codes
+		WHERE user_id = $1
+		  AND used_at IS NULL
+		  AND expires_at > $2
+		ORDER BY created_at DESC
+		LIMIT 1
+	`
+	code, err := scanWhatsAppLinkCode(s.db.QueryRow(query, userID, now))
+	if err != nil {
+		return WhatsAppLinkCode{}, err
+	}
+	return code, nil
+}
+
+func (s *databaseStore) InvalidateActiveWhatsAppLinkCodes(userID string, usedAt time.Time) error {
+	_, err := s.db.Exec(
+		`UPDATE whatsapp_link_codes
+		 SET used_at = $1
+		 WHERE user_id = $2
+		   AND used_at IS NULL
+		   AND expires_at > $1`,
+		usedAt, userID,
+	)
+	return err
+}
+
+func (s *databaseStore) CreateWhatsAppLinkCode(userID, codeHash string, expiresAt, createdAt time.Time) (WhatsAppLinkCode, error) {
+	code := WhatsAppLinkCode{
+		ID:        uuid.New().String(),
+		UserID:    userID,
+		CodeHash:  codeHash,
+		CreatedAt: createdAt,
+		ExpiresAt: expiresAt,
+	}
+	query := `
+		INSERT INTO whatsapp_link_codes (
+			id, user_id, code_hash, created_at, expires_at
+		) VALUES ($1, $2, $3, $4, $5)
+	`
+	if _, err := s.db.Exec(query, code.ID, code.UserID, code.CodeHash, code.CreatedAt, code.ExpiresAt); err != nil {
+		return WhatsAppLinkCode{}, err
+	}
+	return code, nil
+}
+
+func (s *databaseStore) ConsumeWhatsAppLinkCode(codeHash, whatsAppPhone string, now time.Time) (WhatsAppUserLink, error) {
+	phone := normalizeWhatsAppPhone(whatsAppPhone)
+	if phone == "" {
+		return WhatsAppUserLink{}, fmt.Errorf("invalid whatsapp phone")
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return WhatsAppUserLink{}, err
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	lockCodeQuery := `
+		SELECT id, user_id, code_hash, created_at, expires_at, used_at, used_by_whatsapp_phone
+		FROM whatsapp_link_codes
+		WHERE code_hash = $1
+		LIMIT 1
+		FOR UPDATE
+	`
+	code, err := scanWhatsAppLinkCode(tx.QueryRow(lockCodeQuery, codeHash))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return WhatsAppUserLink{}, ErrWhatsAppInvalidLinkCode
+		}
+		return WhatsAppUserLink{}, err
+	}
+	if code.UsedAt != nil {
+		return WhatsAppUserLink{}, ErrWhatsAppLinkCodeUsed
+	}
+	if !code.ExpiresAt.After(now) {
+		return WhatsAppUserLink{}, ErrWhatsAppLinkCodeExpired
+	}
+
+	targetUserID := code.UserID
+	var planTier string
+	planErr := tx.QueryRow(
+		`SELECT COALESCE(plan_tier, 'free') FROM user_config WHERE user_id = $1`,
+		targetUserID,
+	).Scan(&planTier)
+	if planErr != nil && planErr != sql.ErrNoRows {
+		return WhatsAppUserLink{}, planErr
+	}
+	if NormalizePlanTier(planTier) != PlanTierPremium {
+		return WhatsAppUserLink{}, ErrWhatsAppPremiumRequired
+	}
+
+	var existingUserID string
+	phoneRowErr := tx.QueryRow(
+		`SELECT user_id FROM whatsapp_user_links WHERE whatsapp_phone = $1 FOR UPDATE`,
+		phone,
+	).Scan(&existingUserID)
+	if phoneRowErr != nil && phoneRowErr != sql.ErrNoRows {
+		return WhatsAppUserLink{}, phoneRowErr
+	}
+	if phoneRowErr == nil && existingUserID != targetUserID {
+		return WhatsAppUserLink{}, ErrWhatsAppPhoneAlreadyLinked
+	}
+
+	var existingPhone string
+	userRowErr := tx.QueryRow(
+		`SELECT whatsapp_phone FROM whatsapp_user_links WHERE user_id = $1 FOR UPDATE`,
+		targetUserID,
+	).Scan(&existingPhone)
+	if userRowErr != nil && userRowErr != sql.ErrNoRows {
+		return WhatsAppUserLink{}, userRowErr
+	}
+	if userRowErr == nil && existingPhone != phone {
+		return WhatsAppUserLink{}, ErrWhatsAppAlreadyLinked
+	}
+
+	upsertQuery := `
+		INSERT INTO whatsapp_user_links (
+			id, user_id, whatsapp_phone, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $4)
+		ON CONFLICT (user_id)
+		DO UPDATE SET
+			whatsapp_phone = EXCLUDED.whatsapp_phone,
+			updated_at = EXCLUDED.updated_at
+	`
+	if _, err := tx.Exec(upsertQuery, uuid.New().String(), targetUserID, phone, now); err != nil {
+		if isUniqueConstraintViolation(err, "whatsapp_user_links_phone_key") {
+			return WhatsAppUserLink{}, ErrWhatsAppPhoneAlreadyLinked
+		}
+		if isUniqueConstraintViolation(err, "whatsapp_user_links_user_key") {
+			return WhatsAppUserLink{}, ErrWhatsAppAlreadyLinked
+		}
+		return WhatsAppUserLink{}, err
+	}
+
+	markUsedQuery := `
+		UPDATE whatsapp_link_codes
+		SET used_at = $1, used_by_whatsapp_phone = $2
+		WHERE id = $3
+		  AND used_at IS NULL
+	`
+	result, err := tx.Exec(markUsedQuery, now, phone, code.ID)
+	if err != nil {
+		return WhatsAppUserLink{}, err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return WhatsAppUserLink{}, err
+	}
+	if rowsAffected == 0 {
+		return WhatsAppUserLink{}, ErrWhatsAppLinkCodeUsed
+	}
+
+	linkQuery := `
+		SELECT id, user_id, whatsapp_phone, created_at, updated_at
+		FROM whatsapp_user_links
+		WHERE user_id = $1
+	`
+	link, err := scanWhatsAppUserLink(tx.QueryRow(linkQuery, targetUserID))
+	if err != nil {
+		return WhatsAppUserLink{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return WhatsAppUserLink{}, err
 	}
 	return link, nil
 }

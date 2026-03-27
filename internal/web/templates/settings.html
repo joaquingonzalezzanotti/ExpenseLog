@@ -268,18 +268,24 @@
                     <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 </button>
             </div>
-            <p class="settings-helper-text settings-whatsapp-helper">Usa este canal de WhatsApp (Kapso) para cargar comprobantes. El numero se toma de configuracion del servidor.</p>
+            <p class="settings-helper-text settings-whatsapp-helper">Vincula tu numero para registrar gastos por WhatsApp. Flujo: 1) genera codigo, 2) abre chat, 3) envia <code>/vincular CODIGO</code>, 4) registra con <code>/gasto 1500 Supermercado</code>.</p>
             <div id="whatsappStatusBanner" class="whatsapp-status-box whatsapp-status-info">Cargando configuracion...</div>
             <p id="whatsappStatusHint" class="settings-helper-text settings-whatsapp-hint"></p>
             <div id="whatsappNumberWrap" class="settings-whatsapp-number-wrap" hidden>
                 <div class="settings-whatsapp-number-label">Numero cargado</div>
                 <div id="whatsappNumberValue" class="settings-whatsapp-number-value">----</div>
             </div>
+            <div id="whatsappCodeWrap" class="settings-whatsapp-number-wrap" hidden>
+                <div class="settings-whatsapp-number-label">Codigo vigente</div>
+                <div id="whatsappGeneratedCode" class="settings-whatsapp-number-value">----</div>
+                <div id="whatsappCodeMeta" class="settings-whatsapp-number-label"></div>
+            </div>
             <div class="settings-export-actions settings-whatsapp-actions">
                 <button id="whatsappOpenBotBtn" class="nav-button button-primary" type="button"><i class="fa-brands fa-whatsapp"></i> Abrir chat</button>
-                <button id="whatsappRefreshStatusBtn" class="nav-button button-secondary" type="button">Actualizar numero</button>
+                <button id="whatsappGenerateCodeBtn" class="nav-button button-secondary" type="button">Generar codigo de vinculacion</button>
+                <button id="whatsappRefreshStatusBtn" class="nav-button button-secondary" type="button">Actualizar estado</button>
             </div>
-            <p class="settings-reports-caption">Configura <code>WHATSAPP_KAPSO_NUMBER</code> para cargar tu numero.</p>
+            <p class="settings-reports-caption">Configura <code>WHATSAPP_KAPSO_NUMBER</code>, <code>KAPSO_API_KEY</code> y el webhook en Kapso.</p>
             <div id="whatsappBotMessage" class="form-message"></div>
         </section>
         <section id="categoriesSection" class="form-container settings-section settings-detail-section" hidden>
@@ -660,9 +666,16 @@
             premium: false,
             provider: 'Kapso',
             available: false,
+            linked: false,
+            whatsapp_phone: '',
+            linked_at: '',
+            active_code: null,
             number: '',
             number_display: '',
             chat_url: '',
+            deep_link_url: '',
+            generated_code: '',
+            generated_expires_at: '',
         };
         const SHARED_CONFIG_CACHE_KEY = 'expenselog_config_cache_v1';
         const settingsSectionButtons = Array.from(document.querySelectorAll('[data-settings-section]'));
@@ -694,7 +707,11 @@
         const whatsappStatusHint = document.getElementById('whatsappStatusHint');
         const whatsappNumberWrap = document.getElementById('whatsappNumberWrap');
         const whatsappNumberValue = document.getElementById('whatsappNumberValue');
+        const whatsappCodeWrap = document.getElementById('whatsappCodeWrap');
+        const whatsappGeneratedCode = document.getElementById('whatsappGeneratedCode');
+        const whatsappCodeMeta = document.getElementById('whatsappCodeMeta');
         const whatsappOpenBotBtn = document.getElementById('whatsappOpenBotBtn');
+        const whatsappGenerateCodeBtn = document.getElementById('whatsappGenerateCodeBtn');
         const whatsappRefreshStatusBtn = document.getElementById('whatsappRefreshStatusBtn');
 
         function setSettingsSection(sectionId, expanded) {
@@ -1167,12 +1184,77 @@
             whatsappStatusBanner.className = `whatsapp-status-box whatsapp-status-${tone}`;
         }
 
+        function normalizeWhatsAppCodeCompact(value) {
+            const compact = String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (compact.length !== 8) return '';
+            return compact;
+        }
+
+        function normalizeWhatsAppCode(value) {
+            const raw = String(value || '').trim().toUpperCase();
+            if (/^\*{4}-\*{4}$/.test(raw)) return raw;
+            const compact = normalizeWhatsAppCodeCompact(raw);
+            if (!compact) return '';
+            return `${compact.slice(0, 4)}-${compact.slice(4)}`;
+        }
+
+        function formatWhatsAppDate(value) {
+            const parsed = Date.parse(String(value || ''));
+            if (!Number.isFinite(parsed)) return '-';
+            return new Intl.DateTimeFormat('es-AR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            }).format(new Date(parsed));
+        }
+
+        function getWhatsAppOpenURL() {
+            const fallback = String(whatsappState.chat_url || '').trim();
+            const deepLink = String(whatsappState.deep_link_url || '').trim();
+            const compact = normalizeWhatsAppCodeCompact(whatsappState.generated_code);
+            if (!fallback) return '';
+            if (compact.length === 8 && whatsappState.generated_expires_at) {
+                const expiresAtMs = Date.parse(whatsappState.generated_expires_at);
+                if (Number.isFinite(expiresAtMs) && expiresAtMs > Date.now() && deepLink) {
+                    return deepLink;
+                }
+            }
+            return fallback;
+        }
+
+        function renderWhatsAppCodePanel() {
+            if (!whatsappCodeWrap || !whatsappGeneratedCode || !whatsappCodeMeta) return;
+            const code = normalizeWhatsAppCode(whatsappState.generated_code);
+            if (!code) {
+                whatsappCodeWrap.hidden = true;
+                whatsappGeneratedCode.textContent = '----';
+                whatsappCodeMeta.textContent = '';
+                return;
+            }
+            whatsappCodeWrap.hidden = false;
+            whatsappGeneratedCode.textContent = code;
+            const expiresAtMs = Date.parse(String(whatsappState.generated_expires_at || ''));
+            if (!Number.isFinite(expiresAtMs)) {
+                whatsappCodeMeta.textContent = 'Sin vencimiento informado.';
+                return;
+            }
+            const absolute = formatWhatsAppDate(whatsappState.generated_expires_at);
+            if (expiresAtMs <= Date.now()) {
+                whatsappCodeMeta.textContent = `Codigo vencido (${absolute}). Genera uno nuevo.`;
+                return;
+            }
+            whatsappCodeMeta.textContent = `Vigente hasta ${absolute}.`;
+        }
+
         function renderWhatsAppState() {
             const isPremium = currentPlanTier === 'premium' && !!whatsappState.premium;
             if (openWhatsAppSection) openWhatsAppSection.hidden = !isPremium;
 
             if (!isPremium) {
                 if (whatsappOpenBotBtn) whatsappOpenBotBtn.disabled = true;
+                if (whatsappGenerateCodeBtn) whatsappGenerateCodeBtn.disabled = true;
                 if (whatsappRefreshStatusBtn) whatsappRefreshStatusBtn.disabled = true;
                 setWhatsAppStatusBox('Estado: disponible solo para cuentas Premium.', 'warning');
                 if (whatsappStatusHint) {
@@ -1180,11 +1262,16 @@
                 }
                 if (whatsappNumberWrap) whatsappNumberWrap.hidden = true;
                 if (whatsappNumberValue) whatsappNumberValue.textContent = '----';
+                whatsappState.generated_code = '';
+                whatsappState.generated_expires_at = '';
+                whatsappState.deep_link_url = '';
+                renderWhatsAppCodePanel();
                 return;
             }
 
             const isAvailable = !!whatsappState.available && !!whatsappState.chat_url;
             if (whatsappOpenBotBtn) whatsappOpenBotBtn.disabled = !isAvailable;
+            if (whatsappGenerateCodeBtn) whatsappGenerateCodeBtn.disabled = !isAvailable;
             if (whatsappRefreshStatusBtn) whatsappRefreshStatusBtn.disabled = false;
 
             if (!isAvailable) {
@@ -1194,33 +1281,84 @@
                 }
                 if (whatsappNumberWrap) whatsappNumberWrap.hidden = true;
                 if (whatsappNumberValue) whatsappNumberValue.textContent = '----';
+                whatsappState.generated_code = '';
+                whatsappState.generated_expires_at = '';
+                whatsappState.deep_link_url = '';
+                renderWhatsAppCodePanel();
                 return;
             }
 
             const provider = String(whatsappState.provider || 'Kapso').trim() || 'Kapso';
             const displayNumber = String(whatsappState.number_display || whatsappState.number || '').trim();
-            setWhatsAppStatusBox(`Estado: numero cargado en ${provider}.`, 'success');
+            if (whatsappState.linked) {
+                setWhatsAppStatusBox(`Estado: cuenta vinculada en ${provider}.`, 'success');
+            } else {
+                setWhatsAppStatusBox(`Estado: cuenta premium sin vincular en ${provider}.`, 'info');
+            }
             if (whatsappStatusHint) {
-                whatsappStatusHint.textContent = `Numero activo: ${displayNumber || 'sin formato'}.`;
+                if (whatsappState.linked) {
+                    const linkedAt = formatWhatsAppDate(whatsappState.linked_at);
+                    const linkedPhone = whatsappState.whatsapp_phone ? `+${whatsappState.whatsapp_phone}` : 'sin telefono';
+                    whatsappStatusHint.textContent = `Numero activo: ${displayNumber || 'sin formato'}. Vinculado ${linkedPhone} (${linkedAt}). Usa /gasto para registrar movimientos.`;
+                } else {
+                    whatsappStatusHint.textContent = `Numero activo: ${displayNumber || 'sin formato'}. Genera un codigo y envia /vincular CODIGO en el chat.`;
+                }
             }
             if (whatsappNumberWrap) whatsappNumberWrap.hidden = false;
             if (whatsappNumberValue) whatsappNumberValue.textContent = displayNumber || whatsappState.number || '----';
+            if (!whatsappState.generated_code && whatsappState.active_code) {
+                whatsappState.generated_code = whatsappState.active_code.code_masked || '';
+                whatsappState.generated_expires_at = whatsappState.active_code.expires_at || '';
+                whatsappState.deep_link_url = '';
+            }
+            renderWhatsAppCodePanel();
         }
 
-        async function fetchWhatsAppContact() {
-            const response = await fetch('/api/whatsapp/contact', { method: 'GET', cache: 'no-store' });
+        async function fetchWhatsAppStatus(endpoint = '/api/whatsapp/link-status') {
+            const response = await fetch(endpoint, { method: endpoint.includes('/refresh-') ? 'POST' : 'GET', cache: 'no-store' });
             const payload = await response.json().catch(() => ({}));
             if (!response.ok) {
-                throw new Error(payload.error || 'No se pudo obtener configuracion de WhatsApp');
+                throw new Error(payload.error || 'No se pudo obtener estado de WhatsApp');
             }
             whatsappState.premium = !!payload.premium;
             whatsappState.provider = String(payload.provider || 'Kapso').trim() || 'Kapso';
             whatsappState.available = !!payload.available;
+            whatsappState.linked = !!payload.linked;
+            whatsappState.whatsapp_phone = String(payload.whatsapp_phone || '').trim();
+            whatsappState.linked_at = payload.linked_at || '';
+            whatsappState.active_code = payload.active_code || null;
             whatsappState.number = String(payload.number || '').trim();
             whatsappState.number_display = String(payload.number_display || '').trim();
             whatsappState.chat_url = String(payload.chat_url || '').trim();
+            whatsappState.deep_link_url = '';
             renderWhatsAppState();
             return payload;
+        }
+
+        async function generateWhatsAppLinkCode() {
+            if (currentPlanTier !== 'premium') {
+                showMessage('whatsappBotMessage', 'Disponible solo para cuentas Premium.', false);
+                return;
+            }
+            if (whatsappGenerateCodeBtn) whatsappGenerateCodeBtn.disabled = true;
+            try {
+                const response = await fetch('/api/whatsapp/link-code', { method: 'POST' });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(payload.error || 'No se pudo generar codigo de vinculacion');
+                }
+                whatsappState.generated_code = payload.code || '';
+                whatsappState.generated_expires_at = payload.expires_at || '';
+                whatsappState.chat_url = String(payload.chat_url || whatsappState.chat_url || '').trim();
+                whatsappState.deep_link_url = String(payload.deep_link_url || '').trim();
+                renderWhatsAppState();
+                showMessage('whatsappBotMessage', 'Codigo generado. Abre el chat y envia /vincular.', true);
+            } catch (error) {
+                console.error('Error generando codigo de WhatsApp:', error);
+                showMessage('whatsappBotMessage', error.message || 'No se pudo generar codigo', false);
+            } finally {
+                if (whatsappGenerateCodeBtn) whatsappGenerateCodeBtn.disabled = !(currentPlanTier === 'premium');
+            }
         }
 
         function openModal(modal) {
@@ -2320,11 +2458,11 @@ async function saveCategoriesList(nextCategories) {
                         telegramStatusHint.textContent = 'Reintenta con "Actualizar estado".';
                     }
                 });
-                await fetchWhatsAppContact().catch((error) => {
+                await fetchWhatsAppStatus('/api/whatsapp/link-status').catch((error) => {
                     console.error('No se pudo cargar configuracion de WhatsApp:', error);
                     setWhatsAppStatusBox('No se pudo cargar la configuracion de WhatsApp.', 'error');
                     if (whatsappStatusHint) {
-                        whatsappStatusHint.textContent = 'Reintenta con "Actualizar numero".';
+                        whatsappStatusHint.textContent = 'Reintenta con "Actualizar estado".';
                     }
                 });
 
@@ -2449,21 +2587,22 @@ async function saveCategoriesList(nextCategories) {
             }
         });
         whatsappOpenBotBtn?.addEventListener('click', () => {
-            const targetURL = String(whatsappState.chat_url || '').trim();
+            const targetURL = getWhatsAppOpenURL();
             if (!targetURL) {
                 showMessage('whatsappBotMessage', 'Configura WHATSAPP_KAPSO_NUMBER para habilitar este boton.', false);
                 return;
             }
             window.open(targetURL, '_blank', 'noopener');
         });
+        whatsappGenerateCodeBtn?.addEventListener('click', generateWhatsAppLinkCode);
         whatsappRefreshStatusBtn?.addEventListener('click', async () => {
             if (whatsappRefreshStatusBtn) whatsappRefreshStatusBtn.disabled = true;
             try {
-                await fetchWhatsAppContact();
-                showMessage('whatsappBotMessage', 'Numero actualizado.', true);
+                await fetchWhatsAppStatus('/api/whatsapp/refresh-status');
+                showMessage('whatsappBotMessage', 'Estado actualizado.', true);
             } catch (error) {
                 console.error('No se pudo actualizar configuracion de WhatsApp:', error);
-                showMessage('whatsappBotMessage', error.message || 'No se pudo actualizar el numero', false);
+                showMessage('whatsappBotMessage', error.message || 'No se pudo actualizar estado', false);
             } finally {
                 if (whatsappRefreshStatusBtn) whatsappRefreshStatusBtn.disabled = false;
             }

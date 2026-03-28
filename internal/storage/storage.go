@@ -88,6 +88,14 @@ type Storage interface {
 	CreateTelegramLinkCode(userID, codeHash string, expiresAt, createdAt time.Time) (TelegramLinkCode, error)
 	ConsumeTelegramLinkCode(codeHash string, telegramUserID int64, telegramUsername string, now time.Time) (TelegramUserLink, error)
 
+	// WhatsApp Bot integration
+	GetWhatsAppUserLinkByUserID(userID string) (WhatsAppUserLink, error)
+	GetWhatsAppUserLinkByPhone(whatsAppPhone string) (WhatsAppUserLink, error)
+	GetActiveWhatsAppLinkCode(userID string, now time.Time) (WhatsAppLinkCode, error)
+	InvalidateActiveWhatsAppLinkCodes(userID string, usedAt time.Time) error
+	CreateWhatsAppLinkCode(userID, codeHash string, expiresAt, createdAt time.Time) (WhatsAppLinkCode, error)
+	ConsumeWhatsAppLinkCode(codeHash, whatsAppPhone string, now time.Time) (WhatsAppUserLink, error)
+
 	// Apple Wallet Shortcut ingestion
 	GetActiveWalletIngestTokenByUserID(userID string) (WalletIngestToken, error)
 	UpsertWalletIngestToken(userID, tokenHash string, now time.Time) (WalletIngestToken, error)
@@ -111,6 +119,12 @@ var ErrTelegramLinkCodeUsed = errors.New("telegram link code already used")
 var ErrTelegramPremiumRequired = errors.New("telegram premium required")
 var ErrTelegramAlreadyLinked = errors.New("expenselog account already linked to another telegram user")
 var ErrTelegramUserAlreadyLinked = errors.New("telegram user already linked to another expenselog account")
+var ErrWhatsAppInvalidLinkCode = errors.New("invalid whatsapp link code")
+var ErrWhatsAppLinkCodeExpired = errors.New("whatsapp link code expired")
+var ErrWhatsAppLinkCodeUsed = errors.New("whatsapp link code already used")
+var ErrWhatsAppPremiumRequired = errors.New("whatsapp premium required")
+var ErrWhatsAppAlreadyLinked = errors.New("expenselog account already linked to another whatsapp user")
+var ErrWhatsAppPhoneAlreadyLinked = errors.New("whatsapp phone already linked to another expenselog account")
 
 // config for expense data
 type Config struct {
@@ -297,6 +311,24 @@ type TelegramLinkCode struct {
 	UsedAt               *time.Time
 	UsedByTelegramUserID *int64
 	UsedTelegramUsername string
+}
+
+type WhatsAppUserLink struct {
+	ID            string
+	UserID        string
+	WhatsAppPhone string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
+type WhatsAppLinkCode struct {
+	ID                  string
+	UserID              string
+	CodeHash            string
+	CreatedAt           time.Time
+	ExpiresAt           time.Time
+	UsedAt              *time.Time
+	UsedByWhatsAppPhone string
 }
 
 func (c *Config) SetBaseConfig() {

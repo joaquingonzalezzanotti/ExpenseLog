@@ -179,68 +179,62 @@
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
                 <button class="settings-nav-item" id="openWhatsAppSection" type="button" data-settings-section="whatsappSection" data-settings-route="/app/whatsapp" aria-expanded="false">
-                    <span class="settings-nav-item-label"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> WhatsApp Bot (Kapso)</span>
+                    <span class="settings-nav-item-label"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> WhatsApp Bot (Kapso) <span class="settings-reports-badge">Premium</span></span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
             </div>
         </section>
 
         <section id="reportsSection" class="form-container settings-section settings-detail-section settings-reports-section" hidden>
-            <div class="settings-detail-header settings-reports-headline">
+            <div class="settings-detail-header">
                 <h2>🧾 Reportes mensuales</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="reportsSection" aria-label="Cerrar reportes" title="Cerrar reportes">
                     <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 </button>
             </div>
-            <div class="settings-reports-hero">
-                <p class="settings-helper-text settings-reports-helper">Genera y descarga tu reporte mensual en el momento. Los archivos no se guardan en el servidor.</p>
-                <div class="settings-reports-highlight" role="note">
-                    <span class="settings-reports-badge">Premium</span>
-                    <span>Incluye resumen ejecutivo, desglose por categoria y detalle completo de movimientos.</span>
+            <p class="settings-helper-text settings-reports-helper">Genera y descarga tu reporte mensual en el momento. Los archivos no se guardan en el servidor.</p>
+            <div class="settings-reports-highlight" role="note">
+                <span class="settings-reports-badge">Premium</span>
+                <span>Incluye resumen ejecutivo, desglose por categoria y detalle completo de movimientos.</span>
+            </div>
+            <div class="settings-export-grid">
+                <div class="settings-preference-item">
+                    <label for="reportMonthSelect">Mes</label>
+                    <div class="settings-preference-control">
+                        <select id="reportMonthSelect"></select>
+                    </div>
+                </div>
+                <div class="settings-preference-item">
+                    <label for="reportYearInput">A&ntilde;o</label>
+                    <div class="settings-preference-control">
+                        <input id="reportYearInput" type="number" min="2000" max="2100" step="1" placeholder="2026" inputmode="numeric">
+                    </div>
+                </div>
+                <div class="settings-preference-item">
+                    <label for="reportCurrencySelect">Moneda</label>
+                    <div class="settings-preference-control">
+                        <select id="reportCurrencySelect">
+                            <option value="ars">ARS</option>
+                            <option value="usd">USD</option>
+                            <option value="eur">EUR</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="settings-preference-item">
+                    <label for="reportIncludeCreditCardCheckbox">Gasto tarjeta</label>
+                    <div class="settings-preference-control">
+                        <label class="checkbox-inline">
+                            <input id="reportIncludeCreditCardCheckbox" type="checkbox" class="styled-checkbox" checked>
+                            <span>Incluir gastos con tarjeta de credito</span>
+                        </label>
+                    </div>
                 </div>
             </div>
-            <div class="settings-reports-form">
-                <div class="settings-export-grid settings-export-grid-main">
-                    <div class="settings-preference-item settings-report-field">
-                        <label for="reportMonthSelect">Mes</label>
-                        <div class="settings-preference-control settings-report-select-wrap">
-                            <select id="reportMonthSelect"></select>
-                        </div>
-                    </div>
-                    <div class="settings-preference-item settings-report-field">
-                        <label for="reportYearInput">A&ntilde;o</label>
-                        <div class="settings-preference-control settings-report-select-wrap">
-                            <input id="reportYearInput" type="number" min="2000" max="2100" step="1" placeholder="2026" inputmode="numeric">
-                        </div>
-                    </div>
-                </div>
-                <div class="settings-export-grid settings-export-grid-advanced">
-                    <div class="settings-preference-item settings-report-field">
-                        <label for="reportCurrencySelect">Moneda</label>
-                        <div class="settings-preference-control settings-report-select-wrap">
-                            <select id="reportCurrencySelect">
-                                <option value="ars">ARS</option>
-                                <option value="usd">USD</option>
-                                <option value="eur">EUR</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="settings-preference-item settings-report-field">
-                        <label for="reportIncludeCreditCardCheckbox">Tarjeta</label>
-                        <div class="settings-card-switch" role="group" aria-label="Incluir gastos con tarjeta">
-                            <button type="button" class="settings-chip-button" data-report-card="true" aria-pressed="false">Con tarjeta</button>
-                            <button type="button" class="settings-chip-button" data-report-card="false" aria-pressed="false">Sin tarjeta</button>
-                        </div>
-                        <input id="reportIncludeCreditCardCheckbox" type="checkbox" class="settings-report-input-hidden" checked>
-                    </div>
-                </div>
-                <p id="reportSelectionSummary" class="settings-report-summary" aria-live="polite"></p>
-                <div class="settings-export-actions">
-                    <button id="downloadMonthlyXLSXBtn" class="nav-button button-secondary" type="button">Descargar Excel (.xlsx)</button>
-                    <button id="downloadMonthlyPDFBtn" class="nav-button button-primary" type="button">Descargar PDF (.pdf)</button>
-                </div>
-                <p class="settings-reports-caption">Sugerencia: usa el mismo mes y moneda de tu analisis para compartir resultados claros.</p>
+            <div class="settings-export-actions">
+                <button id="downloadMonthlyXLSXBtn" class="nav-button button-secondary" type="button">Descargar Excel (.xlsx)</button>
+                <button id="downloadMonthlyPDFBtn" class="nav-button button-primary" type="button">Descargar PDF (.pdf)</button>
             </div>
+            <p class="settings-reports-caption">Sugerencia: usa el mismo mes y moneda de tu analisis para compartir resultados claros.</p>
             <div id="reportExportMessage" class="form-message"></div>
         </section>
 
@@ -274,18 +268,24 @@
                     <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 </button>
             </div>
-            <p class="settings-helper-text settings-whatsapp-helper">Usa este canal de WhatsApp (Kapso) para cargar comprobantes. El numero se toma de configuracion del servidor.</p>
+            <p class="settings-helper-text settings-whatsapp-helper">Vincula tu numero para registrar gastos por WhatsApp. Flujo: 1) genera codigo, 2) abre chat, 3) envia <code>/vincular CODIGO</code>, 4) registra con <code>/gasto 1500 Supermercado</code>.</p>
             <div id="whatsappStatusBanner" class="whatsapp-status-box whatsapp-status-info">Cargando configuracion...</div>
             <p id="whatsappStatusHint" class="settings-helper-text settings-whatsapp-hint"></p>
             <div id="whatsappNumberWrap" class="settings-whatsapp-number-wrap" hidden>
                 <div class="settings-whatsapp-number-label">Numero cargado</div>
                 <div id="whatsappNumberValue" class="settings-whatsapp-number-value">----</div>
             </div>
+            <div id="whatsappCodeWrap" class="settings-whatsapp-number-wrap" hidden>
+                <div class="settings-whatsapp-number-label">Codigo vigente</div>
+                <div id="whatsappGeneratedCode" class="settings-whatsapp-number-value">----</div>
+                <div id="whatsappCodeMeta" class="settings-whatsapp-number-label"></div>
+            </div>
             <div class="settings-export-actions settings-whatsapp-actions">
                 <button id="whatsappOpenBotBtn" class="nav-button button-primary" type="button"><i class="fa-brands fa-whatsapp"></i> Abrir chat</button>
-                <button id="whatsappRefreshStatusBtn" class="nav-button button-secondary" type="button">Actualizar numero</button>
+                <button id="whatsappGenerateCodeBtn" class="nav-button button-secondary" type="button">Generar codigo de vinculacion</button>
+                <button id="whatsappRefreshStatusBtn" class="nav-button button-secondary" type="button">Actualizar estado</button>
             </div>
-            <p class="settings-reports-caption">Configura <code>WHATSAPP_KAPSO_NUMBER</code> para cargar tu numero.</p>
+            <p class="settings-reports-caption">Configura <code>WHATSAPP_KAPSO_NUMBER</code>, <code>KAPSO_API_KEY</code> y el webhook en Kapso.</p>
             <div id="whatsappBotMessage" class="form-message"></div>
         </section>
         <section id="categoriesSection" class="form-container settings-section settings-detail-section" hidden>
@@ -646,9 +646,6 @@
         let recurringExpenseToDelete = null;
         let recurringExpenseToEdit = null;
         let reconciliationSubmitInFlight = false;
-        let recurringCreateInFlight = false;
-        let recurringDeleteInFlight = false;
-        let recurringUpdateInFlight = false;
         let pendingConfirmResolver = null;
         let pendingSuccessResolver = null;
         let telegramCodeCountdownTimer = null;
@@ -666,11 +663,19 @@
             generated_expires_at: '',
         };
         let whatsappState = {
+            premium: false,
             provider: 'Kapso',
             available: false,
+            linked: false,
+            whatsapp_phone: '',
+            linked_at: '',
+            active_code: null,
             number: '',
             number_display: '',
             chat_url: '',
+            deep_link_url: '',
+            generated_code: '',
+            generated_expires_at: '',
         };
         const SHARED_CONFIG_CACHE_KEY = 'expenselog_config_cache_v1';
         const settingsSectionButtons = Array.from(document.querySelectorAll('[data-settings-section]'));
@@ -689,9 +694,6 @@
         const reportIncludeCreditCardCheckbox = document.getElementById('reportIncludeCreditCardCheckbox');
         const downloadMonthlyXLSXBtn = document.getElementById('downloadMonthlyXLSXBtn');
         const downloadMonthlyPDFBtn = document.getElementById('downloadMonthlyPDFBtn');
-        const reportCurrencyButtons = Array.from(document.querySelectorAll('[data-report-currency]'));
-        const reportCardButtons = Array.from(document.querySelectorAll('[data-report-card]'));
-        const reportSelectionSummary = document.getElementById('reportSelectionSummary');
         const telegramStatusBanner = document.getElementById('telegramStatusBanner');
         const telegramStatusHint = document.getElementById('telegramStatusHint');
         const telegramCodeWrap = document.getElementById('telegramCodeWrap');
@@ -700,11 +702,16 @@
         const telegramOpenBotBtn = document.getElementById('telegramOpenBotBtn');
         const telegramGenerateCodeBtn = document.getElementById('telegramGenerateCodeBtn');
         const telegramRefreshStatusBtn = document.getElementById('telegramRefreshStatusBtn');
+        const openWhatsAppSection = document.getElementById('openWhatsAppSection');
         const whatsappStatusBanner = document.getElementById('whatsappStatusBanner');
         const whatsappStatusHint = document.getElementById('whatsappStatusHint');
         const whatsappNumberWrap = document.getElementById('whatsappNumberWrap');
         const whatsappNumberValue = document.getElementById('whatsappNumberValue');
+        const whatsappCodeWrap = document.getElementById('whatsappCodeWrap');
+        const whatsappGeneratedCode = document.getElementById('whatsappGeneratedCode');
+        const whatsappCodeMeta = document.getElementById('whatsappCodeMeta');
         const whatsappOpenBotBtn = document.getElementById('whatsappOpenBotBtn');
+        const whatsappGenerateCodeBtn = document.getElementById('whatsappGenerateCodeBtn');
         const whatsappRefreshStatusBtn = document.getElementById('whatsappRefreshStatusBtn');
 
         function setSettingsSection(sectionId, expanded) {
@@ -843,63 +850,10 @@
             return String(value || '').trim().toLowerCase() === 'premium' ? 'premium' : 'free';
         }
 
-        function reportMonthLabel(month) {
-            const months = [
-                'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-            ];
-            return months[(month || 0) - 1] || '-';
-        }
-
-        function updateReportSummary(formatHint) {
-            const month = parseInt(reportMonthSelect?.value || '', 10);
-            const year = parseInt(reportYearInput?.value || '', 10);
-            const currency = String(reportCurrencySelect?.value || currentCurrency || 'ars').trim().toUpperCase();
-            const includeCreditCard = reportIncludeCreditCardCheckbox ? !!reportIncludeCreditCardCheckbox.checked : true;
-
-            const monthText = Number.isInteger(month) && month >= 1 && month <= 12 ? reportMonthLabel(month) : '-';
-            const yearText = Number.isInteger(year) && year >= 2000 && year <= 2100 ? String(year) : '-';
-            const cardText = includeCreditCard ? 'con tarjeta' : 'sin tarjeta';
-            const formatText = formatHint === 'xlsx' ? 'Excel' : (formatHint === 'pdf' ? 'PDF' : '');
-
-            if (reportSelectionSummary) {
-                reportSelectionSummary.textContent = formatText
-                    ? `${monthText} ${yearText} · ${currency} · ${cardText} · ${formatText}`
-                    : `${monthText} ${yearText} · ${currency} · ${cardText}`;
-            }
-        }
-
-        function syncReportCurrencyButtons() {
-            const selected = String(reportCurrencySelect?.value || '').trim().toLowerCase();
-            reportCurrencyButtons.forEach((button) => {
-                const value = String(button.dataset.reportCurrency || '').trim().toLowerCase();
-                const active = selected !== '' && value === selected;
-                button.classList.toggle('active', active);
-                button.setAttribute('aria-pressed', active ? 'true' : 'false');
-            });
-        }
-
-        function syncReportCardButtons() {
-            const include = reportIncludeCreditCardCheckbox ? !!reportIncludeCreditCardCheckbox.checked : true;
-            reportCardButtons.forEach((button) => {
-                const value = String(button.dataset.reportCard || '').trim().toLowerCase() === 'true';
-                const active = value === include;
-                button.classList.toggle('active', active);
-                button.setAttribute('aria-pressed', active ? 'true' : 'false');
-            });
-        }
-
-        function updateReportSelectionState(formatHint) {
-            syncReportCurrencyButtons();
-            syncReportCardButtons();
-            updateReportSummary(formatHint);
-        }
-
         function renderReportAccessState() {
             const isPremium = currentPlanTier === 'premium';
             if (downloadMonthlyXLSXBtn) downloadMonthlyXLSXBtn.disabled = !isPremium;
             if (downloadMonthlyPDFBtn) downloadMonthlyPDFBtn.disabled = !isPremium;
-            updateReportSelectionState();
             const messageDiv = document.getElementById('reportExportMessage');
             if (!messageDiv) return;
             if (isPremium) {
@@ -943,7 +897,6 @@
                     reportIncludeCreditCardCheckbox.checked = isTruthy;
                 }
             }
-            updateReportSelectionState();
         }
 
         function populateReportPeriodControls() {
@@ -972,7 +925,6 @@
             }
             applyReportContextFromURL();
             renderReportAccessState();
-            updateReportSelectionState();
         }
 
         function parseAttachmentFilename(contentDisposition, fallbackName) {
@@ -1024,7 +976,6 @@
             });
             const endpoint = `/api/export/monthly/${ext}?${params.toString()}`;
 
-            updateReportSelectionState(ext);
             setReportDownloadButtonsDisabled(true);
             showMessage('reportExportMessage', `Generando reporte ${ext.toUpperCase()}...`, true);
 
@@ -1233,9 +1184,95 @@
             whatsappStatusBanner.className = `whatsapp-status-box whatsapp-status-${tone}`;
         }
 
+        function normalizeWhatsAppCodeCompact(value) {
+            const compact = String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (compact.length !== 8) return '';
+            return compact;
+        }
+
+        function normalizeWhatsAppCode(value) {
+            const raw = String(value || '').trim().toUpperCase();
+            if (/^\*{4}-\*{4}$/.test(raw)) return raw;
+            const compact = normalizeWhatsAppCodeCompact(raw);
+            if (!compact) return '';
+            return `${compact.slice(0, 4)}-${compact.slice(4)}`;
+        }
+
+        function formatWhatsAppDate(value) {
+            const parsed = Date.parse(String(value || ''));
+            if (!Number.isFinite(parsed)) return '-';
+            return new Intl.DateTimeFormat('es-AR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            }).format(new Date(parsed));
+        }
+
+        function getWhatsAppOpenURL() {
+            const fallback = String(whatsappState.chat_url || '').trim();
+            const deepLink = String(whatsappState.deep_link_url || '').trim();
+            const compact = normalizeWhatsAppCodeCompact(whatsappState.generated_code);
+            if (!fallback) return '';
+            if (compact.length === 8 && whatsappState.generated_expires_at) {
+                const expiresAtMs = Date.parse(whatsappState.generated_expires_at);
+                if (Number.isFinite(expiresAtMs) && expiresAtMs > Date.now() && deepLink) {
+                    return deepLink;
+                }
+            }
+            return fallback;
+        }
+
+        function renderWhatsAppCodePanel() {
+            if (!whatsappCodeWrap || !whatsappGeneratedCode || !whatsappCodeMeta) return;
+            const code = normalizeWhatsAppCode(whatsappState.generated_code);
+            if (!code) {
+                whatsappCodeWrap.hidden = true;
+                whatsappGeneratedCode.textContent = '----';
+                whatsappCodeMeta.textContent = '';
+                return;
+            }
+            whatsappCodeWrap.hidden = false;
+            whatsappGeneratedCode.textContent = code;
+            const expiresAtMs = Date.parse(String(whatsappState.generated_expires_at || ''));
+            if (!Number.isFinite(expiresAtMs)) {
+                whatsappCodeMeta.textContent = 'Sin vencimiento informado.';
+                return;
+            }
+            const absolute = formatWhatsAppDate(whatsappState.generated_expires_at);
+            if (expiresAtMs <= Date.now()) {
+                whatsappCodeMeta.textContent = `Codigo vencido (${absolute}). Genera uno nuevo.`;
+                return;
+            }
+            whatsappCodeMeta.textContent = `Vigente hasta ${absolute}.`;
+        }
+
         function renderWhatsAppState() {
+            const isPremium = currentPlanTier === 'premium' && !!whatsappState.premium;
+            if (openWhatsAppSection) openWhatsAppSection.hidden = !isPremium;
+
+            if (!isPremium) {
+                if (whatsappOpenBotBtn) whatsappOpenBotBtn.disabled = true;
+                if (whatsappGenerateCodeBtn) whatsappGenerateCodeBtn.disabled = true;
+                if (whatsappRefreshStatusBtn) whatsappRefreshStatusBtn.disabled = true;
+                setWhatsAppStatusBox('Estado: disponible solo para cuentas Premium.', 'warning');
+                if (whatsappStatusHint) {
+                    whatsappStatusHint.textContent = 'Activa Premium para habilitar el bot de WhatsApp (Kapso).';
+                }
+                if (whatsappNumberWrap) whatsappNumberWrap.hidden = true;
+                if (whatsappNumberValue) whatsappNumberValue.textContent = '----';
+                whatsappState.generated_code = '';
+                whatsappState.generated_expires_at = '';
+                whatsappState.deep_link_url = '';
+                renderWhatsAppCodePanel();
+                return;
+            }
+
             const isAvailable = !!whatsappState.available && !!whatsappState.chat_url;
             if (whatsappOpenBotBtn) whatsappOpenBotBtn.disabled = !isAvailable;
+            if (whatsappGenerateCodeBtn) whatsappGenerateCodeBtn.disabled = !isAvailable;
+            if (whatsappRefreshStatusBtn) whatsappRefreshStatusBtn.disabled = false;
 
             if (!isAvailable) {
                 setWhatsAppStatusBox('Estado: canal de WhatsApp no configurado.', 'warning');
@@ -1244,32 +1281,84 @@
                 }
                 if (whatsappNumberWrap) whatsappNumberWrap.hidden = true;
                 if (whatsappNumberValue) whatsappNumberValue.textContent = '----';
+                whatsappState.generated_code = '';
+                whatsappState.generated_expires_at = '';
+                whatsappState.deep_link_url = '';
+                renderWhatsAppCodePanel();
                 return;
             }
 
             const provider = String(whatsappState.provider || 'Kapso').trim() || 'Kapso';
             const displayNumber = String(whatsappState.number_display || whatsappState.number || '').trim();
-            setWhatsAppStatusBox(`Estado: numero cargado en ${provider}.`, 'success');
+            if (whatsappState.linked) {
+                setWhatsAppStatusBox(`Estado: cuenta vinculada en ${provider}.`, 'success');
+            } else {
+                setWhatsAppStatusBox(`Estado: cuenta premium sin vincular en ${provider}.`, 'info');
+            }
             if (whatsappStatusHint) {
-                whatsappStatusHint.textContent = `Numero activo: ${displayNumber || 'sin formato'}.`;
+                if (whatsappState.linked) {
+                    const linkedAt = formatWhatsAppDate(whatsappState.linked_at);
+                    const linkedPhone = whatsappState.whatsapp_phone ? `+${whatsappState.whatsapp_phone}` : 'sin telefono';
+                    whatsappStatusHint.textContent = `Numero activo: ${displayNumber || 'sin formato'}. Vinculado ${linkedPhone} (${linkedAt}). Usa /gasto para registrar movimientos.`;
+                } else {
+                    whatsappStatusHint.textContent = `Numero activo: ${displayNumber || 'sin formato'}. Genera un codigo y envia /vincular CODIGO en el chat.`;
+                }
             }
             if (whatsappNumberWrap) whatsappNumberWrap.hidden = false;
             if (whatsappNumberValue) whatsappNumberValue.textContent = displayNumber || whatsappState.number || '----';
+            if (!whatsappState.generated_code && whatsappState.active_code) {
+                whatsappState.generated_code = whatsappState.active_code.code_masked || '';
+                whatsappState.generated_expires_at = whatsappState.active_code.expires_at || '';
+                whatsappState.deep_link_url = '';
+            }
+            renderWhatsAppCodePanel();
         }
 
-        async function fetchWhatsAppContact() {
-            const response = await fetch('/api/whatsapp/contact', { method: 'GET', cache: 'no-store' });
+        async function fetchWhatsAppStatus(endpoint = '/api/whatsapp/link-status') {
+            const response = await fetch(endpoint, { method: endpoint.includes('/refresh-') ? 'POST' : 'GET', cache: 'no-store' });
             const payload = await response.json().catch(() => ({}));
             if (!response.ok) {
-                throw new Error(payload.error || 'No se pudo obtener configuracion de WhatsApp');
+                throw new Error(payload.error || 'No se pudo obtener estado de WhatsApp');
             }
+            whatsappState.premium = !!payload.premium;
             whatsappState.provider = String(payload.provider || 'Kapso').trim() || 'Kapso';
             whatsappState.available = !!payload.available;
+            whatsappState.linked = !!payload.linked;
+            whatsappState.whatsapp_phone = String(payload.whatsapp_phone || '').trim();
+            whatsappState.linked_at = payload.linked_at || '';
+            whatsappState.active_code = payload.active_code || null;
             whatsappState.number = String(payload.number || '').trim();
             whatsappState.number_display = String(payload.number_display || '').trim();
             whatsappState.chat_url = String(payload.chat_url || '').trim();
+            whatsappState.deep_link_url = '';
             renderWhatsAppState();
             return payload;
+        }
+
+        async function generateWhatsAppLinkCode() {
+            if (currentPlanTier !== 'premium') {
+                showMessage('whatsappBotMessage', 'Disponible solo para cuentas Premium.', false);
+                return;
+            }
+            if (whatsappGenerateCodeBtn) whatsappGenerateCodeBtn.disabled = true;
+            try {
+                const response = await fetch('/api/whatsapp/link-code', { method: 'POST' });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(payload.error || 'No se pudo generar codigo de vinculacion');
+                }
+                whatsappState.generated_code = payload.code || '';
+                whatsappState.generated_expires_at = payload.expires_at || '';
+                whatsappState.chat_url = String(payload.chat_url || whatsappState.chat_url || '').trim();
+                whatsappState.deep_link_url = String(payload.deep_link_url || '').trim();
+                renderWhatsAppState();
+                showMessage('whatsappBotMessage', 'Codigo generado. Abre el chat y envia /vincular.', true);
+            } catch (error) {
+                console.error('Error generando codigo de WhatsApp:', error);
+                showMessage('whatsappBotMessage', error.message || 'No se pudo generar codigo', false);
+            } finally {
+                if (whatsappGenerateCodeBtn) whatsappGenerateCodeBtn.disabled = !(currentPlanTier === 'premium');
+            }
         }
 
         function openModal(modal) {
@@ -1827,16 +1916,8 @@ async function saveCategoriesList(nextCategories) {
 
         async function confirmRecurringDelete(removeAll) {
             if (!recurringExpenseToDelete) return;
-            if (recurringDeleteInFlight) return;
-            recurringDeleteInFlight = true;
-            const idempotencyKey = (typeof window.expenseLogIdempotencyKey === 'function')
-                ? window.expenseLogIdempotencyKey(removeAll ? 'recurring-delete-all' : 'recurring-delete-future')
-                : `recurring-delete-${Date.now()}-${Math.random().toString(16).slice(2)}`;
             try {
-                const response = await fetch(`/recurring-expense/delete?id=${recurringExpenseToDelete}&removeAll=${removeAll}`, {
-                    method: 'DELETE',
-                    headers: { 'Idempotency-Key': idempotencyKey },
-                });
+                const response = await fetch(`/recurring-expense/delete?id=${recurringExpenseToDelete}&removeAll=${removeAll}`, { method: 'DELETE' });
                 if (!response.ok) throw new Error('No se pudo eliminar la transaccion recurrente');
                 showMessage('recurringExpenseMessage', 'Transaccion recurrente eliminada con exito', true);
                 fetchAndRenderRecurringExpenses();
@@ -1844,7 +1925,6 @@ async function saveCategoriesList(nextCategories) {
                 console.error('Error al eliminar la transaccion recurrente:', error);
                 showMessage('recurringExpenseMessage', 'No se pudo eliminar la transaccion recurrente', false);
             } finally {
-                recurringDeleteInFlight = false;
                 closeRecurringDeleteModal();
             }
         }
@@ -1872,8 +1952,6 @@ async function saveCategoriesList(nextCategories) {
 
         async function confirmRecurringUpdate(updateAll) {
             if (!recurringExpenseToEdit) return;
-            if (recurringUpdateInFlight) return;
-            recurringUpdateInFlight = true;
             const flow = document.getElementById('editRecurringFlow').value || 'expense';
             let amount = parseFloat(document.getElementById('editRecurringAmount').value);
             if (flow === 'expense') {
@@ -1893,17 +1971,11 @@ async function saveCategoriesList(nextCategories) {
                 occurrences: parseInt(document.getElementById('editRecurringOccurrences').value, 10),
                 flow: flow
             };
-            const idempotencyKey = (typeof window.expenseLogIdempotencyKey === 'function')
-                ? window.expenseLogIdempotencyKey(updateAll ? 'recurring-update-all' : 'recurring-update-future')
-                : `recurring-update-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-             
+            
             try {
                 const response = await fetch(`/recurring-expense/edit?id=${recurringExpenseToEdit.id}&updateAll=${updateAll}`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Idempotency-Key': idempotencyKey,
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(updatedData)
                 });
                 if (!response.ok) throw new Error('No se pudo actualizar la transaccion recurrente');
@@ -1913,7 +1985,6 @@ async function saveCategoriesList(nextCategories) {
                 console.error('Error al actualizar la transaccion recurrente:', error);
                 showMessage('recurringExpenseMessage', 'No se pudo actualizar la transaccion recurrente', false);
             } finally {
-                recurringUpdateInFlight = false;
                 closeRecurringEditModal();
             }
         }
@@ -2211,25 +2282,6 @@ async function saveCategoriesList(nextCategories) {
             }
         }
 
-        function runSettingsViewTransition(updateFn) {
-            if (typeof updateFn !== 'function') return;
-            if (typeof document.startViewTransition !== 'function') {
-                updateFn();
-                return;
-            }
-
-            try {
-                const transition = document.startViewTransition(() => {
-                    updateFn();
-                });
-                if (transition?.finished?.catch) {
-                    transition.finished.catch(() => {});
-                }
-            } catch (error) {
-                updateFn();
-            }
-        }
-
         function navigateSettingsSection(sectionKey, options = {}) {
             const normalized = normalizeSettingsSection(sectionKey) || 'profile';
             const targetPath = routeForSettingsSection(normalized);
@@ -2252,7 +2304,11 @@ async function saveCategoriesList(nextCategories) {
                 window.dispatchEvent(new CustomEvent('expenselog:routechange'));
             };
 
-            runSettingsViewTransition(applySectionNavigation);
+            if (document.startViewTransition) {
+                document.startViewTransition(applySectionNavigation);
+            } else {
+                applySectionNavigation();
+            }
         }
 
         function bindSettingsRouteAnchors() {
@@ -2289,37 +2345,38 @@ async function saveCategoriesList(nextCategories) {
             const hashSection = normalizeSettingsSection((window.location.hash || '').replace(/^#/, ''));
             const pathSection = sectionFromPath(window.location.pathname);
             const activeSection = querySection || hashSection || pathSection || 'profile';
-            document.documentElement.setAttribute('data-settings-route', activeSection);
-            const isModuleRoute = activeSection !== 'profile' && (
+            const resolvedSection = (activeSection === 'whatsapp' && currentPlanTier !== 'premium') ? 'profile' : activeSection;
+            document.documentElement.setAttribute('data-settings-route', resolvedSection);
+            const isModuleRoute = resolvedSection !== 'profile' && (
                 pathSection !== '' ||
                 querySection !== '' ||
                 hashSection !== ''
             );
 
             setShellSectionsHidden(isModuleRoute);
-            setActiveMobilePrimaryNav(activeSection === 'reports' ? 'reports' : 'user');
+            setActiveMobilePrimaryNav(resolvedSection === 'reports' ? 'reports' : 'user');
 
-            if (activeSection === 'reconciliation') {
+            if (resolvedSection === 'reconciliation') {
                 showOnlySettingsSection('reconciliationSection', { scroll: false });
                 return;
             }
-            if (activeSection === 'categories') {
+            if (resolvedSection === 'categories') {
                 showOnlySettingsSection('categoriesSection', { scroll: false });
                 return;
             }
-            if (activeSection === 'recurring') {
+            if (resolvedSection === 'recurring') {
                 showOnlySettingsSection('recurringSection', { scroll: false });
                 return;
             }
-            if (activeSection === 'reports') {
+            if (resolvedSection === 'reports') {
                 showOnlySettingsSection('reportsSection', { scroll: false });
                 return;
             }
-            if (activeSection === 'telegram') {
+            if (resolvedSection === 'telegram') {
                 showOnlySettingsSection('telegramSection', { scroll: false });
                 return;
             }
-            if (activeSection === 'whatsapp') {
+            if (resolvedSection === 'whatsapp') {
                 showOnlySettingsSection('whatsappSection', { scroll: false });
                 return;
             }
@@ -2401,11 +2458,11 @@ async function saveCategoriesList(nextCategories) {
                         telegramStatusHint.textContent = 'Reintenta con "Actualizar estado".';
                     }
                 });
-                await fetchWhatsAppContact().catch((error) => {
+                await fetchWhatsAppStatus('/api/whatsapp/link-status').catch((error) => {
                     console.error('No se pudo cargar configuracion de WhatsApp:', error);
                     setWhatsAppStatusBox('No se pudo cargar la configuracion de WhatsApp.', 'error');
                     if (whatsappStatusHint) {
-                        whatsappStatusHint.textContent = 'Reintenta con "Actualizar numero".';
+                        whatsappStatusHint.textContent = 'Reintenta con "Actualizar estado".';
                     }
                 });
 
@@ -2506,27 +2563,6 @@ async function saveCategoriesList(nextCategories) {
             }
         });
         document.getElementById('currencySelect').addEventListener('change', saveCurrency);
-        reportMonthSelect?.addEventListener('change', () => updateReportSelectionState());
-        reportYearInput?.addEventListener('input', () => updateReportSelectionState());
-        reportYearInput?.addEventListener('change', () => updateReportSelectionState());
-        reportCurrencySelect?.addEventListener('change', () => updateReportSelectionState());
-        reportIncludeCreditCardCheckbox?.addEventListener('change', () => updateReportSelectionState());
-        reportCurrencyButtons.forEach((button) => {
-            button.addEventListener('click', () => {
-                const currency = String(button.dataset.reportCurrency || '').trim().toLowerCase();
-                if (!currency || !reportCurrencySelect) return;
-                reportCurrencySelect.value = currency;
-                updateReportSelectionState();
-            });
-        });
-        reportCardButtons.forEach((button) => {
-            button.addEventListener('click', () => {
-                if (!reportIncludeCreditCardCheckbox) return;
-                const include = String(button.dataset.reportCard || '').trim().toLowerCase() === 'true';
-                reportIncludeCreditCardCheckbox.checked = include;
-                updateReportSelectionState();
-            });
-        });
         downloadMonthlyXLSXBtn?.addEventListener('click', () => downloadMonthlyReport('xlsx'));
         downloadMonthlyPDFBtn?.addEventListener('click', () => downloadMonthlyReport('pdf'));
         telegramOpenBotBtn?.addEventListener('click', () => {
@@ -2551,21 +2587,22 @@ async function saveCategoriesList(nextCategories) {
             }
         });
         whatsappOpenBotBtn?.addEventListener('click', () => {
-            const targetURL = String(whatsappState.chat_url || '').trim();
+            const targetURL = getWhatsAppOpenURL();
             if (!targetURL) {
                 showMessage('whatsappBotMessage', 'Configura WHATSAPP_KAPSO_NUMBER para habilitar este boton.', false);
                 return;
             }
             window.open(targetURL, '_blank', 'noopener');
         });
+        whatsappGenerateCodeBtn?.addEventListener('click', generateWhatsAppLinkCode);
         whatsappRefreshStatusBtn?.addEventListener('click', async () => {
             if (whatsappRefreshStatusBtn) whatsappRefreshStatusBtn.disabled = true;
             try {
-                await fetchWhatsAppContact();
-                showMessage('whatsappBotMessage', 'Numero actualizado.', true);
+                await fetchWhatsAppStatus('/api/whatsapp/refresh-status');
+                showMessage('whatsappBotMessage', 'Estado actualizado.', true);
             } catch (error) {
                 console.error('No se pudo actualizar configuracion de WhatsApp:', error);
-                showMessage('whatsappBotMessage', error.message || 'No se pudo actualizar el numero', false);
+                showMessage('whatsappBotMessage', error.message || 'No se pudo actualizar estado', false);
             } finally {
                 if (whatsappRefreshStatusBtn) whatsappRefreshStatusBtn.disabled = false;
             }
@@ -2614,7 +2651,11 @@ async function saveCategoriesList(nextCategories) {
                 openSectionFromURL();
                 window.dispatchEvent(new CustomEvent('expenselog:routechange'));
             };
-            runSettingsViewTransition(applyHistoryNavigation);
+            if (document.startViewTransition) {
+                document.startViewTransition(applyHistoryNavigation);
+            } else {
+                applyHistoryNavigation();
+            }
         });
         bindSettingsRouteAnchors();
         document.getElementById('reconciliation-history-list')?.addEventListener('click', async (e) => {
@@ -2624,7 +2665,6 @@ async function saveCategoriesList(nextCategories) {
         });
         document.getElementById('recurringExpenseForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (recurringCreateInFlight) return;
             const flow = document.getElementById('recurringFlow').value || 'expense';
             let amount = parseFloat(document.getElementById('recurringAmount').value);
             if (flow === 'expense') {
@@ -2632,17 +2672,6 @@ async function saveCategoriesList(nextCategories) {
             } else {
                 amount = Math.abs(amount);
             }
-            recurringCreateInFlight = true;
-            const recurringForm = document.getElementById('recurringExpenseForm');
-            const recurringSubmitButton = recurringForm ? recurringForm.querySelector('button[type="submit"]') : null;
-            const previousSubmitLabel = recurringSubmitButton ? recurringSubmitButton.textContent : '';
-            if (recurringSubmitButton) {
-                recurringSubmitButton.disabled = true;
-                recurringSubmitButton.textContent = 'Guardando...';
-            }
-            const idempotencyKey = (typeof window.expenseLogIdempotencyKey === 'function')
-                ? window.expenseLogIdempotencyKey('recurring-add')
-                : `recurring-add-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
             const formData = {
                 name: document.getElementById('recurringName').value,
@@ -2658,10 +2687,7 @@ async function saveCategoriesList(nextCategories) {
             try {
                 const response = await fetch('/recurring-expense', {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Idempotency-Key': idempotencyKey,
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
                 });
                 if (response.ok) {
@@ -2678,12 +2704,6 @@ async function saveCategoriesList(nextCategories) {
             } catch (error) {
                 console.error('Error adding recurring expense:', error);
                 showMessage('recurringExpenseMessage', 'Error: No se pudo agregar la transaccion recurrente', false);
-            } finally {
-                recurringCreateInFlight = false;
-                if (recurringSubmitButton) {
-                    recurringSubmitButton.disabled = false;
-                    recurringSubmitButton.textContent = previousSubmitLabel || 'Agregar transaccion recurrente';
-                }
             }
         });
 

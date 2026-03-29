@@ -9,11 +9,30 @@
     const cancelGoalBtn = document.getElementById('cancelGoalBtn');
     const goalForm = document.getElementById('savingsGoalForm');
     const goalMessage = document.getElementById('savingsGoalMessage');
+    const movementModal = document.getElementById('savingsMovementModal');
+    const closeMovementModalBtn = document.getElementById('closeMovementModalBtn');
+    const cancelMovementBtn = document.getElementById('cancelMovementBtn');
+    const movementForm = document.getElementById('savingsMovementForm');
+    const movementMessage = document.getElementById('savingsMovementMessage');
+    const movementTypeLabel = document.getElementById('movementTypeLabel');
+    const movementGoalLabel = document.getElementById('movementGoalLabel');
+    const movementGoalIdInput = document.getElementById('movementGoalId');
+    const movementActionInput = document.getElementById('movementAction');
+    const movementAmountInput = document.getElementById('movementAmount');
+    const movementDateInput = document.getElementById('movementDate');
+    const movementNoteInput = document.getElementById('movementNote');
+    const saveMovementBtn = document.getElementById('saveMovementBtn');
 
     const statusMeta = {
         active: { label: 'Activa', tone: 'active' },
         completed: { label: 'Completada', tone: 'completed' },
         archived: { label: 'Archivada', tone: 'archived' },
+    };
+
+    let movementContext = {
+        goalId: '',
+        goalName: '',
+        action: 'contribute',
     };
 
     const fmtAmount = (amount, currency) => {
@@ -33,6 +52,12 @@
         return new Intl.DateTimeFormat('es-AR', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
     };
 
+    const escapeAttr = (value) => String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
     const showGoalModal = () => {
         if (!modal) return;
         modal.hidden = false;
@@ -48,6 +73,48 @@
             goalMessage.className = 'form-message';
         }
         goalForm?.reset();
+    };
+
+    const showMovementModal = ({ goalId, goalName, action }) => {
+        if (!movementModal) return;
+        movementContext = {
+            goalId: String(goalId || '').trim(),
+            goalName: String(goalName || 'Meta'),
+            action: action === 'withdraw' ? 'withdraw' : 'contribute',
+        };
+        if (!movementContext.goalId) return;
+
+        const isWithdraw = movementContext.action === 'withdraw';
+        if (movementTypeLabel) {
+            movementTypeLabel.textContent = isWithdraw ? 'Retiro' : 'Aporte';
+        }
+        if (movementGoalLabel) {
+            movementGoalLabel.textContent = movementContext.goalName;
+        }
+        if (movementGoalIdInput) movementGoalIdInput.value = movementContext.goalId;
+        if (movementActionInput) movementActionInput.value = movementContext.action;
+        if (saveMovementBtn) {
+            saveMovementBtn.textContent = isWithdraw ? 'Registrar retiro' : 'Registrar aporte';
+        }
+        if (movementMessage) {
+            movementMessage.textContent = '';
+            movementMessage.className = 'form-message';
+        }
+        movementForm?.reset();
+        movementModal.hidden = false;
+        movementModal.setAttribute('aria-hidden', 'false');
+        movementAmountInput?.focus();
+    };
+
+    const hideMovementModal = () => {
+        if (!movementModal) return;
+        movementModal.hidden = true;
+        movementModal.setAttribute('aria-hidden', 'true');
+        movementForm?.reset();
+        if (movementMessage) {
+            movementMessage.textContent = '';
+            movementMessage.className = 'form-message';
+        }
     };
 
     async function apiJSON(url, init) {
@@ -176,25 +243,11 @@
         `;
     }
 
-    function askAmount(actionLabel) {
-        const raw = window.prompt(`${actionLabel}: ingresa monto`);
-        if (!raw) return null;
-        const parsed = Number(String(raw).replace(',', '.'));
-        if (!Number.isFinite(parsed) || parsed <= 0) {
-            window.alert('Ingresa un monto valido mayor a cero.');
-            return null;
-        }
+    function parseMovementAmount() {
+        const raw = String(movementAmountInput?.value || '').trim().replace(',', '.');
+        const parsed = Number(raw);
+        if (!Number.isFinite(parsed) || parsed <= 0) return null;
         return parsed;
-    }
-
-    async function registerAllocation(goalId, action) {
-        const amount = askAmount(action === 'contribute' ? 'Aportar' : 'Retirar');
-        if (!amount) return;
-        await apiJSON(`/savings/goals/${goalId}/${action}`, {
-            method: 'POST',
-            body: JSON.stringify({ amount }),
-        });
-        await refresh();
     }
 
     function renderAllocations(item, currency) {
@@ -248,7 +301,7 @@
             const dueLabel = fmtDate(goal.targetDate);
 
             return `
-                <article class="savings-goal-card" data-goal-id="${goal.id}">
+                <article class="savings-goal-card" data-goal-id="${goal.id}" data-goal-name="${escapeAttr(goal.name || 'Meta')}">
                     <header class="savings-goal-header">
                         <div>
                             <h3>${goal.name || 'Meta'}</h3>
@@ -289,11 +342,8 @@
                 const action = button.getAttribute('data-action');
                 if (!goalId || !action) return;
 
-                try {
-                    await registerAllocation(goalId, action);
-                } catch (error) {
-                    window.alert(error.message || 'No se pudo registrar el movimiento.');
-                }
+                const goalName = card?.getAttribute('data-goal-name') || 'Meta';
+                showMovementModal({ goalId, goalName, action });
             });
         });
     }
@@ -338,10 +388,47 @@
         }
     });
 
+    movementForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const goalId = String(movementGoalIdInput?.value || movementContext.goalId || '').trim();
+        const action = String(movementActionInput?.value || movementContext.action || 'contribute').trim().toLowerCase();
+        const amount = parseMovementAmount();
+        const note = String(movementNoteInput?.value || '').trim();
+        const date = String(movementDateInput?.value || '').trim();
+
+        if (!goalId) return;
+        if (!amount) {
+            if (!movementMessage) return;
+            movementMessage.textContent = 'Ingresa un monto valido mayor a cero.';
+            movementMessage.className = 'form-message error';
+            return;
+        }
+
+        try {
+            await apiJSON(`/savings/goals/${goalId}/${action}`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    amount,
+                    note,
+                    date,
+                }),
+            });
+            hideMovementModal();
+            await refresh();
+        } catch (error) {
+            if (!movementMessage) return;
+            movementMessage.textContent = error.message || 'No se pudo registrar el movimiento.';
+            movementMessage.className = 'form-message error';
+        }
+    });
+
     newGoalBtn?.addEventListener('click', showGoalModal);
     closeModalBtn?.addEventListener('click', hideGoalModal);
     cancelGoalBtn?.addEventListener('click', hideGoalModal);
     modal?.querySelector('[data-goal-close]')?.addEventListener('click', hideGoalModal);
+    closeMovementModalBtn?.addEventListener('click', hideMovementModal);
+    cancelMovementBtn?.addEventListener('click', hideMovementModal);
+    movementModal?.querySelector('[data-movement-close]')?.addEventListener('click', hideMovementModal);
 
     const boot = async () => {
         renderLoadingState();

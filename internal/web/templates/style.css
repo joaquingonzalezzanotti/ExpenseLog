@@ -5216,6 +5216,12 @@ html[data-settings-route='telegram'] body.settings-page #telegramSection[hidden]
     text-align: right;
 }
 
+.savings-movement-goal {
+    margin: 0.25rem 0 0;
+    font-size: 0.86rem;
+    color: var(--text-secondary);
+}
+
 .savings-summary-grid,
 .savings-goals-grid {
     display: grid;
@@ -5608,6 +5614,10 @@ html[data-settings-route='telegram'] body.settings-page #telegramSection[hidden]
 
     .savings-hero-note {
         text-align: left;
+    }
+
+    .savings-hero-actions .nav-button {
+        width: 100%;
     }
 }
 

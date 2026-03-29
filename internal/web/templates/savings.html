@@ -123,6 +123,43 @@
     </div>
 </div>
 
+<div id="savingsMovementModal" class="entry-modal-overlay" hidden aria-hidden="true">
+    <div class="entry-modal-backdrop" data-movement-close></div>
+    <div class="entry-modal-card" role="dialog" aria-modal="true" aria-labelledby="movementModalTitle">
+        <div class="entry-modal-header">
+            <div class="entry-modal-title-wrap">
+                <span id="movementTypeLabel" class="entry-modal-eyebrow">Movimiento</span>
+                <h3 id="movementModalTitle">Registrar movimiento</h3>
+                <p id="movementGoalLabel" class="savings-movement-goal">Meta</p>
+            </div>
+            <button type="button" id="closeMovementModalBtn" class="entry-modal-close" aria-label="Cerrar formulario">
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+        </div>
+        <form id="savingsMovementForm" class="expense-form expense-modal-form">
+            <input id="movementGoalId" type="hidden">
+            <input id="movementAction" type="hidden">
+            <div class="form-group">
+                <label for="movementAmount">Monto</label>
+                <input id="movementAmount" type="number" step="0.01" min="0.01" required>
+            </div>
+            <div class="form-group">
+                <label for="movementDate">Fecha (opcional)</label>
+                <input id="movementDate" type="date">
+            </div>
+            <div class="form-group form-group-span-2">
+                <label for="movementNote">Nota (opcional)</label>
+                <input id="movementNote" type="text" maxlength="120" placeholder="Ej: Transferencia desde cuenta sueldo">
+            </div>
+            <div class="form-actions expense-modal-actions">
+                <button type="button" id="cancelMovementBtn" class="modal-link-button">Cancelar</button>
+                <button id="saveMovementBtn" type="submit" class="nav-button button-primary">Guardar movimiento</button>
+            </div>
+        </form>
+        <div id="savingsMovementMessage" class="form-message"></div>
+    </div>
+</div>
+
 <script src="/app/functions.js"></script>
 <script src="/app/savings_ui.js"></script>
 </body>

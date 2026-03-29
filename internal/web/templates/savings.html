@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es-AR">
 <head>
     <meta charset="UTF-8">
@@ -60,15 +60,26 @@
     </nav>
 
     <section class="form-container savings-shell">
-        <div class="savings-header">
-            <h1>Ahorros</h1>
-            <button id="newGoalBtn" class="nav-button button-primary" type="button">+ Nueva meta</button>
+        <div class="savings-hero">
+            <div class="savings-hero-copy">
+                <p class="savings-eyebrow">Ahorros por objetivos</p>
+                <h1>Ahorros</h1>
+                <p class="savings-hero-text">Planifica metas concretas, registra aportes y controla avances sin mezclar ahorro con gasto de consumo.</p>
+            </div>
+            <div class="savings-hero-actions">
+                <button id="newGoalBtn" class="nav-button button-primary" type="button">+ Nueva meta</button>
+                <p class="savings-hero-note">Tip: crea metas separadas por moneda para medir mejor tu progreso real.</p>
+            </div>
         </div>
-        <p class="settings-helper-text">Todo lo de ahorros vive en este módulo. Los KPIs de ahorro no se muestran en inicio.</p>
 
-        <div id="savingsSummary" class="savings-summary-grid"></div>
-        <div id="secondaryCurrencyBox" class="savings-secondary-box"></div>
-        <div id="savingsGoals" class="savings-goals-grid"></div>
+        <div id="savingsSummary" class="savings-summary-grid" aria-live="polite"></div>
+        <section id="secondaryCurrencyBox" class="savings-secondary-box" aria-live="polite"></section>
+
+        <div class="savings-goals-head">
+            <h2>Tus metas</h2>
+            <span id="savingsGoalsCount" class="savings-goals-count">0 metas</span>
+        </div>
+        <div id="savingsGoals" class="savings-goals-grid" aria-live="polite"></div>
     </section>
 </div>
 
@@ -77,7 +88,7 @@
     <div class="entry-modal-card" role="dialog" aria-modal="true" aria-labelledby="goalModalTitle">
         <div class="entry-modal-header">
             <div class="entry-modal-title-wrap">
-                <span class="entry-modal-eyebrow">🎯 Meta</span>
+                <span class="entry-modal-eyebrow">Meta</span>
                 <h3 id="goalModalTitle">Nueva meta de ahorro</h3>
             </div>
             <button type="button" id="closeGoalModalBtn" class="entry-modal-close" aria-label="Cerrar formulario"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap');
 
 :root {
     /* Default theme: Light mode */
@@ -970,7 +970,7 @@ input:focus-visible {
 }
 
 .legend-item.disabled .color-box::after {
-    content: '×';
+    content: 'Ã—';
     position: absolute;
     top: 50%;
     left: 50%;
@@ -5164,51 +5164,465 @@ html[data-settings-route='telegram'] body.settings-page #telegramSection[hidden]
 /* Savings module */
 .savings-shell {
     display: grid;
-    gap: 14px;
+    gap: 1rem;
 }
 
-.savings-header {
+.savings-hero {
     display: flex;
+    align-items: flex-start;
     justify-content: space-between;
-    align-items: center;
-    gap: 12px;
+    gap: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 1.1rem;
+    background:
+        radial-gradient(circle at 92% 8%, color-mix(in srgb, var(--accent), transparent 82%), transparent 38%),
+        linear-gradient(155deg, color-mix(in srgb, var(--bg-secondary), transparent 2%), color-mix(in srgb, var(--bg-primary), transparent 18%));
+}
+
+.savings-hero-copy h1 {
+    margin: 0 0 0.2rem;
+    font-size: clamp(1.5rem, 2.8vw, 2rem);
+    line-height: 1.1;
+}
+
+.savings-eyebrow {
+    margin: 0 0 0.3rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.savings-hero-text {
+    margin: 0;
+    max-width: 62ch;
+    color: var(--text-secondary);
+}
+
+.savings-hero-actions {
+    display: grid;
+    justify-items: end;
+    gap: 0.55rem;
+    min-width: 240px;
+}
+
+.savings-hero-note {
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    text-align: right;
 }
 
 .savings-summary-grid,
 .savings-goals-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.75rem;
 }
 
 .savings-summary-card,
 .savings-goal-card,
+.savings-secondary-box,
+.savings-empty-state {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--bg-secondary), transparent 4%);
+    box-shadow: 0 8px 16px rgba(15, 23, 42, 0.06);
+}
+
+.savings-summary-card {
+    padding: 0.9rem 1rem;
+    display: grid;
+    gap: 0.45rem;
+}
+
+.savings-summary-card-top {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.savings-summary-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 999px;
+    display: inline-grid;
+    place-items: center;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 0.8rem;
+}
+
+.savings-summary-title {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    font-weight: 700;
+}
+
+.savings-summary-card strong {
+    font-size: clamp(1.1rem, 2vw, 1.45rem);
+    line-height: 1.1;
+}
+
+.savings-summary-card p {
+    margin: 0;
+    font-size: 0.84rem;
+    color: var(--text-secondary);
+}
+
+.savings-summary-kpi {
+    background: linear-gradient(160deg, color-mix(in srgb, var(--accent), transparent 92%), color-mix(in srgb, var(--bg-secondary), transparent 2%));
+}
+
+.savings-summary-money .savings-summary-icon {
+    background: var(--success-soft);
+    color: var(--success);
+}
+
 .savings-secondary-box {
-    border: 1px solid var(--border-color);
-    border-radius: 14px;
-    padding: 14px;
-    background: var(--card-bg);
+    padding: 0.95rem 1rem;
+    display: grid;
+    gap: 0.6rem;
+}
+
+.savings-secondary-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+}
+
+.savings-secondary-head h3 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.savings-secondary-badge {
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    padding: 0.14rem 0.55rem;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    background: color-mix(in srgb, var(--bg-primary), transparent 20%);
+}
+
+.savings-secondary-box p {
+    margin: 0;
+    color: var(--text-secondary);
+}
+
+.savings-secondary-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.45rem;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.savings-secondary-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.55rem 0.65rem;
+    background: color-mix(in srgb, var(--bg-primary), transparent 35%);
+}
+
+.savings-secondary-list span {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.savings-goals-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    padding: 0.2rem 0.1rem;
+}
+
+.savings-goals-head h2 {
+    margin: 0;
+    font-size: 1.14rem;
+}
+
+.savings-goals-count {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    padding: 0.18rem 0.62rem;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    background: color-mix(in srgb, var(--bg-primary), transparent 30%);
+}
+
+.savings-goals-grid {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.savings-goal-card {
+    padding: 0.95rem 1rem;
+    display: grid;
+    gap: 0.72rem;
+}
+
+.savings-goal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.7rem;
+}
+
+.savings-goal-header h3 {
+    margin: 0;
+    font-size: 1.06rem;
+}
+
+.savings-goal-deadline {
+    margin: 0.12rem 0 0;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.savings-goal-status {
+    border-radius: var(--radius-pill);
+    padding: 0.2rem 0.58rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 700;
+    border: 1px solid transparent;
+}
+
+.savings-goal-status.is-active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-color: color-mix(in srgb, var(--accent), transparent 60%);
+}
+
+.savings-goal-status.is-completed {
+    color: var(--success);
+    background: var(--success-soft);
+    border-color: color-mix(in srgb, var(--success), transparent 58%);
+}
+
+.savings-goal-status.is-archived {
+    color: var(--text-secondary);
+    background: color-mix(in srgb, var(--bg-primary), transparent 30%);
+    border-color: var(--border);
+}
+
+.savings-goal-amounts {
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+}
+
+.savings-goal-amounts strong {
+    font-size: clamp(1.18rem, 2.2vw, 1.45rem);
+    line-height: 1;
+}
+
+.savings-goal-amounts span {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
 }
 
 .savings-progress {
     width: 100%;
-    background: var(--hover-bg);
+    background: color-mix(in srgb, var(--bg-primary), transparent 20%);
     border-radius: 999px;
-    height: 9px;
-    margin: 8px 0;
+    height: 11px;
     overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--border), transparent 30%);
 }
 
 .savings-progress span {
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, #16a34a, #22c55e);
+    background: linear-gradient(90deg, #12b981, #38d39f);
+}
+
+.savings-progress-caption {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.savings-goal-breakdown {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.savings-goal-breakdown p {
+    margin: 0;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+}
+
+.savings-goal-breakdown strong {
+    color: var(--text-primary);
+}
+
+.savings-activity {
+    border: 1px dashed color-mix(in srgb, var(--border), transparent 20%);
+    border-radius: 12px;
+    padding: 0.55rem 0.62rem;
+    background: color-mix(in srgb, var(--bg-primary), transparent 40%);
+}
+
+.savings-activity h4 {
+    margin: 0 0 0.45rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+}
+
+.savings-activity ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.4rem;
+}
+
+.savings-activity li {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.savings-activity-type {
+    border-radius: 999px;
+    padding: 0.15rem 0.45rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.savings-activity-type.is-contribution {
+    color: var(--success);
+    background: var(--success-soft);
+}
+
+.savings-activity-type.is-withdrawal {
+    color: var(--warning);
+    background: var(--warning-soft);
+}
+
+.savings-activity strong {
+    justify-self: end;
+}
+
+.savings-activity small {
+    grid-column: 1 / -1;
+    color: var(--text-secondary);
+    font-size: 0.74rem;
+}
+
+.savings-activity-empty {
+    margin: 0;
+    padding: 0.52rem 0.62rem;
+    border-radius: 12px;
+    border: 1px dashed var(--border);
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    background: color-mix(in srgb, var(--bg-primary), transparent 35%);
 }
 
 .savings-goal-actions {
     display: flex;
-    gap: 8px;
+    gap: 0.55rem;
     flex-wrap: wrap;
-    margin-top: 10px;
+    margin-top: 0.1rem;
+}
+
+.savings-goal-actions .nav-button {
+    min-width: 128px;
+}
+
+.savings-empty-state {
+    padding: 1rem;
+    display: grid;
+    justify-items: start;
+    gap: 0.45rem;
+}
+
+.savings-empty-state h3 {
+    margin: 0;
+}
+
+.savings-empty-state p {
+    margin: 0;
+    color: var(--text-secondary);
+}
+
+.savings-empty-visual {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 999px;
+    display: inline-grid;
+    place-items: center;
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+
+.savings-error-state {
+    border-color: color-mix(in srgb, var(--danger), transparent 50%);
+    background: linear-gradient(165deg, color-mix(in srgb, var(--danger-soft), transparent 12%), color-mix(in srgb, var(--bg-secondary), transparent 6%));
+}
+
+.savings-summary-loading {
+    min-height: 84px;
+    border-style: dashed;
+    animation: savingsPulse 1.35s ease-in-out infinite;
+}
+
+@keyframes savingsPulse {
+    0%, 100% { opacity: 0.68; }
+    50% { opacity: 1; }
+}
+
+@media (max-width: 940px) {
+    .savings-hero {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .savings-hero-actions {
+        justify-items: start;
+        min-width: 0;
+    }
+
+    .savings-hero-note {
+        text-align: left;
+    }
+}
+
+@media (max-width: 640px) {
+    .savings-summary-grid,
+    .savings-goals-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .savings-goal-actions .nav-button {
+        width: 100%;
+    }
+
+    .savings-goals-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
 }

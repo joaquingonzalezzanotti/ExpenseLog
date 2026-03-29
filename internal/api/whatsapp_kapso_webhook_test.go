@@ -1,6 +1,9 @@
 package api
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"math"
 	"testing"
 )
@@ -73,5 +76,63 @@ func TestParseWhatsAppAmountToken(t *testing.T) {
 		if math.Abs(got-tt.want) > 0.0001 {
 			t.Fatalf("parseWhatsAppAmountToken(%q) = %v, want %v", tt.raw, got, tt.want)
 		}
+	}
+}
+
+func TestExtractKapsoMessageEventsSupportsDataArray(t *testing.T) {
+	body := []byte(`{
+		"type":"whatsapp.message.received",
+		"data":[
+			{
+				"message":{"id":"m1","type":"text","text":{"body":"hola"},"kapso":{"direction":"inbound"}},
+				"conversation":{"phone_number":"5491122334455","phone_number_id":"123"}
+			},
+			{
+				"message":{"id":"m2","type":"image","kapso":{"direction":"inbound","has_media":true}},
+				"conversation":{"phone_number":"5491122334455","phone_number_id":"123"}
+			}
+		]
+	}`)
+
+	events, eventType := extractKapsoMessageEvents(body, "")
+	if eventType != "whatsapp.message.received" {
+		t.Fatalf("unexpected eventType: %q", eventType)
+	}
+	if len(events) != 2 {
+		t.Fatalf("expected 2 events, got %d", len(events))
+	}
+	if events[0].Message.ID != "m1" || events[1].Message.ID != "m2" {
+		t.Fatalf("unexpected event ids: %#v", events)
+	}
+}
+
+func TestExtractKapsoMessageEventsSupportsDirectPayload(t *testing.T) {
+	body := []byte(`{
+		"message":{"id":"m1","type":"text","text":{"body":"hola"},"kapso":{"direction":"inbound"}},
+		"conversation":{"phone_number":"5491122334455","phone_number_id":"123"}
+	}`)
+
+	events, eventType := extractKapsoMessageEvents(body, "whatsapp.message.received")
+	if eventType != "whatsapp.message.received" {
+		t.Fatalf("unexpected eventType: %q", eventType)
+	}
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+	if events[0].Message.ID != "m1" {
+		t.Fatalf("unexpected message id: %q", events[0].Message.ID)
+	}
+}
+
+func TestIsKapsoWebhookSignatureValidAcceptsSha256Prefix(t *testing.T) {
+	body := []byte(`{"ok":true}`)
+	secret := "top-secret"
+
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write(body)
+	signature := "sha256=" + hex.EncodeToString(mac.Sum(nil))
+
+	if !isKapsoWebhookSignatureValid(body, signature, secret) {
+		t.Fatalf("expected signature to be valid")
 	}
 }

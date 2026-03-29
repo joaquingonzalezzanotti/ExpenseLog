@@ -17,6 +17,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -40,6 +42,7 @@ const (
 	kapsoWebhookFailureBodyLimit = 4096
 	kapsoWebhookMediaMaxBytes    = 8 * 1024 * 1024
 	aiParserDefaultParsePath     = "/api/parse"
+	whatsAppOCRDefaultLangs      = "spa+eng"
 	whatsAppSessionTTL           = 15 * time.Minute
 
 	whatsAppActionMenuNew       = "menu:new"
@@ -114,6 +117,8 @@ type kapsoWebhookMessageText struct {
 
 type kapsoWebhookMessageKapso struct {
 	Direction       string                       `json:"direction"`
+	PhoneNumber     string                       `json:"phone_number"`
+	PhoneNumberID   string                       `json:"phone_number_id"`
 	Content         string                       `json:"content"`
 	HasMedia        bool                         `json:"has_media"`
 	MediaURL        string                       `json:"media_url"`
@@ -289,8 +294,17 @@ func (h *Handler) HandleKapsoWhatsAppWebhook(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *Handler) processKapsoWhatsAppWebhook(body []byte, eventHeader string) {
+	events, eventType := extractKapsoMessageEvents(body, eventHeader)
+	for _, event := range events {
+		if !isKapsoInboundMessageEvent(eventType, event) {
+			continue
+		}
+		h.handleKapsoInboundMessage(event)
+	}
+}
+
+func extractKapsoMessageEvents(body []byte, eventHeader string) ([]kapsoMessageEvent, string) {
 	eventType := strings.TrimSpace(eventHeader)
-	payloads := make([]json.RawMessage, 0, 1)
 
 	var envelope kapsoWebhookEnvelope
 	if err := json.Unmarshal(body, &envelope); err == nil {
@@ -300,34 +314,97 @@ func (h *Handler) processKapsoWhatsAppWebhook(body []byte, eventHeader string) {
 		if eventType == "" {
 			eventType = strings.TrimSpace(envelope.Type)
 		}
-		if len(envelope.Events) > 0 {
-			payloads = append(payloads, envelope.Events...)
-		}
-		if len(envelope.Data) > 0 {
-			payloads = append(payloads, envelope.Data)
-		}
-	}
-	if len(payloads) == 0 {
-		payloads = append(payloads, json.RawMessage(append([]byte(nil), body...)))
 	}
 
-	for _, raw := range payloads {
+	var decoded any
+	if err := json.Unmarshal(body, &decoded); err != nil {
+		var fallback kapsoMessageEvent
+		if err := json.Unmarshal(body, &fallback); err != nil {
+			log.Printf("WHATSAPP KAPSO: ignoring payload (decode failed): %v", err)
+			return nil, eventType
+		}
+		return []kapsoMessageEvent{fallback}, eventType
+	}
+
+	rawEvents := make([]json.RawMessage, 0, 4)
+	collectKapsoMessageEventPayloads(decoded, &rawEvents, &eventType)
+	if len(rawEvents) == 0 {
+		rawEvents = append(rawEvents, json.RawMessage(append([]byte(nil), body...)))
+	}
+
+	events := make([]kapsoMessageEvent, 0, len(rawEvents))
+	for _, raw := range rawEvents {
 		var event kapsoMessageEvent
 		if err := json.Unmarshal(raw, &event); err != nil {
 			log.Printf("WHATSAPP KAPSO: ignoring payload (decode failed): %v", err)
 			continue
 		}
-		if !isKapsoInboundMessageEvent(eventType, event) {
-			continue
-		}
-		h.handleKapsoInboundMessage(event)
+		events = append(events, event)
 	}
+	return events, eventType
+}
+
+func collectKapsoMessageEventPayloads(node any, out *[]json.RawMessage, eventType *string) {
+	switch v := node.(type) {
+	case []any:
+		for _, item := range v {
+			collectKapsoMessageEventPayloads(item, out, eventType)
+		}
+	case map[string]any:
+		if eventType != nil && *eventType == "" {
+			if raw, ok := v["event"].(string); ok {
+				*eventType = strings.TrimSpace(raw)
+			}
+		}
+		if eventType != nil && *eventType == "" {
+			if raw, ok := v["type"].(string); ok {
+				*eventType = strings.TrimSpace(raw)
+			}
+		}
+		if isKapsoMessageEventMap(v) {
+			if raw, err := json.Marshal(v); err == nil {
+				*out = append(*out, json.RawMessage(raw))
+			}
+			return
+		}
+		if payload, ok := v["data"]; ok {
+			collectKapsoMessageEventPayloads(payload, out, eventType)
+		}
+		if payload, ok := v["events"]; ok {
+			collectKapsoMessageEventPayloads(payload, out, eventType)
+		}
+		if payload, ok := v["payload"]; ok {
+			collectKapsoMessageEventPayloads(payload, out, eventType)
+		}
+	}
+}
+
+func isKapsoMessageEventMap(v map[string]any) bool {
+	rawMessage, ok := v["message"]
+	if !ok {
+		return false
+	}
+	messageMap, ok := rawMessage.(map[string]any)
+	if !ok {
+		return false
+	}
+	if len(messageMap) == 0 {
+		return false
+	}
+	_, hasConversation := v["conversation"]
+	_, hasPhoneNumberID := v["phone_number_id"]
+	_, hasKapso := messageMap["kapso"]
+	_, hasFrom := messageMap["from"]
+	return hasConversation || hasPhoneNumberID || hasKapso || hasFrom
 }
 
 func (h *Handler) handleKapsoInboundMessage(event kapsoMessageEvent) {
 	phoneNumberID := strings.TrimSpace(event.PhoneNumberID)
 	if phoneNumberID == "" {
 		phoneNumberID = strings.TrimSpace(event.Conversation.PhoneNumberID)
+	}
+	if phoneNumberID == "" {
+		phoneNumberID = strings.TrimSpace(event.Message.Kapso.PhoneNumberID)
 	}
 	if phoneNumberID == "" {
 		log.Printf("WHATSAPP KAPSO: ignoring inbound message without phone_number_id")
@@ -337,6 +414,9 @@ func (h *Handler) handleKapsoInboundMessage(event kapsoMessageEvent) {
 	fromPhone := normalizeDialNumber(event.Conversation.PhoneNumber)
 	if fromPhone == "" {
 		fromPhone = normalizeDialNumber(event.Message.From)
+	}
+	if fromPhone == "" {
+		fromPhone = normalizeDialNumber(event.Message.Kapso.PhoneNumber)
 	}
 	if fromPhone == "" {
 		log.Printf("WHATSAPP KAPSO: ignoring inbound message without sender phone")
@@ -769,6 +849,11 @@ func (h *Handler) createExpenseFromWhatsAppMedia(userID string, event kapsoMessa
 	}, defaultCurrency)
 	if aiErr != nil {
 		log.Printf("WHATSAPP KAPSO: ai parse for media failed: %v", aiErr)
+		ocrParsed, ocrErr := h.tryParseWhatsAppMediaWithOCR(mediaBytes, media, defaultCurrency)
+		if ocrErr == nil {
+			return h.saveWhatsAppParsedExpense(userID, ocrParsed)
+		}
+		log.Printf("WHATSAPP KAPSO: local OCR fallback failed: %v", ocrErr)
 		return "Recibi tu archivo, pero no pude extraer el gasto automaticamente. Proba con texto: gaste 1500 en super.", ""
 	}
 
@@ -866,6 +951,9 @@ func inferWhatsAppFlowFromText(text string) string {
 		strings.Contains(norm, "cobro"),
 		strings.Contains(norm, "recibi"),
 		strings.Contains(norm, "recibieron"),
+		strings.Contains(norm, "transferencia recibida"),
+		strings.Contains(norm, "se acredito"),
+		strings.Contains(norm, "acreditaron"),
 		strings.Contains(norm, "depositaron"),
 		strings.Contains(norm, "me transfirieron"):
 		return "income"
@@ -875,6 +963,9 @@ func inferWhatsAppFlowFromText(text string) string {
 		strings.Contains(norm, "pague"),
 		strings.Contains(norm, "compre"),
 		strings.Contains(norm, "compra"),
+		strings.Contains(norm, "transferencia enviada"),
+		strings.Contains(norm, "transferencia saliente"),
+		strings.Contains(norm, "transferi"),
 		strings.Contains(norm, "abone"),
 		strings.Contains(norm, "abono"):
 		return "expense"
@@ -1242,6 +1333,153 @@ func (h *Handler) tryParseWhatsAppWithAI(text string, media *whatsAppAIParserMed
 	}, nil
 }
 
+func (h *Handler) tryParseWhatsAppMediaWithOCR(mediaBytes []byte, media kapsoMediaContext, defaultCurrency string) (whatsAppParsedExpense, error) {
+	if !isWhatsAppOCRFallbackEnabled() {
+		return whatsAppParsedExpense{}, fmt.Errorf("ocr fallback disabled")
+	}
+
+	ocrText, err := extractWhatsAppTextWithOCR(mediaBytes, media.MimeType, media.Filename)
+	if err != nil {
+		return whatsAppParsedExpense{}, err
+	}
+
+	candidates := []string{
+		strings.TrimSpace(ocrText),
+		strings.TrimSpace(media.TextHint),
+	}
+	for _, candidate := range candidates {
+		if candidate == "" {
+			continue
+		}
+		parsed, parseErr := parseWhatsAppExpenseText(candidate, defaultCurrency)
+		if parseErr == nil {
+			return parsed, nil
+		}
+		if aiParsed, aiErr := h.tryParseWhatsAppWithAI(candidate, nil, defaultCurrency); aiErr == nil {
+			return aiParsed, nil
+		}
+	}
+	return whatsAppParsedExpense{}, fmt.Errorf("unable to parse OCR text")
+}
+
+func extractWhatsAppTextWithOCR(mediaBytes []byte, mimeType, filename string) (string, error) {
+	normalizedMime := strings.ToLower(strings.TrimSpace(mimeType))
+	if idx := strings.Index(normalizedMime, ";"); idx >= 0 {
+		normalizedMime = strings.TrimSpace(normalizedMime[:idx])
+	}
+	if normalizedMime == "" {
+		normalizedMime = strings.ToLower(strings.TrimSpace(filepath.Ext(filename)))
+	}
+
+	switch {
+	case strings.HasPrefix(normalizedMime, "image/"):
+		ext := extensionFromMimeType(normalizedMime)
+		return runTesseractOnBytes(mediaBytes, ext)
+	case normalizedMime == "application/pdf", normalizedMime == ".pdf":
+		return extractTextFromPDFBytes(mediaBytes)
+	default:
+		if strings.HasPrefix(normalizedMime, ".") {
+			switch normalizedMime {
+			case ".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif":
+				return runTesseractOnBytes(mediaBytes, normalizedMime)
+			}
+		}
+		return "", fmt.Errorf("unsupported media mime for OCR: %s", mimeType)
+	}
+}
+
+func extensionFromMimeType(mimeType string) string {
+	switch mimeType {
+	case "image/jpeg", "image/jpg":
+		return ".jpg"
+	case "image/png":
+		return ".png"
+	case "image/webp":
+		return ".webp"
+	case "image/heic":
+		return ".heic"
+	case "image/heif":
+		return ".heif"
+	default:
+		return ".img"
+	}
+}
+
+func runTesseractOnBytes(data []byte, ext string) (string, error) {
+	tmpFile, err := os.CreateTemp("", "kapso-ocr-*"+ext)
+	if err != nil {
+		return "", err
+	}
+	path := tmpFile.Name()
+	defer os.Remove(path)
+	if _, err := tmpFile.Write(data); err != nil {
+		tmpFile.Close()
+		return "", err
+	}
+	if err := tmpFile.Close(); err != nil {
+		return "", err
+	}
+	return runTesseractOnFile(path)
+}
+
+func runTesseractOnFile(path string) (string, error) {
+	stdout, stderr, err := runCommandAndCapture("tesseract", path, "stdout", "-l", whatsAppOCRLangs())
+	if err != nil {
+		return "", fmt.Errorf("tesseract failed: %w (%s)", err, strings.TrimSpace(stderr))
+	}
+	text := strings.TrimSpace(stdout)
+	if text == "" {
+		return "", fmt.Errorf("tesseract returned empty text")
+	}
+	return text, nil
+}
+
+func extractTextFromPDFBytes(data []byte) (string, error) {
+	tmpPDF, err := os.CreateTemp("", "kapso-pdf-*.pdf")
+	if err != nil {
+		return "", err
+	}
+	pdfPath := tmpPDF.Name()
+	defer os.Remove(pdfPath)
+	if _, err := tmpPDF.Write(data); err != nil {
+		tmpPDF.Close()
+		return "", err
+	}
+	if err := tmpPDF.Close(); err != nil {
+		return "", err
+	}
+
+	if text, _, err := runCommandAndCapture("pdftotext", "-q", pdfPath, "-"); err == nil {
+		if trimmed := strings.TrimSpace(text); trimmed != "" {
+			return trimmed, nil
+		}
+	}
+
+	tempDir, err := os.MkdirTemp("", "kapso-pdf-render-*")
+	if err != nil {
+		return "", err
+	}
+	defer os.RemoveAll(tempDir)
+
+	prefix := filepath.Join(tempDir, "page")
+	_, stderr, err := runCommandAndCapture("pdftoppm", "-png", "-f", "1", "-l", "1", pdfPath, prefix)
+	if err != nil {
+		return "", fmt.Errorf("pdftoppm failed: %w (%s)", err, strings.TrimSpace(stderr))
+	}
+	renderedPath := prefix + "-1.png"
+	return runTesseractOnFile(renderedPath)
+}
+
+func runCommandAndCapture(name string, args ...string) (string, string, error) {
+	cmd := exec.Command(name, args...)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	return stdout.String(), stderr.String(), err
+}
+
 func callWhatsAppAIParser(text string, media *whatsAppAIParserMedia) (whatsAppAIParserResponse, error) {
 	endpoint := strings.TrimSpace(os.Getenv("AI_PARSER_BASE_URL"))
 	if endpoint == "" {
@@ -1334,6 +1572,30 @@ func isWhatsAppAIFallbackEnabled() bool {
 	default:
 		return true
 	}
+}
+
+func isWhatsAppOCRFallbackEnabled() bool {
+	raw := strings.TrimSpace(os.Getenv("WHATSAPP_OCR_FALLBACK_ENABLED"))
+	if raw == "" {
+		return true
+	}
+	switch strings.ToLower(raw) {
+	case "0", "false", "off", "no":
+		return false
+	default:
+		return true
+	}
+}
+
+func whatsAppOCRLangs() string {
+	langs := strings.TrimSpace(os.Getenv("WHATSAPP_OCR_LANGS"))
+	if langs == "" {
+		langs = strings.TrimSpace(os.Getenv("OCR_LANGS"))
+	}
+	if langs == "" {
+		return whatsAppOCRDefaultLangs
+	}
+	return langs
 }
 
 func extractKapsoMediaContext(event kapsoMessageEvent) kapsoMediaContext {
@@ -1438,20 +1700,40 @@ func downloadKapsoMedia(mediaURL string) ([]byte, string, error) {
 }
 
 func isKapsoWebhookSignatureValid(body []byte, signature, secret string) bool {
-	signature = strings.TrimSpace(signature)
+	signature = normalizeKapsoWebhookSignature(signature)
 	secret = strings.TrimSpace(secret)
 	if signature == "" || secret == "" {
 		return false
 	}
 	mac := hmac.New(sha256.New, []byte(secret))
-	mac.Write(bytes.TrimSpace(body))
+	mac.Write(body)
 	expectedHex := hex.EncodeToString(mac.Sum(nil))
-	expected := []byte(expectedHex)
+	expected := []byte(strings.ToLower(expectedHex))
 	received := []byte(signature)
 	if len(received) != len(expected) {
 		return false
 	}
 	return hmac.Equal(received, expected)
+}
+
+func normalizeKapsoWebhookSignature(raw string) string {
+	signature := strings.TrimSpace(raw)
+	if signature == "" {
+		return ""
+	}
+	if strings.HasPrefix(strings.ToLower(signature), "sha256=") {
+		signature = strings.TrimSpace(signature[len("sha256="):])
+	}
+	signature = strings.ToLower(signature)
+	if len(signature) != 64 {
+		return ""
+	}
+	for _, r := range signature {
+		if (r < '0' || r > '9') && (r < 'a' || r > 'f') {
+			return ""
+		}
+	}
+	return signature
 }
 
 func kapsoWebhookAlreadyProcessed(key string, now time.Time) bool {

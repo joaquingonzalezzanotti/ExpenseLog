@@ -5160,3 +5160,55 @@ html[data-settings-route='telegram'] body.settings-page #telegramSection[hidden]
     margin: 0;
     flex-shrink: 0;
 }
+
+/* Savings module */
+.savings-shell {
+    display: grid;
+    gap: 14px;
+}
+
+.savings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.savings-summary-grid,
+.savings-goals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.savings-summary-card,
+.savings-goal-card,
+.savings-secondary-box {
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 14px;
+    background: var(--card-bg);
+}
+
+.savings-progress {
+    width: 100%;
+    background: var(--hover-bg);
+    border-radius: 999px;
+    height: 9px;
+    margin: 8px 0;
+    overflow: hidden;
+}
+
+.savings-progress span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #16a34a, #22c55e);
+}
+
+.savings-goal-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}

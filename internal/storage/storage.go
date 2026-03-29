@@ -73,6 +73,13 @@ type Storage interface {
 	RemoveMultipleExpenses(userID string, ids []string) error
 	UpdateExpense(userID, id string, expense Expense) error
 
+	// Savings
+	GetSavingsGoals(userID string) ([]SavingsGoal, error)
+	CreateSavingsGoal(userID string, goal SavingsGoal) (SavingsGoal, error)
+	UpdateSavingsGoal(userID, id string, input SavingsGoalUpdateInput) (SavingsGoal, error)
+	AddSavingsAllocation(userID, goalID string, allocation SavingsAllocation) (SavingsAllocation, error)
+	GetSavingsSummary(userID string) (SavingsSummary, error)
+
 	// Reconciliation
 	ApplyReconciliation(userID string, input ReconciliationApplyInput) (ReconciliationApplyResult, error)
 	GetReconciliationHistory(userID string) ([]ReconciliationRecord, error)
@@ -251,6 +258,52 @@ type ReconciliationApplyInput struct {
 	Note           string
 	IdempotencyKey string
 	Now            time.Time
+}
+
+type SavingsGoal struct {
+	ID           string    `json:"id"`
+	UserID       string    `json:"-"`
+	Name         string    `json:"name"`
+	TargetAmount float64   `json:"targetAmount"`
+	Currency     string    `json:"currency"`
+	TargetDate   time.Time `json:"targetDate,omitempty"`
+	Status       string    `json:"status"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+}
+
+type SavingsGoalUpdateInput struct {
+	Name         string    `json:"name"`
+	TargetAmount float64   `json:"targetAmount"`
+	TargetDate   time.Time `json:"targetDate,omitempty"`
+	Status       string    `json:"status"`
+}
+
+type SavingsAllocation struct {
+	ID        string    `json:"id"`
+	UserID    string    `json:"-"`
+	GoalID    string    `json:"goalId"`
+	Type      string    `json:"type"`
+	Amount    float64   `json:"amount"`
+	Currency  string    `json:"currency"`
+	Note      string    `json:"note,omitempty"`
+	Date      time.Time `json:"date"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type SavingsGoalSnapshot struct {
+	Goal              SavingsGoal         `json:"goal"`
+	ReservedAmount    float64             `json:"reservedAmount"`
+	ProgressRatio     float64             `json:"progressRatio"`
+	RemainingAmount   float64             `json:"remainingAmount"`
+	MonthlySuggestion float64             `json:"monthlySuggestion"`
+	Allocations       []SavingsAllocation `json:"allocations"`
+}
+
+type SavingsSummary struct {
+	TotalReservedByCurrency map[string]float64    `json:"totalReservedByCurrency"`
+	SecondaryCurrencyFunds  map[string]float64    `json:"secondaryCurrencyFunds"`
+	Goals                   []SavingsGoalSnapshot `json:"goals"`
 }
 
 type ReconciliationApplyResult struct {

@@ -48,7 +48,7 @@ let currentVisibleNotificationItems = [];
 let notificationCenterDisabled = false;
 let notificationCenterFetchWarned = false;
 
-const API_ROUTE_REGEX = /^\/(auth|config|categories|currency|startdate|reconciliation|expense|expenses|recurring-expense|recurring-expenses|alerts|export|import|version|card|telegram)(\/|$)/;
+const API_ROUTE_REGEX = /^\/(auth|config|categories|currency|startdate|reconciliation|expense|expenses|recurring-expense|recurring-expenses|alerts|export|import|version|card|telegram|savings)(\/|$)/;
 const originalFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : null;
 if (originalFetch) {
     window.fetch = (input, init) => {

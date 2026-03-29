@@ -60,7 +60,8 @@ if (originalFetch) {
 }
 
 function setAuthPending(pending) {
-    if (!document.body || !document.getElementById('authOverlay')) return;
+    if (!document.body) return;
+    if (pending && !document.getElementById('authOverlay')) return;
     document.body.classList.toggle('auth-pending', !!pending);
 }
 

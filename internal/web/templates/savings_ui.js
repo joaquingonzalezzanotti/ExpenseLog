@@ -156,8 +156,7 @@
     const boot = async () => {
         try {
             if (typeof checkAuthStatus === 'function') {
-                const user = await checkAuthStatus();
-                if (!user) return;
+                await checkAuthStatus();
             }
             await refresh();
         } catch (error) {

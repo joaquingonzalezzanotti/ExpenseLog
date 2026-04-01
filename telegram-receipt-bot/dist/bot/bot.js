@@ -13,6 +13,7 @@ import { draftResults, parseResults, receiptsReceived, stageLatency } from '../o
 import { writeFile } from 'node:fs/promises';
 const expenselogClient = new ExpenseLogAdapter();
 const pendingFix = new Map();
+const inFlightReceiptMessages = new Set();
 const linkStatusCache = new Map();
 const LINK_STATUS_CACHE_TTL_MS = 30_000;
 const multiUserLinkingEnabled = Boolean(String(config.expenselogBotInternalSecret || '').trim());
@@ -224,6 +225,7 @@ const isWithin24Hours = (aIso, bIso) => {
     return diffMs <= (24 * 60 * 60 * 1000);
 };
 const latestDraftByUser = async (telegramUserId) => (prisma.receiptDraft.findFirst({ where: { telegramUserId }, orderBy: { updatedAt: 'desc' } }));
+const buildReceiptMessageKey = (telegramUserId, chatId, messageId) => (`${telegramUserId}:${chatId}:${messageId}`);
 const answerCallback = async (ctx) => {
     if (typeof ctx.answerCbQuery !== 'function')
         return;
@@ -591,6 +593,14 @@ export const buildBot = () => {
     bot.on('text', async (ctx) => {
         if (!(await ensurePrivateAllowed(ctx)))
             return;
+        const hasMediaAttachment = Boolean(ctx.message?.photo?.length || ctx.message?.document || ctx.message?.video || ctx.message?.animation || ctx.message?.sticker || ctx.message?.voice);
+        if (hasMediaAttachment) {
+            logger.info('text_message_ignored_due_to_media_attachment', {
+                chatId: ctx.chat?.id,
+                messageId: ctx.message?.message_id
+            });
+            return;
+        }
         const rawText = String(ctx.message?.text || '').trim();
         if (rawText.startsWith('/vincular'))
             return;
@@ -664,10 +674,34 @@ export const buildBot = () => {
         const fileUniqueId = doc?.file_unique_id ?? photo?.file_unique_id;
         if (!fileId || !fileUniqueId)
             return;
+        const telegramUserId = BigInt(ctx.from.id);
+        const chatId = BigInt(ctx.chat.id);
+        const messageId = ctx.message.message_id;
+        const receiptMessageKey = buildReceiptMessageKey(telegramUserId, chatId, messageId);
+        if (inFlightReceiptMessages.has(receiptMessageKey)) {
+            logger.info('receipt_message_deduped_inflight', { receiptMessageKey });
+            return;
+        }
+        inFlightReceiptMessages.add(receiptMessageKey);
         const link = await ctx.telegram.getFileLink(fileId);
         const ext = fileType === 'pdf' ? 'pdf' : 'jpg';
         const tempPath = await tempPathFor(ext);
         try {
+            const existingDraft = await prisma.receiptDraft.findFirst({
+                where: {
+                    telegramUserId,
+                    chatId,
+                    messageId
+                },
+                orderBy: { createdAt: 'desc' }
+            });
+            if (existingDraft) {
+                logger.info('receipt_message_deduped_existing', {
+                    receiptMessageKey,
+                    existingDraftId: existingDraft.id
+                });
+                return;
+            }
             const stopDownload = stageLatency.startTimer({ stage: 'telegram_download' });
             try {
                 const res = await fetch(link.toString());
@@ -694,7 +728,6 @@ export const buildBot = () => {
             const parsed = processed?.result ?? processed;
             const fallbackInfo = processed?.fallback;
             parsed.source_app = normalizePaymentMethod(parsed.source_app);
-            const telegramUserId = BigInt(ctx.from.id);
             let rulesDb = [];
             try {
                 rulesDb = await prisma.userRule.findMany({
@@ -733,8 +766,8 @@ export const buildBot = () => {
             const draft = await prisma.receiptDraft.create({
                 data: {
                     telegramUserId,
-                    chatId: BigInt(ctx.chat.id),
-                    messageId: ctx.message.message_id,
+                    chatId,
+                    messageId,
                     fileId,
                     fileUniqueId,
                     fileType,
@@ -756,6 +789,7 @@ export const buildBot = () => {
             await ctx.reply('No pude leer bien el comprobante. Prueba con otra imagen mas nitida o envia el PDF.');
         }
         finally {
+            inFlightReceiptMessages.delete(receiptMessageKey);
             await safeDelete(tempPath);
             stopTotal();
         }

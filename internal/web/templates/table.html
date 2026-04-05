@@ -1101,6 +1101,20 @@
             return source.includes('apple_wallet_shortcut') || source.includes('apple_wallet');
         }
 
+        function extractShortcutSourceLabel(expense) {
+            if (!Array.isArray(expense?.tags)) return '';
+            const prefix = 'shortcut_source:';
+            for (const tag of expense.tags) {
+                const cleanTag = String(tag || '').trim();
+                if (!cleanTag) continue;
+                const lowerTag = cleanTag.toLowerCase();
+                if (!lowerTag.startsWith(prefix)) continue;
+                const label = cleanTag.slice(prefix.length).trim();
+                if (label) return label;
+            }
+            return '';
+        }
+
         function createTable(expenses, runningBalances) {
             if (!expenses || expenses.length === 0) {
                 const showAll = document.getElementById('showAllToggle').checked;
@@ -1139,6 +1153,7 @@
                             const sourceLabel = formatSourceLabel(sourceCode);
                             const isTelegramExpense = isTelegramBotExpense(expense);
                             const isAppleWalletDraft = isAppleWalletDraftExpense(expense);
+                            const shortcutSourceLabel = extractShortcutSourceLabel(expense);
                             return `
                             <tr>
                                 <td>
@@ -1147,6 +1162,7 @@
                                         ${expense.recurringID ? '<span class="recurring-badge">Recurrente</span>' : ''}
                                         ${isTelegramExpense ? '<span class="recurring-badge">BotTelegram</span>' : ''}
                                         ${isAppleWalletDraft ? '<span class="recurring-badge">ApplePay</span>' : ''}
+                                        ${(isAppleWalletDraft && shortcutSourceLabel) ? `<span class="recurring-badge">${escapeHTML(shortcutSourceLabel)}</span>` : ''}
                                         ${expense.systemLocked ? '<span class="recurring-badge">Sistema</span>' : ''}
                                     </div>
                                     <div class="expense-meta-mobile">

@@ -19,6 +19,7 @@ import (
 
 const (
 	walletSourceDefault            = "apple_wallet_shortcut"
+	walletSourceTagPrefix          = "shortcut_source:"
 	walletEventStatusReceived      = "received"
 	walletEventStatusNeedsReview   = "needs_review"
 	walletEventStatusDraftCreated  = "draft_transaction_created"
@@ -381,6 +382,24 @@ func normalizeWalletPaymentMethod(raw string) string {
 	}
 }
 
+func normalizeWalletShortcutSourceLabel(raw string) string {
+	clean := storage.SanitizeString(strings.TrimSpace(raw))
+	if clean == "" {
+		return ""
+	}
+	lower := strings.ToLower(clean)
+	if lower == walletSourceDefault || lower == "apple_wallet" || lower == "applepay" || lower == "apple_pay" {
+		return ""
+	}
+	if strings.HasPrefix(lower, "apple_wallet_shortcut_") {
+		candidate := strings.TrimSpace(clean[len("apple_wallet_shortcut_"):])
+		if candidate != "" {
+			return candidate
+		}
+	}
+	return clean
+}
+
 func hashWalletIngestToken(raw string) string {
 	sum := sha256.Sum256([]byte(raw))
 	return hex.EncodeToString(sum[:])
@@ -662,6 +681,11 @@ func (h *Handler) AppleWalletIngest(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Invalid amount"})
 		return
 	}
+	shortcutSourceLabel := normalizeWalletShortcutSourceLabel(payload.Source)
+	shortcutTags := []string{"apple_wallet_shortcut"}
+	if shortcutSourceLabel != "" {
+		shortcutTags = append(shortcutTags, walletSourceTagPrefix+shortcutSourceLabel)
+	}
 	expense := storage.Expense{
 		ID:           uuid.New().String(),
 		Name:         draftName,
@@ -670,6 +694,7 @@ func (h *Handler) AppleWalletIngest(w http.ResponseWriter, r *http.Request) {
 		Currency:     currency,
 		Flow:         flow,
 		Source:       paymentMethod,
+		Tags:         uniqueTags(shortcutTags),
 		Card:         strings.TrimSpace(payload.CardLabel),
 		Date:         payload.PaidAt,
 		SystemOrigin: walletDraftSystemOrigin,

@@ -198,6 +198,25 @@ func TestAppleWalletIngestCompleteAndDuplicate(t *testing.T) {
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("unexpected first ingest status: %d body=%s", rec.Code, rec.Body.String())
 	}
+	expenses, err := store.GetAllExpenses(user.ID)
+	if err != nil {
+		t.Fatalf("load expenses: %v", err)
+	}
+	if len(expenses) != 1 {
+		t.Fatalf("expected 1 expense, got %d", len(expenses))
+	}
+	if expenses[0].SystemOrigin != walletDraftSystemOrigin {
+		t.Fatalf("expected systemOrigin %q, got %q", walletDraftSystemOrigin, expenses[0].SystemOrigin)
+	}
+	hasShortcutTag := false
+	for _, tag := range expenses[0].Tags {
+		if tag == "apple_wallet_shortcut" {
+			hasShortcutTag = true
+		}
+	}
+	if !hasShortcutTag {
+		t.Fatalf("expected apple_wallet_shortcut tag, got %+v", expenses[0].Tags)
+	}
 
 	dupReq := httptest.NewRequest(http.MethodPost, "/api/integrations/apple-wallet/ingest", bytes.NewBufferString(payload))
 	dupReq.Header.Set("Authorization", "Bearer "+token)
@@ -212,6 +231,40 @@ func TestAppleWalletIngestCompleteAndDuplicate(t *testing.T) {
 	}
 	if dupBody["status"] != walletEventStatusDuplicate {
 		t.Fatalf("expected duplicate status, got %q", dupBody["status"])
+	}
+}
+
+func TestAppleWalletIngestStoresCustomShortcutSourceTag(t *testing.T) {
+	store := newAPIStoreForTest(t)
+	h := NewHandler(store)
+	user, sessionID := createUserAndSession(t, store)
+	setUserPlanTier(t, user.ID, storage.PlanTierPremium)
+	token := createWalletIngestToken(t, h, sessionID)
+
+	payload := `{"amount":15300,"merchant":"Carniceria","merchantRaw":"CARNICERIA","cardLabel":"Visa","walletCategory":"Food","paidAt":"2026-03-10T14:32:00-03:00","source":"Pascuas","rawPayload":{"shortcutInput":{"amount":15300,"merchant":"Carniceria","source":"Pascuas"}}}`
+	req := httptest.NewRequest(http.MethodPost, "/api/integrations/apple-wallet/ingest", bytes.NewBufferString(payload))
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	h.AppleWalletIngest(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("unexpected ingest status: %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	expenses, err := store.GetAllExpenses(user.ID)
+	if err != nil {
+		t.Fatalf("load expenses: %v", err)
+	}
+	if len(expenses) != 1 {
+		t.Fatalf("expected 1 expense, got %d", len(expenses))
+	}
+	hasCustomSourceTag := false
+	for _, tag := range expenses[0].Tags {
+		if tag == "shortcut_source:Pascuas" {
+			hasCustomSourceTag = true
+		}
+	}
+	if !hasCustomSourceTag {
+		t.Fatalf("expected custom shortcut source tag, got %+v", expenses[0].Tags)
 	}
 }
 

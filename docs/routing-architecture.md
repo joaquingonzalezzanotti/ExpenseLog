@@ -1,4 +1,4 @@
-# YA IMPLEMENTADO!
+# YA IMPLEMENTADO!d
 
 # Arquitectura de Ruteo (`/`, `/app/*`, `/api/*`)
 

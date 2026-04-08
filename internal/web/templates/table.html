@@ -706,6 +706,16 @@
             });
         }
 
+        function getTodayEndLocalDate() {
+            const now = new Date();
+            return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        }
+
+        function filterExpensesUpToToday(expenses) {
+            const todayEnd = getTodayEndLocalDate();
+            return (expenses || []).filter(exp => getComparableExpenseDate(exp) <= todayEnd);
+        }
+
         function getCalendarFilteredExpenses(expenses) {
             return (expenses || []).filter(exp => {
                 const flow = resolveFlow(exp);
@@ -957,6 +967,11 @@
                 const showAll = document.getElementById('showAllToggle').checked;
                 const hasFilters = hasActiveCommonFilters();
                 const isFirstUser = allExpenses.length === 0;
+                const monthExpenses = getMonthExpenses(allExpenses);
+                const hasOnlyFutureMonthExpenses = !showAll
+                    && !hasFilters
+                    && monthExpenses.length > 0
+                    && filterExpensesUpToToday(monthExpenses).length === 0;
                 if (onboardingUI && typeof onboardingUI.buildTableEmptyState === 'function') {
                     return onboardingUI.buildTableEmptyState({
                         showAll,
@@ -964,7 +979,10 @@
                         isFirstUser,
                     });
                 }
-                const message = showAll ? 'No hay transacciones para mostrar' : 'No hay gastos cargados para este mes';
+                let message = showAll ? 'No hay transacciones para mostrar' : 'No hay gastos cargados para este mes';
+                if (hasOnlyFutureMonthExpenses) {
+                    message = 'No hay transacciones hasta hoy en este mes. Activa "Mostrar todas las transacciones" para ver movimientos futuros.';
+                }
                 return `<div class="no-data">${message}</div>`;
             }
             const compactAmounts = isMobileTableView();
@@ -1063,9 +1081,13 @@
                 document.querySelector('.month-navigation').style.display = 'flex';
             }
 
-            expensesForTable = showAll
+            const baseTableExpenses = showAll
                 ? allExpenses.slice().sort(compareExpensesDesc)
                 : getMonthExpenses(allExpenses);
+
+            expensesForTable = showAll
+                ? baseTableExpenses
+                : filterExpensesUpToToday(baseTableExpenses);
 
             expensesForTable = applyCommonExpenseFilters(expensesForTable);
 

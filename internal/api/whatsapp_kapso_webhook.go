@@ -20,6 +20,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -907,7 +908,12 @@ func (h *Handler) saveWhatsAppParsedExpense(userID string, parsed whatsAppParsed
 		log.Printf("WHATSAPP KAPSO: add expense failed for user %s: %v", userID, err)
 		return "No pude guardar el movimiento en ExpenseLog. Reintenta en unos segundos.", ""
 	}
-	return fmt.Sprintf("Movimiento registrado: %s %.2f (%s).", strings.ToUpper(flow), math.Abs(adjustedAmount), strings.ToUpper(expense.Currency)), expense.ID
+	return fmt.Sprintf(
+		"Movimiento registrado: %s de %.2f %s.",
+		whatsAppFlowLabel(flow, adjustedAmount),
+		math.Abs(adjustedAmount),
+		strings.ToUpper(expense.Currency),
+	), expense.ID
 }
 
 func parseWhatsAppExplicitCommand(text, defaultCurrency string) (whatsAppParsedExpense, bool, error) {
@@ -1124,33 +1130,39 @@ func (h *Handler) buildWhatsAppRecentExpensesSummary(userID string) string {
 		log.Printf("WHATSAPP KAPSO: failed loading recent expenses: %v", err)
 		return "No pude cargar tus ultimos movimientos ahora. Reintenta en unos segundos."
 	}
+	return formatWhatsAppRecentExpensesSummary(expenses, time.Now().UTC())
+}
+
+func formatWhatsAppRecentExpensesSummary(expenses []storage.Expense, now time.Time) string {
 	if len(expenses) == 0 {
 		return "Todavia no tenes movimientos cargados."
 	}
 
+	recent := filterNonFutureWhatsAppExpenses(expenses, now)
+	if len(recent) == 0 {
+		return "No hay movimientos con fecha hasta hoy. Solo veo movimientos futuros."
+	}
+
 	maxItems := 3
-	if len(expenses) < maxItems {
-		maxItems = len(expenses)
+	if len(recent) < maxItems {
+		maxItems = len(recent)
 	}
 
 	var b strings.Builder
-	b.WriteString("Ultimos movimientos:\n")
+	b.WriteString("Ultimos movimientos (hasta hoy):\n")
 	var firstIDShort string
 	for i := 0; i < maxItems; i++ {
-		exp := expenses[i]
+		exp := recent[i]
 		idShort := shortWhatsAppExpenseID(exp.ID)
 		if i == 0 {
 			firstIDShort = idShort
 		}
-		amount := math.Abs(exp.Amount)
-		flow := strings.ToUpper(strings.TrimSpace(exp.Flow))
-		if flow == "" {
-			if exp.Amount < 0 {
-				flow = "EXPENSE"
-			} else {
-				flow = "INCOME"
-			}
+		dateLabel := "sin fecha"
+		if !exp.Date.IsZero() {
+			dateLabel = exp.Date.UTC().Format("2006-01-02")
 		}
+		amount := math.Abs(exp.Amount)
+		flow := whatsAppFlowLabel(exp.Flow, exp.Amount)
 		name := strings.TrimSpace(exp.Name)
 		if name == "" {
 			name = "Movimiento"
@@ -1159,17 +1171,46 @@ func (h *Handler) buildWhatsAppRecentExpensesSummary(userID string) string {
 		if currency == "" {
 			currency = "ARS"
 		}
-		b.WriteString(fmt.Sprintf("%d) %s | %s %.2f %s | %s\n", i+1, idShort, flow, amount, currency, name))
+		b.WriteString(fmt.Sprintf("%d) %s | %s | %s %.2f %s | %s\n", i+1, idShort, dateLabel, flow, amount, currency, name))
 	}
 	if firstIDShort == "" {
 		firstIDShort = "<id>"
 	}
-	b.WriteString("\nAcciones:\n")
-	b.WriteString(fmt.Sprintf("- editar %s monto 2500\n", firstIDShort))
-	b.WriteString(fmt.Sprintf("- editar %s desc Supermercado\n", firstIDShort))
-	b.WriteString(fmt.Sprintf("- borrar %s\n", firstIDShort))
-	b.WriteString("Tambien acepta [id] o el ID completo.")
+	b.WriteString("\nAcciones rapidas (usa el ID del listado):\n")
+	b.WriteString(fmt.Sprintf("- editar [%s] monto 2500\n", firstIDShort))
+	b.WriteString(fmt.Sprintf("- editar [%s] desc Supermercado\n", firstIDShort))
+	b.WriteString(fmt.Sprintf("- borrar [%s]\n", firstIDShort))
+	b.WriteString("Tambien podes usar el ID completo.")
 	return strings.TrimSpace(b.String())
+}
+
+func filterNonFutureWhatsAppExpenses(expenses []storage.Expense, now time.Time) []storage.Expense {
+	nowUTC := now.UTC()
+	filtered := make([]storage.Expense, 0, len(expenses))
+	for _, exp := range expenses {
+		// Keep zero-date entries visible; we only exclude explicit future timestamps.
+		if exp.Date.IsZero() || !exp.Date.UTC().After(nowUTC) {
+			filtered = append(filtered, exp)
+		}
+	}
+	sort.SliceStable(filtered, func(i, j int) bool {
+		return compareWhatsAppExpensesDesc(filtered[i], filtered[j])
+	})
+	return filtered
+}
+
+func compareWhatsAppExpensesDesc(a, b storage.Expense) bool {
+	aDate := a.Date.UTC()
+	bDate := b.Date.UTC()
+	if !aDate.Equal(bDate) {
+		return aDate.After(bDate)
+	}
+	aCreatedAt := a.CreatedAt.UTC()
+	bCreatedAt := b.CreatedAt.UTC()
+	if !aCreatedAt.Equal(bCreatedAt) {
+		return aCreatedAt.After(bCreatedAt)
+	}
+	return strings.TrimSpace(a.ID) > strings.TrimSpace(b.ID)
 }
 
 func shortWhatsAppExpenseID(rawID string) string {
@@ -1178,6 +1219,25 @@ func shortWhatsAppExpenseID(rawID string) string {
 		return id[:8]
 	}
 	return id
+}
+
+func whatsAppFlowLabel(flow string, amount float64) string {
+	switch strings.ToLower(strings.TrimSpace(flow)) {
+	case "income":
+		return "Ingreso"
+	case "expense":
+		return "Gasto"
+	case "refund":
+		return "Reintegro"
+	default:
+		if amount < 0 {
+			return "Gasto"
+		}
+		if amount > 0 {
+			return "Ingreso"
+		}
+		return "Movimiento"
+	}
 }
 
 func (h *Handler) resolveWhatsAppExpenseID(userID, token string) (string, error) {
@@ -1307,14 +1367,7 @@ func (h *Handler) buildWhatsAppDeleteConfirmPrompt(userID, expenseID string) str
 
 	idShort := shortWhatsAppExpenseID(expense.ID)
 	amount := math.Abs(expense.Amount)
-	flow := strings.ToUpper(strings.TrimSpace(expense.Flow))
-	if flow == "" {
-		if expense.Amount < 0 {
-			flow = "EXPENSE"
-		} else {
-			flow = "INCOME"
-		}
-	}
+	flow := whatsAppFlowLabel(expense.Flow, expense.Amount)
 	currency := strings.ToUpper(strings.TrimSpace(expense.Currency))
 	if currency == "" {
 		currency = "ARS"

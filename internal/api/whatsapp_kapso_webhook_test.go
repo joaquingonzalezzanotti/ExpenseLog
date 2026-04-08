@@ -5,7 +5,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"math"
+	"strings"
 	"testing"
+	"time"
+
+	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/storage"
 )
 
 func TestParseWhatsAppExpenseTextCommand(t *testing.T) {
@@ -172,5 +176,97 @@ func TestShortWhatsAppExpenseID(t *testing.T) {
 	}
 	if got := shortWhatsAppExpenseID("abcd1234"); got != "abcd1234" {
 		t.Fatalf("unexpected unchanged id: %q", got)
+	}
+}
+
+func TestFormatWhatsAppRecentExpensesSummaryFiltersFuture(t *testing.T) {
+	now := time.Date(2026, 4, 8, 15, 0, 0, 0, time.UTC)
+	expenses := []storage.Expense{
+		{
+			ID:       "future-1111-aaaa",
+			Flow:     "income",
+			Amount:   30000,
+			Currency: "ars",
+			Name:     "Sueldo futuro",
+			Date:     now.Add(24 * time.Hour),
+		},
+		{
+			ID:       "c0672f2e-aaaa-bbbb",
+			Flow:     "income",
+			Amount:   30000,
+			Currency: "ars",
+			Name:     "Sueldo Bacar JP",
+			Date:     now.Add(-1 * time.Hour),
+		},
+		{
+			ID:       "55d4065e-aaaa-bbbb",
+			Flow:     "income",
+			Amount:   30000,
+			Currency: "ars",
+			Name:     "Sueldo Bacar JP",
+			Date:     now.Add(-2 * time.Hour),
+		},
+	}
+
+	got := formatWhatsAppRecentExpensesSummary(expenses, now)
+
+	if strings.Contains(got, "future-11") {
+		t.Fatalf("summary should exclude future expense, got: %q", got)
+	}
+	if !strings.Contains(got, "1) c0672f2e") {
+		t.Fatalf("summary should keep latest non-future movement first, got: %q", got)
+	}
+	if !strings.Contains(got, "Ingreso 30000.00 ARS") {
+		t.Fatalf("summary should use user-facing flow labels, got: %q", got)
+	}
+	if strings.Contains(got, "INCOME") || strings.Contains(got, "EXPENSE") || strings.Contains(got, "REFUND") {
+		t.Fatalf("summary should not expose technical flow tokens, got: %q", got)
+	}
+	if !strings.Contains(got, "Acciones rapidas (usa el ID del listado):") {
+		t.Fatalf("summary should include quick actions heading, got: %q", got)
+	}
+	if !strings.Contains(got, "- editar [c0672f2e] monto 2500") {
+		t.Fatalf("summary should include bracketed edit example, got: %q", got)
+	}
+}
+
+func TestFormatWhatsAppRecentExpensesSummaryOnlyFuture(t *testing.T) {
+	now := time.Date(2026, 4, 8, 15, 0, 0, 0, time.UTC)
+	expenses := []storage.Expense{
+		{
+			ID:       "future-1111-aaaa",
+			Flow:     "income",
+			Amount:   30000,
+			Currency: "ars",
+			Name:     "Sueldo futuro",
+			Date:     now.Add(2 * time.Hour),
+		},
+	}
+
+	got := formatWhatsAppRecentExpensesSummary(expenses, now)
+	want := "No hay movimientos con fecha hasta hoy. Solo veo movimientos futuros."
+	if got != want {
+		t.Fatalf("unexpected summary. got=%q want=%q", got, want)
+	}
+}
+
+func TestWhatsAppFlowLabel(t *testing.T) {
+	cases := []struct {
+		flow   string
+		amount float64
+		want   string
+	}{
+		{flow: "income", amount: 10, want: "Ingreso"},
+		{flow: "expense", amount: -10, want: "Gasto"},
+		{flow: "refund", amount: 10, want: "Reintegro"},
+		{flow: "", amount: -1, want: "Gasto"},
+		{flow: "", amount: 1, want: "Ingreso"},
+		{flow: "", amount: 0, want: "Movimiento"},
+	}
+
+	for _, tc := range cases {
+		if got := whatsAppFlowLabel(tc.flow, tc.amount); got != tc.want {
+			t.Fatalf("whatsAppFlowLabel(%q, %v)=%q want=%q", tc.flow, tc.amount, got, tc.want)
+		}
 	}
 }

@@ -61,8 +61,8 @@ var (
 	whatsAppAmountTokenRE    = regexp.MustCompile(`\$?\s*([0-9]+(?:[.,][0-9]{3})*(?:[.,][0-9]{1,2})?)`)
 	whatsAppDescHintRE       = regexp.MustCompile(`(?i)\b(?:en|a|de)\s+(.+)$`)
 	whatsAppURLRE            = regexp.MustCompile(`https?://\S+`)
-	whatsAppEditCommandRE    = regexp.MustCompile(`(?i)^/?editar\s+([a-z0-9\-]{8,})\s+(monto|importe|descripcion|desc|nombre)\s+(.+)$`)
-	whatsAppDeleteCommandRE  = regexp.MustCompile(`(?i)^/?borrar\s+([a-z0-9\-]{8,})$`)
+	whatsAppEditCommandRE    = regexp.MustCompile(`(?i)^/?editar\s+\[?([a-z0-9\-]{8,})\]?\s+(monto|importe|descripcion|desc|nombre)\s+(.+)$`)
+	whatsAppDeleteCommandRE  = regexp.MustCompile(`(?i)^/?(borrar|eliminar)\s+\[?([a-z0-9\-]{8,})\]?$`)
 )
 
 var kapsoWebhookProcessedKeys = struct {
@@ -588,7 +588,7 @@ func (h *Handler) handleWhatsAppInteractiveAction(phoneNumberID, fromPhone, user
 			_ = sendKapsoTextMessage(phoneNumberID, fromPhone, "No pude leer el movimiento a borrar.")
 			return true
 		}
-		_ = sendWhatsAppDeleteConfirmButtons(phoneNumberID, fromPhone, expenseID)
+		_ = sendWhatsAppDeleteConfirmButtons(phoneNumberID, fromPhone, h.buildWhatsAppDeleteConfirmPrompt(userID, expenseID), expenseID)
 		return true
 	case strings.HasPrefix(actionID, whatsAppActionDeleteYesPre):
 		expenseID := strings.TrimSpace(strings.TrimPrefix(actionID, whatsAppActionDeleteYesPre))
@@ -670,7 +670,12 @@ func (h *Handler) handleWhatsAppConversationalText(phoneNumberID, fromPhone, use
 		return true
 	}
 
-	if norm == "ultimos" || norm == "/ultimos" || norm == "ultimos gastos" || norm == "resumen" {
+	if norm == "registrar gasto" || norm == "nuevo gasto" {
+		_ = sendKapsoTextMessage(phoneNumberID, fromPhone, "Dale. Decime el movimiento en texto natural, por ejemplo: gaste 2500 en super.")
+		return true
+	}
+
+	if norm == "ultimos" || norm == "/ultimos" || norm == "ultimos gastos" || norm == "ver ultimos" || norm == "resumen" {
 		_ = sendKapsoTextMessage(phoneNumberID, fromPhone, h.buildWhatsAppRecentExpensesSummary(userID))
 		return true
 	}
@@ -681,7 +686,11 @@ func (h *Handler) handleWhatsAppConversationalText(phoneNumberID, fromPhone, use
 		value := strings.TrimSpace(matches[3])
 		resolvedID, err := h.resolveWhatsAppExpenseID(userID, expenseIDToken)
 		if err != nil {
-			_ = sendKapsoTextMessage(phoneNumberID, fromPhone, "No encontre ese ID de movimiento. Pasa el ID completo o prefijo unico.")
+			if strings.Contains(err.Error(), "ambiguous prefix") {
+				_ = sendKapsoTextMessage(phoneNumberID, fromPhone, "Ese ID corto coincide con mas de un movimiento. Envia mas caracteres o el ID completo.")
+			} else {
+				_ = sendKapsoTextMessage(phoneNumberID, fromPhone, "No encontre ese ID de movimiento. Pasa el ID completo o un prefijo unico.")
+			}
 			return true
 		}
 		if fieldToken == "monto" || fieldToken == "importe" {
@@ -700,14 +709,18 @@ func (h *Handler) handleWhatsAppConversationalText(phoneNumberID, fromPhone, use
 		return true
 	}
 
-	if matches := whatsAppDeleteCommandRE.FindStringSubmatch(text); len(matches) >= 2 {
-		expenseIDToken := strings.TrimSpace(matches[1])
+	if matches := whatsAppDeleteCommandRE.FindStringSubmatch(text); len(matches) >= 3 {
+		expenseIDToken := strings.TrimSpace(matches[2])
 		resolvedID, err := h.resolveWhatsAppExpenseID(userID, expenseIDToken)
 		if err != nil {
-			_ = sendKapsoTextMessage(phoneNumberID, fromPhone, "No encontre ese ID de movimiento para borrar.")
+			if strings.Contains(err.Error(), "ambiguous prefix") {
+				_ = sendKapsoTextMessage(phoneNumberID, fromPhone, "Ese ID corto coincide con mas de un movimiento. Envia mas caracteres o el ID completo.")
+			} else {
+				_ = sendKapsoTextMessage(phoneNumberID, fromPhone, "No encontre ese ID de movimiento para borrar.")
+			}
 			return true
 		}
-		_ = sendWhatsAppDeleteConfirmButtons(phoneNumberID, fromPhone, resolvedID)
+		_ = sendWhatsAppDeleteConfirmButtons(phoneNumberID, fromPhone, h.buildWhatsAppDeleteConfirmPrompt(userID, resolvedID), resolvedID)
 		return true
 	}
 
@@ -769,7 +782,7 @@ func isWhatsAppGreeting(normText string) bool {
 }
 
 func whatsAppHelpText() string {
-	return "Comandos: /gasto 1500 Supermercado | /ingreso 50000 Sueldo | /reintegro 1200 Devolucion\nTambien: editar <id> monto <valor> | editar <id> desc <texto> | borrar <id>"
+	return "Comandos: /gasto 1500 Supermercado | /ingreso 50000 Sueldo | /reintegro 1200 Devolucion\nTambien: editar <id> monto <valor> | editar <id> desc <texto> | borrar <id> (o eliminar <id>)\nAcepta <id>, [id] o el ID completo."
 }
 
 func extractWhatsAppLinkCodeFromText(text string) string {
@@ -1122,11 +1135,12 @@ func (h *Handler) buildWhatsAppRecentExpensesSummary(userID string) string {
 
 	var b strings.Builder
 	b.WriteString("Ultimos movimientos:\n")
+	var firstIDShort string
 	for i := 0; i < maxItems; i++ {
 		exp := expenses[i]
-		idShort := exp.ID
-		if len(idShort) > 8 {
-			idShort = idShort[:8]
+		idShort := shortWhatsAppExpenseID(exp.ID)
+		if i == 0 {
+			firstIDShort = idShort
 		}
 		amount := math.Abs(exp.Amount)
 		flow := strings.ToUpper(strings.TrimSpace(exp.Flow))
@@ -1145,10 +1159,25 @@ func (h *Handler) buildWhatsAppRecentExpensesSummary(userID string) string {
 		if currency == "" {
 			currency = "ARS"
 		}
-		b.WriteString(fmt.Sprintf("%d) [%s] %s %.2f %s - %s\n", i+1, idShort, flow, amount, currency, name))
+		b.WriteString(fmt.Sprintf("%d) %s | %s %.2f %s | %s\n", i+1, idShort, flow, amount, currency, name))
 	}
-	b.WriteString("Para editar: editar <id> monto 2500 | editar <id> desc Supermercado")
+	if firstIDShort == "" {
+		firstIDShort = "<id>"
+	}
+	b.WriteString("\nAcciones:\n")
+	b.WriteString(fmt.Sprintf("- editar %s monto 2500\n", firstIDShort))
+	b.WriteString(fmt.Sprintf("- editar %s desc Supermercado\n", firstIDShort))
+	b.WriteString(fmt.Sprintf("- borrar %s\n", firstIDShort))
+	b.WriteString("Tambien acepta [id] o el ID completo.")
 	return strings.TrimSpace(b.String())
+}
+
+func shortWhatsAppExpenseID(rawID string) string {
+	id := strings.TrimSpace(rawID)
+	if len(id) > 8 {
+		return id[:8]
+	}
+	return id
 }
 
 func (h *Handler) resolveWhatsAppExpenseID(userID, token string) (string, error) {
@@ -1268,6 +1297,33 @@ func (h *Handler) deleteWhatsAppExpense(userID, expenseID string) string {
 		return "No pude borrar ese movimiento. Reintenta en unos segundos."
 	}
 	return "Movimiento eliminado."
+}
+
+func (h *Handler) buildWhatsAppDeleteConfirmPrompt(userID, expenseID string) string {
+	expense, err := h.storage.GetExpense(userID, expenseID)
+	if err != nil {
+		return "Confirmas borrar este movimiento?"
+	}
+
+	idShort := shortWhatsAppExpenseID(expense.ID)
+	amount := math.Abs(expense.Amount)
+	flow := strings.ToUpper(strings.TrimSpace(expense.Flow))
+	if flow == "" {
+		if expense.Amount < 0 {
+			flow = "EXPENSE"
+		} else {
+			flow = "INCOME"
+		}
+	}
+	currency := strings.ToUpper(strings.TrimSpace(expense.Currency))
+	if currency == "" {
+		currency = "ARS"
+	}
+	name := strings.TrimSpace(expense.Name)
+	if name == "" {
+		name = "Movimiento"
+	}
+	return fmt.Sprintf("Confirmas borrar %s | %s %.2f %s | %s?", idShort, flow, amount, currency, name)
 }
 
 func (h *Handler) tryParseWhatsAppWithAI(text string, media *whatsAppAIParserMedia, defaultCurrency string) (whatsAppParsedExpense, error) {
@@ -1805,16 +1861,20 @@ func sendWhatsAppMovementButtons(phoneNumberID, to, expenseID string) error {
 	return sendKapsoInteractiveButtons(phoneNumberID, to, "Queres editar o borrar este movimiento?", options)
 }
 
-func sendWhatsAppDeleteConfirmButtons(phoneNumberID, to, expenseID string) error {
+func sendWhatsAppDeleteConfirmButtons(phoneNumberID, to, body, expenseID string) error {
 	expenseID = strings.TrimSpace(expenseID)
 	if expenseID == "" {
 		return nil
+	}
+	body = strings.TrimSpace(body)
+	if body == "" {
+		body = "Confirmas borrar este movimiento?"
 	}
 	options := []kapsoInteractiveButtonOption{
 		{ID: whatsAppActionDeleteYesPre + expenseID, Title: "Si, borrar"},
 		{ID: whatsAppActionMoveCancel, Title: "Cancelar"},
 	}
-	return sendKapsoInteractiveButtons(phoneNumberID, to, "Confirmas borrar este movimiento?", options)
+	return sendKapsoInteractiveButtons(phoneNumberID, to, body, options)
 }
 
 func sendKapsoInteractiveButtons(phoneNumberID, to, body string, buttons []kapsoInteractiveButtonOption) error {

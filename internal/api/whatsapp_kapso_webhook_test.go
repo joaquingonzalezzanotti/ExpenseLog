@@ -136,3 +136,41 @@ func TestIsKapsoWebhookSignatureValidAcceptsSha256Prefix(t *testing.T) {
 		t.Fatalf("expected signature to be valid")
 	}
 }
+
+func TestWhatsAppEditCommandREAcceptsBracketedID(t *testing.T) {
+	matches := whatsAppEditCommandRE.FindStringSubmatch("editar [c0672f2e] monto 2500")
+	if len(matches) < 4 {
+		t.Fatalf("expected edit command with bracketed id to match, got %d groups", len(matches))
+	}
+	if matches[1] != "c0672f2e" {
+		t.Fatalf("unexpected captured id: %q", matches[1])
+	}
+	if matches[2] != "monto" {
+		t.Fatalf("unexpected captured field: %q", matches[2])
+	}
+	if matches[3] != "2500" {
+		t.Fatalf("unexpected captured value: %q", matches[3])
+	}
+}
+
+func TestWhatsAppDeleteCommandREAcceptsEliminarAndBracketedID(t *testing.T) {
+	matches := whatsAppDeleteCommandRE.FindStringSubmatch("eliminar [c0672f2e]")
+	if len(matches) < 3 {
+		t.Fatalf("expected delete command with bracketed id to match, got %d groups", len(matches))
+	}
+	if matches[1] != "eliminar" {
+		t.Fatalf("unexpected captured verb: %q", matches[1])
+	}
+	if matches[2] != "c0672f2e" {
+		t.Fatalf("unexpected captured id: %q", matches[2])
+	}
+}
+
+func TestShortWhatsAppExpenseID(t *testing.T) {
+	if got := shortWhatsAppExpenseID("1234567890"); got != "12345678" {
+		t.Fatalf("unexpected short id: %q", got)
+	}
+	if got := shortWhatsAppExpenseID("abcd1234"); got != "abcd1234" {
+		t.Fatalf("unexpected unchanged id: %q", got)
+	}
+}

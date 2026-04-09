@@ -1,0 +1,166 @@
+﻿<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="application-name" content="ExpenseLog">
+    <link rel="stylesheet" href="/app/fa.min.css">
+    <link rel="icon" href="/app/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="/app/style.css">
+    <script>
+        (function() {
+            const storedTheme = localStorage.getItem('theme');
+            const theme = storedTheme === 'dark' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    <title>Ahorros ExpenseLog</title>
+</head>
+<body class="auth-pending">
+<div class="container savings-page">
+    <header>
+        <div class="nav-bar">
+            <div class="nav-left-slot">
+                <button id="mobileMenuToggle" class="view-button mobile-menu-toggle" type="button" aria-label="Abrir menu" aria-controls="mobileDrawer" aria-expanded="false">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+            </div>
+            <a href="/app" class="nav-logo-link">
+                <img src="/app/pwa/icon-192.png" alt="ExpenseLog Logo" class="nav-logo">
+                <span class="nav-logo-mobile-text" aria-hidden="true">EL</span>
+            </a>
+            <div class="nav-right-slot"></div>
+        </div>
+    </header>
+
+    <div id="mobileDrawerOverlay" class="mobile-drawer-overlay" data-mobile-drawer-overlay aria-hidden="true"></div>
+    <aside id="mobileDrawer" class="mobile-drawer" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="mobileDrawerTitle" tabindex="-1">
+        <div class="mobile-drawer-header">
+            <h2 id="mobileDrawerTitle" class="mobile-drawer-title">Menu</h2>
+            <button type="button" class="view-button mobile-drawer-close" data-mobile-drawer-close aria-label="Cerrar menu">
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+        </div>
+        <nav class="mobile-drawer-nav" aria-label="Navegacion principal">
+            <a href="/app" class="mobile-drawer-link"><i class="fa-solid fa-house" aria-hidden="true"></i><span>Inicio</span></a>
+            <a href="/app/table" class="mobile-drawer-link"><i class="fa-solid fa-table" aria-hidden="true"></i><span>Tabla</span></a>
+            <a href="/app/table?view=calendar" class="mobile-drawer-link"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i><span>Calendario</span></a>
+            <a href="/app/ahorros" class="mobile-drawer-link active"><i class="fa-solid fa-piggy-bank" aria-hidden="true"></i><span>Ahorros</span></a>
+            <a href="/app/reportes" class="mobile-drawer-link"><i class="fa-regular fa-file-lines" aria-hidden="true"></i><span>Reportes</span></a>
+            <a href="/app/perfil" class="mobile-drawer-link"><i class="fa-regular fa-user" aria-hidden="true"></i><span>Perfil</span></a>
+        </nav>
+    </aside>
+
+    <nav class="mobile-bottom-nav" aria-label="Navegacion principal">
+        <a href="/app" class="mobile-nav-item"><i class="fa-solid fa-house"></i><span>Inicio</span></a>
+        <a href="/app/table" class="mobile-nav-item"><i class="fa-solid fa-table"></i><span>Tabla</span></a>
+        <a href="/app/table?view=calendar" class="mobile-nav-item"><i class="fa-regular fa-calendar-days"></i><span>Calendario</span></a>
+        <a href="/app/ahorros" class="mobile-nav-item active" aria-current="page"><i class="fa-solid fa-piggy-bank"></i><span>Ahorros</span></a>
+        <a href="/app/perfil" class="mobile-nav-item"><i class="fa-regular fa-user"></i><span>Usuario</span></a>
+    </nav>
+
+    <section class="form-container savings-shell">
+        <div class="savings-hero">
+            <div class="savings-hero-copy">
+                <p class="savings-eyebrow">Ahorros por objetivos</p>
+                <h1>Ahorros</h1>
+                <p class="savings-hero-text">Planifica metas concretas, registra aportes y controla avances sin mezclar ahorro con gasto de consumo.</p>
+            </div>
+            <div class="savings-hero-actions">
+                <button id="newGoalBtn" class="nav-button button-primary" type="button">+ Nueva meta</button>
+                <p class="savings-hero-note">Tip: crea metas separadas por moneda para medir mejor tu progreso real.</p>
+            </div>
+        </div>
+
+        <div id="savingsSummary" class="savings-summary-grid" aria-live="polite"></div>
+        <section id="secondaryCurrencyBox" class="savings-secondary-box" aria-live="polite"></section>
+
+        <div class="savings-goals-head">
+            <h2>Tus metas</h2>
+            <span id="savingsGoalsCount" class="savings-goals-count">0 metas</span>
+        </div>
+        <div id="savingsGoals" class="savings-goals-grid" aria-live="polite"></div>
+    </section>
+</div>
+
+<div id="savingsGoalModal" class="entry-modal-overlay" hidden aria-hidden="true">
+    <div class="entry-modal-backdrop" data-goal-close></div>
+    <div class="entry-modal-card" role="dialog" aria-modal="true" aria-labelledby="goalModalTitle">
+        <div class="entry-modal-header">
+            <div class="entry-modal-title-wrap">
+                <span class="entry-modal-eyebrow">Meta</span>
+                <h3 id="goalModalTitle">Nueva meta de ahorro</h3>
+            </div>
+            <button type="button" id="closeGoalModalBtn" class="entry-modal-close" aria-label="Cerrar formulario"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
+        <form id="savingsGoalForm" class="expense-form expense-modal-form">
+            <div class="form-group form-group-span-2">
+                <label for="goalName">Nombre</label>
+                <input id="goalName" type="text" required placeholder="Ej: Fondo de emergencia">
+            </div>
+            <div class="form-group">
+                <label for="goalTarget">Objetivo</label>
+                <input id="goalTarget" type="number" step="0.01" min="0.01" required>
+            </div>
+            <div class="form-group">
+                <label for="goalCurrency">Moneda</label>
+                <select id="goalCurrency">
+                    <option value="ars">ARS</option>
+                    <option value="usd">USD</option>
+                    <option value="eur">EUR</option>
+                </select>
+            </div>
+            <div class="form-group form-group-span-2">
+                <label for="goalDate">Fecha objetivo (opcional)</label>
+                <input id="goalDate" type="date">
+            </div>
+            <div class="form-actions expense-modal-actions">
+                <button type="button" id="cancelGoalBtn" class="modal-link-button">Cancelar</button>
+                <button type="submit" class="nav-button button-primary">Guardar meta</button>
+            </div>
+        </form>
+        <div id="savingsGoalMessage" class="form-message"></div>
+    </div>
+</div>
+
+<div id="savingsMovementModal" class="entry-modal-overlay" hidden aria-hidden="true">
+    <div class="entry-modal-backdrop" data-movement-close></div>
+    <div class="entry-modal-card" role="dialog" aria-modal="true" aria-labelledby="movementModalTitle">
+        <div class="entry-modal-header">
+            <div class="entry-modal-title-wrap">
+                <span id="movementTypeLabel" class="entry-modal-eyebrow">Movimiento</span>
+                <h3 id="movementModalTitle">Registrar movimiento</h3>
+                <p id="movementGoalLabel" class="savings-movement-goal">Meta</p>
+            </div>
+            <button type="button" id="closeMovementModalBtn" class="entry-modal-close" aria-label="Cerrar formulario">
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+        </div>
+        <form id="savingsMovementForm" class="expense-form expense-modal-form">
+            <input id="movementGoalId" type="hidden">
+            <input id="movementAction" type="hidden">
+            <div class="form-group">
+                <label for="movementAmount">Monto</label>
+                <input id="movementAmount" type="number" step="0.01" min="0.01" required>
+            </div>
+            <div class="form-group">
+                <label for="movementDate">Fecha (opcional)</label>
+                <input id="movementDate" type="date">
+            </div>
+            <div class="form-group form-group-span-2">
+                <label for="movementNote">Nota (opcional)</label>
+                <input id="movementNote" type="text" maxlength="120" placeholder="Ej: Transferencia desde cuenta sueldo">
+            </div>
+            <div class="form-actions expense-modal-actions">
+                <button type="button" id="cancelMovementBtn" class="modal-link-button">Cancelar</button>
+                <button id="saveMovementBtn" type="submit" class="nav-button button-primary">Guardar movimiento</button>
+            </div>
+        </form>
+        <div id="savingsMovementMessage" class="form-message"></div>
+    </div>
+</div>
+
+<script src="/app/functions.js"></script>
+<script src="/app/savings_ui.js"></script>
+</body>
+</html>

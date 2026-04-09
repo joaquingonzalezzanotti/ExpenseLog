@@ -102,6 +102,7 @@ func runServer(port int) {
 	http.HandleFunc("/app/conciliacion", handler.ServeSettingsReconciliationPage)
 	http.HandleFunc("/app/reportes", handler.ServeSettingsReportsPage)
 	http.HandleFunc("/app/telegram", handler.ServeSettingsTelegramPage)
+	http.HandleFunc("/app/ahorros", handler.ServeSavingsPage)
 	http.HandleFunc("/table", handler.ServeTableView)
 	http.HandleFunc("/settings", handler.ServeSettingsPage)
 	http.HandleFunc("/perfil", handler.ServeSettingsPage)
@@ -110,6 +111,7 @@ func runServer(port int) {
 	http.HandleFunc("/conciliacion", handler.ServeSettingsReconciliationPage)
 	http.HandleFunc("/reportes", handler.ServeSettingsReportsPage)
 	http.HandleFunc("/telegram", handler.ServeSettingsTelegramPage)
+	http.HandleFunc("/ahorros", handler.ServeSavingsPage)
 
 	// Static File Handlers
 	staticPaths := []string{
@@ -119,6 +121,7 @@ func runServer(port int) {
 		"/onboarding_ui.js",
 		"/alerts_ui.js",
 		"/cashflow_ui.js",
+		"/savings_ui.js",
 		"/manifest.json",
 		"/sw.js",
 		"/pwa/",
@@ -189,6 +192,11 @@ func runServer(port int) {
 	// Alerts
 	registerAPI("/alerts/liquidity", handler.RequireAuth(handler.GetLiquidityAlerts))
 
+	// Savings
+	registerAPI("/savings/goals", handler.RequireAuth(handler.HandleSavingsGoals))
+	registerAPI("/savings/goals/", handler.RequireAuth(handler.HandleSavingsGoalActions))
+	registerAPI("/savings/summary", handler.RequireAuth(handler.GetSavingsSummary))
+
 	// Import/Export
 	registerAPI("/export/csv", handler.RequireAuth(handler.CSVFeatureDisabled))
 	registerAPI("/export/monthly/xlsx", handler.RequireAuth(handler.ExportMonthlyXLSX))
@@ -242,7 +250,7 @@ func shouldNoIndexPath(path string) bool {
 		return true
 	}
 	switch clean {
-	case "/app", "/table", "/settings", "/perfil", "/categorias", "/recurrentes", "/conciliacion", "/reportes", "/telegram":
+	case "/app", "/table", "/settings", "/perfil", "/categorias", "/recurrentes", "/conciliacion", "/reportes", "/telegram", "/ahorros":
 		return true
 	}
 	return strings.HasPrefix(clean, "/app/")

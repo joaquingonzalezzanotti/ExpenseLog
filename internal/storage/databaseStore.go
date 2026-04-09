@@ -186,7 +186,7 @@ const (
 	);`
 
 	createWalletIngestEventsTableSQL = `
-	CREATE TABLE IF NOT EXISTS wallet_ingest_events (
+		CREATE TABLE IF NOT EXISTS wallet_ingest_events (
 		id VARCHAR(36) PRIMARY KEY,
 		user_id VARCHAR(36) NOT NULL,
 		source VARCHAR(100) NOT NULL,
@@ -203,8 +203,34 @@ const (
 		created_transaction_id VARCHAR(36),
 		duplicate_of_event_id VARCHAR(36),
 		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-	);`
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		);`
+
+	createSavingsGoalsTableSQL = `
+		CREATE TABLE IF NOT EXISTS savings_goals (
+			id VARCHAR(36) PRIMARY KEY,
+			user_id VARCHAR(36) NOT NULL,
+			name VARCHAR(120) NOT NULL,
+			target_amount NUMERIC(14, 2) NOT NULL,
+			currency VARCHAR(3) NOT NULL,
+			target_date TIMESTAMPTZ,
+			status VARCHAR(20) NOT NULL DEFAULT 'active',
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		);`
+
+	createSavingsAllocationsTableSQL = `
+		CREATE TABLE IF NOT EXISTS savings_allocations (
+			id VARCHAR(36) PRIMARY KEY,
+			user_id VARCHAR(36) NOT NULL,
+			goal_id VARCHAR(36) NOT NULL,
+			type VARCHAR(20) NOT NULL,
+			amount NUMERIC(14, 2) NOT NULL,
+			currency VARCHAR(3) NOT NULL,
+			note TEXT,
+			date TIMESTAMPTZ NOT NULL,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		);`
 )
 
 func InitializePostgresStore(baseConfig SystemConfig) (Storage, error) {
@@ -252,6 +278,8 @@ func createTables(db *sql.DB) error {
 		createTelegramLinkCodesTableSQL,
 		createWalletIngestTokensTableSQL,
 		createWalletIngestEventsTableSQL,
+		createSavingsGoalsTableSQL,
+		createSavingsAllocationsTableSQL,
 	} {
 		if _, err := db.Exec(query); err != nil {
 			return err
@@ -302,6 +330,12 @@ func createTables(db *sql.DB) error {
 		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS created_transaction_id VARCHAR(36)",
 		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS duplicate_of_event_id VARCHAR(36)",
 		"ALTER TABLE wallet_ingest_events ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+		"ALTER TABLE savings_goals ADD COLUMN IF NOT EXISTS target_date TIMESTAMPTZ",
+		"ALTER TABLE savings_goals ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'active'",
+		"ALTER TABLE savings_goals ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+		"ALTER TABLE savings_goals ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+		"ALTER TABLE savings_allocations ADD COLUMN IF NOT EXISTS note TEXT",
+		"ALTER TABLE savings_allocations ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()",
 	}
 	for _, stmt := range alterStmts {
 		if _, err := db.Exec(stmt); err != nil {
@@ -381,6 +415,12 @@ func createTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS wallet_ingest_events_user_amount_idx ON wallet_ingest_events (user_id, amount)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS savings_goals_user_created_idx ON savings_goals (user_id, created_at DESC)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS savings_allocations_user_goal_date_idx ON savings_allocations (user_id, goal_id, date DESC, created_at DESC)`); err != nil {
 		return err
 	}
 	if err := ensureRecurringInstanceUniqueIndex(db); err != nil {

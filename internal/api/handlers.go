@@ -702,6 +702,17 @@ func (h *Handler) ServeSettingsTelegramPage(w http.ResponseWriter, r *http.Reque
 	h.serveSettingsPageWithSection(w, r, "telegram")
 }
 
+func (h *Handler) ServeSavingsPage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{Error: "Method not allowed"})
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := web.ServeTemplate(w, "savings.html"); err != nil {
+		http.Error(w, "Failed to serve template", http.StatusInternalServerError)
+	}
+}
+
 func (h *Handler) serveSettingsPageWithSection(w http.ResponseWriter, r *http.Request, _ string) {
 	if r.Method != http.MethodGet {
 		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{Error: "Method not allowed"})

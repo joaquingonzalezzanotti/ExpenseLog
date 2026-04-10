@@ -242,6 +242,9 @@ func withSecurityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("Cross-Origin-Resource-Policy", "same-origin")
 		w.Header().Set("X-Permitted-Cross-Domain-Policies", "none")
 		w.Header().Set("Content-Security-Policy", defaultContentSecurityPolicy())
+		if shouldNoIndexPath(r.URL.Path) {
+			w.Header().Set("X-Robots-Tag", "noindex, nofollow")
+		}
 		if isHTTPSRequest(r) {
 			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		}
@@ -266,6 +269,21 @@ func defaultContentSecurityPolicy() string {
 		"connect-src 'self'",
 		"frame-src 'none'",
 	}, "; ")
+}
+
+func shouldNoIndexPath(path string) bool {
+	clean := strings.TrimSpace(path)
+	if clean == "" || clean == "/" || clean == "/robots.txt" || clean == "/sitemap.xml" {
+		return false
+	}
+	if strings.HasPrefix(clean, "/api/") {
+		return true
+	}
+	switch clean {
+	case "/app", "/table", "/settings", "/perfil", "/categorias", "/recurrentes", "/conciliacion", "/reportes", "/telegram", "/whatsapp":
+		return true
+	}
+	return strings.HasPrefix(clean, "/app/")
 }
 
 func isHTTPSRequest(r *http.Request) bool {

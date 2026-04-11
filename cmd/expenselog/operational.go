@@ -14,7 +14,11 @@ import (
 	"time"
 )
 
-const requestIDHeader = "X-Request-ID"
+const (
+	requestIDHeader         = "X-Request-ID"
+	maxObservedRoutes       = 500
+	metricsOverflowRouteKey = "ANY /__other__"
+)
 
 type contextKey string
 
@@ -76,15 +80,31 @@ func (r *statusRecorder) Write(b []byte) (int, error) {
 func newObservabilityRegistry() *observabilityRegistry {
 	return &observabilityRegistry{
 		started: time.Now(),
-		byRoute: map[string]*routeObservability{},
+		byRoute: map[string]*routeObservability{
+			metricsOverflowRouteKey: {},
+		},
 	}
 }
 
 func (o *observabilityRegistry) record(method, path string, status int, duration time.Duration) {
+	method = strings.ToUpper(strings.TrimSpace(method))
+	if method == "" {
+		method = "UNKNOWN"
+	}
+	path = strings.TrimSpace(path)
+	if path == "" {
+		path = "/"
+	}
 	key := method + " " + path
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	entry, ok := o.byRoute[key]
+	if !ok {
+		if len(o.byRoute) >= maxObservedRoutes {
+			key = metricsOverflowRouteKey
+			entry, ok = o.byRoute[key]
+		}
+	}
 	if !ok {
 		entry = &routeObservability{}
 		o.byRoute[key] = entry
@@ -106,6 +126,9 @@ func (o *observabilityRegistry) snapshot() metricsSnapshot {
 
 	routes := make(map[string]routeObservabilitySnapshot, len(o.byRoute))
 	for key, value := range o.byRoute {
+		if value.Requests == 0 {
+			continue
+		}
 		avgMs := 0.0
 		if value.Requests > 0 {
 			avgMs = float64(value.TotalDuration.Milliseconds()) / float64(value.Requests)

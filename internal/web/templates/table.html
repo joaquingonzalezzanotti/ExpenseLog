@@ -1113,14 +1113,16 @@
 
         function extractShortcutSourceLabel(expense) {
             if (!Array.isArray(expense?.tags)) return '';
-            const prefix = 'shortcut_source:';
+            const prefixes = ['shortcut_source_', 'shortcut_source:', 'shortcut_source '];
             for (const tag of expense.tags) {
                 const cleanTag = String(tag || '').trim();
                 if (!cleanTag) continue;
                 const lowerTag = cleanTag.toLowerCase();
-                if (!lowerTag.startsWith(prefix)) continue;
-                const label = cleanTag.slice(prefix.length).trim();
-                if (label) return label;
+                for (const prefix of prefixes) {
+                    if (!lowerTag.startsWith(prefix)) continue;
+                    const label = cleanTag.slice(prefix.length).trim();
+                    if (label) return label;
+                }
             }
             return '';
         }

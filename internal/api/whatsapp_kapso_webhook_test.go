@@ -5,6 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"math"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -138,6 +140,48 @@ func TestIsKapsoWebhookSignatureValidAcceptsSha256Prefix(t *testing.T) {
 
 	if !isKapsoWebhookSignatureValid(body, signature, secret) {
 		t.Fatalf("expected signature to be valid")
+	}
+}
+
+func TestHandleKapsoWhatsAppWebhookRejectsWhenSecretMissing(t *testing.T) {
+	t.Setenv("KAPSO_WEBHOOK_SECRET", "")
+	h := &Handler{}
+	req := httptest.NewRequest(http.MethodPost, "/webhooks/kapso/whatsapp", strings.NewReader(`{"ok":true}`))
+	rec := httptest.NewRecorder()
+
+	h.HandleKapsoWhatsAppWebhook(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected status %d, got %d body=%s", http.StatusServiceUnavailable, rec.Code, rec.Body.String())
+	}
+}
+
+func TestParseAndValidateKapsoMediaURL(t *testing.T) {
+	t.Setenv("KAPSO_MEDIA_ALLOWED_HOSTS", "")
+	if _, err := parseAndValidateKapsoMediaURL("https://api.kapso.ai/file/1"); err != nil {
+		t.Fatalf("expected trusted kapso host to be accepted: %v", err)
+	}
+	if _, err := parseAndValidateKapsoMediaURL("https://cdn.kapso.ai/media/abc"); err != nil {
+		t.Fatalf("expected kapso subdomain to be accepted: %v", err)
+	}
+	if _, err := parseAndValidateKapsoMediaURL("http://api.kapso.ai/file/1"); err == nil {
+		t.Fatalf("expected http scheme to be rejected")
+	}
+	if _, err := parseAndValidateKapsoMediaURL("https://evil.example.com/media"); err == nil {
+		t.Fatalf("expected non-kapso host to be rejected")
+	}
+}
+
+func TestParseAndValidateKapsoMediaURLRespectsHostAllowlist(t *testing.T) {
+	t.Setenv("KAPSO_MEDIA_ALLOWED_HOSTS", "media.example.com,*.example.net")
+	if _, err := parseAndValidateKapsoMediaURL("https://media.example.com/file"); err != nil {
+		t.Fatalf("expected explicit host allowlist to be accepted: %v", err)
+	}
+	if _, err := parseAndValidateKapsoMediaURL("https://cdn.example.net/file"); err != nil {
+		t.Fatalf("expected wildcard allowlist host to be accepted: %v", err)
+	}
+	if _, err := parseAndValidateKapsoMediaURL("https://api.kapso.ai/file"); err == nil {
+		t.Fatalf("expected non-allowlisted host to be rejected when custom allowlist is set")
 	}
 }
 

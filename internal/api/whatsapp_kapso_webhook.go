@@ -273,7 +273,12 @@ func (h *Handler) HandleKapsoWhatsAppWebhook(w http.ResponseWriter, r *http.Requ
 
 	signature := strings.TrimSpace(r.Header.Get(kapsoWebhookSignatureHeader))
 	secret := strings.TrimSpace(os.Getenv("KAPSO_WEBHOOK_SECRET"))
-	if secret != "" && !isKapsoWebhookSignatureValid(body, signature, secret) {
+	if secret == "" {
+		log.Printf("WHATSAPP KAPSO: missing KAPSO_WEBHOOK_SECRET, rejecting webhook request")
+		writeJSON(w, http.StatusServiceUnavailable, ErrorResponse{Error: "Webhook misconfigured"})
+		return
+	}
+	if !isKapsoWebhookSignatureValid(body, signature, secret) {
 		writeJSON(w, http.StatusUnauthorized, ErrorResponse{Error: "Invalid webhook signature"})
 		return
 	}
@@ -1767,11 +1772,15 @@ func downloadKapsoMedia(mediaURL string) ([]byte, string, error) {
 	if mediaURL == "" {
 		return nil, "", fmt.Errorf("empty media url")
 	}
+	parsedURL, err := parseAndValidateKapsoMediaURL(mediaURL)
+	if err != nil {
+		return nil, "", err
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, mediaURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), nil)
 	if err != nil {
 		return nil, "", err
 	}
@@ -1806,6 +1815,55 @@ func downloadKapsoMedia(mediaURL string) ([]byte, string, error) {
 		contentType = strings.TrimSpace(contentType[:idx])
 	}
 	return bodyBytes, contentType, nil
+}
+
+func parseAndValidateKapsoMediaURL(rawURL string) (*url.URL, error) {
+	parsedURL, err := url.Parse(strings.TrimSpace(rawURL))
+	if err != nil {
+		return nil, fmt.Errorf("invalid media url")
+	}
+	if !strings.EqualFold(parsedURL.Scheme, "https") {
+		return nil, fmt.Errorf("unsupported media url scheme")
+	}
+	host := strings.ToLower(strings.TrimSpace(parsedURL.Hostname()))
+	if !isKapsoMediaHostAllowed(host) {
+		return nil, fmt.Errorf("unsupported media host")
+	}
+	return parsedURL, nil
+}
+
+func isKapsoMediaHostAllowed(host string) bool {
+	host = strings.ToLower(strings.TrimSpace(host))
+	if host == "" {
+		return false
+	}
+	allowedHostsRaw := strings.TrimSpace(os.Getenv("KAPSO_MEDIA_ALLOWED_HOSTS"))
+	if allowedHostsRaw == "" {
+		return host == "kapso.ai" || strings.HasSuffix(host, ".kapso.ai")
+	}
+	for _, raw := range strings.Split(allowedHostsRaw, ",") {
+		candidate := strings.ToLower(strings.TrimSpace(raw))
+		if candidate == "" {
+			continue
+		}
+		if strings.HasPrefix(candidate, "*.") {
+			suffix := strings.TrimPrefix(candidate, "*")
+			if strings.HasSuffix(host, suffix) {
+				return true
+			}
+			continue
+		}
+		if strings.HasPrefix(candidate, ".") {
+			if strings.HasSuffix(host, candidate) {
+				return true
+			}
+			continue
+		}
+		if host == candidate {
+			return true
+		}
+	}
+	return false
 }
 
 func isKapsoWebhookSignatureValid(body []byte, signature, secret string) bool {

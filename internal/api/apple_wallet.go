@@ -19,7 +19,7 @@ import (
 
 const (
 	walletSourceDefault            = "apple_wallet_shortcut"
-	walletSourceTagPrefix          = "shortcut_source:"
+	walletSourceTagPrefix          = "shortcut_source_"
 	walletEventStatusReceived      = "received"
 	walletEventStatusNeedsReview   = "needs_review"
 	walletEventStatusDraftCreated  = "draft_transaction_created"

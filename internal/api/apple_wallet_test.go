@@ -259,7 +259,7 @@ func TestAppleWalletIngestStoresCustomShortcutSourceTag(t *testing.T) {
 	}
 	hasCustomSourceTag := false
 	for _, tag := range expenses[0].Tags {
-		if tag == "shortcut_source:Pascuas" {
+		if tag == "shortcut_source_Pascuas" {
 			hasCustomSourceTag = true
 		}
 	}

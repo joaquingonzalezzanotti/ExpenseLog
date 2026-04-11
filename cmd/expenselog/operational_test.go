@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 )
 
 func TestRegisterOperationalEndpointsHealthAndReady(t *testing.T) {
@@ -111,6 +113,25 @@ func TestWithAccessLoggingAndMetricsRecordsRequest(t *testing.T) {
 	}
 	if route.Requests != 1 {
 		t.Fatalf("expected 1 request for route, got %d", route.Requests)
+	}
+}
+
+func TestObservabilityRegistryCapsRouteCardinality(t *testing.T) {
+	obs := newObservabilityRegistry()
+
+	for i := 0; i < maxObservedRoutes+100; i++ {
+		obs.record(http.MethodGet, fmt.Sprintf("/probe/%d", i), http.StatusNotFound, time.Millisecond)
+	}
+
+	if len(obs.byRoute) > maxObservedRoutes {
+		t.Fatalf("expected at most %d tracked route keys, got %d", maxObservedRoutes, len(obs.byRoute))
+	}
+	overflow, ok := obs.byRoute[metricsOverflowRouteKey]
+	if !ok {
+		t.Fatalf("expected overflow route bucket %q", metricsOverflowRouteKey)
+	}
+	if overflow.Requests == 0 {
+		t.Fatalf("expected overflow bucket to aggregate requests")
 	}
 }
 

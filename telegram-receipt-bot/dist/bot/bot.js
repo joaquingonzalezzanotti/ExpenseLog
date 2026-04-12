@@ -6,7 +6,7 @@ import { processReceipt } from '../processing/pipeline.js';
 import { canUseAIParser, parseWithAIParser } from '../processing/ai_parser.js';
 import { logger } from '../observability/logger.js';
 import { draftSummary } from './format.js';
-import { dedupeKeyboard, fixMenuKeyboard, mainDecisionKeyboard } from './keyboards.js';
+import { dedupeKeyboard, fixMenuKeyboard, mainDecisionKeyboard, postConfirmKeyboard } from './keyboards.js';
 import { ExpenseLogAdapter, ExpenseLogAPIError } from '../expenselog/client.js';
 import { applyRules } from '../rules/engine.js';
 import { draftResults, parseResults, receiptsReceived, stageLatency } from '../observability/metrics.js';
@@ -184,6 +184,14 @@ const mustHaveRequired = (r) => Boolean(r.type &&
 const getOverallConfidence = (r) => {
     const value = Number(r?.confidence?.overall);
     return Number.isFinite(value) ? value : undefined;
+};
+
+const AUTO_CONFIRM_CONFIDENCE_THRESHOLD = 0.7;
+const shouldAutoConfirmDraft = (parsed) => {
+    if (!mustHaveRequired(parsed))
+        return false;
+    const confidence = getOverallConfidence(parsed);
+    return typeof confidence === 'number' && confidence >= AUTO_CONFIRM_CONFIDENCE_THRESHOLD;
 };
 const shouldPreferAICandidate = (nativeParsed, aiParsed) => {
     const nativeRequired = mustHaveRequired(nativeParsed);
@@ -780,8 +788,16 @@ export const buildBot = () => {
             if (probableDuplicate) {
                 await ctx.reply('Detecte una posible carga duplicada. Quieres crearla igual?', dedupeKeyboard());
             }
-            await ctx.reply(draftSummary(parsed), { parse_mode: 'Markdown', ...mainDecisionKeyboard() });
-            logger.info('draft_created', { id: draft.id });
+            const autoConfirmed = shouldAutoConfirmDraft(parsed);
+            await ctx.reply(draftSummary(parsed), { parse_mode: 'Markdown', ...(autoConfirmed ? {} : mainDecisionKeyboard()) });
+            if (autoConfirmed) {
+                const created = await createTransactionFromDraft(ctx, draft, 'auto');
+                if (created) {
+                    await ctx.reply(`🤖 Detecte alta confianza (${Math.round((getOverallConfidence(parsed) ?? 0) * 100)}%). La transaccion se confirmo automaticamente.`, postConfirmKeyboard(created.url));
+                    await ctx.reply(`✅ ¡Listo! Tu transaccion ya quedo registrada.\nID: ${created.transaction_id}\n${created.url ? `Puedes verla o editarla aqui: ${created.url}` : ''}`.trim());
+                }
+            }
+            logger.info('draft_created', { id: draft.id, autoConfirmed });
         }
         catch (error) {
             parseResults.inc({ status: 'fail' });
@@ -933,20 +949,12 @@ export const buildBot = () => {
         }
         await ctx.reply('Perfecto, no cree la carga duplicada.');
     });
-    const confirmHandler = async (ctx) => {
-        if (!(await ensurePrivateAllowed(ctx)))
-            return;
-        if (!(await requireLinkedPremium(ctx, true)))
-            return;
-        await answerCallback(ctx);
-        const draft = await latestDraftByUser(BigInt(ctx.from.id));
-        if (!draft)
-            return;
+    const createTransactionFromDraft = async (ctx, draft, source = 'manual') => {
         const parsed = toReceiptParseResult(draft.parseResultJson);
         if (!mustHaveRequired(parsed)) {
             const missing = getMissingRequiredLabels(parsed);
             await ctx.reply(`Faltan datos obligatorios: ${missing.join(', ')}.\nToca "Corregir datos" para completarlos.`);
-            return;
+            return undefined;
         }
         const stopCreateTx = stageLatency.startTimer({ stage: 'expenselog_create' });
         let created;
@@ -991,19 +999,19 @@ export const buildBot = () => {
                 if (error.code === 'not_linked') {
                     linkStatusCache.set(ctx.from.id, { expiresAt: Date.now() + LINK_STATUS_CACHE_TTL_MS, value: { ok: false, reason: 'not_linked' } });
                     await ctx.reply('Tu cuenta ya no esta vinculada. Genera un nuevo codigo en ExpenseLog y usa /vincular TU-CODIGO.');
-                    return;
+                    return undefined;
                 }
                 if (error.code === 'premium_required') {
                     linkStatusCache.set(ctx.from.id, { expiresAt: Date.now() + LINK_STATUS_CACHE_TTL_MS, value: { ok: false, reason: 'premium_required' } });
                     await ctx.reply('Tu cuenta necesita Premium activo para confirmar comprobantes.');
-                    return;
+                    return undefined;
                 }
                 await ctx.reply(error.message || 'No pude crear la transaccion en ExpenseLog.');
-                return;
+                return undefined;
             }
-            logger.error('expenselog_create_failed', { error });
+            logger.error('expenselog_create_failed', { error, source });
             await ctx.reply('No pude crear la transaccion en ExpenseLog.');
-            return;
+            return undefined;
         }
         finally {
             stopCreateTx();
@@ -1016,8 +1024,31 @@ export const buildBot = () => {
             }
         });
         draftResults.inc({ status: 'confirmed' });
-        await ctx.reply(`Listo, transaccion creada.\nID: ${created.transaction_id}\n${created.url ?? ''}`);
+        return created;
     };
+    const confirmHandler = async (ctx) => {
+        if (!(await ensurePrivateAllowed(ctx)))
+            return;
+        if (!(await requireLinkedPremium(ctx, true)))
+            return;
+        await answerCallback(ctx);
+        const draft = await latestDraftByUser(BigInt(ctx.from.id));
+        if (!draft)
+            return;
+        const created = await createTransactionFromDraft(ctx, draft, 'manual');
+        if (!created)
+            return;
+        await ctx.editMessageReplyMarkup(postConfirmKeyboard(created.url).reply_markup);
+        await ctx.reply(`✅ ¡Listo! Ya cargue tu transaccion.\nID: ${created.transaction_id}\n${created.url ? `Puedes verla o modificarla aqui: ${created.url}` : ''}`.trim());
+    };
+    bot.action('post_cancel', async (ctx) => {
+        if (!(await ensurePrivateAllowed(ctx)))
+            return;
+        if (!(await requireLinkedPremium(ctx)))
+            return;
+        await answerCallback(ctx);
+        await ctx.reply('Entendido. Si quieres revertirla, puedes abrir la transaccion desde ExpenseLog y eliminarla manualmente.');
+    });
     bot.action('confirm', confirmHandler);
     bot.action('dedupe_create_anyway', confirmHandler);
     return bot;

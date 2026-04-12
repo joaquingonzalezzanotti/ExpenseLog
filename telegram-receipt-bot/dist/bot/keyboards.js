@@ -4,6 +4,14 @@ export const mainDecisionKeyboard = () => Markup.inlineKeyboard([
     [Markup.button.callback('Corregir datos', 'fix_menu')],
     [Markup.button.callback('Descartar', 'reject')]
 ]);
+export const postConfirmKeyboard = (transactionUrl) => {
+    const rows = [];
+    if (transactionUrl) {
+        rows.push([Markup.button.url('Modificar', transactionUrl)]);
+    }
+    rows.push([Markup.button.callback('Cancelar', 'post_cancel')]);
+    return Markup.inlineKeyboard(rows);
+};
 export const fixMenuKeyboard = () => Markup.inlineKeyboard([
     [Markup.button.callback('Cambiar monto', 'fix_amount'), Markup.button.callback('Cambiar fecha y hora', 'fix_datetime')],
     [Markup.button.callback('Cambiar contraparte', 'fix_counterparty'), Markup.button.callback('Cambiar tipo', 'fix_type')],

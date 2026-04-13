@@ -63,3 +63,19 @@ func TestSettingsTemplateDeclaresSystemCategoryBeforeUse(t *testing.T) {
 		t.Fatalf("SYSTEM_RECONCILIATION_CATEGORY must be declared before ensureSystemCategories first use")
 	}
 }
+
+func TestIndexTemplateDoesNotContainLegacyPieChartModule(t *testing.T) {
+	index := readTemplateForTest(t, "index.html")
+	forbidden := []string{
+		`id="categoryPieChart"`,
+		`id="toggleChart"`,
+		`id="customLegend"`,
+		`class="panel-filters home-filters"`,
+	}
+
+	for _, token := range forbidden {
+		if strings.Contains(index, token) {
+			t.Fatalf("index.html should not contain legacy chart token %q", token)
+		}
+	}
+}

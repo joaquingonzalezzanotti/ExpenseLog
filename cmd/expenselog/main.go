@@ -97,6 +97,7 @@ func runServer(port int) {
 		http.NotFound(w, r)
 	})
 	http.HandleFunc("/app/table", handler.ServeTableView)
+	http.HandleFunc("/app/analisis", handler.ServeAnalyticsView)
 	http.HandleFunc("/app/settings", handler.ServeSettingsPage)
 	http.HandleFunc("/app/perfil", handler.ServeSettingsPage)
 	http.HandleFunc("/app/categorias", handler.ServeSettingsCategoriesPage)
@@ -106,6 +107,7 @@ func runServer(port int) {
 	http.HandleFunc("/app/telegram", handler.ServeSettingsTelegramPage)
 	http.HandleFunc("/app/whatsapp", handler.ServeSettingsWhatsAppPage)
 	http.HandleFunc("/table", handler.ServeTableView)
+	http.HandleFunc("/analisis", handler.ServeAnalyticsView)
 	http.HandleFunc("/settings", handler.ServeSettingsPage)
 	http.HandleFunc("/perfil", handler.ServeSettingsPage)
 	http.HandleFunc("/categorias", handler.ServeSettingsCategoriesPage)
@@ -280,7 +282,7 @@ func shouldNoIndexPath(path string) bool {
 		return true
 	}
 	switch clean {
-	case "/app", "/table", "/settings", "/perfil", "/categorias", "/recurrentes", "/conciliacion", "/reportes", "/telegram", "/whatsapp":
+	case "/app", "/table", "/analisis", "/settings", "/perfil", "/categorias", "/recurrentes", "/conciliacion", "/reportes", "/telegram", "/whatsapp":
 		return true
 	}
 	return strings.HasPrefix(clean, "/app/")

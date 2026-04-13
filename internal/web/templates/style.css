@@ -1005,6 +1005,30 @@ input:focus-visible {
     flex: 1;
 }
 
+.analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.analytics-card {
+    min-height: 420px;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.analytics-card .chart-box {
+    height: 320px;
+}
+
+.analytics-card-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin: 0.25rem 0.25rem 0.5rem;
+}
+
 .amount {
     font-family: monospace;
     color: var(--text-secondary);
@@ -4061,6 +4085,18 @@ html[data-settings-route='whatsapp'] body.settings-page #whatsappSection[hidden]
 
     .legend-item {
         margin-bottom: 0.5rem;
+    }
+
+    .analytics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .analytics-card {
+        min-height: 360px;
+    }
+
+    .analytics-card .chart-box {
+        height: 280px;
     }
 
     .month-navigation {

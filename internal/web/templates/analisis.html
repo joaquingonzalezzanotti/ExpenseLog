@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="application-name" content="ExpenseLog">
+    <meta name="apple-mobile-web-app-title" content="ExpenseLog">
+    <link rel="stylesheet" href="/app/fa.min.css">
+    <link rel="icon" href="/app/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="/app/style.css">
+    <script>
+        (function() {
+            const storedTheme = localStorage.getItem('theme');
+            const theme = storedTheme === 'dark' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    <title>Analisis ExpenseLog</title>
+    <script src="/app/chart.min.js"></script>
+</head>
+<body class="auth-pending">
+    <div class="container">
+        <header>
+            <div class="nav-bar">
+                <div class="nav-left-slot">
+                    <button id="mobileMenuToggle" class="view-button mobile-menu-toggle" type="button" aria-label="Abrir menu" aria-controls="mobileDrawer" aria-expanded="false">
+                        <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <a href="/app" class="nav-logo-link">
+                    <img src="/app/pwa/icon-192.png" alt="ExpenseLog Logo" class="nav-logo">
+                    <span class="nav-logo-mobile-text" aria-hidden="true">EL</span>
+                </a>
+                <div class="nav-right-slot">
+                    <button id="notificationCenterButton" class="view-button notification-trigger" data-tooltip="Notificaciones" type="button" aria-label="Notificaciones" aria-expanded="false">
+                        <i class="fa-regular fa-bell"></i>
+                        <span id="notificationCenterBadge" class="notification-badge" hidden></span>
+                    </button>
+                    <div id="notificationCenterPanel" class="notification-panel" hidden>
+                        <div class="notification-panel-title">Notificaciones</div>
+                        <div id="notificationCenterList" class="notification-list"></div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div id="mobileDrawerOverlay" class="mobile-drawer-overlay" data-mobile-drawer-overlay aria-hidden="true"></div>
+        <aside id="mobileDrawer" class="mobile-drawer" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="mobileDrawerTitle" tabindex="-1">
+            <div class="mobile-drawer-header">
+                <h2 id="mobileDrawerTitle" class="mobile-drawer-title">Menu</h2>
+                <button type="button" class="view-button mobile-drawer-close" data-mobile-drawer-close aria-label="Cerrar menu">
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                </button>
+            </div>
+            <nav class="mobile-drawer-nav" aria-label="Navegacion principal">
+                <a href="/app" class="mobile-drawer-link"><i class="fa-solid fa-house" aria-hidden="true"></i><span>Inicio</span></a>
+                <a href="/app/table" class="mobile-drawer-link"><i class="fa-solid fa-table" aria-hidden="true"></i><span>Tabla</span></a>
+                <a href="/app/table?view=calendar" class="mobile-drawer-link"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i><span>Calendario</span></a>
+                <a href="/app/perfil" class="mobile-drawer-link"><i class="fa-regular fa-user" aria-hidden="true"></i><span>Perfil</span></a>
+                <a href="/app/categorias" class="mobile-drawer-link"><i class="fa-solid fa-tags" aria-hidden="true"></i><span>Categorias</span></a>
+                <a href="/app/recurrentes" class="mobile-drawer-link"><i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i><span>Recurrentes</span></a>
+                <a href="/app/conciliacion" class="mobile-drawer-link"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i><span>Conciliacion</span></a>
+                <a href="/app/analisis" class="mobile-drawer-link active" data-plan-nav-slot="analytics" aria-current="page"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i><span>Analisis</span></a>
+            </nav>
+        </aside>
+
+        <nav class="mobile-bottom-nav" aria-label="Navegacion principal">
+            <a href="/app" class="mobile-nav-item"><i class="fa-solid fa-house"></i><span>Inicio</span></a>
+            <a href="/app/table" class="mobile-nav-item"><i class="fa-solid fa-table"></i><span>Tabla</span></a>
+            <a href="/app/table?view=calendar" class="mobile-nav-item"><i class="fa-regular fa-calendar-days"></i><span>Calendario</span></a>
+            <a href="/app/analisis" class="mobile-nav-item active" data-plan-nav-slot="analytics" aria-current="page"><i class="fa-solid fa-chart-pie"></i><span>Analisis</span></a>
+            <a href="/app/perfil" class="mobile-nav-item"><i class="fa-regular fa-user"></i><span>Usuario</span></a>
+        </nav>
+
+        <div class="month-navigation">
+            <button id="prevMonth" class="nav-button" type="button"><span class="month-nav-arrow" aria-hidden="true">&#8592;</span></button>
+            <div class="current-month" id="currentMonth"></div>
+            <button id="nextMonth" class="nav-button" type="button"><span class="month-nav-arrow" aria-hidden="true">&#8594;</span></button>
+        </div>
+
+        <section class="panel-filters analytics-filters">
+            <div class="filter-group">
+                <span class="filter-label">Moneda</span>
+                <select id="analyticsFilterCurrency" class="filter-select">
+                    <option value="all">Todas</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">Medio de pago</span>
+                <select id="analyticsFilterSource" class="filter-select">
+                    <option value="all">Todos</option>
+                </select>
+            </div>
+            <button id="analyticsClearFilters" class="nav-button button-secondary" type="button">Limpiar</button>
+        </section>
+
+        <div id="analyticsEmptyState" class="empty-state" style="display: none;"></div>
+
+        <section id="analyticsGrid" class="analytics-grid">
+            <article class="chart-container analytics-card">
+                <div class="analytics-card-title">Gastos por categoria</div>
+                <div class="chart-box">
+                    <canvas id="analyticsCategoryChart"></canvas>
+                </div>
+                <div class="legend-box" id="analyticsCategoryLegend"></div>
+            </article>
+
+            <article class="chart-container analytics-card">
+                <div class="analytics-card-title">Gastos por medio de pago</div>
+                <div class="chart-box">
+                    <canvas id="analyticsSourceChart"></canvas>
+                </div>
+                <div class="legend-box" id="analyticsSourceLegend"></div>
+            </article>
+        </section>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <div id="authOverlay" class="auth-overlay hidden" aria-hidden="true">
+        <div class="auth-panel">
+            <div class="auth-header">
+                <h2>ExpenseLog</h2>
+                <p>Inicia sesion para continuar</p>
+            </div>
+            <div class="auth-tabs">
+                <button class="auth-tab active" type="button" data-auth-tab="login">Ingresar</button>
+                <button class="auth-tab" type="button" data-auth-tab="register">Crear cuenta</button>
+            </div>
+            <a id="authGoogleButton" class="auth-google-button" href="/api/auth/google">
+                <span class="auth-google-logo" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                        <path fill="#EA4335" d="M17.64 9.2045c0-.6382-.0573-1.2518-.1636-1.8409H9v3.4818h4.8436c-.2086 1.125-.8427 2.0782-1.7959 2.7164v2.2581h2.9086c1.7018-1.5668 2.6837-3.8727 2.6837-6.6154z"/>
+                        <path fill="#4285F4" d="M9 18c2.43 0 4.4673-.8059 5.9563-2.1791l-2.9086-2.2581c-.806 0-1.5427.2728-2.1845.4636-1.26 0-2.3264-.8509-2.7096-1.9954H4.1455v2.3218C5.6264 16.9845 7.1309 18 9 18z"/>
+                        <path fill="#FBBC05" d="M4.1455 12.0309C3.9482 11.4409 3.8364 10.8091 3.8364 10.1591s.1118-1.2818.3091-1.8718V5.9655H1.2373C.4482 7.5373 0 9.2582 0 10.1591s.4482 2.6218 1.2373 4.1936l2.9082-2.3218z"/>
+                        <path fill="#34A853" d="M9 3.5791c1.3214 0 2.5077.4545 3.4418 1.3454l2.5818-2.5818C13.4636.891 11.4264 0 9 0 7.1309 0 5.6264 1.0155 4.1455 2.6473l3.0082 2.3409C7.5373 3.84 8.6045 3.5791 9 3.5791z"/>
+                    </svg>
+                </span>
+                <span>Continuar con Google</span>
+            </a>
+            <div id="authMessage" class="form-message"></div>
+            <form id="authLoginForm" class="auth-form active" data-auth-form="login">
+                <div class="form-group">
+                    <label for="authLoginEmail">Email</label>
+                    <input type="email" id="authLoginEmail" autocomplete="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="authLoginPassword">Contrasena</label>
+                    <input type="password" id="authLoginPassword" autocomplete="current-password" required>
+                </div>
+                <label class="auth-remember">
+                    <input type="checkbox" id="authLoginRemember" class="styled-checkbox">
+                    Recordarme
+                </label>
+                <button type="button" class="auth-link" data-auth-link="reset">Olvide mi contrasena</button>
+                <button type="submit" class="nav-button">Ingresar</button>
+            </form>
+            <form id="authRegisterForm" class="auth-form" data-auth-form="register">
+                <div class="form-group">
+                    <label for="authRegisterEmail">Email</label>
+                    <input type="email" id="authRegisterEmail" autocomplete="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="authRegisterPassword">Contrasena (min 8)</label>
+                    <input type="password" id="authRegisterPassword" autocomplete="new-password" required>
+                </div>
+                <label class="auth-remember">
+                    <input type="checkbox" id="authRegisterRemember" class="styled-checkbox">
+                    Recordarme
+                </label>
+                <button type="submit" class="nav-button">Crear cuenta</button>
+            </form>
+            <form id="authResetForm" class="auth-form" data-auth-form="reset">
+                <div class="form-group">
+                    <label for="authResetEmail">Email</label>
+                    <input type="email" id="authResetEmail" autocomplete="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="authResetCode">Codigo</label>
+                    <input type="text" id="authResetCode" autocomplete="one-time-code" required>
+                </div>
+                <div class="form-group">
+                    <label for="authResetPassword">Nueva contrasena (min 8)</label>
+                    <input type="password" id="authResetPassword" autocomplete="new-password" required>
+                </div>
+                <div class="auth-reset-actions">
+                    <button type="button" class="nav-button" id="authSendResetCode">Enviar codigo</button>
+                    <button type="submit" class="nav-button">Confirmar</button>
+                </div>
+                <button type="button" class="auth-link" data-auth-link="login">Volver a ingresar</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/app/functions.js"></script>
+    <script>
+        let currentCurrency = 'ars';
+        let startDate = 1;
+        let currentDate = new Date();
+        let allExpenses = [];
+        let analyticsCategoryChart = null;
+        let analyticsSourceChart = null;
+        let filterCurrency = 'all';
+        let filterSource = 'all';
+        const supportedCurrencies = Object.keys(currencyBehaviors);
+        const categoryColors = {};
+        const disabledCategories = new Set();
+
+        const CONFIG_CACHE_KEY = 'expenselog_config_cache_v1';
+        const CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
+
+        function readConfigCache() {
+            try {
+                const raw = localStorage.getItem(CONFIG_CACHE_KEY);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') return null;
+                if (!parsed.config || typeof parsed.config !== 'object') return null;
+                return parsed;
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function writeConfigCache(config) {
+            try {
+                localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify({
+                    cachedAt: Date.now(),
+                    config,
+                }));
+            } catch (_) {
+                // ignore cache write failures
+            }
+        }
+
+        function isConfigCacheFresh(entry) {
+            if (!entry || typeof entry.cachedAt !== 'number') return false;
+            return (Date.now() - entry.cachedAt) < CONFIG_CACHE_TTL_MS;
+        }
+
+        function formatCurrencyWithCurrency(amount, currencyCode) {
+            const behavior = currencyBehaviors[currencyCode] || currencyBehaviors[currentCurrency] || {
+                symbol: "$",
+                useComma: false,
+                useDecimals: true,
+                useSpace: false,
+                right: false,
+            };
+            const isNegative = amount < 0;
+            const absAmount = Math.abs(amount);
+            const options = {
+                minimumFractionDigits: behavior.useDecimals ? 2 : 0,
+                maximumFractionDigits: behavior.useDecimals ? 2 : 0,
+            };
+            const formatted = new Intl.NumberFormat(behavior.useComma ? "de-DE" : "en-US", options).format(absAmount);
+            const result = behavior.right
+                ? `${formatted}${behavior.useSpace ? " " : ""}${behavior.symbol}`
+                : `${behavior.symbol}${behavior.useSpace ? " " : ""}${formatted}`;
+            return isNegative ? `-${result}` : result;
+        }
+
+        function assignCategoryColors(categories) {
+            categories.forEach((category, index) => {
+                if (!categoryColors[category]) {
+                    categoryColors[category] = colorPalette[index % colorPalette.length];
+                }
+            });
+        }
+
+        function applyConfig(config) {
+            currentCurrency = (config?.currency || 'ars').toLowerCase();
+            if (!supportedCurrencies.includes(currentCurrency)) {
+                currentCurrency = 'ars';
+            }
+            startDate = Number(config?.startDate) || 1;
+            populateFilters();
+        }
+
+        function populateFilters() {
+            const currencySelect = document.getElementById('analyticsFilterCurrency');
+            const sourceSelect = document.getElementById('analyticsFilterSource');
+            if (!currencySelect || !sourceSelect) return;
+            currencySelect.innerHTML = `<option value="all">Todas</option>` + supportedCurrencies.map((code) =>
+                `<option value="${code}">${code.toUpperCase()}</option>`
+            ).join('');
+            sourceSelect.innerHTML = `
+                <option value="all">Todos</option>
+                <option value="CA">${formatSourceLabel('CA')}</option>
+                <option value="EFECTIVO">${formatSourceLabel('EFECTIVO')}</option>
+                <option value="TARJETA">${formatSourceLabel('TARJETA')}</option>
+            `;
+            currencySelect.value = filterCurrency;
+            sourceSelect.value = filterSource;
+        }
+
+        function isExpenseForAnalysis(expense) {
+            const flow = resolveFlow(expense);
+            return flow === 'expense' && Number(expense.amount) < 0;
+        }
+
+        function getCurrentMonthExpenses() {
+            const now = new Date();
+            return getMonthExpenses(allExpenses).filter((expense) => getComparableExpenseDate(expense) <= now);
+        }
+
+        function getFilteredExpenses() {
+            const monthExpenses = getCurrentMonthExpenses();
+            return monthExpenses.filter((expense) => {
+                if (!isExpenseForAnalysis(expense)) return false;
+                const currency = (expense.currency || currentCurrency).toLowerCase();
+                if (filterCurrency !== 'all' && currency !== filterCurrency) return false;
+                const normalizedSource = normalizeSourceCode(expense.source || 'CA');
+                if (filterSource === 'all') return true;
+                if (filterSource === 'CA') return normalizedSource === 'CA';
+                return normalizedSource === filterSource;
+            });
+        }
+
+        function calculateCategoryBreakdown(expenses) {
+            const totals = {};
+            expenses.forEach((expense) => {
+                const key = String(expense.category || 'Sin categoria');
+                totals[key] = (totals[key] || 0) + Math.abs(Number(expense.amount) || 0);
+            });
+            const entries = Object.entries(totals)
+                .map(([category, total]) => ({ category, total }))
+                .sort((a, b) => b.total - a.total);
+            const grandTotal = entries.reduce((sum, entry) => sum + entry.total, 0);
+            return entries.map((entry) => ({
+                ...entry,
+                percentage: grandTotal > 0 ? (entry.total / grandTotal) * 100 : 0,
+            }));
+        }
+
+        function calculateSourceBreakdown(expenses) {
+            const totals = {};
+            expenses.forEach((expense) => {
+                const source = normalizeSourceCode(expense.source || 'CA');
+                totals[source] = (totals[source] || 0) + Math.abs(Number(expense.amount) || 0);
+            });
+            const entries = Object.entries(totals)
+                .map(([source, total]) => ({ source, total }))
+                .sort((a, b) => b.total - a.total);
+            const grandTotal = entries.reduce((sum, entry) => sum + entry.total, 0);
+            return entries.map((entry) => ({
+                ...entry,
+                label: formatSourceLabel(entry.source),
+                percentage: grandTotal > 0 ? (entry.total / grandTotal) * 100 : 0,
+            }));
+        }
+
+        function destroyCharts() {
+            if (analyticsCategoryChart) {
+                analyticsCategoryChart.destroy();
+                analyticsCategoryChart = null;
+            }
+            if (analyticsSourceChart) {
+                analyticsSourceChart.destroy();
+                analyticsSourceChart = null;
+            }
+        }
+
+        function renderCategoryLegend(categoryData, currencyCode) {
+            const container = document.getElementById('analyticsCategoryLegend');
+            if (!container) return;
+            container.innerHTML = '';
+            categoryData.forEach((entry) => {
+                const disabled = disabledCategories.has(entry.category);
+                const item = document.createElement('div');
+                item.className = `legend-item${disabled ? ' disabled' : ''}`;
+                item.innerHTML = `
+                    <div class="color-box" style="background-color: ${categoryColors[entry.category] || '#808080'}"></div>
+                    <div class="legend-text">
+                        <span>${escapeHTML(entry.category)} (${entry.percentage.toFixed(1)}%)</span>
+                        <span class="amount">${formatCurrencyWithCurrency(entry.total, currencyCode)}</span>
+                    </div>
+                `;
+                item.addEventListener('click', () => {
+                    if (disabledCategories.has(entry.category)) {
+                        disabledCategories.delete(entry.category);
+                    } else {
+                        disabledCategories.add(entry.category);
+                    }
+                    renderCharts();
+                });
+                container.appendChild(item);
+            });
+        }
+
+        function renderSourceLegend(sourceData, currencyCode) {
+            const container = document.getElementById('analyticsSourceLegend');
+            if (!container) return;
+            container.innerHTML = sourceData.map((entry) => `
+                <div class="legend-item">
+                    <div class="color-box" style="background-color: ${entry.color}"></div>
+                    <div class="legend-text">
+                        <span>${escapeHTML(entry.label)} (${entry.percentage.toFixed(1)}%)</span>
+                        <span class="amount">${formatCurrencyWithCurrency(entry.total, currencyCode)}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderCharts() {
+            const emptyState = document.getElementById('analyticsEmptyState');
+            const grid = document.getElementById('analyticsGrid');
+            const filteredExpenses = getFilteredExpenses();
+            const chartCurrency = filterCurrency === 'all' ? currentCurrency : filterCurrency;
+
+            if (!filteredExpenses.length) {
+                destroyCharts();
+                if (grid) grid.style.display = 'none';
+                if (emptyState) {
+                    emptyState.style.display = 'block';
+                    emptyState.innerHTML = '<strong>No hay gastos para este periodo/filtro.</strong> Cambia mes o filtros para ver datos.';
+                }
+                return;
+            }
+
+            if (grid) grid.style.display = 'grid';
+            if (emptyState) emptyState.style.display = 'none';
+
+            const categoryData = calculateCategoryBreakdown(filteredExpenses);
+            assignCategoryColors(categoryData.map((entry) => entry.category));
+            const activeCategoryData = categoryData.filter((entry) => !disabledCategories.has(entry.category));
+            const safeCategoryData = activeCategoryData.length ? activeCategoryData : categoryData;
+
+            const sourceData = calculateSourceBreakdown(filteredExpenses).map((entry, index) => ({
+                ...entry,
+                color: colorPalette[(index + 3) % colorPalette.length],
+            }));
+
+            destroyCharts();
+
+            analyticsCategoryChart = new Chart('analyticsCategoryChart', {
+                type: 'doughnut',
+                data: {
+                    labels: safeCategoryData.map((entry) => entry.category),
+                    datasets: [{
+                        data: safeCategoryData.map((entry) => entry.total),
+                        backgroundColor: safeCategoryData.map((entry) => categoryColors[entry.category]),
+                        borderColor: '#1a1a1a',
+                        borderWidth: 1,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const value = Number(context.raw || 0);
+                                    const total = context.dataset.data.reduce((sum, item) => sum + Number(item || 0), 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+                                    return `${context.label}: ${formatCurrencyWithCurrency(value, chartCurrency)} (${percentage}%)`;
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+
+            analyticsSourceChart = new Chart('analyticsSourceChart', {
+                type: 'doughnut',
+                data: {
+                    labels: sourceData.map((entry) => entry.label),
+                    datasets: [{
+                        data: sourceData.map((entry) => entry.total),
+                        backgroundColor: sourceData.map((entry) => entry.color),
+                        borderColor: '#1a1a1a',
+                        borderWidth: 1,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const value = Number(context.raw || 0);
+                                    const total = context.dataset.data.reduce((sum, item) => sum + Number(item || 0), 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+                                    return `${context.label}: ${formatCurrencyWithCurrency(value, chartCurrency)} (${percentage}%)`;
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+
+            renderCategoryLegend(categoryData, chartCurrency);
+            renderSourceLegend(sourceData, chartCurrency);
+        }
+
+        async function initialize() {
+            try {
+                const cachedConfigEntry = readConfigCache();
+                const cachedConfig = cachedConfigEntry?.config || null;
+                if (cachedConfig) {
+                    applyConfig(cachedConfig);
+                }
+
+                if (!cachedConfig || !isConfigCacheFresh(cachedConfigEntry)) {
+                    try {
+                        const configResponse = await fetch('/config');
+                        if (!configResponse.ok) throw new Error('No se pudo obtener la configuracion');
+                        const config = await configResponse.json();
+                        applyConfig(config);
+                        writeConfigCache(config);
+                    } catch (configError) {
+                        if (!cachedConfig) throw configError;
+                    }
+                }
+
+                const response = await fetch('/expenses');
+                if (!response.ok) throw new Error('No se pudieron obtener los movimientos');
+                const data = await response.json();
+                allExpenses = Array.isArray(data) ? data : (Array.isArray(data.expenses) ? data.expenses : []);
+                allExpenses = allExpenses.map((expense) => ({
+                    ...expense,
+                    currency: (expense.currency || currentCurrency).toLowerCase(),
+                    source: expense.source || 'CA',
+                }));
+
+                updateMonthDisplay();
+                renderCharts();
+            } catch (error) {
+                console.error('No se pudo inicializar analisis:', error);
+                const emptyState = document.getElementById('analyticsEmptyState');
+                if (emptyState) {
+                    emptyState.style.display = 'block';
+                    emptyState.innerHTML = '<strong>No se pudo cargar Analisis.</strong> Reintenta en unos segundos.';
+                }
+            }
+        }
+
+        if (window.Chart) {
+            Chart.defaults.color = '#b3b3b3';
+            Chart.defaults.borderColor = '#606060';
+            Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        }
+
+        document.getElementById('prevMonth')?.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            updateMonthDisplay();
+            renderCharts();
+        });
+
+        document.getElementById('nextMonth')?.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            updateMonthDisplay();
+            renderCharts();
+        });
+
+        document.getElementById('analyticsFilterCurrency')?.addEventListener('change', (event) => {
+            filterCurrency = String(event.target.value || 'all').toLowerCase();
+            renderCharts();
+        });
+
+        document.getElementById('analyticsFilterSource')?.addEventListener('change', (event) => {
+            filterSource = String(event.target.value || 'all').toUpperCase();
+            renderCharts();
+        });
+
+        document.getElementById('analyticsClearFilters')?.addEventListener('click', () => {
+            filterCurrency = 'all';
+            filterSource = 'all';
+            const currencySelect = document.getElementById('analyticsFilterCurrency');
+            const sourceSelect = document.getElementById('analyticsFilterSource');
+            if (currencySelect) currencySelect.value = 'all';
+            if (sourceSelect) sourceSelect.value = 'all';
+            renderCharts();
+        });
+
+        document.addEventListener('DOMContentLoaded', guardAppInit(initialize));
+    </script>
+    <script>
+        (function loadVercelTelemetry() {
+            const host = window.location.hostname;
+            const isVercelHost = host.endsWith('.vercel.app');
+            const isPrimaryHost = host === 'expenselog.com.ar' || host === 'www.expenselog.com.ar';
+            if (!isVercelHost && !isPrimaryHost) return;
+
+            const addScript = (src) => {
+                const script = document.createElement('script');
+                script.defer = true;
+                script.src = src;
+                document.body.appendChild(script);
+            };
+
+            addScript('/_vercel/insights/script.js');
+            addScript('/_vercel/speed-insights/script.js');
+        })();
+    </script>
+</body>
+</html>

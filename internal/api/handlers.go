@@ -767,6 +767,17 @@ func (h *Handler) ServeTableView(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handler) ServeAnalyticsView(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{Error: "Method not allowed"})
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := web.ServeTemplate(w, "analisis.html"); err != nil {
+		http.Error(w, "Failed to serve template", http.StatusInternalServerError)
+	}
+}
+
 func (h *Handler) ServeSettingsPage(w http.ResponseWriter, r *http.Request) {
 	h.serveSettingsPageWithSection(w, r, "profile")
 }

@@ -1007,7 +1007,7 @@ input:focus-visible {
 
 .analytics-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
     margin-bottom: 1rem;
 }
@@ -1016,10 +1016,13 @@ input:focus-visible {
     min-height: 420px;
     flex-direction: column;
     align-items: stretch;
+    width: 100%;
+    overflow: hidden;
 }
 
 .analytics-card .chart-box {
     height: 320px;
+    min-width: 0;
 }
 
 .analytics-card-title {
@@ -1027,6 +1030,88 @@ input:focus-visible {
     font-weight: 700;
     color: var(--text-secondary);
     margin: 0.25rem 0.25rem 0.5rem;
+}
+
+.analytics-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.analytics-card-hint {
+    margin: 0 0.25rem 0.55rem;
+    color: var(--text-secondary);
+    font-size: 0.84rem;
+}
+
+.analytics-mode-switch {
+    display: inline-flex;
+    gap: 0.35rem;
+    border: 1px solid var(--border);
+    border-radius: 9999px;
+    padding: 0.2rem;
+    background-color: var(--bg-primary);
+}
+
+.analytics-mode-btn {
+    border: 1px solid transparent;
+    border-radius: 9999px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.35rem 0.78rem;
+    cursor: pointer;
+}
+
+.analytics-mode-btn.active {
+    background-color: var(--accent);
+    color: var(--accent-contrast);
+}
+
+.analytics-mode-placeholder {
+    margin: 0.2rem 0;
+    padding: 0.75rem 0.4rem;
+}
+
+.analytics-filters {
+    overflow: hidden;
+}
+
+.analytics-filters .filter-group {
+    min-width: 0;
+}
+
+#analyticsChartWrap canvas {
+    max-width: 100%;
+}
+
+#analyticsMainLegend {
+    min-width: 0;
+    width: 100%;
+}
+
+#analyticsMainLegend .legend-item {
+    min-width: 0;
+}
+
+#analyticsMainLegend .legend-text {
+    min-width: 0;
+    gap: 0.6rem;
+}
+
+#analyticsMainLegend .analytics-legend-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#analyticsMainLegend .analytics-legend-amount {
+    white-space: nowrap;
+    font-size: 0.88rem;
 }
 
 .amount {
@@ -3724,6 +3809,7 @@ html[data-theme='dark'] .home-credit-fx-grid > #cashflow-section .cashflow-row.c
     border-radius: 12px;
     background-color: var(--bg-primary);
     color: var(--text-primary);
+    text-decoration: none;
     padding: 0.72rem 0.9rem;
     font-size: 0.95rem;
     cursor: pointer;
@@ -4096,7 +4182,27 @@ html[data-settings-route='whatsapp'] body.settings-page #whatsappSection[hidden]
     }
 
     .analytics-card .chart-box {
-        height: 280px;
+        height: 260px;
+    }
+
+    .analytics-head {
+        align-items: stretch;
+    }
+
+    .analytics-mode-switch {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .analytics-mode-btn {
+        width: 100%;
+    }
+
+    #analyticsMainLegend .analytics-legend-label {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
     }
 
     .month-navigation {

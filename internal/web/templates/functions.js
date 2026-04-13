@@ -48,7 +48,7 @@ let currentVisibleNotificationItems = [];
 let notificationCenterDisabled = false;
 let notificationCenterFetchWarned = false;
 let logoutInFlight = false;
-let currentPlanTier = 'free';
+let navigationPlanTier = 'free';
 let planTierRefreshPromise = null;
 const PLAN_TIER_CACHE_KEY = 'expenselog_plan_tier_cache_v1';
 const PLAN_TIER_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -138,16 +138,16 @@ function getPlanAwareAnalyticsRoute(planTier) {
 }
 
 function applyPlanAwareAnalyticsNavigation(planTier) {
-    currentPlanTier = normalizePlanTier(planTier);
-    const isPremium = currentPlanTier === 'premium';
-    const targetRoute = getPlanAwareAnalyticsRoute(currentPlanTier);
+    navigationPlanTier = normalizePlanTier(planTier);
+    const isPremium = navigationPlanTier === 'premium';
+    const targetRoute = getPlanAwareAnalyticsRoute(navigationPlanTier);
     const iconClasses = isPremium ? 'fa-regular fa-file-lines' : 'fa-solid fa-chart-pie';
     const label = isPremium ? 'Reportes' : 'Analisis';
 
     document.querySelectorAll('[data-plan-nav-slot="analytics"]').forEach((node) => {
         if (!(node instanceof HTMLAnchorElement)) return;
         node.setAttribute('href', targetRoute);
-        node.dataset.planTier = currentPlanTier;
+        node.dataset.planTier = navigationPlanTier;
         const icon = node.querySelector('i');
         if (icon) {
             icon.className = iconClasses;
@@ -1061,6 +1061,63 @@ function setupMobileDrawer() {
     });
 }
 
+function setupMobileBottomNavActiveState() {
+    const navLinks = Array.from(document.querySelectorAll('.mobile-bottom-nav .mobile-nav-item'));
+    if (navLinks.length === 0) return;
+
+    const normalizeRoute = (pathname, search = '') => {
+        const cleanedPath = String(pathname || '/').replace(/\/+$/, '') || '/';
+        const aliases = {
+            '/table': '/app/table',
+            '/analisis': '/app/analisis',
+            '/reportes': '/app/reportes',
+            '/settings': '/app/perfil',
+            '/perfil': '/app/perfil',
+            '/app/settings': '/app/perfil',
+            '/app/categorias': '/app/perfil',
+            '/categorias': '/app/perfil',
+            '/app/recurrentes': '/app/perfil',
+            '/recurrentes': '/app/perfil',
+            '/app/conciliacion': '/app/perfil',
+            '/conciliacion': '/app/perfil',
+            '/app/telegram': '/app/perfil',
+            '/telegram': '/app/perfil',
+            '/app/whatsapp': '/app/perfil',
+            '/whatsapp': '/app/perfil',
+        };
+        const canonicalPath = aliases[cleanedPath] || cleanedPath;
+        return `${canonicalPath}${String(search || '')}`;
+    };
+
+    const updateBottomNavActiveState = () => {
+        const currentRoute = normalizeRoute(window.location.pathname, window.location.search);
+        navLinks.forEach((link) => {
+            if (!(link instanceof HTMLAnchorElement)) return;
+            try {
+                const target = new URL(link.href, window.location.origin);
+                const targetRoute = normalizeRoute(target.pathname, target.search);
+                const isAnalyticsSlot = link.dataset.planNavSlot === 'analytics';
+                const isActive = isAnalyticsSlot
+                    ? (currentRoute === '/app/analisis' || currentRoute === '/app/reportes') &&
+                        (targetRoute === '/app/analisis' || targetRoute === '/app/reportes')
+                    : targetRoute === currentRoute;
+                link.classList.toggle('active', isActive);
+                if (isActive) {
+                    link.setAttribute('aria-current', 'page');
+                } else {
+                    link.removeAttribute('aria-current');
+                }
+            } catch (error) {
+                console.error('Failed to parse bottom nav route:', error);
+            }
+        });
+    };
+
+    updateBottomNavActiveState();
+    window.addEventListener('popstate', updateBottomNavActiveState);
+    window.addEventListener('expenselog:routechange', updateBottomNavActiveState);
+}
+
 function setupRoutePrefetch() {
     const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
     const effectiveType = String(connection?.effectiveType || '').toLowerCase();
@@ -1167,6 +1224,7 @@ document.addEventListener('DOMContentLoaded', () => {
     applyPlanAwareAnalyticsNavigation(cachedPlanTier);
     setupAuthUI();
     setupMobileDrawer();
+    setupMobileBottomNavActiveState();
     setupRoutePrefetch();
     showAuthMessageFromURL();
     if (!authChecked) {

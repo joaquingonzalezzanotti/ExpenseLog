@@ -98,19 +98,21 @@
 
         <section id="analyticsGrid" class="analytics-grid">
             <article class="chart-container analytics-card">
-                <div class="analytics-card-title">Gastos por categoria</div>
-                <div class="chart-box">
-                    <canvas id="analyticsCategoryChart"></canvas>
+                <div class="analytics-head">
+                    <div id="analyticsCardTitle" class="analytics-card-title">Vista de gastos</div>
+                    <div class="analytics-mode-switch" role="tablist" aria-label="Modo de analisis">
+                        <button id="analyticsModeCategory" class="analytics-mode-btn" type="button" role="tab" aria-selected="false">Categoria</button>
+                        <button id="analyticsModeSource" class="analytics-mode-btn" type="button" role="tab" aria-selected="false">Medio de pago</button>
+                    </div>
                 </div>
-                <div class="legend-box" id="analyticsCategoryLegend"></div>
-            </article>
-
-            <article class="chart-container analytics-card">
-                <div class="analytics-card-title">Gastos por medio de pago</div>
-                <div class="chart-box">
-                    <canvas id="analyticsSourceChart"></canvas>
+                <p class="analytics-card-hint">Selecciona un modo para cargar el grafico.</p>
+                <div id="analyticsModePlaceholder" class="empty-state analytics-mode-placeholder">
+                    Elegi categoria o medio de pago para visualizar el grafico.
                 </div>
-                <div class="legend-box" id="analyticsSourceLegend"></div>
+                <div id="analyticsChartWrap" class="chart-box" style="display: none;">
+                    <canvas id="analyticsMainChart"></canvas>
+                </div>
+                <div class="legend-box" id="analyticsMainLegend" style="display: none;"></div>
             </article>
         </section>
     </div>
@@ -198,10 +200,10 @@
         let startDate = 1;
         let currentDate = new Date();
         let allExpenses = [];
-        let analyticsCategoryChart = null;
-        let analyticsSourceChart = null;
+        let analyticsMainChart = null;
         let filterCurrency = 'all';
         let filterSource = 'all';
+        let analyticsMode = '';
         const supportedCurrencies = Object.keys(currencyBehaviors);
         const categoryColors = {};
         const disabledCategories = new Set();
@@ -349,66 +351,110 @@
             }));
         }
 
-        function destroyCharts() {
-            if (analyticsCategoryChart) {
-                analyticsCategoryChart.destroy();
-                analyticsCategoryChart = null;
+        function destroyChart() {
+            if (!analyticsMainChart) return;
+            analyticsMainChart.destroy();
+            analyticsMainChart = null;
+        }
+
+        function setAnalyticsMode(mode) {
+            analyticsMode = (mode === 'category' || mode === 'source') ? mode : '';
+            const modeCategoryBtn = document.getElementById('analyticsModeCategory');
+            const modeSourceBtn = document.getElementById('analyticsModeSource');
+            if (modeCategoryBtn) {
+                const active = analyticsMode === 'category';
+                modeCategoryBtn.classList.toggle('active', active);
+                modeCategoryBtn.setAttribute('aria-selected', active ? 'true' : 'false');
             }
-            if (analyticsSourceChart) {
-                analyticsSourceChart.destroy();
-                analyticsSourceChart = null;
+            if (modeSourceBtn) {
+                const active = analyticsMode === 'source';
+                modeSourceBtn.classList.toggle('active', active);
+                modeSourceBtn.setAttribute('aria-selected', active ? 'true' : 'false');
             }
         }
 
-        function renderCategoryLegend(categoryData, currencyCode) {
-            const container = document.getElementById('analyticsCategoryLegend');
+        function resolveModeModel(filteredExpenses) {
+            if (analyticsMode === 'category') {
+                const categoryData = calculateCategoryBreakdown(filteredExpenses);
+                assignCategoryColors(categoryData.map((entry) => entry.category));
+                const legendRows = categoryData.map((entry) => ({
+                    id: entry.category,
+                    label: entry.category,
+                    total: entry.total,
+                    percentage: entry.percentage,
+                    color: categoryColors[entry.category] || '#808080',
+                    disabled: disabledCategories.has(entry.category),
+                }));
+                const chartRowsRaw = legendRows.filter((entry) => !entry.disabled);
+                const chartRows = chartRowsRaw.length > 0 ? chartRowsRaw : legendRows;
+                return {
+                    title: 'Gastos por categoria',
+                    toggleable: true,
+                    legendRows,
+                    chartRows,
+                };
+            }
+
+            if (analyticsMode === 'source') {
+                const sourceData = calculateSourceBreakdown(filteredExpenses).map((entry, index) => ({
+                    id: entry.source,
+                    label: entry.label,
+                    total: entry.total,
+                    percentage: entry.percentage,
+                    color: colorPalette[(index + 3) % colorPalette.length],
+                    disabled: false,
+                }));
+                return {
+                    title: 'Gastos por medio de pago',
+                    toggleable: false,
+                    legendRows: sourceData,
+                    chartRows: sourceData,
+                };
+            }
+
+            return null;
+        }
+
+        function renderLegend(model, currencyCode) {
+            const container = document.getElementById('analyticsMainLegend');
             if (!container) return;
             container.innerHTML = '';
-            categoryData.forEach((entry) => {
-                const disabled = disabledCategories.has(entry.category);
+            model.legendRows.forEach((entry) => {
                 const item = document.createElement('div');
-                item.className = `legend-item${disabled ? ' disabled' : ''}`;
+                item.className = `legend-item${entry.disabled ? ' disabled' : ''}`;
                 item.innerHTML = `
-                    <div class="color-box" style="background-color: ${categoryColors[entry.category] || '#808080'}"></div>
+                    <div class="color-box" style="background-color: ${entry.color}"></div>
                     <div class="legend-text">
-                        <span>${escapeHTML(entry.category)} (${entry.percentage.toFixed(1)}%)</span>
-                        <span class="amount">${formatCurrencyWithCurrency(entry.total, currencyCode)}</span>
+                        <span class="analytics-legend-label">${escapeHTML(entry.label)} (${entry.percentage.toFixed(1)}%)</span>
+                        <span class="amount analytics-legend-amount">${formatCurrencyWithCurrency(entry.total, currencyCode)}</span>
                     </div>
                 `;
-                item.addEventListener('click', () => {
-                    if (disabledCategories.has(entry.category)) {
-                        disabledCategories.delete(entry.category);
-                    } else {
-                        disabledCategories.add(entry.category);
-                    }
-                    renderCharts();
-                });
+                if (model.toggleable) {
+                    item.addEventListener('click', () => {
+                        if (disabledCategories.has(entry.id)) {
+                            disabledCategories.delete(entry.id);
+                        } else {
+                            disabledCategories.add(entry.id);
+                        }
+                        renderCharts();
+                    });
+                }
                 container.appendChild(item);
             });
         }
 
-        function renderSourceLegend(sourceData, currencyCode) {
-            const container = document.getElementById('analyticsSourceLegend');
-            if (!container) return;
-            container.innerHTML = sourceData.map((entry) => `
-                <div class="legend-item">
-                    <div class="color-box" style="background-color: ${entry.color}"></div>
-                    <div class="legend-text">
-                        <span>${escapeHTML(entry.label)} (${entry.percentage.toFixed(1)}%)</span>
-                        <span class="amount">${formatCurrencyWithCurrency(entry.total, currencyCode)}</span>
-                    </div>
-                </div>
-            `).join('');
-        }
-
         function renderCharts() {
             const emptyState = document.getElementById('analyticsEmptyState');
+            const placeholder = document.getElementById('analyticsModePlaceholder');
             const grid = document.getElementById('analyticsGrid');
+            const chartWrap = document.getElementById('analyticsChartWrap');
+            const legend = document.getElementById('analyticsMainLegend');
+            const title = document.getElementById('analyticsCardTitle');
             const filteredExpenses = getFilteredExpenses();
             const chartCurrency = filterCurrency === 'all' ? currentCurrency : filterCurrency;
 
             if (!filteredExpenses.length) {
-                destroyCharts();
+                destroyChart();
                 if (grid) grid.style.display = 'none';
                 if (emptyState) {
                     emptyState.style.display = 'block';
@@ -419,26 +465,29 @@
 
             if (grid) grid.style.display = 'grid';
             if (emptyState) emptyState.style.display = 'none';
+            const modeModel = resolveModeModel(filteredExpenses);
+            if (!modeModel) {
+                destroyChart();
+                if (title) title.textContent = 'Vista de gastos';
+                if (placeholder) placeholder.style.display = 'block';
+                if (chartWrap) chartWrap.style.display = 'none';
+                if (legend) legend.style.display = 'none';
+                return;
+            }
 
-            const categoryData = calculateCategoryBreakdown(filteredExpenses);
-            assignCategoryColors(categoryData.map((entry) => entry.category));
-            const activeCategoryData = categoryData.filter((entry) => !disabledCategories.has(entry.category));
-            const safeCategoryData = activeCategoryData.length ? activeCategoryData : categoryData;
+            if (title) title.textContent = modeModel.title;
+            if (placeholder) placeholder.style.display = 'none';
+            if (chartWrap) chartWrap.style.display = 'flex';
+            if (legend) legend.style.display = 'flex';
 
-            const sourceData = calculateSourceBreakdown(filteredExpenses).map((entry, index) => ({
-                ...entry,
-                color: colorPalette[(index + 3) % colorPalette.length],
-            }));
-
-            destroyCharts();
-
-            analyticsCategoryChart = new Chart('analyticsCategoryChart', {
+            destroyChart();
+            analyticsMainChart = new Chart('analyticsMainChart', {
                 type: 'doughnut',
                 data: {
-                    labels: safeCategoryData.map((entry) => entry.category),
+                    labels: modeModel.chartRows.map((entry) => entry.label),
                     datasets: [{
-                        data: safeCategoryData.map((entry) => entry.total),
-                        backgroundColor: safeCategoryData.map((entry) => categoryColors[entry.category]),
+                        data: modeModel.chartRows.map((entry) => entry.total),
+                        backgroundColor: modeModel.chartRows.map((entry) => entry.color),
                         borderColor: '#1a1a1a',
                         borderWidth: 1,
                     }],
@@ -461,39 +510,7 @@
                     },
                 },
             });
-
-            analyticsSourceChart = new Chart('analyticsSourceChart', {
-                type: 'doughnut',
-                data: {
-                    labels: sourceData.map((entry) => entry.label),
-                    datasets: [{
-                        data: sourceData.map((entry) => entry.total),
-                        backgroundColor: sourceData.map((entry) => entry.color),
-                        borderColor: '#1a1a1a',
-                        borderWidth: 1,
-                    }],
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: (context) => {
-                                    const value = Number(context.raw || 0);
-                                    const total = context.dataset.data.reduce((sum, item) => sum + Number(item || 0), 0);
-                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
-                                    return `${context.label}: ${formatCurrencyWithCurrency(value, chartCurrency)} (${percentage}%)`;
-                                },
-                            },
-                        },
-                    },
-                },
-            });
-
-            renderCategoryLegend(categoryData, chartCurrency);
-            renderSourceLegend(sourceData, chartCurrency);
+            renderLegend(modeModel, chartCurrency);
         }
 
         async function initialize() {
@@ -527,6 +544,7 @@
                 }));
 
                 updateMonthDisplay();
+                setAnalyticsMode('');
                 renderCharts();
             } catch (error) {
                 console.error('No se pudo inicializar analisis:', error);
@@ -573,6 +591,16 @@
             const sourceSelect = document.getElementById('analyticsFilterSource');
             if (currencySelect) currencySelect.value = 'all';
             if (sourceSelect) sourceSelect.value = 'all';
+            renderCharts();
+        });
+
+        document.getElementById('analyticsModeCategory')?.addEventListener('click', () => {
+            setAnalyticsMode('category');
+            renderCharts();
+        });
+
+        document.getElementById('analyticsModeSource')?.addEventListener('click', () => {
+            setAnalyticsMode('source');
             renderCharts();
         });
 

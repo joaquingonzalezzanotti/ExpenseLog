@@ -97,22 +97,28 @@
         <div id="analyticsEmptyState" class="empty-state" style="display: none;"></div>
 
         <section id="analyticsGrid" class="analytics-grid">
-            <article class="chart-container analytics-card">
+            <article id="analyticsCard" class="chart-container analytics-card">
                 <div class="analytics-head">
                     <div id="analyticsCardTitle" class="analytics-card-title">Vista de gastos</div>
                     <div class="analytics-mode-switch" role="tablist" aria-label="Modo de analisis">
                         <button id="analyticsModeCategory" class="analytics-mode-btn" type="button" role="tab" aria-selected="false">Categoria</button>
                         <button id="analyticsModeSource" class="analytics-mode-btn" type="button" role="tab" aria-selected="false">Medio de pago</button>
                     </div>
+                    <button id="analyticsCollapseToggle" class="analytics-collapse-btn" type="button" aria-expanded="true" aria-controls="analyticsCardBody">
+                        <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
+                        <span>Ocultar</span>
+                    </button>
                 </div>
-                <p class="analytics-card-hint">Selecciona un modo para cargar el grafico.</p>
-                <div id="analyticsModePlaceholder" class="empty-state analytics-mode-placeholder">
-                    Elegi categoria o medio de pago para visualizar el grafico.
+                <div id="analyticsCardBody" class="analytics-card-body">
+                    <p class="analytics-card-hint">Selecciona un modo para cargar el grafico.</p>
+                    <div id="analyticsModePlaceholder" class="empty-state analytics-mode-placeholder">
+                        Elegi categoria o medio de pago para visualizar el grafico.
+                    </div>
+                    <div id="analyticsChartWrap" class="chart-box" style="display: none;">
+                        <canvas id="analyticsMainChart"></canvas>
+                    </div>
+                    <div class="legend-box" id="analyticsMainLegend" style="display: none;"></div>
                 </div>
-                <div id="analyticsChartWrap" class="chart-box" style="display: none;">
-                    <canvas id="analyticsMainChart"></canvas>
-                </div>
-                <div class="legend-box" id="analyticsMainLegend" style="display: none;"></div>
             </article>
         </section>
     </div>
@@ -204,6 +210,8 @@
         let filterCurrency = 'all';
         let filterSource = 'all';
         let analyticsMode = '';
+        let analyticsCardCollapsed = false;
+        let analyticsRenderPending = false;
         const supportedCurrencies = Object.keys(currencyBehaviors);
         const categoryColors = {};
         const disabledCategories = new Set();
@@ -373,6 +381,31 @@
             }
         }
 
+        function setAnalyticsCardCollapsed(collapsed) {
+            analyticsCardCollapsed = !!collapsed;
+            const card = document.getElementById('analyticsCard');
+            const body = document.getElementById('analyticsCardBody');
+            const toggle = document.getElementById('analyticsCollapseToggle');
+            if (card) card.classList.toggle('is-collapsed', analyticsCardCollapsed);
+            if (body) body.hidden = analyticsCardCollapsed;
+            if (toggle) {
+                toggle.setAttribute('aria-expanded', analyticsCardCollapsed ? 'false' : 'true');
+                const icon = toggle.querySelector('i');
+                if (icon) {
+                    icon.className = analyticsCardCollapsed ? 'fa-solid fa-chevron-down' : 'fa-solid fa-chevron-up';
+                    icon.setAttribute('aria-hidden', 'true');
+                }
+                const label = toggle.querySelector('span');
+                if (label) {
+                    label.textContent = analyticsCardCollapsed ? 'Mostrar' : 'Ocultar';
+                }
+            }
+            if (!analyticsCardCollapsed && analyticsRenderPending) {
+                analyticsRenderPending = false;
+                requestAnimationFrame(() => renderCharts());
+            }
+        }
+
         function resolveModeModel(filteredExpenses) {
             if (analyticsMode === 'category') {
                 const categoryData = calculateCategoryBreakdown(filteredExpenses);
@@ -465,6 +498,12 @@
 
             if (grid) grid.style.display = 'grid';
             if (emptyState) emptyState.style.display = 'none';
+            if (analyticsCardCollapsed) {
+                analyticsRenderPending = true;
+                destroyChart();
+                return;
+            }
+            analyticsRenderPending = false;
             const modeModel = resolveModeModel(filteredExpenses);
             if (!modeModel) {
                 destroyChart();
@@ -545,6 +584,7 @@
 
                 updateMonthDisplay();
                 setAnalyticsMode('');
+                setAnalyticsCardCollapsed(false);
                 renderCharts();
             } catch (error) {
                 console.error('No se pudo inicializar analisis:', error);
@@ -602,6 +642,10 @@
         document.getElementById('analyticsModeSource')?.addEventListener('click', () => {
             setAnalyticsMode('source');
             renderCharts();
+        });
+
+        document.getElementById('analyticsCollapseToggle')?.addEventListener('click', () => {
+            setAnalyticsCardCollapsed(!analyticsCardCollapsed);
         });
 
         document.addEventListener('DOMContentLoaded', guardAppInit(initialize));

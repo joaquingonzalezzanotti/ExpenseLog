@@ -137,12 +137,35 @@ function getPlanAwareAnalyticsRoute(planTier) {
     return normalizePlanTier(planTier) === 'premium' ? '/app/reportes' : '/app/analisis';
 }
 
+function normalizeNavigationRoute(pathname, search = '') {
+    const cleanedPath = String(pathname || '/').replace(/\/+$/, '') || '/';
+    const aliases = {
+        '/table': '/app/table',
+        '/analisis': '/app/analisis',
+        '/reportes': '/app/reportes',
+        '/settings': '/app/perfil',
+        '/perfil': '/app/perfil',
+        '/categorias': '/app/categorias',
+        '/recurrentes': '/app/recurrentes',
+        '/conciliacion': '/app/conciliacion',
+        '/telegram': '/app/telegram',
+        '/whatsapp': '/app/whatsapp',
+        '/app/settings': '/app/perfil',
+    };
+    const canonicalPath = aliases[cleanedPath] || cleanedPath;
+    return `${canonicalPath}${String(search || '')}`;
+}
+
 function applyPlanAwareAnalyticsNavigation(planTier) {
     navigationPlanTier = normalizePlanTier(planTier);
-    const isPremium = navigationPlanTier === 'premium';
-    const targetRoute = getPlanAwareAnalyticsRoute(navigationPlanTier);
-    const iconClasses = isPremium ? 'fa-regular fa-file-lines' : 'fa-solid fa-chart-pie';
-    const label = isPremium ? 'Reportes' : 'Analisis';
+    const currentRoute = normalizeNavigationRoute(window.location.pathname, window.location.search);
+    const fallbackRoute = getPlanAwareAnalyticsRoute(navigationPlanTier);
+    const targetRoute = (currentRoute === '/app/analisis' || currentRoute === '/app/reportes')
+        ? currentRoute
+        : fallbackRoute;
+    const isReportsTarget = targetRoute === '/app/reportes';
+    const iconClasses = isReportsTarget ? 'fa-regular fa-file-lines' : 'fa-solid fa-chart-pie';
+    const label = isReportsTarget ? 'Reportes' : 'Analisis';
 
     document.querySelectorAll('[data-plan-nav-slot="analytics"]').forEach((node) => {
         if (!(node instanceof HTMLAnchorElement)) return;
@@ -902,36 +925,13 @@ function setupMobileDrawer() {
     let restoreFocusElement = toggleButton;
     const supportsInert = 'inert' in HTMLElement.prototype;
 
-    const normalizeRoute = (pathname, search = '') => {
-        const cleanedPath = String(pathname || '/').replace(/\/+$/, '') || '/';
-        const aliases = {
-            '/table': '/app/table',
-            '/analisis': '/app/analisis',
-            '/settings': '/app/perfil',
-            '/perfil': '/app/perfil',
-            '/categorias': '/app/categorias',
-            '/recurrentes': '/app/recurrentes',
-            '/conciliacion': '/app/conciliacion',
-            '/reportes': '/app/reportes',
-            '/telegram': '/app/telegram',
-            '/whatsapp': '/app/whatsapp',
-            '/app/settings': '/app/perfil',
-        };
-        const canonicalPath = aliases[cleanedPath] || cleanedPath;
-        return `${canonicalPath}${String(search || '')}`;
-    };
-
     const updateDrawerActiveState = () => {
-        const currentRoute = normalizeRoute(window.location.pathname, window.location.search);
+        const currentRoute = normalizeNavigationRoute(window.location.pathname, window.location.search);
         drawerLinks.forEach((link) => {
             try {
                 const target = new URL(link.href, window.location.origin);
-                const targetRoute = normalizeRoute(target.pathname, target.search);
-                const isAnalyticsSlot = link.dataset.planNavSlot === 'analytics';
-                const isActive = isAnalyticsSlot
-                    ? (currentRoute === '/app/analisis' || currentRoute === '/app/reportes') &&
-                        (targetRoute === '/app/analisis' || targetRoute === '/app/reportes')
-                    : targetRoute === currentRoute;
+                const targetRoute = normalizeNavigationRoute(target.pathname, target.search);
+                const isActive = targetRoute === currentRoute;
                 link.classList.toggle('active', isActive);
                 if (isActive) {
                     link.setAttribute('aria-current', 'page');
@@ -1065,42 +1065,14 @@ function setupMobileBottomNavActiveState() {
     const navLinks = Array.from(document.querySelectorAll('.mobile-bottom-nav .mobile-nav-item'));
     if (navLinks.length === 0) return;
 
-    const normalizeRoute = (pathname, search = '') => {
-        const cleanedPath = String(pathname || '/').replace(/\/+$/, '') || '/';
-        const aliases = {
-            '/table': '/app/table',
-            '/analisis': '/app/analisis',
-            '/reportes': '/app/reportes',
-            '/settings': '/app/perfil',
-            '/perfil': '/app/perfil',
-            '/app/settings': '/app/perfil',
-            '/app/categorias': '/app/perfil',
-            '/categorias': '/app/perfil',
-            '/app/recurrentes': '/app/perfil',
-            '/recurrentes': '/app/perfil',
-            '/app/conciliacion': '/app/perfil',
-            '/conciliacion': '/app/perfil',
-            '/app/telegram': '/app/perfil',
-            '/telegram': '/app/perfil',
-            '/app/whatsapp': '/app/perfil',
-            '/whatsapp': '/app/perfil',
-        };
-        const canonicalPath = aliases[cleanedPath] || cleanedPath;
-        return `${canonicalPath}${String(search || '')}`;
-    };
-
     const updateBottomNavActiveState = () => {
-        const currentRoute = normalizeRoute(window.location.pathname, window.location.search);
+        const currentRoute = normalizeNavigationRoute(window.location.pathname, window.location.search);
         navLinks.forEach((link) => {
             if (!(link instanceof HTMLAnchorElement)) return;
             try {
                 const target = new URL(link.href, window.location.origin);
-                const targetRoute = normalizeRoute(target.pathname, target.search);
-                const isAnalyticsSlot = link.dataset.planNavSlot === 'analytics';
-                const isActive = isAnalyticsSlot
-                    ? (currentRoute === '/app/analisis' || currentRoute === '/app/reportes') &&
-                        (targetRoute === '/app/analisis' || targetRoute === '/app/reportes')
-                    : targetRoute === currentRoute;
+                const targetRoute = normalizeNavigationRoute(target.pathname, target.search);
+                const isActive = targetRoute === currentRoute;
                 link.classList.toggle('active', isActive);
                 if (isActive) {
                     link.setAttribute('aria-current', 'page');

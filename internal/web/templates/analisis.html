@@ -97,6 +97,39 @@
         <div id="analyticsEmptyState" class="empty-state" style="display: none;"></div>
 
         <section id="analyticsGrid" class="analytics-grid">
+            <article class="chart-container analytics-card analytics-insight-card" id="monthlySummaryCard">
+                <div class="analytics-head">
+                    <div class="analytics-card-title">Resumen del mes</div>
+                </div>
+                <div class="analytics-card-body analytics-kpi-grid">
+                    <div class="analytics-kpi-item">
+                        <span class="analytics-kpi-label">Tasa de ahorro</span>
+                        <strong id="analyticsSavingRate">0%</strong>
+                    </div>
+                    <div class="analytics-kpi-item">
+                        <span class="analytics-kpi-label">Gasto diario promedio</span>
+                        <strong id="analyticsDailySpend">-</strong>
+                    </div>
+                    <div class="analytics-kpi-item">
+                        <span class="analytics-kpi-label">Proyeccion fin de mes</span>
+                        <strong id="analyticsMonthProjection">-</strong>
+                    </div>
+                    <div class="analytics-kpi-item">
+                        <span class="analytics-kpi-label">Dias sin movimientos</span>
+                        <strong id="analyticsNoMovementDays">0 dias</strong>
+                    </div>
+                </div>
+            </article>
+
+            <article class="chart-container analytics-card analytics-insight-card" id="topExpensesCard">
+                <div class="analytics-head">
+                    <div class="analytics-card-title">Top 5 gastos</div>
+                </div>
+                <div id="topExpensesList" class="analytics-card-body analytics-insight-list">
+                    <p class="analytics-card-hint">Aun no hay datos para mostrar.</p>
+                </div>
+            </article>
+
             <article id="analyticsCard" class="chart-container analytics-card">
                 <div class="analytics-head">
                     <div id="analyticsCardTitle" class="analytics-card-title">Vista de gastos</div>
@@ -120,6 +153,7 @@
                     <div class="legend-box" id="analyticsMainLegend" style="display: none;"></div>
                 </div>
             </article>
+
         </section>
     </div>
 
@@ -310,7 +344,10 @@
 
         function getCurrentMonthExpenses() {
             const now = new Date();
-            return getMonthExpenses(allExpenses).filter((expense) => getComparableExpenseDate(expense) <= now);
+            const viewingCurrentMonth = currentDate.getFullYear() === now.getFullYear() && currentDate.getMonth() === now.getMonth();
+            const monthExpenses = getMonthExpenses(allExpenses);
+            if (!viewingCurrentMonth) return monthExpenses;
+            return monthExpenses.filter((expense) => getComparableExpenseDate(expense) <= now);
         }
 
         function getFilteredExpenses() {
@@ -357,6 +394,73 @@
                 label: formatSourceLabel(entry.source),
                 percentage: grandTotal > 0 ? (entry.total / grandTotal) * 100 : 0,
             }));
+        }
+
+        function renderTopExpenses(expenses, currencyCode) {
+            const container = document.getElementById('topExpensesList');
+            if (!container) return;
+            const topEntries = calculateCategoryBreakdown(expenses).slice(0, 5);
+            if (!topEntries.length) {
+                container.innerHTML = '<p class="analytics-card-hint">Aun no hay datos para mostrar.</p>';
+                return;
+            }
+            container.innerHTML = topEntries.map((entry, index) => `
+                <div class="analytics-insight-row">
+                    <div class="analytics-insight-rank" aria-label="Puesto ${index + 1}">
+                        <i class="fa-solid ${index === 0 ? 'fa-crown' : (index === 1 ? 'fa-medal' : (index === 2 ? 'fa-award' : 'fa-hashtag'))}" aria-hidden="true"></i>
+                    </div>
+                    <div class="analytics-insight-content">
+                        <span class="analytics-insight-title">${escapeHTML(entry.category)}</span>
+                        <span class="analytics-insight-subtitle">${entry.percentage.toFixed(1)}% del total</span>
+                    </div>
+                    <div class="amount analytics-insight-amount">-${formatCurrencyWithCurrency(entry.total, currencyCode)}</div>
+                </div>
+            `).join('');
+        }
+
+        function calculateSummaryKPIs(monthExpenses, filteredExpenses) {
+            const expensesOnly = monthExpenses.filter((expense) => resolveFlow(expense) === 'expense' && Number(expense.amount) < 0);
+            const incomesOnly = monthExpenses.filter((expense) => resolveFlow(expense) === 'income' && Number(expense.amount) > 0);
+            const totalExpenses = expensesOnly.reduce((sum, item) => sum + Math.abs(Number(item.amount) || 0), 0);
+            const totalIncome = incomesOnly.reduce((sum, item) => sum + Math.abs(Number(item.amount) || 0), 0);
+            const filteredTotalExpenses = filteredExpenses.reduce((sum, item) => sum + Math.abs(Number(item.amount) || 0), 0);
+
+            const today = new Date();
+            const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+            const viewingCurrentMonth = currentDate.getFullYear() === today.getFullYear() && currentDate.getMonth() === today.getMonth();
+            const elapsedDays = viewingCurrentMonth
+                ? Math.max(1, Math.min(today.getDate(), monthEnd.getDate()))
+                : monthEnd.getDate();
+            const avgDailySpend = filteredTotalExpenses / elapsedDays;
+            const monthProjection = avgDailySpend * monthEnd.getDate();
+            const savingRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
+
+            const activityDays = new Set(filteredExpenses.map((expense) => {
+                const date = getComparableExpenseDate(expense);
+                return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+            }));
+            const noMovementDays = Math.max(0, elapsedDays - activityDays.size);
+
+            return { savingRate, avgDailySpend, monthProjection, noMovementDays };
+        }
+
+        function renderSummaryKPIs(monthExpenses, filteredExpenses, currencyCode) {
+            const kpis = calculateSummaryKPIs(monthExpenses, filteredExpenses);
+            const savingRateEl = document.getElementById('analyticsSavingRate');
+            const dailySpendEl = document.getElementById('analyticsDailySpend');
+            const monthProjectionEl = document.getElementById('analyticsMonthProjection');
+            const noMovementDaysEl = document.getElementById('analyticsNoMovementDays');
+            if (savingRateEl) {
+                savingRateEl.textContent = `${kpis.savingRate.toFixed(1)}%`;
+                savingRateEl.classList.toggle('kpi-positive', kpis.savingRate > 0);
+                savingRateEl.classList.toggle('kpi-negative', kpis.savingRate < 0);
+            }
+            if (dailySpendEl) dailySpendEl.textContent = formatCurrencyWithCurrency(kpis.avgDailySpend, currencyCode);
+            if (monthProjectionEl) monthProjectionEl.textContent = formatCurrencyWithCurrency(kpis.monthProjection, currencyCode);
+            if (noMovementDaysEl) {
+                noMovementDaysEl.textContent = `${kpis.noMovementDays} dias`;
+                noMovementDaysEl.classList.add('kpi-cold');
+            }
         }
 
         function destroyChart() {
@@ -484,19 +588,28 @@
             const legend = document.getElementById('analyticsMainLegend');
             const title = document.getElementById('analyticsCardTitle');
             const filteredExpenses = getFilteredExpenses();
+            const monthExpenses = getCurrentMonthExpenses();
             const chartCurrency = filterCurrency === 'all' ? currentCurrency : filterCurrency;
+            renderTopExpenses(filteredExpenses, chartCurrency);
+            renderSummaryKPIs(monthExpenses, filteredExpenses, chartCurrency);
+            if (grid) grid.style.display = 'grid';
 
             if (!filteredExpenses.length) {
                 destroyChart();
-                if (grid) grid.style.display = 'none';
                 if (emptyState) {
                     emptyState.style.display = 'block';
                     emptyState.innerHTML = '<strong>No hay gastos para este periodo/filtro.</strong> Cambia mes o filtros para ver datos.';
                 }
+                if (title) title.textContent = 'Vista de gastos';
+                if (placeholder) {
+                    placeholder.style.display = 'block';
+                    placeholder.textContent = 'No hay datos para mostrar con los filtros actuales.';
+                }
+                if (chartWrap) chartWrap.style.display = 'none';
+                if (legend) legend.style.display = 'none';
                 return;
             }
 
-            if (grid) grid.style.display = 'grid';
             if (emptyState) emptyState.style.display = 'none';
             if (analyticsCardCollapsed) {
                 analyticsRenderPending = true;
@@ -583,7 +696,7 @@
                 }));
 
                 updateMonthDisplay();
-                setAnalyticsMode('');
+                setAnalyticsMode('category');
                 setAnalyticsCardCollapsed(false);
                 renderCharts();
             } catch (error) {
@@ -627,6 +740,8 @@
         document.getElementById('analyticsClearFilters')?.addEventListener('click', () => {
             filterCurrency = 'all';
             filterSource = 'all';
+            setAnalyticsMode('category');
+            setAnalyticsCardCollapsed(false);
             const currencySelect = document.getElementById('analyticsFilterCurrency');
             const sourceSelect = document.getElementById('analyticsFilterSource');
             if (currencySelect) currencySelect.value = 'all';

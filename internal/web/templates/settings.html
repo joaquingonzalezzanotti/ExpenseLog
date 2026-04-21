@@ -201,12 +201,13 @@
                         <div class="reports-config-column">
                             <p class="settings-helper-text settings-reports-helper">Configura y descarga un reporte mensual en segundos.</p>
 
-                            <div id="reportPremiumBanner" class="reports-premium-banner" role="note">
-                                <div class="reports-premium-banner-head">
-                                    <span class="reports-premium-pill"><i class="fa-solid fa-lock" aria-hidden="true"></i> Premium</span>
-                                    <span class="reports-premium-text">Resumen ejecutivo, categorias y detalle completo.</span>
+                            <div id="reportPremiumBanner" class="settings-premium-upsell" role="note">
+                                <div class="settings-premium-upsell-head">
+                                    <span class="settings-premium-pill"><i class="fa-solid fa-lock" aria-hidden="true"></i> Premium</span>
+                                    <h3 class="settings-premium-title">Desbloquea reportes mensuales avanzados</h3>
                                 </div>
-                                <button id="reportPremiumActivateBtn" type="button" class="nav-button reports-premium-cta" hidden>Activar Premium</button>
+                                <p class="settings-premium-copy">Exporta Excel y PDF con resumen ejecutivo, categorias y detalle completo del periodo.</p>
+                                <button id="reportPremiumActivateBtn" type="button" class="nav-button settings-premium-cta" hidden>Activar Premium</button>
                             </div>
 
                             <div class="reports-form-card">
@@ -304,54 +305,85 @@
             </div>
         </section>
 
-        <section id="telegramSection" class="form-container settings-section settings-detail-section settings-telegram-section" hidden>
+        <section id="telegramSection" class="form-container settings-section settings-detail-section settings-bot-section settings-telegram-section" hidden>
             <div class="settings-detail-header">
                 <h2><i class="fa-brands fa-telegram"></i> Telegram Bot</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="telegramSection" aria-label="Cerrar Telegram Bot" title="Cerrar Telegram Bot">
                     <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 </button>
             </div>
-            <p class="settings-helper-text settings-telegram-helper">Vincula tu cuenta para cargar comprobantes desde Telegram. Flujo: 1) genera codigo, 2) abre el bot, 3) confirma con <code>/vincular CODIGO</code>.</p>
-            <div id="telegramStatusBanner" class="telegram-status-box telegram-status-info">Cargando estado...</div>
-            <p id="telegramStatusHint" class="settings-helper-text settings-telegram-hint"></p>
-            <div id="telegramCodeWrap" class="settings-telegram-code-wrap" hidden>
-                <div class="settings-telegram-code-label">Codigo vigente</div>
-                <div id="telegramGeneratedCode" class="settings-telegram-code-value">----</div>
-                <div id="telegramCodeMeta" class="settings-telegram-code-meta"></div>
+            <p class="settings-helper-text settings-bot-helper">Conecta Telegram para cargar comprobantes y registrar gastos sin salir del chat.</p>
+            <div id="telegramPremiumBanner" class="settings-premium-upsell settings-premium-upsell-inline" role="note" hidden>
+                <div class="settings-premium-upsell-head">
+                    <span class="settings-premium-pill"><i class="fa-solid fa-lock" aria-hidden="true"></i> Premium</span>
+                    <h3 class="settings-premium-title">Canal Telegram disponible con Premium</h3>
+                </div>
+                <p class="settings-premium-copy">Activa Premium para vincular tu cuenta y operar por chat con codigo temporal.</p>
+                <button id="telegramPremiumActivateBtn" type="button" class="nav-button settings-premium-cta">Activar Premium</button>
             </div>
-            <div class="settings-export-actions settings-telegram-actions">
-                <button id="telegramOpenBotBtn" class="nav-button button-secondary" type="button"><i class="fa-brands fa-telegram"></i> Abrir bot</button>
-                <button id="telegramGenerateCodeBtn" class="nav-button button-primary" type="button">Generar codigo de vinculacion</button>
-                <button id="telegramRefreshStatusBtn" class="nav-button button-secondary" type="button">Actualizar estado</button>
+            <div class="settings-bot-card">
+                <div id="telegramStatusBanner" class="settings-bot-status settings-bot-status-info">Cargando estado...</div>
+                <p id="telegramStatusHint" class="settings-helper-text settings-bot-hint"></p>
+                <div id="telegramCodeWrap" class="settings-bot-data-card" hidden>
+                    <div class="settings-bot-data-label">Codigo vigente</div>
+                    <div id="telegramGeneratedCode" class="settings-bot-data-value">----</div>
+                    <div id="telegramCodeMeta" class="settings-bot-data-meta"></div>
+                </div>
+                <ol class="settings-bot-steps">
+                    <li>Genera un codigo de vinculacion.</li>
+                    <li>Abre el bot oficial de Telegram.</li>
+                    <li>Envia <code>/vincular CODIGO</code> y confirma.</li>
+                </ol>
+                <div class="settings-export-actions settings-bot-actions">
+                    <button id="telegramOpenBotBtn" class="nav-button button-secondary" type="button"><i class="fa-brands fa-telegram"></i> Abrir bot</button>
+                    <button id="telegramGenerateCodeBtn" class="nav-button button-primary" type="button">Generar codigo</button>
+                    <button id="telegramRefreshStatusBtn" class="nav-button button-secondary" type="button">Actualizar estado</button>
+                </div>
             </div>
-            <p class="settings-reports-caption">Genera un codigo para abrir Telegram con vinculacion rapida.</p>
+            <p class="settings-reports-caption settings-bot-caption">Si el codigo vence, genera uno nuevo y reintenta la vinculacion.</p>
             <div id="telegramBotMessage" class="form-message"></div>
         </section>
-        <section id="whatsappSection" class="form-container settings-section settings-detail-section settings-whatsapp-section" hidden>
+        <section id="whatsappSection" class="form-container settings-section settings-detail-section settings-bot-section settings-whatsapp-section" hidden>
             <div class="settings-detail-header">
                 <h2><i class="fa-brands fa-whatsapp"></i> WhatsApp Bot (Kapso)</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="whatsappSection" aria-label="Cerrar WhatsApp Bot" title="Cerrar WhatsApp Bot">
                     <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 </button>
             </div>
-            <p class="settings-helper-text settings-whatsapp-helper">Vincula tu numero para registrar gastos por WhatsApp. Flujo: 1) genera codigo, 2) abre chat, 3) envia <code>/vincular CODIGO</code>, 4) registra con <code>/gasto 1500 Supermercado</code>.</p>
-            <div id="whatsappStatusBanner" class="whatsapp-status-box whatsapp-status-info">Cargando configuracion...</div>
-            <p id="whatsappStatusHint" class="settings-helper-text settings-whatsapp-hint"></p>
-            <div id="whatsappNumberWrap" class="settings-whatsapp-number-wrap" hidden>
-                <div class="settings-whatsapp-number-label">Numero cargado</div>
-                <div id="whatsappNumberValue" class="settings-whatsapp-number-value">----</div>
+            <p class="settings-helper-text settings-bot-helper">Conecta WhatsApp para registrar movimientos y enviar comprobantes desde el chat.</p>
+            <div id="whatsappPremiumBanner" class="settings-premium-upsell settings-premium-upsell-inline" role="note" hidden>
+                <div class="settings-premium-upsell-head">
+                    <span class="settings-premium-pill"><i class="fa-solid fa-lock" aria-hidden="true"></i> Premium</span>
+                    <h3 class="settings-premium-title">Canal WhatsApp disponible con Premium</h3>
+                </div>
+                <p class="settings-premium-copy">Activa Premium para vincular tu numero y registrar gastos por WhatsApp.</p>
+                <button id="whatsappPremiumActivateBtn" type="button" class="nav-button settings-premium-cta">Activar Premium</button>
             </div>
-            <div id="whatsappCodeWrap" class="settings-whatsapp-number-wrap" hidden>
-                <div class="settings-whatsapp-number-label">Codigo vigente</div>
-                <div id="whatsappGeneratedCode" class="settings-whatsapp-number-value">----</div>
-                <div id="whatsappCodeMeta" class="settings-whatsapp-number-label"></div>
+            <div class="settings-bot-card">
+                <div id="whatsappStatusBanner" class="settings-bot-status settings-bot-status-info">Cargando configuracion...</div>
+                <p id="whatsappStatusHint" class="settings-helper-text settings-bot-hint"></p>
+                <div id="whatsappNumberWrap" class="settings-bot-data-card" hidden>
+                    <div class="settings-bot-data-label">Numero activo</div>
+                    <div id="whatsappNumberValue" class="settings-bot-data-value">----</div>
+                </div>
+                <div id="whatsappCodeWrap" class="settings-bot-data-card" hidden>
+                    <div class="settings-bot-data-label">Codigo vigente</div>
+                    <div id="whatsappGeneratedCode" class="settings-bot-data-value">----</div>
+                    <div id="whatsappCodeMeta" class="settings-bot-data-meta"></div>
+                </div>
+                <ol class="settings-bot-steps">
+                    <li>Genera un codigo de vinculacion.</li>
+                    <li>Abre el chat de WhatsApp (Kapso).</li>
+                    <li>Envia <code>/vincular CODIGO</code> y espera confirmacion.</li>
+                    <li>Registra gastos con <code>/gasto 1500 Supermercado</code>.</li>
+                </ol>
+                <div class="settings-export-actions settings-bot-actions">
+                    <button id="whatsappOpenBotBtn" class="nav-button button-primary" type="button"><i class="fa-brands fa-whatsapp"></i> Abrir chat</button>
+                    <button id="whatsappGenerateCodeBtn" class="nav-button button-secondary" type="button">Generar codigo</button>
+                    <button id="whatsappRefreshStatusBtn" class="nav-button button-secondary" type="button">Actualizar estado</button>
+                </div>
             </div>
-            <div class="settings-export-actions settings-whatsapp-actions">
-                <button id="whatsappOpenBotBtn" class="nav-button button-primary" type="button"><i class="fa-brands fa-whatsapp"></i> Abrir chat</button>
-                <button id="whatsappGenerateCodeBtn" class="nav-button button-secondary" type="button">Generar codigo de vinculacion</button>
-                <button id="whatsappRefreshStatusBtn" class="nav-button button-secondary" type="button">Actualizar estado</button>
-            </div>
-            <p class="settings-reports-caption">Configura <code>WHATSAPP_KAPSO_NUMBER</code>, <code>KAPSO_API_KEY</code> y el webhook en Kapso.</p>
+            <p class="settings-reports-caption settings-bot-caption">Canal operado por Kapso. Verifica numero activo y webhook en entorno antes de usar en produccion.</p>
             <div id="whatsappBotMessage" class="form-message"></div>
         </section>
         <section id="categoriesSection" class="form-container settings-section settings-detail-section" hidden>
@@ -783,6 +815,8 @@
         const reportPreviewOverlay = document.getElementById('reportPremiumOverlay');
         const reportPreviewActivateBtn = document.getElementById('reportPreviewActivateBtn');
         const reportPreviewPeriod = document.getElementById('reportPreviewPeriod');
+        const telegramPremiumBanner = document.getElementById('telegramPremiumBanner');
+        const telegramPremiumActivateBtn = document.getElementById('telegramPremiumActivateBtn');
         const telegramStatusBanner = document.getElementById('telegramStatusBanner');
         const telegramStatusHint = document.getElementById('telegramStatusHint');
         const telegramCodeWrap = document.getElementById('telegramCodeWrap');
@@ -802,6 +836,8 @@
         const whatsappOpenBotBtn = document.getElementById('whatsappOpenBotBtn');
         const whatsappGenerateCodeBtn = document.getElementById('whatsappGenerateCodeBtn');
         const whatsappRefreshStatusBtn = document.getElementById('whatsappRefreshStatusBtn');
+        const whatsappPremiumBanner = document.getElementById('whatsappPremiumBanner');
+        const whatsappPremiumActivateBtn = document.getElementById('whatsappPremiumActivateBtn');
 
         function setSettingsSection(sectionId, expanded) {
             const section = document.getElementById(sectionId);
@@ -952,14 +988,21 @@
             window.location.href = '/app/perfil?upgrade=premium';
         }
 
+        function renderPremiumUpsellBanner(bannerElement, ctaElement, locked) {
+            if (!bannerElement) return;
+            const isLocked = !!locked;
+            bannerElement.hidden = !isLocked;
+            bannerElement.classList.toggle('is-locked', isLocked);
+            if (ctaElement) ctaElement.hidden = !isLocked;
+        }
+
         function renderReportAccessState() {
             const isPremium = currentPlanTier === 'premium';
             if (downloadMonthlyXLSXBtn) downloadMonthlyXLSXBtn.disabled = !isPremium;
             if (downloadMonthlyPDFBtn) downloadMonthlyPDFBtn.disabled = !isPremium;
-            if (reportPremiumActivateBtn) reportPremiumActivateBtn.hidden = isPremium;
+            renderPremiumUpsellBanner(reportPremiumBanner, reportPremiumActivateBtn, !isPremium);
             if (reportPreviewActivateBtn) reportPreviewActivateBtn.hidden = isPremium;
             if (reportPreviewOverlay) reportPreviewOverlay.hidden = isPremium;
-            if (reportPremiumBanner) reportPremiumBanner.classList.toggle('is-locked', !isPremium);
             if (reportPreviewCard) reportPreviewCard.classList.toggle('is-locked', !isPremium);
             const messageDiv = document.getElementById('reportExportMessage');
             renderReportPreviewState();
@@ -1168,7 +1211,7 @@
         function setTelegramStatusBox(message, tone = 'info') {
             if (!telegramStatusBanner) return;
             telegramStatusBanner.textContent = message;
-            telegramStatusBanner.className = `telegram-status-box telegram-status-${tone}`;
+            telegramStatusBanner.className = `settings-bot-status settings-bot-status-${tone}`;
         }
 
         function renderTelegramCodePanel() {
@@ -1206,13 +1249,15 @@
 
         function renderTelegramState() {
             const isPremium = currentPlanTier === 'premium' && !!telegramState.premium;
+            renderPremiumUpsellBanner(telegramPremiumBanner, telegramPremiumActivateBtn, !isPremium);
+            if (telegramOpenBotBtn) telegramOpenBotBtn.disabled = !isPremium || !telegramState.bot_url;
             if (telegramGenerateCodeBtn) telegramGenerateCodeBtn.disabled = !isPremium;
-            if (telegramOpenBotBtn) telegramOpenBotBtn.disabled = !telegramState.bot_url;
+            if (telegramRefreshStatusBtn) telegramRefreshStatusBtn.disabled = !isPremium;
 
             if (!isPremium) {
-                setTelegramStatusBox('Estado: disponible solo para cuentas Premium.', 'warning');
+                setTelegramStatusBox('Estado: canal bloqueado para plan Free.', 'warning');
                 if (telegramStatusHint) {
-                    telegramStatusHint.textContent = 'Activa Premium para generar un codigo de vinculacion y usar el bot de Telegram.';
+                    telegramStatusHint.textContent = 'Activa Premium para vincular Telegram y cargar gastos desde chat.';
                 }
                 telegramState.generated_code = '';
                 telegramState.generated_expires_at = '';
@@ -1283,14 +1328,14 @@
                 console.error('Error generando codigo de Telegram:', error);
                 showMessage('telegramBotMessage', error.message || 'No se pudo generar codigo', false);
             } finally {
-                if (telegramGenerateCodeBtn) telegramGenerateCodeBtn.disabled = !(currentPlanTier === 'premium');
+                if (telegramGenerateCodeBtn) telegramGenerateCodeBtn.disabled = !(currentPlanTier === 'premium' && !!telegramState.premium);
             }
         }
 
         function setWhatsAppStatusBox(message, tone = 'info') {
             if (!whatsappStatusBanner) return;
             whatsappStatusBanner.textContent = message;
-            whatsappStatusBanner.className = `whatsapp-status-box whatsapp-status-${tone}`;
+            whatsappStatusBanner.className = `settings-bot-status settings-bot-status-${tone}`;
         }
 
         function normalizeWhatsAppCodeCompact(value) {
@@ -1359,15 +1404,16 @@
 
         function renderWhatsAppState() {
             const isPremium = currentPlanTier === 'premium' && !!whatsappState.premium;
-            if (openWhatsAppSection) openWhatsAppSection.hidden = !isPremium;
+            if (openWhatsAppSection) openWhatsAppSection.hidden = false;
+            renderPremiumUpsellBanner(whatsappPremiumBanner, whatsappPremiumActivateBtn, !isPremium);
 
             if (!isPremium) {
                 if (whatsappOpenBotBtn) whatsappOpenBotBtn.disabled = true;
                 if (whatsappGenerateCodeBtn) whatsappGenerateCodeBtn.disabled = true;
                 if (whatsappRefreshStatusBtn) whatsappRefreshStatusBtn.disabled = true;
-                setWhatsAppStatusBox('Estado: disponible solo para cuentas Premium.', 'warning');
+                setWhatsAppStatusBox('Estado: canal bloqueado para plan Free.', 'warning');
                 if (whatsappStatusHint) {
-                    whatsappStatusHint.textContent = 'Activa Premium para habilitar el bot de WhatsApp (Kapso).';
+                    whatsappStatusHint.textContent = 'Activa Premium para habilitar vinculacion y carga de gastos por WhatsApp.';
                 }
                 if (whatsappNumberWrap) whatsappNumberWrap.hidden = true;
                 if (whatsappNumberValue) whatsappNumberValue.textContent = '----';
@@ -1466,7 +1512,7 @@
                 console.error('Error generando codigo de WhatsApp:', error);
                 showMessage('whatsappBotMessage', error.message || 'No se pudo generar codigo', false);
             } finally {
-                if (whatsappGenerateCodeBtn) whatsappGenerateCodeBtn.disabled = !(currentPlanTier === 'premium');
+                if (whatsappGenerateCodeBtn) whatsappGenerateCodeBtn.disabled = !(currentPlanTier === 'premium' && !!whatsappState.premium);
             }
         }
 
@@ -2655,7 +2701,7 @@ async function saveCategoriesList(nextCategories) {
             const hashSection = normalizeSettingsSection((window.location.hash || '').replace(/^#/, ''));
             const pathSection = sectionFromPath(window.location.pathname);
             const activeSection = querySection || hashSection || pathSection || 'profile';
-            const resolvedSection = (activeSection === 'whatsapp' && currentPlanTier !== 'premium') ? 'profile' : activeSection;
+            const resolvedSection = activeSection;
             document.documentElement.setAttribute('data-settings-route', resolvedSection);
             const isModuleRoute = resolvedSection !== 'profile' && (
                 pathSection !== '' ||
@@ -2881,6 +2927,8 @@ async function saveCategoriesList(nextCategories) {
         reportIncludeCreditCardCheckbox?.addEventListener('change', renderReportPreviewState);
         reportPremiumActivateBtn?.addEventListener('click', openPremiumUpsell);
         reportPreviewActivateBtn?.addEventListener('click', openPremiumUpsell);
+        telegramPremiumActivateBtn?.addEventListener('click', openPremiumUpsell);
+        whatsappPremiumActivateBtn?.addEventListener('click', openPremiumUpsell);
         telegramOpenBotBtn?.addEventListener('click', () => {
             const targetURL = getTelegramOpenURL();
             if (!targetURL) {

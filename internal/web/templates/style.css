@@ -3076,6 +3076,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     color: #475569;
 }
 
+.settings-premium-upsell,
 .reports-premium-banner {
     border-radius: 12px;
     padding: 0.85rem;
@@ -3086,11 +3087,13 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     margin-bottom: 0.78rem;
 }
 
+.settings-premium-upsell-head,
 .reports-premium-banner-head {
     display: grid;
     gap: 0.4rem;
 }
 
+.settings-premium-pill,
 .reports-premium-pill {
     display: inline-flex;
     align-items: center;
@@ -3107,12 +3110,26 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     letter-spacing: 0.03em;
 }
 
+.settings-premium-title {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.25;
+    color: var(--text-primary);
+}
+
+.settings-premium-copy,
 .reports-premium-text {
     font-size: 0.9rem;
     line-height: 1.35;
     color: var(--text-secondary);
+    margin: 0.55rem 0 0;
 }
 
+.settings-premium-upsell-inline {
+    margin-bottom: 0.8rem;
+}
+
+.settings-premium-cta,
 .reports-premium-cta {
     margin-top: 0.72rem;
     min-height: 44px;
@@ -3123,6 +3140,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     font-weight: 700;
 }
 
+.settings-premium-cta:hover,
 .reports-premium-cta:hover {
     background: #3f5bd8;
 }
@@ -3512,100 +3530,43 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     flex-wrap: wrap;
 }
 
-.settings-telegram-section {
-    border: 1px solid rgba(37, 99, 235, 0.22);
+.settings-bot-section {
+    border: 1px solid var(--bot-border, rgba(79, 107, 237, 0.22));
     background:
-        radial-gradient(circle at 100% 0%, rgba(37, 99, 235, 0.12), transparent 40%),
-        radial-gradient(circle at 0% 100%, rgba(16, 185, 129, 0.08), transparent 35%),
+        radial-gradient(circle at 100% 0%, var(--bot-gradient-top, rgba(79, 107, 237, 0.12)), transparent 40%),
+        radial-gradient(circle at 0% 100%, var(--bot-gradient-bottom, rgba(16, 185, 129, 0.08)), transparent 35%),
         linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 130%);
 }
 
-.settings-telegram-helper {
-    margin-bottom: 0.8rem;
-}
-
-.telegram-status-box {
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    padding: 0.7rem 0.85rem;
-    margin-bottom: 0.55rem;
-    font-weight: 600;
-}
-
-.telegram-status-info {
-    background: rgba(37, 99, 235, 0.12);
-    border-color: rgba(37, 99, 235, 0.35);
-    color: var(--accent);
-}
-
-.telegram-status-success {
-    background: var(--success-soft);
-    border-color: rgba(5, 150, 105, 0.38);
-    color: var(--success);
-}
-
-.telegram-status-warning {
-    background: var(--warning-soft);
-    border-color: rgba(180, 83, 9, 0.35);
-    color: var(--warning);
-}
-
-.telegram-status-error {
-    background: var(--danger-soft);
-    border-color: rgba(220, 38, 38, 0.35);
-    color: var(--danger);
-}
-
-.settings-telegram-hint {
-    margin-bottom: 0.6rem;
-}
-
-.settings-telegram-code-wrap {
-    border: 1px dashed rgba(37, 99, 235, 0.35);
-    border-radius: 12px;
-    padding: 0.7rem 0.85rem;
-    background: rgba(37, 99, 235, 0.06);
-    margin-bottom: 0.75rem;
-}
-
-.settings-telegram-code-label {
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--text-secondary);
-}
-
-.settings-telegram-code-value {
-    font-size: 1.35rem;
-    font-weight: 800;
-    margin-top: 0.15rem;
-    margin-bottom: 0.2rem;
-    letter-spacing: 0.05em;
-    color: var(--text-primary);
-}
-
-.settings-telegram-code-meta {
-    color: var(--text-secondary);
-    font-size: 0.83rem;
-}
-
-.settings-telegram-actions .nav-button {
-    min-width: 190px;
+.settings-telegram-section {
+    --bot-border: rgba(37, 99, 235, 0.22);
+    --bot-gradient-top: rgba(37, 99, 235, 0.14);
+    --bot-gradient-bottom: rgba(16, 185, 129, 0.08);
+    --bot-accent-soft: rgba(37, 99, 235, 0.08);
+    --bot-accent-border: rgba(37, 99, 235, 0.35);
 }
 
 .settings-whatsapp-section {
-    border: 1px solid rgba(22, 163, 74, 0.28);
-    background:
-        radial-gradient(circle at 100% 0%, rgba(22, 163, 74, 0.16), transparent 40%),
-        radial-gradient(circle at 0% 100%, rgba(13, 148, 136, 0.1), transparent 35%),
-        linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 130%);
+    --bot-border: rgba(22, 163, 74, 0.28);
+    --bot-gradient-top: rgba(22, 163, 74, 0.16);
+    --bot-gradient-bottom: rgba(13, 148, 136, 0.1);
+    --bot-accent-soft: rgba(22, 163, 74, 0.1);
+    --bot-accent-border: rgba(22, 163, 74, 0.4);
 }
 
-.settings-whatsapp-helper {
+.settings-bot-helper {
     margin-bottom: 0.8rem;
 }
 
-.whatsapp-status-box {
+.settings-bot-card {
+    border: 1px solid rgba(148, 163, 184, 0.26);
+    border-radius: 12px;
+    background: var(--bg-secondary);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    padding: 0.78rem;
+}
+
+.settings-bot-status {
     border-radius: 12px;
     border: 1px solid var(--border);
     padding: 0.7rem 0.85rem;
@@ -3613,63 +3574,77 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     font-weight: 600;
 }
 
-.whatsapp-status-info {
-    background: rgba(22, 163, 74, 0.14);
-    border-color: rgba(22, 163, 74, 0.38);
-    color: #166534;
+.settings-bot-status-info {
+    background: var(--bot-accent-soft, rgba(79, 107, 237, 0.1));
+    border-color: var(--bot-accent-border, rgba(79, 107, 237, 0.35));
+    color: var(--accent);
 }
 
-html[data-theme='dark'] .whatsapp-status-info {
-    color: #86efac;
-}
-
-.whatsapp-status-success {
+.settings-bot-status-success {
     background: var(--success-soft);
     border-color: rgba(5, 150, 105, 0.38);
     color: var(--success);
 }
 
-.whatsapp-status-warning {
+.settings-bot-status-warning {
     background: var(--warning-soft);
     border-color: rgba(180, 83, 9, 0.35);
     color: var(--warning);
 }
 
-.whatsapp-status-error {
+.settings-bot-status-error {
     background: var(--danger-soft);
     border-color: rgba(220, 38, 38, 0.35);
     color: var(--danger);
 }
 
-.settings-whatsapp-hint {
-    margin-bottom: 0.6rem;
+.settings-bot-hint {
+    margin-bottom: 0.65rem;
 }
 
-.settings-whatsapp-number-wrap {
-    border: 1px dashed rgba(22, 163, 74, 0.45);
+.settings-bot-data-card {
+    border: 1px dashed var(--bot-accent-border, rgba(79, 107, 237, 0.35));
     border-radius: 12px;
     padding: 0.7rem 0.85rem;
-    background: rgba(22, 163, 74, 0.08);
-    margin-bottom: 0.75rem;
+    background: var(--bot-accent-soft, rgba(79, 107, 237, 0.06));
+    margin-bottom: 0.7rem;
 }
 
-.settings-whatsapp-number-label {
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+.settings-bot-data-label,
+.settings-bot-data-meta {
+    font-size: 0.8rem;
     color: var(--text-secondary);
 }
 
-.settings-whatsapp-number-value {
-    font-size: 1.2rem;
+.settings-bot-data-label {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.settings-bot-data-value {
+    font-size: 1.26rem;
     font-weight: 800;
-    margin-top: 0.2rem;
+    margin-top: 0.18rem;
+    margin-bottom: 0.2rem;
     letter-spacing: 0.04em;
     color: var(--text-primary);
 }
 
-.settings-whatsapp-actions .nav-button {
+.settings-bot-steps {
+    margin: 0 0 0.8rem;
+    padding-left: 1.05rem;
+    display: grid;
+    gap: 0.34rem;
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+}
+
+.settings-bot-actions .nav-button {
     min-width: 190px;
+}
+
+.settings-bot-caption {
+    margin-top: 0.7rem;
 }
 
 @media (max-width: 640px) {
@@ -3694,6 +3669,15 @@ html[data-theme='dark'] .whatsapp-status-info {
     .settings-reports-section .settings-preference-control {
         width: 100%;
         max-width: 100%;
+        min-width: 0;
+    }
+
+    .settings-bot-actions {
+        flex-direction: column;
+    }
+
+    .settings-bot-actions .nav-button {
+        width: 100%;
         min-width: 0;
     }
 

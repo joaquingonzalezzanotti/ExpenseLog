@@ -298,7 +298,7 @@
                                 <div id="reportPremiumOverlay" class="reports-preview-overlay" hidden>
                                     <i class="fa-solid fa-lock" aria-hidden="true"></i>
                                     <p>Activar Premium para descargar</p>
-                                    <button id="reportPreviewActivateBtn" type="button" class="nav-button reports-premium-cta">Activar Premium</button>
+                                    <button id="reportPreviewActivateBtn" type="button" class="nav-button settings-premium-cta">Activar Premium</button>
                                 </div>
                             </section>
                         </div>
@@ -988,6 +988,12 @@
             window.location.href = '/app/perfil?upgrade=premium';
         }
 
+        function premiumBlockedMessage(featureLabel) {
+            const feature = String(featureLabel || '').trim();
+            if (!feature) return 'Funcion disponible solo para cuentas Premium.';
+            return `Funcion Premium: activa Premium para ${feature}.`;
+        }
+
         function renderPremiumUpsellBanner(bannerElement, ctaElement, locked) {
             if (!bannerElement) return;
             const isLocked = !!locked;
@@ -1015,7 +1021,7 @@
                 }
                 return;
             }
-            messageDiv.textContent = 'Disponible en Premium: exporta tus movimientos mensuales en Excel y PDF.';
+            messageDiv.textContent = premiumBlockedMessage('exportar reportes mensuales en Excel y PDF');
             messageDiv.className = 'form-message error';
             messageDiv.dataset.locked = '1';
         }
@@ -1102,7 +1108,7 @@
 
         async function downloadMonthlyReport(format) {
             if (currentPlanTier !== 'premium') {
-                showMessage('reportExportMessage', 'La exportacion mensual es una funcion Premium.', false);
+                showMessage('reportExportMessage', premiumBlockedMessage('exportar reportes mensuales'), false);
                 return;
             }
             const month = parseInt(reportMonthSelect?.value || '', 10);
@@ -1308,7 +1314,7 @@
 
         async function generateTelegramLinkCode() {
             if (currentPlanTier !== 'premium') {
-                showMessage('telegramBotMessage', 'Disponible solo para cuentas Premium.', false);
+                showMessage('telegramBotMessage', premiumBlockedMessage('usar Telegram Bot'), false);
                 return;
             }
             if (telegramGenerateCodeBtn) telegramGenerateCodeBtn.disabled = true;
@@ -1492,7 +1498,7 @@
 
         async function generateWhatsAppLinkCode() {
             if (currentPlanTier !== 'premium') {
-                showMessage('whatsappBotMessage', 'Disponible solo para cuentas Premium.', false);
+                showMessage('whatsappBotMessage', premiumBlockedMessage('usar WhatsApp Bot'), false);
                 return;
             }
             if (whatsappGenerateCodeBtn) whatsappGenerateCodeBtn.disabled = true;

@@ -4367,6 +4367,7 @@ html[data-theme='dark'] .home-credit-fx-grid > #cashflow-section .cashflow-row.c
 
 .settings-nav-item {
     width: 100%;
+    box-sizing: border-box;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -4379,6 +4380,7 @@ html[data-theme='dark'] .home-credit-fx-grid > #cashflow-section .cashflow-row.c
     text-decoration: none;
     padding: 0.72rem 0.9rem;
     font-size: 0.95rem;
+    font: inherit;
     cursor: pointer;
 }
 
@@ -4492,8 +4494,90 @@ html[data-settings-route='whatsapp'] body.settings-page #whatsappSection[hidden]
     min-width: 680px;
 }
 
-.reconciliation-history-table {
-    min-width: 760px;
+.reconciliation-history-list {
+    margin-top: 0.75rem;
+}
+
+.reconciliation-history-stack {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+}
+
+.reconciliation-history-card {
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 0.8rem;
+    background:
+        linear-gradient(150deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.12)),
+        var(--bg-secondary);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.reconciliation-history-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.6rem;
+}
+
+.reconciliation-history-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.reconciliation-history-date {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.reconciliation-history-amount-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.6rem;
+}
+
+.reconciliation-history-amount-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.reconciliation-history-note {
+    margin: 0;
+    padding: 0.45rem 0.55rem;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    background: rgba(148, 163, 184, 0.08);
+}
+
+.reconciliation-history-card-bottom {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem;
+}
+
+.reconciliation-history-action-spacer {
+    width: 0;
+    height: 0;
+}
+
+@media (min-width: 980px) {
+    .reconciliation-history-stack {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 .history-type-chip {
@@ -4536,6 +4620,7 @@ html[data-settings-route='whatsapp'] body.settings-page #whatsappSection[hidden]
 
 .history-detail-main {
     line-height: 1.35;
+    overflow-wrap: anywhere;
 }
 
 .history-detail-meta {
@@ -4589,6 +4674,7 @@ html[data-settings-route='whatsapp'] body.settings-page #whatsappSection[hidden]
 .history-action-btn {
     min-height: 34px;
     padding-inline: 0.85rem;
+    margin-left: auto;
 }
 
 .form-container.half-width {
@@ -5699,10 +5785,6 @@ html[data-settings-route='whatsapp'] body.settings-page #whatsappSection[hidden]
 
     .recurring-table-box .expense-table {
         min-width: 560px;
-    }
-
-    .reconciliation-history-table {
-        min-width: 620px;
     }
 
     .recurring-table-box th.recurring-col-secondary,

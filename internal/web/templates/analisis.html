@@ -156,6 +156,32 @@
                 </div>
             </article>
 
+            <section id="analyticsDesktopCharts" class="analytics-desktop-grid" style="display: none;">
+                <article class="chart-container analytics-card analytics-chart-card analytics-desktop-card" id="analyticsCategoryDesktopCard">
+                    <div class="analytics-head">
+                        <div class="analytics-card-title">Gastos por categoria</div>
+                    </div>
+                    <div class="analytics-card-body">
+                        <div id="analyticsCategoryChartWrap" class="chart-box" style="display: none;">
+                            <canvas id="analyticsCategoryChart"></canvas>
+                        </div>
+                        <div class="legend-box" id="analyticsCategoryLegend" style="display: none;"></div>
+                    </div>
+                </article>
+
+                <article class="chart-container analytics-card analytics-chart-card analytics-desktop-card" id="analyticsSourceDesktopCard">
+                    <div class="analytics-head">
+                        <div class="analytics-card-title">Gastos por medio de pago</div>
+                    </div>
+                    <div class="analytics-card-body">
+                        <div id="analyticsSourceChartWrap" class="chart-box" style="display: none;">
+                            <canvas id="analyticsSourceChart"></canvas>
+                        </div>
+                        <div class="legend-box" id="analyticsSourceLegend" style="display: none;"></div>
+                    </div>
+                </article>
+            </section>
+
         </section>
     </div>
 
@@ -243,11 +269,14 @@
         let currentDate = new Date();
         let allExpenses = [];
         let analyticsMainChart = null;
+        let analyticsCategoryChart = null;
+        let analyticsSourceChart = null;
         let filterCurrency = 'all';
         let filterSource = 'all';
         let analyticsMode = '';
         let analyticsCardCollapsed = false;
         let analyticsRenderPending = false;
+        let analyticsIsMobileLayout = null;
         const supportedCurrencies = Object.keys(currencyBehaviors);
         const categoryColors = {};
         const disabledCategories = new Set();
@@ -461,10 +490,28 @@
             if (noMovementDaysEl) noMovementDaysEl.textContent = `${kpis.noMovementDays} dias`;
         }
 
-        function destroyChart() {
-            if (!analyticsMainChart) return;
-            analyticsMainChart.destroy();
-            analyticsMainChart = null;
+        function isMobileAnalyticsLayout() {
+            return window.matchMedia('(max-width: 768px)').matches;
+        }
+
+        function destroyChartInstance(instance) {
+            if (!instance) return null;
+            instance.destroy();
+            return null;
+        }
+
+        function destroyMainChart() {
+            analyticsMainChart = destroyChartInstance(analyticsMainChart);
+        }
+
+        function destroyDesktopCharts() {
+            analyticsCategoryChart = destroyChartInstance(analyticsCategoryChart);
+            analyticsSourceChart = destroyChartInstance(analyticsSourceChart);
+        }
+
+        function destroyAllAnalyticsCharts() {
+            destroyMainChart();
+            destroyDesktopCharts();
         }
 
         function setAnalyticsMode(mode) {
@@ -513,50 +560,54 @@
             }
         }
 
+        function buildCategoryModeModel(filteredExpenses) {
+            const categoryData = calculateCategoryBreakdown(filteredExpenses);
+            assignCategoryColors(categoryData.map((entry) => entry.category));
+            const legendRows = categoryData.map((entry) => ({
+                id: entry.category,
+                label: entry.category,
+                total: entry.total,
+                percentage: entry.percentage,
+                color: categoryColors[entry.category] || '#808080',
+                disabled: disabledCategories.has(entry.category),
+            }));
+            const chartRowsRaw = legendRows.filter((entry) => !entry.disabled);
+            const chartRows = chartRowsRaw.length > 0 ? chartRowsRaw : legendRows;
+            return {
+                title: 'Gastos por categoria',
+                toggleable: true,
+                legendRows,
+                chartRows,
+            };
+        }
+
+        function buildSourceModeModel(filteredExpenses) {
+            const sourceData = calculateSourceBreakdown(filteredExpenses).map((entry, index) => ({
+                id: entry.source,
+                label: entry.label,
+                total: entry.total,
+                percentage: entry.percentage,
+                color: colorPalette[(index + 3) % colorPalette.length],
+                disabled: false,
+            }));
+            return {
+                title: 'Gastos por medio de pago',
+                toggleable: false,
+                legendRows: sourceData,
+                chartRows: sourceData,
+            };
+        }
+
         function resolveModeModel(filteredExpenses) {
-            if (analyticsMode === 'category') {
-                const categoryData = calculateCategoryBreakdown(filteredExpenses);
-                assignCategoryColors(categoryData.map((entry) => entry.category));
-                const legendRows = categoryData.map((entry) => ({
-                    id: entry.category,
-                    label: entry.category,
-                    total: entry.total,
-                    percentage: entry.percentage,
-                    color: categoryColors[entry.category] || '#808080',
-                    disabled: disabledCategories.has(entry.category),
-                }));
-                const chartRowsRaw = legendRows.filter((entry) => !entry.disabled);
-                const chartRows = chartRowsRaw.length > 0 ? chartRowsRaw : legendRows;
-                return {
-                    title: 'Gastos por categoria',
-                    toggleable: true,
-                    legendRows,
-                    chartRows,
-                };
-            }
-
-            if (analyticsMode === 'source') {
-                const sourceData = calculateSourceBreakdown(filteredExpenses).map((entry, index) => ({
-                    id: entry.source,
-                    label: entry.label,
-                    total: entry.total,
-                    percentage: entry.percentage,
-                    color: colorPalette[(index + 3) % colorPalette.length],
-                    disabled: false,
-                }));
-                return {
-                    title: 'Gastos por medio de pago',
-                    toggleable: false,
-                    legendRows: sourceData,
-                    chartRows: sourceData,
-                };
-            }
-
+            if (analyticsMode === 'category') return buildCategoryModeModel(filteredExpenses);
+            if (analyticsMode === 'source') return buildSourceModeModel(filteredExpenses);
             return null;
         }
 
-        function renderLegend(model, currencyCode) {
-            const container = document.getElementById('analyticsMainLegend');
+        function renderLegend(model, currencyCode, options = {}) {
+            const containerId = options.containerId || 'analyticsMainLegend';
+            const onToggle = typeof options.onToggle === 'function' ? options.onToggle : null;
+            const container = document.getElementById(containerId);
             if (!container) return;
             container.innerHTML = '';
             model.legendRows.forEach((entry) => {
@@ -576,11 +627,68 @@
                         } else {
                             disabledCategories.add(entry.id);
                         }
-                        renderCharts();
+                        (onToggle || renderCharts)();
                     });
                 }
                 container.appendChild(item);
             });
+        }
+
+        function buildDoughnutChart(canvasId, model, currencyCode) {
+            return new Chart(canvasId, {
+                type: 'doughnut',
+                data: {
+                    labels: model.chartRows.map((entry) => entry.label),
+                    datasets: [{
+                        data: model.chartRows.map((entry) => entry.total),
+                        backgroundColor: model.chartRows.map((entry) => entry.color),
+                        borderColor: '#1a1a1a',
+                        borderWidth: 1,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const value = Number(context.raw || 0);
+                                    const total = context.dataset.data.reduce((sum, item) => sum + Number(item || 0), 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+                                    return `${context.label}: -${formatCurrencyWithCurrency(value, currencyCode)} (${percentage}%)`;
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+        }
+
+        function renderDesktopCharts(filteredExpenses, chartCurrency) {
+            const desktopGrid = document.getElementById('analyticsDesktopCharts');
+            const categoryWrap = document.getElementById('analyticsCategoryChartWrap');
+            const sourceWrap = document.getElementById('analyticsSourceChartWrap');
+            const categoryLegend = document.getElementById('analyticsCategoryLegend');
+            const sourceLegend = document.getElementById('analyticsSourceLegend');
+            if (!desktopGrid || !categoryWrap || !sourceWrap || !categoryLegend || !sourceLegend) return;
+
+            const categoryModel = buildCategoryModeModel(filteredExpenses);
+            const sourceModel = buildSourceModeModel(filteredExpenses);
+
+            desktopGrid.style.display = 'grid';
+            categoryWrap.style.display = 'flex';
+            sourceWrap.style.display = 'flex';
+            categoryLegend.style.display = 'flex';
+            sourceLegend.style.display = 'flex';
+
+            destroyDesktopCharts();
+            analyticsCategoryChart = buildDoughnutChart('analyticsCategoryChart', categoryModel, chartCurrency);
+            analyticsSourceChart = buildDoughnutChart('analyticsSourceChart', sourceModel, chartCurrency);
+
+            renderLegend(categoryModel, chartCurrency, { containerId: 'analyticsCategoryLegend', onToggle: renderCharts });
+            renderLegend(sourceModel, chartCurrency, { containerId: 'analyticsSourceLegend' });
         }
 
         function renderCharts() {
@@ -590,15 +698,21 @@
             const chartWrap = document.getElementById('analyticsChartWrap');
             const legend = document.getElementById('analyticsMainLegend');
             const title = document.getElementById('analyticsCardTitle');
+            const desktopGrid = document.getElementById('analyticsDesktopCharts');
+            const mobileCard = document.getElementById('analyticsCard');
             const filteredExpenses = getFilteredExpenses();
             const monthExpenses = getCurrentMonthExpenses();
             const chartCurrency = filterCurrency === 'all' ? currentCurrency : filterCurrency;
+            analyticsIsMobileLayout = isMobileAnalyticsLayout();
+
             renderTopExpenses(filteredExpenses, chartCurrency);
             renderSummaryKPIs(monthExpenses, filteredExpenses, chartCurrency);
 
             if (!filteredExpenses.length) {
-                destroyChart();
+                destroyAllAnalyticsCharts();
                 if (grid) grid.style.display = 'none';
+                if (desktopGrid) desktopGrid.style.display = 'none';
+                if (mobileCard) mobileCard.style.display = 'none';
                 if (emptyState) {
                     emptyState.style.display = 'block';
                     emptyState.innerHTML = `
@@ -615,15 +729,27 @@
 
             if (grid) grid.style.display = 'grid';
             if (emptyState) emptyState.style.display = 'none';
+            if (!analyticsIsMobileLayout) {
+                destroyMainChart();
+                if (mobileCard) mobileCard.style.display = 'none';
+                renderDesktopCharts(filteredExpenses, chartCurrency);
+                requestAnalyticsLayoutRefresh();
+                return;
+            }
+
+            if (desktopGrid) desktopGrid.style.display = 'none';
+            if (mobileCard) mobileCard.style.display = 'flex';
+            destroyDesktopCharts();
+
             if (analyticsCardCollapsed) {
                 analyticsRenderPending = true;
-                destroyChart();
+                destroyMainChart();
                 return;
             }
             analyticsRenderPending = false;
             const modeModel = resolveModeModel(filteredExpenses);
             if (!modeModel) {
-                destroyChart();
+                destroyMainChart();
                 if (title) title.textContent = 'Vista de gastos';
                 if (placeholder) placeholder.style.display = 'block';
                 if (chartWrap) chartWrap.style.display = 'none';
@@ -637,36 +763,8 @@
             if (chartWrap) chartWrap.style.display = 'flex';
             if (legend) legend.style.display = 'flex';
 
-            destroyChart();
-            analyticsMainChart = new Chart('analyticsMainChart', {
-                type: 'doughnut',
-                data: {
-                    labels: modeModel.chartRows.map((entry) => entry.label),
-                    datasets: [{
-                        data: modeModel.chartRows.map((entry) => entry.total),
-                        backgroundColor: modeModel.chartRows.map((entry) => entry.color),
-                        borderColor: '#1a1a1a',
-                        borderWidth: 1,
-                    }],
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: (context) => {
-                                    const value = Number(context.raw || 0);
-                                    const total = context.dataset.data.reduce((sum, item) => sum + Number(item || 0), 0);
-                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
-                                    return `${context.label}: -${formatCurrencyWithCurrency(value, chartCurrency)} (${percentage}%)`;
-                                },
-                            },
-                        },
-                    },
-                },
-            });
+            destroyMainChart();
+            analyticsMainChart = buildDoughnutChart('analyticsMainChart', modeModel, chartCurrency);
             renderLegend(modeModel, chartCurrency);
             requestAnalyticsLayoutRefresh();
         }
@@ -683,8 +781,8 @@
             }
 
             const rect = nav.getBoundingClientRect();
-            const extraBottomGap = Math.max(0, window.innerHeight - rect.bottom);
-            const reserve = Math.ceil(rect.height + extraBottomGap + 18);
+            const extraBottomGap = Math.max(0, Math.min(24, window.innerHeight - rect.bottom));
+            const reserve = Math.ceil(Math.min(128, rect.height + extraBottomGap + 14));
             document.documentElement.style.setProperty('--analytics-bottom-reserve', `${reserve}px`);
         }
 
@@ -698,7 +796,27 @@
                 if (analyticsMainChart) {
                     analyticsMainChart.resize();
                 }
+                if (analyticsCategoryChart) {
+                    analyticsCategoryChart.resize();
+                }
+                if (analyticsSourceChart) {
+                    analyticsSourceChart.resize();
+                }
             });
+        }
+
+        function refreshAnalyticsResponsiveLayout() {
+            const nextIsMobile = isMobileAnalyticsLayout();
+            if (analyticsIsMobileLayout === null) {
+                analyticsIsMobileLayout = nextIsMobile;
+                return true;
+            }
+            if (nextIsMobile !== analyticsIsMobileLayout) {
+                analyticsIsMobileLayout = nextIsMobile;
+                renderCharts();
+                return true;
+            }
+            return false;
         }
 
         async function initialize() {
@@ -806,10 +924,19 @@
             setAnalyticsCardCollapsed(!analyticsCardCollapsed);
         });
 
-        window.addEventListener('resize', requestAnalyticsLayoutRefresh, { passive: true });
-        window.addEventListener('orientationchange', requestAnalyticsLayoutRefresh);
+        window.addEventListener('resize', () => {
+            if (refreshAnalyticsResponsiveLayout()) return;
+            requestAnalyticsLayoutRefresh();
+        }, { passive: true });
+        window.addEventListener('orientationchange', () => {
+            if (refreshAnalyticsResponsiveLayout()) return;
+            requestAnalyticsLayoutRefresh();
+        });
         if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', requestAnalyticsLayoutRefresh, { passive: true });
+            window.visualViewport.addEventListener('resize', () => {
+                if (refreshAnalyticsResponsiveLayout()) return;
+                requestAnalyticsLayoutRefresh();
+            }, { passive: true });
         }
 
         document.addEventListener('DOMContentLoaded', guardAppInit(initialize));

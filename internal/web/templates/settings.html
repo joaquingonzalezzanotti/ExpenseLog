@@ -411,14 +411,8 @@
             <p class="settings-helper-text">Ingresa el saldo real para crear un ajuste automatico sin buscar el origen de la diferencia.</p>
             <div id="settingsReconciliationPanel" class="reconciliation-container settings-reconciliation-panel">
                 <form id="settingsReconciliationForm" class="settings-recon-module settings-recon-form" novalidate>
+                    <p class="settings-recon-formula">Ajuste = Saldo real - Balance app</p>
                     <div class="settings-recon-calc" aria-live="polite">
-                        <article class="settings-recon-card settings-recon-card-emphasis">
-                            <p class="settings-recon-card-label">Balance app</p>
-                            <p id="settingsReconciliationAppBalance" class="settings-recon-card-value settings-recon-amount settings-recon-app-balance">-$53.000,00</p>
-                        </article>
-
-                        <span class="settings-recon-operator" aria-hidden="true">-</span>
-
                         <article class="settings-recon-card settings-recon-card-input">
                             <p class="settings-recon-card-label">Saldo real (ARS)</p>
                             <div id="settingsReconciliationTargetWrap" class="settings-recon-input-wrap">
@@ -426,13 +420,19 @@
                                 <button id="settingsReconciliationClearTarget" class="settings-recon-clear-btn" type="button" aria-label="Limpiar saldo real" hidden>&times;</button>
                             </div>
                             <p id="settingsReconciliationTargetError" class="settings-recon-error" role="alert" hidden>Ingresa un saldo valido para conciliar.</p>
-                            <button id="settingsReconciliationUseCurrent" type="button" class="nav-button button-secondary settings-recon-shortcut-btn">Usar balance app</button>
+                        </article>
+
+                        <span class="settings-recon-operator" aria-hidden="true">-</span>
+
+                        <article class="settings-recon-card settings-recon-card-emphasis">
+                            <p class="settings-recon-card-label">Balance app</p>
+                            <p id="settingsReconciliationAppBalance" class="settings-recon-card-value settings-recon-amount settings-recon-app-balance">-$53.000,00</p>
                         </article>
 
                         <span class="settings-recon-operator" aria-hidden="true">=</span>
 
                         <article id="settingsReconciliationDifferenceCard" class="settings-recon-card settings-recon-card-result neutral">
-                            <p class="settings-recon-card-label">Diferencia a aplicar</p>
+                            <p class="settings-recon-card-label">Ajuste a aplicar</p>
                             <p id="settingsReconciliationDifference" class="settings-recon-card-value settings-recon-amount neutral">-</p>
                         </article>
                     </div>
@@ -2061,7 +2061,7 @@ async function saveCategoriesList(nextCategories) {
         function isTransientAmountInput(rawInput) {
             const value = String(rawInput || '').trim();
             if (!value) return true;
-            return /^-?$/.test(value) || /^-?\d+[.,]?$/.test(value) || /^-?[.,]$/.test(value);
+            return /^-?$/.test(value) || /^-?[.,]$/.test(value) || /^-?[\d.,]+[.,]$/.test(value);
         }
 
         function formatLocalizedAmountInput(value) {
@@ -2078,6 +2078,14 @@ async function saveCategoriesList(nextCategories) {
             return isNegative ? `-${formatted}` : formatted;
         }
 
+        function sanitizeLocalizedAmountTyping(rawInput) {
+            const compact = String(rawInput || '').replace(/\s+/g, '');
+            if (!compact) return '';
+            const isNegative = compact.trim().startsWith('-');
+            const unsigned = compact.replace(/-/g, '').replace(/[^\d.,]/g, '');
+            return `${isNegative ? '-' : ''}${unsigned}`;
+        }
+
         function reconciliationTone(difference) {
             if (!Number.isFinite(difference) || Math.abs(difference) < 0.005) return 'neutral';
             return difference > 0 ? 'positive' : 'negative';
@@ -2089,23 +2097,25 @@ async function saveCategoriesList(nextCategories) {
             element.classList.add(tone);
         }
 
-        function handleReconciliationTargetInput(rawValue, { keepRawOnInvalid = true } = {}) {
+        function handleReconciliationTargetInput(rawValue, { formatOnValid = false } = {}) {
             const input = document.getElementById('settingsReconciliationTarget');
             if (!input) return renderSettingsReconciliationPreview();
 
-            const raw = String(rawValue || '');
+            const raw = sanitizeLocalizedAmountTyping(rawValue);
             if (!raw.trim()) {
                 input.value = '';
                 return renderSettingsReconciliationPreview();
             }
 
+            input.value = raw;
             const parsed = parseLocalizedAmountInput(raw);
             if (parsed === null) {
-                input.value = keepRawOnInvalid ? raw : raw.replace(/[^\d,.\-]/g, '');
                 return renderSettingsReconciliationPreview();
             }
 
-            input.value = formatLocalizedAmountInput(parsed);
+            if (formatOnValid) {
+                input.value = formatLocalizedAmountInput(parsed);
+            }
             return renderSettingsReconciliationPreview();
         }
 
@@ -2776,18 +2786,10 @@ async function saveCategoriesList(nextCategories) {
         document.getElementById('newCategory').addEventListener('keypress', e => e.key === 'Enter' && addCategory());
 
         document.getElementById('settingsReconciliationTarget')?.addEventListener('input', (e) => {
-            handleReconciliationTargetInput(e.target.value, { keepRawOnInvalid: true });
+            handleReconciliationTargetInput(e.target.value);
         });
         document.getElementById('settingsReconciliationTarget')?.addEventListener('blur', (e) => {
-            handleReconciliationTargetInput(e.target.value, { keepRawOnInvalid: false });
-        });
-        document.getElementById('settingsReconciliationUseCurrent')?.addEventListener('click', () => {
-            const preview = renderSettingsReconciliationPreview();
-            const targetInput = document.getElementById('settingsReconciliationTarget');
-            if (targetInput) {
-                targetInput.value = formatLocalizedAmountInput(preview.appBalance);
-                renderSettingsReconciliationPreview();
-            }
+            handleReconciliationTargetInput(e.target.value, { formatOnValid: true });
         });
         document.getElementById('settingsReconciliationClearTarget')?.addEventListener('click', () => {
             const targetInput = document.getElementById('settingsReconciliationTarget');

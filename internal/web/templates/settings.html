@@ -410,30 +410,47 @@
             <h3 class="settings-subtitle">🧮 Conciliacion rapida de balance</h3>
             <p class="settings-helper-text">Ingresa el saldo real para crear un ajuste automatico sin buscar el origen de la diferencia.</p>
             <div id="settingsReconciliationPanel" class="reconciliation-container settings-reconciliation-panel">
-                <div class="reconciliation-metrics">
-                    <div class="reconciliation-metric">
-                        <span>Balance app</span>
-                        <strong id="settingsReconciliationAppBalance">-</strong>
+                <form id="settingsReconciliationForm" class="settings-recon-module settings-recon-form" novalidate>
+                    <div class="settings-recon-calc" aria-live="polite">
+                        <article class="settings-recon-card settings-recon-card-emphasis">
+                            <p class="settings-recon-card-label">Balance app</p>
+                            <p id="settingsReconciliationAppBalance" class="settings-recon-card-value settings-recon-amount settings-recon-app-balance">-$53.000,00</p>
+                        </article>
+
+                        <span class="settings-recon-operator" aria-hidden="true">-</span>
+
+                        <article class="settings-recon-card settings-recon-card-input">
+                            <p class="settings-recon-card-label">Saldo real (ARS)</p>
+                            <div id="settingsReconciliationTargetWrap" class="settings-recon-input-wrap">
+                                <input id="settingsReconciliationTarget" class="settings-recon-input" type="text" inputmode="decimal" autocomplete="off" placeholder="Ej: 154230,35" aria-describedby="settingsReconciliationTargetError">
+                                <button id="settingsReconciliationClearTarget" class="settings-recon-clear-btn" type="button" aria-label="Limpiar saldo real" hidden>&times;</button>
+                            </div>
+                            <p id="settingsReconciliationTargetError" class="settings-recon-error" role="alert" hidden>Ingresa un saldo valido para conciliar.</p>
+                            <button id="settingsReconciliationUseCurrent" type="button" class="nav-button button-secondary settings-recon-shortcut-btn">Usar balance app</button>
+                        </article>
+
+                        <span class="settings-recon-operator" aria-hidden="true">=</span>
+
+                        <article id="settingsReconciliationDifferenceCard" class="settings-recon-card settings-recon-card-result neutral">
+                            <p class="settings-recon-card-label">Diferencia a aplicar</p>
+                            <p id="settingsReconciliationDifference" class="settings-recon-card-value settings-recon-amount neutral">-</p>
+                        </article>
                     </div>
-                    <div class="reconciliation-metric">
-                        <span>Diferencia a aplicar</span>
-                        <strong id="settingsReconciliationDifference">-</strong>
+
+                    <div class="settings-recon-meta-grid">
+                        <div class="settings-recon-note-field">
+                            <label for="settingsReconciliationNote" class="settings-recon-label">Nota (opcional)</label>
+                            <input id="settingsReconciliationNote" class="settings-recon-note-input" type="text" maxlength="90" placeholder="Ej: cierre de mes sin detalle">
+                        </div>
+                        <div id="settingsReconciliationImpact" class="settings-recon-impact neutral">Ajuste estimado: -</div>
                     </div>
-                </div>
-                <form id="settingsReconciliationForm" class="reconciliation-form">
-                    <label for="settingsReconciliationTarget">Saldo real (<span id="settingsReconciliationCurrency">ARS</span>)</label>
-                    <input type="number" id="settingsReconciliationTarget" step="0.01" placeholder="Ej: 154230.35" required>
-                    <div class="settings-reconciliation-shortcuts">
-                        <button type="button" id="settingsReconciliationUseCurrent" class="nav-button button-secondary">Usar balance app</button>
-                    </div>
-                    <label for="settingsReconciliationNote">Nota (opcional)</label>
-                    <input type="text" id="settingsReconciliationNote" maxlength="90" placeholder="Ej: cierre de mes sin detalle">
-                    <div id="settingsReconciliationImpact" class="settings-reconciliation-impact">Ajuste estimado: -</div>
-                    <div class="reconciliation-actions">
-                        <button type="submit" id="settingsReconciliationSubmit" class="nav-button button-primary">Aplicar conciliacion</button>
-                    </div>
+
+                    <button type="submit" id="settingsReconciliationSubmit" class="nav-button button-primary settings-recon-cta is-disabled" disabled>
+                        <span id="settingsReconciliationSubmitSpinner" class="settings-recon-spinner" aria-hidden="true" hidden></span>
+                        <span id="settingsReconciliationSubmitLabel">Aplicar conciliacion</span>
+                    </button>
+                    <div id="settingsReconciliationMessage" class="form-message settings-recon-inline-message" role="status"></div>
                 </form>
-                <div id="settingsReconciliationMessage" class="form-message"></div>
             </div>
 
             <h3 class="settings-subtitle">🗂️ Historial de conciliaciones</h3>
@@ -1994,11 +2011,6 @@ async function saveCategoriesList(nextCategories) {
         }
 
 
-        function formatSignedCurrency(amount, currencyCode) {
-            const sign = amount >= 0 ? '+' : '-';
-            return `${sign}${formatCurrency(Math.abs(amount), currencyCode)}`;
-        }
-
         function calculateSettingsCurrentCABalance(currency = currentCurrency) {
             const now = new Date();
             return (allExpensesCache || []).reduce((sum, exp) => {
@@ -2013,40 +2025,166 @@ async function saveCategoriesList(nextCategories) {
             }, 0);
         }
 
+        function formatCurrencyByCode(amount, currencyCode) {
+            const code = String(currencyCode || currentCurrency || 'ars').toLowerCase();
+            return formatCurrency(Math.abs(Number(amount || 0)), code);
+        }
+
+        function formatSignedCurrency(amount, currencyCode) {
+            const sign = amount >= 0 ? '+' : '-';
+            return `${sign}${formatCurrencyByCode(Math.abs(amount), currencyCode)}`;
+        }
+
+        function parseLocalizedAmountInput(rawInput) {
+            const raw = String(rawInput || '').trim();
+            if (!raw) return null;
+            const sanitized = raw.replace(/[^\d,.\-]/g, '');
+            if (!sanitized) return null;
+            const isNegative = sanitized.startsWith('-');
+            const unsigned = sanitized.replace(/-/g, '');
+            if (!unsigned) return null;
+
+            const lastComma = unsigned.lastIndexOf(',');
+            const lastDot = unsigned.lastIndexOf('.');
+            const decimalIndex = Math.max(lastComma, lastDot);
+            const integerRaw = (decimalIndex >= 0 ? unsigned.slice(0, decimalIndex) : unsigned).replace(/[^\d]/g, '');
+            const decimalRaw = (decimalIndex >= 0 ? unsigned.slice(decimalIndex + 1) : '').replace(/[^\d]/g, '');
+            if (!integerRaw && !decimalRaw) return null;
+
+            const integerPart = integerRaw || '0';
+            const composed = decimalRaw ? `${integerPart}.${decimalRaw.slice(0, 2)}` : integerPart;
+            const parsed = Number.parseFloat(composed);
+            if (!Number.isFinite(parsed)) return null;
+            return isNegative ? -parsed : parsed;
+        }
+
+        function isTransientAmountInput(rawInput) {
+            const value = String(rawInput || '').trim();
+            if (!value) return true;
+            return /^-?$/.test(value) || /^-?\d+[.,]?$/.test(value) || /^-?[.,]$/.test(value);
+        }
+
+        function formatLocalizedAmountInput(value) {
+            if (!Number.isFinite(value)) return '';
+            const isNegative = value < 0;
+            const absolute = Math.abs(value);
+            const rounded = Math.round(absolute * 100) / 100;
+            const [wholeRaw, decimalRaw = '00'] = rounded.toFixed(2).split('.');
+            const whole = Number(wholeRaw).toLocaleString('es-AR');
+            let formatted = whole;
+            if (decimalRaw !== '00') {
+                formatted = decimalRaw.endsWith('0') ? `${whole},${decimalRaw[0]}` : `${whole},${decimalRaw}`;
+            }
+            return isNegative ? `-${formatted}` : formatted;
+        }
+
+        function reconciliationTone(difference) {
+            if (!Number.isFinite(difference) || Math.abs(difference) < 0.005) return 'neutral';
+            return difference > 0 ? 'positive' : 'negative';
+        }
+
+        function applyReconciliationTone(element, tone) {
+            if (!element) return;
+            element.classList.remove('positive', 'negative', 'neutral');
+            element.classList.add(tone);
+        }
+
+        function handleReconciliationTargetInput(rawValue, { keepRawOnInvalid = true } = {}) {
+            const input = document.getElementById('settingsReconciliationTarget');
+            if (!input) return renderSettingsReconciliationPreview();
+
+            const raw = String(rawValue || '');
+            if (!raw.trim()) {
+                input.value = '';
+                return renderSettingsReconciliationPreview();
+            }
+
+            const parsed = parseLocalizedAmountInput(raw);
+            if (parsed === null) {
+                input.value = keepRawOnInvalid ? raw : raw.replace(/[^\d,.\-]/g, '');
+                return renderSettingsReconciliationPreview();
+            }
+
+            input.value = formatLocalizedAmountInput(parsed);
+            return renderSettingsReconciliationPreview();
+        }
+
+        function setReconciliationSubmitState(isLoading) {
+            const submitButton = document.getElementById('settingsReconciliationSubmit');
+            const submitLabel = document.getElementById('settingsReconciliationSubmitLabel');
+            const spinner = document.getElementById('settingsReconciliationSubmitSpinner');
+            if (!submitButton) return;
+            submitButton.classList.toggle('is-loading', isLoading);
+            if (spinner) spinner.hidden = !isLoading;
+            if (submitLabel) submitLabel.textContent = isLoading ? 'Aplicando...' : 'Aplicar conciliacion';
+        }
+
         function renderSettingsReconciliationPreview() {
             const currency = (currentCurrency || 'ars').toLowerCase();
             const appBalance = calculateSettingsCurrentCABalance(currency);
             const targetInput = document.getElementById('settingsReconciliationTarget');
-            const targetAmount = Number.parseFloat(targetInput?.value || '');
+            const targetWrap = document.getElementById('settingsReconciliationTargetWrap');
+            const targetError = document.getElementById('settingsReconciliationTargetError');
+            const clearButton = document.getElementById('settingsReconciliationClearTarget');
+            const targetRaw = String(targetInput?.value || '').trim();
+            const targetAmount = parseLocalizedAmountInput(targetRaw);
+            const hasInvalidInput = targetRaw !== '' && targetAmount === null && !isTransientAmountInput(targetRaw);
             const difference = Number.isFinite(targetAmount) ? (targetAmount - appBalance) : null;
 
             const appBalanceEl = document.getElementById('settingsReconciliationAppBalance');
+            const diffCard = document.getElementById('settingsReconciliationDifferenceCard');
             const diffEl = document.getElementById('settingsReconciliationDifference');
             const impactEl = document.getElementById('settingsReconciliationImpact');
-            const currencyEl = document.getElementById('settingsReconciliationCurrency');
+            const submitButton = document.getElementById('settingsReconciliationSubmit');
 
-            if (currencyEl) currencyEl.textContent = currency.toUpperCase();
-            if (appBalanceEl) appBalanceEl.textContent = formatCurrency(appBalance, currency);
+            if (appBalanceEl) appBalanceEl.textContent = formatSignedCurrency(appBalance, currency);
             if (diffEl) {
-                if (difference === null) {
-                    diffEl.textContent = '-';
-                    diffEl.className = '';
-                } else {
-                    diffEl.textContent = formatSignedCurrency(difference, currency);
-                    diffEl.className = difference >= 0 ? 'positive' : 'negative';
+                const previousValue = Number.parseFloat(diffEl.dataset.value || 'NaN');
+                diffEl.textContent = Number.isFinite(difference) ? formatSignedCurrency(difference, currency) : '-';
+                diffEl.dataset.value = Number.isFinite(difference) ? String(difference) : '';
+                if (Number.isFinite(difference) && (!Number.isFinite(previousValue) || Math.abs(previousValue - difference) >= 0.005)) {
+                    diffEl.classList.remove('is-updating');
+                    void diffEl.offsetWidth;
+                    diffEl.classList.add('is-updating');
                 }
             }
+
+            const tone = reconciliationTone(difference);
+            applyReconciliationTone(diffEl, tone);
+            applyReconciliationTone(diffCard, tone);
+            applyReconciliationTone(impactEl, tone);
+
+            if (targetWrap) targetWrap.classList.toggle('invalid', hasInvalidInput);
+            if (targetError) targetError.hidden = !hasInvalidInput;
+            if (clearButton) clearButton.hidden = targetRaw === '';
+            if (targetInput) targetInput.setAttribute('aria-invalid', hasInvalidInput ? 'true' : 'false');
+
             if (impactEl) {
-                if (difference === null) {
+                if (hasInvalidInput) {
+                    impactEl.textContent = 'Ajuste estimado: revisa el saldo real ingresado.';
+                } else if (!Number.isFinite(difference)) {
                     impactEl.textContent = 'Ajuste estimado: -';
                 } else if (Math.abs(difference) < 0.005) {
                     impactEl.textContent = 'Ajuste estimado: sin cambios, el balance ya coincide.';
                 } else {
                     const action = difference > 0 ? 'Ingreso de ajuste' : 'Gasto de ajuste';
-                    impactEl.textContent = `${action}: ${formatCurrency(Math.abs(difference), currency)}.`;
+                    impactEl.textContent = `${action}: ${formatCurrencyByCode(Math.abs(difference), currency)}.`;
                 }
             }
-            return { appBalance, difference, currency };
+
+            const disableSubmit = reconciliationSubmitInFlight || hasInvalidInput || !Number.isFinite(difference) || Math.abs(difference) < 0.005;
+            if (submitButton) {
+                submitButton.disabled = disableSubmit;
+                submitButton.classList.toggle('is-disabled', disableSubmit);
+            }
+
+            return {
+                appBalance,
+                difference,
+                currency,
+                targetAmount: Number.isFinite(targetAmount) ? targetAmount : null,
+                hasInvalidInput,
+            };
         }
 
         function shortReconciliationID(id) {
@@ -2127,11 +2265,9 @@ async function saveCategoriesList(nextCategories) {
         }
 
         async function submitSettingsReconciliation() {
-            const messageEl = document.getElementById('settingsReconciliationMessage');
-            const submitButton = document.getElementById('settingsReconciliationSubmit');
             if (reconciliationSubmitInFlight) return;
             const preview = renderSettingsReconciliationPreview();
-            if (!Number.isFinite(preview.difference)) {
+            if (preview.hasInvalidInput || !Number.isFinite(preview.targetAmount)) {
                 showMessage('settingsReconciliationMessage', 'Ingresa un saldo real valido para conciliar.', false);
                 return;
             }
@@ -2139,21 +2275,22 @@ async function saveCategoriesList(nextCategories) {
                 showMessage('settingsReconciliationMessage', 'No hay diferencia para conciliar.', true);
                 return;
             }
-            const confirmText = `Vas a aplicar un ${preview.difference > 0 ? 'ingreso' : 'gasto'} de ajuste por ${formatCurrency(Math.abs(preview.difference), preview.currency)}. ¿Confirmas?`;
+            const confirmText = `Vas a aplicar un ${preview.difference > 0 ? 'ingreso' : 'gasto'} de ajuste por ${formatCurrencyByCode(Math.abs(preview.difference), preview.currency)}. ¿Confirmas?`;
             const confirmed = await showAppConfirmModal('Confirmar conciliacion', confirmText, 'Aplicar', 'Cancelar');
             if (!confirmed) {
                 return;
             }
 
-            const targetInput = document.getElementById('settingsReconciliationTarget');
             const noteInput = document.getElementById('settingsReconciliationNote');
             const payload = {
-                targetBalance: Number.parseFloat(targetInput.value),
+                targetBalance: preview.targetAmount,
                 currency: preview.currency,
                 note: (noteInput?.value || '').trim(),
             };
+
             reconciliationSubmitInFlight = true;
-            if (submitButton) submitButton.disabled = true;
+            setReconciliationSubmitState(true);
+            renderSettingsReconciliationPreview();
             const idempotencyKey = `rec-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
             try {
@@ -2171,11 +2308,17 @@ async function saveCategoriesList(nextCategories) {
                 if (result.status === 'noop') {
                     showMessage('settingsReconciliationMessage', 'No se realizaron cambios: la app ya coincide con tu balance real.', true);
                 } else {
-                    const amountLabel = formatCurrency(Math.abs(preview.difference), preview.currency);
+                    const amountLabel = formatCurrencyByCode(Math.abs(preview.difference), preview.currency);
                     const successText = `Se registro ${preview.difference > 0 ? 'un ingreso' : 'un gasto'} de ajuste por ${amountLabel}.`;
                     showMessage('settingsReconciliationMessage', `Conciliacion aplicada. ${successText}`, true);
                     await showAppSuccessModal('✅ Conciliación aplicada', successText, 'Cerrar');
-                    hideSettingsSection('reconciliationSection');
+                    const panel = document.getElementById('settingsReconciliationPanel');
+                    if (panel) {
+                        panel.classList.remove('is-success');
+                        void panel.offsetWidth;
+                        panel.classList.add('is-success');
+                    }
+                    const targetInput = document.getElementById('settingsReconciliationTarget');
                     if (targetInput) targetInput.value = '';
                     if (noteInput) noteInput.value = '';
                     renderSettingsReconciliationPreview();
@@ -2187,7 +2330,8 @@ async function saveCategoriesList(nextCategories) {
                 showMessage('settingsReconciliationMessage', error.message || 'No se pudo aplicar la conciliacion.', false);
             } finally {
                 reconciliationSubmitInFlight = false;
-                if (submitButton) submitButton.disabled = false;
+                setReconciliationSubmitState(false);
+                renderSettingsReconciliationPreview();
             }
         }
 
@@ -2286,6 +2430,25 @@ async function saveCategoriesList(nextCategories) {
             }
         }
 
+        function runSettingsViewTransition(updateFn) {
+            if (typeof updateFn !== 'function') return;
+            if (typeof document.startViewTransition !== 'function') {
+                updateFn();
+                return;
+            }
+
+            try {
+                const transition = document.startViewTransition(() => {
+                    updateFn();
+                });
+                if (transition?.finished?.catch) {
+                    transition.finished.catch(() => {});
+                }
+            } catch (_) {
+                updateFn();
+            }
+        }
+
         function navigateSettingsSection(sectionKey, options = {}) {
             const normalized = normalizeSettingsSection(sectionKey) || 'profile';
             const targetPath = routeForSettingsSection(normalized);
@@ -2308,11 +2471,7 @@ async function saveCategoriesList(nextCategories) {
                 window.dispatchEvent(new CustomEvent('expenselog:routechange'));
             };
 
-            if (document.startViewTransition) {
-                document.startViewTransition(applySectionNavigation);
-            } else {
-                applySectionNavigation();
-            }
+            runSettingsViewTransition(applySectionNavigation);
         }
 
         function bindSettingsRouteAnchors() {
@@ -2616,16 +2775,27 @@ async function saveCategoriesList(nextCategories) {
         });
         document.getElementById('newCategory').addEventListener('keypress', e => e.key === 'Enter' && addCategory());
 
-        document.getElementById('settingsReconciliationTarget')?.addEventListener('input', () => {
-            renderSettingsReconciliationPreview();
+        document.getElementById('settingsReconciliationTarget')?.addEventListener('input', (e) => {
+            handleReconciliationTargetInput(e.target.value, { keepRawOnInvalid: true });
+        });
+        document.getElementById('settingsReconciliationTarget')?.addEventListener('blur', (e) => {
+            handleReconciliationTargetInput(e.target.value, { keepRawOnInvalid: false });
         });
         document.getElementById('settingsReconciliationUseCurrent')?.addEventListener('click', () => {
             const preview = renderSettingsReconciliationPreview();
             const targetInput = document.getElementById('settingsReconciliationTarget');
             if (targetInput) {
-                targetInput.value = preview.appBalance.toFixed(2);
+                targetInput.value = formatLocalizedAmountInput(preview.appBalance);
                 renderSettingsReconciliationPreview();
             }
+        });
+        document.getElementById('settingsReconciliationClearTarget')?.addEventListener('click', () => {
+            const targetInput = document.getElementById('settingsReconciliationTarget');
+            if (targetInput) {
+                targetInput.value = '';
+                targetInput.focus();
+            }
+            renderSettingsReconciliationPreview();
         });
         document.getElementById('settingsReconciliationForm')?.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -2655,11 +2825,7 @@ async function saveCategoriesList(nextCategories) {
                 openSectionFromURL();
                 window.dispatchEvent(new CustomEvent('expenselog:routechange'));
             };
-            if (document.startViewTransition) {
-                document.startViewTransition(applyHistoryNavigation);
-            } else {
-                applyHistoryNavigation();
-            }
+            runSettingsViewTransition(applyHistoryNavigation);
         });
         bindSettingsRouteAnchors();
         document.getElementById('reconciliation-history-list')?.addEventListener('click', async (e) => {

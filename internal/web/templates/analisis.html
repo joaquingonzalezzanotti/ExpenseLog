@@ -2,7 +2,7 @@
 <html lang="es-AR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="application-name" content="ExpenseLog">
     <meta name="apple-mobile-web-app-title" content="ExpenseLog">
     <link rel="stylesheet" href="/app/fa.min.css">
@@ -18,7 +18,7 @@
     <title>Analisis ExpenseLog</title>
     <script src="/app/chart.min.js"></script>
 </head>
-<body class="auth-pending">
+<body class="auth-pending analytics-page">
     <div class="container">
         <header>
             <div class="nav-bar">
@@ -97,40 +97,42 @@
         <div id="analyticsEmptyState" class="empty-state" style="display: none;"></div>
 
         <section id="analyticsGrid" class="analytics-grid">
-            <article class="chart-container analytics-card analytics-insight-card" id="topExpensesCard">
-                <div class="analytics-head">
-                    <div class="analytics-card-title">Top 5 gastos</div>
-                </div>
-                <div id="topExpensesList" class="analytics-card-body analytics-insight-list">
-                    <p class="analytics-card-hint">Aun no hay datos para mostrar.</p>
-                </div>
-            </article>
+            <div class="analytics-overview-grid">
+                <article class="chart-container analytics-card analytics-insight-card" id="topExpensesCard">
+                    <div class="analytics-head">
+                        <div class="analytics-card-title">Top 5 gastos</div>
+                    </div>
+                    <div id="topExpensesList" class="analytics-card-body analytics-insight-list">
+                        <p class="analytics-card-hint">Aun no hay datos para mostrar.</p>
+                    </div>
+                </article>
 
-            <article class="chart-container analytics-card analytics-insight-card" id="monthlySummaryCard">
-                <div class="analytics-head">
-                    <div class="analytics-card-title">Resumen del mes</div>
-                </div>
-                <div class="analytics-card-body analytics-kpi-grid">
-                    <div class="analytics-kpi-item">
-                        <span class="analytics-kpi-label">Tasa de ahorro</span>
-                        <strong id="analyticsSavingRate">0%</strong>
+                <article class="chart-container analytics-card analytics-insight-card" id="monthlySummaryCard">
+                    <div class="analytics-head">
+                        <div class="analytics-card-title">Resumen del mes</div>
                     </div>
-                    <div class="analytics-kpi-item">
-                        <span class="analytics-kpi-label">Gasto diario promedio</span>
-                        <strong id="analyticsDailySpend">-</strong>
+                    <div class="analytics-card-body analytics-kpi-grid">
+                        <div class="analytics-kpi-item">
+                            <span class="analytics-kpi-label">Tasa de ahorro</span>
+                            <strong id="analyticsSavingRate">0%</strong>
+                        </div>
+                        <div class="analytics-kpi-item">
+                            <span class="analytics-kpi-label">Gasto diario promedio</span>
+                            <strong id="analyticsDailySpend">-</strong>
+                        </div>
+                        <div class="analytics-kpi-item">
+                            <span class="analytics-kpi-label">Proyeccion fin de mes</span>
+                            <strong id="analyticsMonthProjection">-</strong>
+                        </div>
+                        <div class="analytics-kpi-item">
+                            <span class="analytics-kpi-label">Dias sin movimientos</span>
+                            <strong id="analyticsNoMovementDays">0 dias</strong>
+                        </div>
                     </div>
-                    <div class="analytics-kpi-item">
-                        <span class="analytics-kpi-label">Proyeccion fin de mes</span>
-                        <strong id="analyticsMonthProjection">-</strong>
-                    </div>
-                    <div class="analytics-kpi-item">
-                        <span class="analytics-kpi-label">Dias sin movimientos</span>
-                        <strong id="analyticsNoMovementDays">0 dias</strong>
-                    </div>
-                </div>
-            </article>
+                </article>
+            </div>
 
-            <article id="analyticsCard" class="chart-container analytics-card">
+            <article id="analyticsCard" class="chart-container analytics-card analytics-chart-card">
                 <div class="analytics-head">
                     <div id="analyticsCardTitle" class="analytics-card-title">Vista de gastos</div>
                     <div class="analytics-mode-switch" role="tablist" aria-label="Modo de analisis">
@@ -154,19 +156,6 @@
                 </div>
             </article>
 
-            <article class="chart-container analytics-card analytics-bot-card" id="analyticsBotCard">
-                <div class="analytics-head">
-                    <div class="analytics-card-title">Analisis conversacional (WhatsApp y Telegram)</div>
-                </div>
-                <div class="analytics-card-body">
-                    <p class="analytics-card-hint">Se puede registrar gastos por chat y confirmar movimientos en lote, como en la referencia que compartiste.</p>
-                    <ul class="analytics-bot-status-list">
-                        <li><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> <strong>WhatsApp:</strong> parseo multi-linea + confirmacion sugerida.</li>
-                        <li><i class="fa-brands fa-telegram" aria-hidden="true"></i> <strong>Telegram:</strong> soporte de texto, imagen y comprobantes.</li>
-                        <li><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Se recomienda validacion manual antes de guardar.</li>
-                    </ul>
-                </div>
-            </article>
         </section>
     </div>
 
@@ -419,12 +408,17 @@
             }
             container.innerHTML = topEntries.map((entry, index) => `
                 <div class="analytics-insight-row">
-                    <div class="analytics-insight-rank">${index + 1}</div>
-                    <div class="analytics-insight-content">
-                        <span class="analytics-insight-title">${escapeHTML(entry.category)}</span>
-                        <span class="analytics-insight-subtitle">${entry.percentage.toFixed(1)}% del total</span>
+                    <div class="analytics-insight-row-head">
+                        <div class="analytics-insight-rank">${index + 1}</div>
+                        <div class="analytics-insight-content">
+                            <span class="analytics-insight-title">${escapeHTML(entry.category)}</span>
+                            <span class="analytics-insight-subtitle">${entry.percentage.toFixed(1)}% del total</span>
+                        </div>
+                        <div class="amount analytics-insight-amount">-${formatCurrencyWithCurrency(entry.total, currencyCode)}</div>
                     </div>
-                    <div class="amount analytics-insight-amount">-${formatCurrencyWithCurrency(entry.total, currencyCode)}</div>
+                    <div class="analytics-insight-meter" aria-hidden="true">
+                        <span style="width:${Math.max(4, Math.min(100, entry.percentage)).toFixed(1)}%"></span>
+                    </div>
                 </div>
             `).join('');
         }
@@ -495,7 +489,10 @@
             const body = document.getElementById('analyticsCardBody');
             const toggle = document.getElementById('analyticsCollapseToggle');
             if (card) card.classList.toggle('is-collapsed', analyticsCardCollapsed);
-            if (body) body.hidden = analyticsCardCollapsed;
+            if (body) {
+                body.hidden = analyticsCardCollapsed;
+                body.style.display = analyticsCardCollapsed ? 'none' : '';
+            }
             if (toggle) {
                 toggle.setAttribute('aria-expanded', analyticsCardCollapsed ? 'false' : 'true');
                 const icon = toggle.querySelector('i');
@@ -511,6 +508,8 @@
             if (!analyticsCardCollapsed && analyticsRenderPending) {
                 analyticsRenderPending = false;
                 requestAnimationFrame(() => renderCharts());
+            } else {
+                requestAnalyticsLayoutRefresh();
             }
         }
 
@@ -567,7 +566,7 @@
                     <div class="color-box" style="background-color: ${entry.color}"></div>
                     <div class="legend-text">
                         <span class="analytics-legend-label">${escapeHTML(entry.label)} (${entry.percentage.toFixed(1)}%)</span>
-                        <span class="amount analytics-legend-amount">${formatCurrencyWithCurrency(entry.total, currencyCode)}</span>
+                        <span class="amount analytics-legend-amount">-${formatCurrencyWithCurrency(entry.total, currencyCode)}</span>
                     </div>
                 `;
                 if (model.toggleable) {
@@ -602,8 +601,15 @@
                 if (grid) grid.style.display = 'none';
                 if (emptyState) {
                     emptyState.style.display = 'block';
-                    emptyState.innerHTML = '<strong>No hay gastos para este periodo/filtro.</strong> Cambia mes o filtros para ver datos.';
+                    emptyState.innerHTML = `
+                        <div class="analytics-empty-card">
+                            <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+                            <strong>No hay gastos para este periodo o filtro.</strong>
+                            <span>Cambia el mes o limpia filtros para ver el analisis.</span>
+                        </div>
+                    `;
                 }
+                requestAnalyticsLayoutRefresh();
                 return;
             }
 
@@ -622,6 +628,7 @@
                 if (placeholder) placeholder.style.display = 'block';
                 if (chartWrap) chartWrap.style.display = 'none';
                 if (legend) legend.style.display = 'none';
+                requestAnalyticsLayoutRefresh();
                 return;
             }
 
@@ -653,7 +660,7 @@
                                     const value = Number(context.raw || 0);
                                     const total = context.dataset.data.reduce((sum, item) => sum + Number(item || 0), 0);
                                     const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
-                                    return `${context.label}: ${formatCurrencyWithCurrency(value, chartCurrency)} (${percentage}%)`;
+                                    return `${context.label}: -${formatCurrencyWithCurrency(value, chartCurrency)} (${percentage}%)`;
                                 },
                             },
                         },
@@ -661,6 +668,37 @@
                 },
             });
             renderLegend(modeModel, chartCurrency);
+            requestAnalyticsLayoutRefresh();
+        }
+
+        let analyticsLayoutFrame = 0;
+
+        function syncAnalyticsBottomReserve() {
+            const nav = document.querySelector('.mobile-bottom-nav');
+            if (!nav) return;
+            const navStyle = window.getComputedStyle(nav);
+            if (navStyle.display === 'none') {
+                document.documentElement.style.setProperty('--analytics-bottom-reserve', '0px');
+                return;
+            }
+
+            const rect = nav.getBoundingClientRect();
+            const extraBottomGap = Math.max(0, window.innerHeight - rect.bottom);
+            const reserve = Math.ceil(rect.height + extraBottomGap + 18);
+            document.documentElement.style.setProperty('--analytics-bottom-reserve', `${reserve}px`);
+        }
+
+        function requestAnalyticsLayoutRefresh() {
+            if (analyticsLayoutFrame) {
+                cancelAnimationFrame(analyticsLayoutFrame);
+            }
+            analyticsLayoutFrame = requestAnimationFrame(() => {
+                analyticsLayoutFrame = 0;
+                syncAnalyticsBottomReserve();
+                if (analyticsMainChart) {
+                    analyticsMainChart.resize();
+                }
+            });
         }
 
         async function initialize() {
@@ -694,23 +732,31 @@
                 }));
 
                 updateMonthDisplay();
-                setAnalyticsMode('');
+                setAnalyticsMode('category');
                 setAnalyticsCardCollapsed(false);
                 renderCharts();
+                requestAnalyticsLayoutRefresh();
             } catch (error) {
                 console.error('No se pudo inicializar analisis:', error);
                 const emptyState = document.getElementById('analyticsEmptyState');
                 if (emptyState) {
                     emptyState.style.display = 'block';
-                    emptyState.innerHTML = '<strong>No se pudo cargar Analisis.</strong> Reintenta en unos segundos.';
+                    emptyState.innerHTML = `
+                        <div class="analytics-empty-card">
+                            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                            <strong>No se pudo cargar Analisis.</strong>
+                            <span>Reintenta en unos segundos.</span>
+                        </div>
+                    `;
                 }
             }
         }
 
         if (window.Chart) {
-            Chart.defaults.color = '#b3b3b3';
-            Chart.defaults.borderColor = '#606060';
-            Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            const computedTheme = window.getComputedStyle(document.documentElement);
+            Chart.defaults.color = computedTheme.getPropertyValue('--text-secondary').trim() || '#5a6778';
+            Chart.defaults.borderColor = computedTheme.getPropertyValue('--border').trim() || '#d9e0e8';
+            Chart.defaults.font.family = '"Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
         }
 
         document.getElementById('prevMonth')?.addEventListener('click', () => {
@@ -755,11 +801,19 @@
             renderCharts();
         });
 
-        document.getElementById('analyticsCollapseToggle')?.addEventListener('click', () => {
+        document.getElementById('analyticsCollapseToggle')?.addEventListener('click', (event) => {
+            event.preventDefault();
             setAnalyticsCardCollapsed(!analyticsCardCollapsed);
         });
 
+        window.addEventListener('resize', requestAnalyticsLayoutRefresh, { passive: true });
+        window.addEventListener('orientationchange', requestAnalyticsLayoutRefresh);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', requestAnalyticsLayoutRefresh, { passive: true });
+        }
+
         document.addEventListener('DOMContentLoaded', guardAppInit(initialize));
+        document.addEventListener('DOMContentLoaded', requestAnalyticsLayoutRefresh);
     </script>
     <script>
         (function loadVercelTelemetry() {

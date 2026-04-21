@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -69,7 +69,7 @@
                         <span id="notificationCenterBadge" class="notification-badge" hidden></span>
                     </button>
                     <div id="notificationCenterPanel" class="notification-panel" hidden>
-                        <div class="notification-panel-title">Notificaciones ðŸ””</div>
+                        <div class="notification-panel-title">Notificaciones 🔔</div>
                         <div id="notificationCenterList" class="notification-list"></div>
                     </div>
                 </div>
@@ -106,7 +106,7 @@
 
         <section class="form-container settings-section settings-shell-section settings-profile">
             <div class="settings-detail-header settings-profile-header">
-                <h2>Perfil ðŸ‘¤</h2>
+                <h2>Perfil 👤</h2>
                 <button id="settingsLogoutBtn" class="settings-logout-btn" type="button" aria-label="Cerrar sesion" title="Cerrar sesion">
                     <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
                 </button>
@@ -127,7 +127,7 @@
         </section>
 
         <section class="form-container settings-section settings-shell-section">
-            <h2>Preferencias âš™ï¸</h2>
+            <h2>Preferencias ⚙️</h2>
             <div class="settings-preferences-grid">
                 <div class="settings-preference-item">
                     <label for="currencySelect">Moneda Principal</label>
@@ -155,31 +155,31 @@
         </section>
 
         <section class="form-container settings-section settings-shell-section">
-            <h2>GestiÃ³n ðŸ› ï¸</h2>
+            <h2>Gestión 🛠️</h2>
             <div class="settings-nav-list">
                 <button class="settings-nav-item" id="openCategoriesSection" type="button" data-settings-section="categoriesSection" data-settings-route="/app/categorias" aria-expanded="false">
-                    <span>ðŸ·ï¸ CategorÃ­as</span>
+                    <span>🏷️ Categorías</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
                 <button class="settings-nav-item" id="openRecurringSection" type="button" data-settings-section="recurringSection" data-settings-route="/app/recurrentes" aria-expanded="false">
-                    <span>ðŸ” Transacciones recurrentes</span>
+                    <span>🔁 Transacciones recurrentes</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
                 <button class="settings-nav-item" id="openReconciliationSection" type="button" data-settings-section="reconciliationSection" data-settings-route="/app/conciliacion" aria-expanded="false">
-                    <span>ðŸ§® Conciliacion de balance</span>
+                    <span>🧮 Conciliacion de balance</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
                 <a class="settings-nav-item" href="/app/analisis">
-                    <span>ðŸ“Š Analisis</span>
+                    <span>📊 Analisis</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </a>
                 <button class="settings-nav-item" id="openReportsSection" type="button" data-settings-section="reportsSection" data-settings-route="/app/reportes" aria-expanded="false">
-                    <span>ðŸ§¾ Reportes mensuales <span class="settings-reports-badge">Premium</span></span>
+                    <span>🧾 Reportes mensuales <span class="settings-reports-badge">Premium</span></span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
 
                 <button class="settings-nav-item" id="openTelegramSection" type="button" data-settings-section="telegramSection" data-settings-route="/app/telegram" aria-expanded="false">
-                    <span class="settings-nav-item-label">ðŸ¤– Telegram Bot <span class="settings-reports-badge">Premium</span></span>
+                    <span class="settings-nav-item-label">🤖 Telegram Bot <span class="settings-reports-badge">Premium</span></span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
                 <button class="settings-nav-item" id="openWhatsAppSection" type="button" data-settings-section="whatsappSection" data-settings-route="/app/whatsapp" aria-expanded="false">
@@ -190,56 +190,130 @@
         </section>
 
         <section id="reportsSection" class="form-container settings-section settings-detail-section settings-reports-section" hidden>
-            <div class="settings-detail-header">
-                <h2>ðŸ§¾ Reportes mensuales</h2>
+            <div class="settings-detail-header settings-reports-detail-header">
+                <h2><i class="fa-regular fa-file-lines" aria-hidden="true"></i> Reportes mensuales</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="reportsSection" aria-label="Cerrar reportes" title="Cerrar reportes">
                     <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 </button>
             </div>
-            <p class="settings-helper-text settings-reports-helper">Genera y descarga tu reporte mensual en el momento. Los archivos no se guardan en el servidor.</p>
-            <div class="settings-reports-highlight" role="note">
-                <span class="settings-reports-badge">Premium</span>
-                <span>Incluye resumen ejecutivo, desglose por categoria y detalle completo de movimientos.</span>
+
+            <div class="reports-shell">
+                <aside class="reports-desktop-sidebar" aria-label="Navegacion principal reportes">
+                    <a href="/app" class="reports-side-link"><i class="fa-solid fa-house" aria-hidden="true"></i><span>Inicio</span></a>
+                    <a href="/app/table" class="reports-side-link"><i class="fa-solid fa-table" aria-hidden="true"></i><span>Tabla</span></a>
+                    <a href="/app/table?view=calendar" class="reports-side-link"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i><span>Calendario</span></a>
+                    <a href="/app/analisis" class="reports-side-link"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i><span>Reportes</span></a>
+                    <a href="/app/perfil" class="reports-side-link is-active" aria-current="page"><i class="fa-regular fa-user" aria-hidden="true"></i><span>Usuario</span></a>
+                </aside>
+
+                <div class="reports-main">
+                    <div class="reports-main-grid">
+                        <div class="reports-config-column">
+                            <p class="settings-helper-text settings-reports-helper">Configura y descarga un reporte mensual en segundos.</p>
+
+                            <div id="reportPremiumBanner" class="reports-premium-banner" role="note">
+                                <div class="reports-premium-banner-head">
+                                    <span class="reports-premium-pill"><i class="fa-solid fa-lock" aria-hidden="true"></i> Premium</span>
+                                    <span class="reports-premium-text">Resumen ejecutivo, categorias y detalle completo.</span>
+                                </div>
+                                <button id="reportPremiumActivateBtn" type="button" class="nav-button reports-premium-cta" hidden>Activar Premium</button>
+                            </div>
+
+                            <div class="reports-form-card">
+                                <div class="reports-form-grid">
+                                    <div class="reports-field">
+                                        <label for="reportMonthSelect">Mes</label>
+                                        <div class="reports-select-wrap">
+                                            <select id="reportMonthSelect"></select>
+                                            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                        </div>
+                                    </div>
+                                    <div class="reports-field">
+                                        <label for="reportYearInput">A&ntilde;o</label>
+                                        <div class="reports-select-wrap">
+                                            <input id="reportYearInput" type="number" min="2000" max="2100" step="1" placeholder="2026" inputmode="numeric">
+                                        </div>
+                                    </div>
+                                    <div class="reports-field">
+                                        <label for="reportCurrencySelect">Moneda</label>
+                                        <div class="reports-select-wrap">
+                                            <select id="reportCurrencySelect">
+                                                <option value="ars">ARS</option>
+                                                <option value="usd">USD</option>
+                                                <option value="eur">EUR</option>
+                                            </select>
+                                            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                        </div>
+                                    </div>
+                                    <div class="reports-field reports-field-toggle">
+                                        <label class="reports-toggle-row" for="reportIncludeCreditCardCheckbox">
+                                            <span>
+                                                <strong>Gasto tarjeta</strong>
+                                                <small>Incluir gastos con tarjeta de credito</small>
+                                            </span>
+                                            <span class="reports-toggle-switch">
+                                                <input id="reportIncludeCreditCardCheckbox" type="checkbox" checked>
+                                                <span class="reports-toggle-slider" aria-hidden="true"></span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="settings-export-actions reports-download-actions">
+                                <button id="downloadMonthlyXLSXBtn" class="nav-button reports-download-btn reports-download-btn-excel" type="button">
+                                    <span class="reports-download-btn-title"><i class="fa-regular fa-file-excel" aria-hidden="true"></i> Descargar Excel</span>
+                                    <span class="reports-download-btn-sub">.xlsx</span>
+                                </button>
+                                <button id="downloadMonthlyPDFBtn" class="nav-button reports-download-btn reports-download-btn-pdf" type="button">
+                                    <span class="reports-download-btn-title"><i class="fa-regular fa-file-pdf" aria-hidden="true"></i> Descargar PDF</span>
+                                    <span class="reports-download-btn-sub">.pdf</span>
+                                </button>
+                            </div>
+
+                            <p class="settings-reports-caption">Tip: usa el mismo mes y moneda de tu analisis para compartir resultados claros.</p>
+                            <div id="reportExportMessage" class="form-message"></div>
+                        </div>
+
+                        <div class="reports-preview-column">
+                            <section id="reportPreviewCard" class="reports-preview-card">
+                                <div class="reports-preview-head">
+                                    <h3>Vista previa del reporte</h3>
+                                    <span id="reportPreviewPeriod" class="reports-preview-period">-</span>
+                                </div>
+                                <div id="reportPreviewChecklist" class="reports-preview-checklist">
+                                    <div class="reports-preview-check-item"><i class="fa-solid fa-check" aria-hidden="true"></i><span>Resumen ejecutivo</span></div>
+                                    <div class="reports-preview-check-item"><i class="fa-solid fa-check" aria-hidden="true"></i><span>Desglose por categoria</span></div>
+                                    <div class="reports-preview-check-item"><i class="fa-solid fa-check" aria-hidden="true"></i><span>Detalle de movimientos</span></div>
+                                </div>
+                                <div class="reports-preview-mock">
+                                    <article class="reports-mock-summary">
+                                        <span class="reports-mock-title">Resumen ejecutivo</span>
+                                        <div class="reports-mock-bars">
+                                            <span></span><span></span><span></span>
+                                        </div>
+                                    </article>
+                                    <article class="reports-mock-breakdown">
+                                        <span class="reports-mock-title">Categorias</span>
+                                        <div class="reports-mock-donut"></div>
+                                    </article>
+                                    <article class="reports-mock-table">
+                                        <span class="reports-mock-title">Movimientos</span>
+                                        <div class="reports-mock-table-lines">
+                                            <span></span><span></span><span></span><span></span>
+                                        </div>
+                                    </article>
+                                </div>
+                                <div id="reportPremiumOverlay" class="reports-preview-overlay" hidden>
+                                    <i class="fa-solid fa-lock" aria-hidden="true"></i>
+                                    <p>Activar Premium para descargar</p>
+                                    <button id="reportPreviewActivateBtn" type="button" class="nav-button reports-premium-cta">Activar Premium</button>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="settings-export-grid">
-                <div class="settings-preference-item">
-                    <label for="reportMonthSelect">Mes</label>
-                    <div class="settings-preference-control">
-                        <select id="reportMonthSelect"></select>
-                    </div>
-                </div>
-                <div class="settings-preference-item">
-                    <label for="reportYearInput">A&ntilde;o</label>
-                    <div class="settings-preference-control">
-                        <input id="reportYearInput" type="number" min="2000" max="2100" step="1" placeholder="2026" inputmode="numeric">
-                    </div>
-                </div>
-                <div class="settings-preference-item">
-                    <label for="reportCurrencySelect">Moneda</label>
-                    <div class="settings-preference-control">
-                        <select id="reportCurrencySelect">
-                            <option value="ars">ARS</option>
-                            <option value="usd">USD</option>
-                            <option value="eur">EUR</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="settings-preference-item">
-                    <label for="reportIncludeCreditCardCheckbox">Gasto tarjeta</label>
-                    <div class="settings-preference-control">
-                        <label class="checkbox-inline">
-                            <input id="reportIncludeCreditCardCheckbox" type="checkbox" class="styled-checkbox" checked>
-                            <span>Incluir gastos con tarjeta de credito</span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-            <div class="settings-export-actions">
-                <button id="downloadMonthlyXLSXBtn" class="nav-button button-secondary" type="button">Descargar Excel (.xlsx)</button>
-                <button id="downloadMonthlyPDFBtn" class="nav-button button-primary" type="button">Descargar PDF (.pdf)</button>
-            </div>
-            <p class="settings-reports-caption">Sugerencia: usa el mismo mes y moneda de tu analisis para compartir resultados claros.</p>
-            <div id="reportExportMessage" class="form-message"></div>
         </section>
 
         <section id="telegramSection" class="form-container settings-section settings-detail-section settings-telegram-section" hidden>
@@ -294,7 +368,7 @@
         </section>
         <section id="categoriesSection" class="form-container settings-section settings-detail-section" hidden>
             <div class="settings-detail-header">
-                <h2>ðŸ·ï¸ CategorÃ­as</h2>
+                <h2>🏷️ Categorías</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="categoriesSection" aria-label="Cerrar categorias" title="Cerrar categorias">
                     <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 </button>
@@ -316,7 +390,7 @@
                 </div>
                 <div id="categories-list" class="categories-list"></div>
                 <div id="categories-empty" class="empty-state" style="display: none;">
-                    ðŸ“­ No hay categorÃ­as guardadas. Agrega la primera.
+                    📭 No hay categorías guardadas. Agrega la primera.
                 </div>
                 <div class="category-input-container">
                     <input type="text" id="newCategory" placeholder="Agregar categoria">
@@ -328,12 +402,12 @@
 
         <section id="recurringSection" class="form-container settings-section settings-detail-section" hidden>
             <div class="settings-detail-header">
-                <h2>ðŸ” Transacciones recurrentes</h2>
+                <h2>🔁 Transacciones recurrentes</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="recurringSection" aria-label="Cerrar transacciones recurrentes" title="Cerrar transacciones recurrentes">
                     <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 </button>
             </div>
-            <h3 class="settings-subtitle">ðŸ“‹ Transacciones recurrentes existentes</h3>
+            <h3 class="settings-subtitle">📋 Transacciones recurrentes existentes</h3>
             <p class="settings-helper-text">Tip: para compras en cuotas, crea una recurrente mensual con el monto de la cuota y la cantidad total. En la tabla vas a ver el avance como Cuota X/Y.</p>
             <div id="recurring-expenses-list" class="recurring-table-box"></div>
             <button id="toggleRecurringCreateBtn" class="nav-button button-primary settings-recurring-toggle" type="button" aria-expanded="false">Agregar transaccion recurrente</button>
@@ -401,13 +475,13 @@
 
         <section id="reconciliationSection" class="form-container settings-section settings-detail-section" hidden>
             <div class="settings-detail-header">
-                <h2>ðŸ§® Conciliacion de balance</h2>
+                <h2>🧮 Conciliacion de balance</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="reconciliationSection" aria-label="Cerrar conciliacion" title="Cerrar conciliacion">
                     <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="settings-divider"></div>
-            <h3 class="settings-subtitle">ðŸ§® Conciliacion rapida de balance</h3>
+            <h3 class="settings-subtitle">🧮 Conciliacion rapida de balance</h3>
             <p class="settings-helper-text">Ingresa el saldo real para crear un ajuste automatico sin buscar el origen de la diferencia.</p>
             <div id="settingsReconciliationPanel" class="reconciliation-container settings-reconciliation-panel">
                 <form id="settingsReconciliationForm" class="settings-recon-module settings-recon-form" novalidate>
@@ -453,7 +527,7 @@
                 </form>
             </div>
 
-            <h3 class="settings-subtitle">ðŸ—‚ï¸ Historial de conciliaciones</h3>
+            <h3 class="settings-subtitle">🗂️ Historial de conciliaciones</h3>
             <div id="reconciliation-history-list" class="reconciliation-history-list"></div>
 
         </section>
@@ -533,7 +607,7 @@
     <div id="appConfirmModal" class="modal app-modal" role="dialog" aria-modal="true" aria-labelledby="appConfirmTitle">
         <div class="modal-content app-modal-content">
             <h3 id="appConfirmTitle">Confirmar accion</h3>
-            <p id="appConfirmMessage">Â¿Continuar?</p>
+            <p id="appConfirmMessage">¿Continuar?</p>
             <div class="modal-buttons">
                 <button id="appConfirmCancel" class="modal-button" type="button">Cancelar</button>
                 <button id="appConfirmAccept" class="modal-button confirm app-modal-confirm" type="button">Aceptar</button>
@@ -579,14 +653,14 @@
                     <input type="email" id="authLoginEmail" autocomplete="email" required>
                 </div>
                 <div class="form-group">
-                    <label for="authLoginPassword">ContraseÃ±a</label>
+                    <label for="authLoginPassword">Contraseña</label>
                     <input type="password" id="authLoginPassword" autocomplete="current-password" required>
                 </div>
                 <label class="auth-remember">
                     <input type="checkbox" id="authLoginRemember" class="styled-checkbox">
                     Recordarme
                 </label>
-                <button type="button" class="auth-link" data-auth-link="reset">OlvidÃ© mi contraseÃ±a</button>
+                <button type="button" class="auth-link" data-auth-link="reset">Olvidé mi contraseña</button>
                 <button type="submit" class="nav-button">Ingresar</button>
             </form>
             <form id="authRegisterForm" class="auth-form" data-auth-form="register">
@@ -595,7 +669,7 @@
                     <input type="email" id="authRegisterEmail" autocomplete="email" required>
                 </div>
                 <div class="form-group">
-                    <label for="authRegisterPassword">ContraseÃ±a (min 8)</label>
+                    <label for="authRegisterPassword">Contraseña (min 8)</label>
                     <input type="password" id="authRegisterPassword" autocomplete="new-password" required>
                 </div>
                 <label class="auth-remember">
@@ -614,7 +688,7 @@
                     <input type="text" id="authResetCode" autocomplete="one-time-code" required>
                 </div>
                 <div class="form-group">
-                    <label for="authResetPassword">Nueva contraseÃ±a (min 8)</label>
+                    <label for="authResetPassword">Nueva contraseña (min 8)</label>
                     <input type="password" id="authResetPassword" autocomplete="new-password" required>
                 </div>
                 <div class="auth-reset-actions">
@@ -715,6 +789,12 @@
         const reportIncludeCreditCardCheckbox = document.getElementById('reportIncludeCreditCardCheckbox');
         const downloadMonthlyXLSXBtn = document.getElementById('downloadMonthlyXLSXBtn');
         const downloadMonthlyPDFBtn = document.getElementById('downloadMonthlyPDFBtn');
+        const reportPremiumBanner = document.getElementById('reportPremiumBanner');
+        const reportPremiumActivateBtn = document.getElementById('reportPremiumActivateBtn');
+        const reportPreviewCard = document.getElementById('reportPreviewCard');
+        const reportPreviewOverlay = document.getElementById('reportPremiumOverlay');
+        const reportPreviewActivateBtn = document.getElementById('reportPreviewActivateBtn');
+        const reportPreviewPeriod = document.getElementById('reportPreviewPeriod');
         const telegramStatusBanner = document.getElementById('telegramStatusBanner');
         const telegramStatusHint = document.getElementById('telegramStatusHint');
         const telegramCodeWrap = document.getElementById('telegramCodeWrap');
@@ -871,11 +951,30 @@
             return String(value || '').trim().toLowerCase() === 'premium' ? 'premium' : 'free';
         }
 
+        function renderReportPreviewState() {
+            if (!reportPreviewPeriod) return;
+            const selectedMonthLabel = reportMonthSelect?.selectedOptions?.[0]?.textContent?.trim() || 'Mes';
+            const selectedYear = String(reportYearInput?.value || '').trim() || String(new Date().getFullYear());
+            const currency = (reportCurrencySelect?.value || currentCurrency || 'ars').toUpperCase();
+            const includeCard = reportIncludeCreditCardCheckbox ? !!reportIncludeCreditCardCheckbox.checked : true;
+            reportPreviewPeriod.textContent = `${selectedMonthLabel} ${selectedYear} - ${currency} ${includeCard ? 'con tarjeta' : 'sin tarjeta'}`;
+        }
+
+        function openPremiumUpsell() {
+            window.location.href = '/app/perfil?upgrade=premium';
+        }
+
         function renderReportAccessState() {
             const isPremium = currentPlanTier === 'premium';
             if (downloadMonthlyXLSXBtn) downloadMonthlyXLSXBtn.disabled = !isPremium;
             if (downloadMonthlyPDFBtn) downloadMonthlyPDFBtn.disabled = !isPremium;
+            if (reportPremiumActivateBtn) reportPremiumActivateBtn.hidden = isPremium;
+            if (reportPreviewActivateBtn) reportPreviewActivateBtn.hidden = isPremium;
+            if (reportPreviewOverlay) reportPreviewOverlay.hidden = isPremium;
+            if (reportPremiumBanner) reportPremiumBanner.classList.toggle('is-locked', !isPremium);
+            if (reportPreviewCard) reportPreviewCard.classList.toggle('is-locked', !isPremium);
             const messageDiv = document.getElementById('reportExportMessage');
+            renderReportPreviewState();
             if (!messageDiv) return;
             if (isPremium) {
                 if (messageDiv.dataset.locked === '1') {
@@ -945,6 +1044,7 @@
                 reportIncludeCreditCardCheckbox.checked = true;
             }
             applyReportContextFromURL();
+            renderReportPreviewState();
             renderReportAccessState();
         }
 
@@ -1499,7 +1599,7 @@ function renderCategories() {
                 <span class="category-name">${formatSettingsCategoryLabel(category)}${isSystem ? ' <small class="category-system-label">(sistema)</small>' : ''}</span>
             </div>
             <div class="category-actions">
-                ${isSystem ? '<span class="category-system-lock" title="CategorÃ­a protegida">ðŸ”’</span>' : `
+                ${isSystem ? '<span class="category-system-lock" title="Categoría protegida">🔒</span>' : `
                 <button class="edit-button" data-action="edit" data-index="${index}">
                     <i class="fa-solid fa-pen-to-square"></i>
                 </button>
@@ -2298,7 +2398,7 @@ async function saveCategoriesList(nextCategories) {
                 showMessage('settingsReconciliationMessage', 'No hay diferencia para conciliar.', true);
                 return;
             }
-            const confirmText = `Vas a aplicar un ${preview.difference > 0 ? 'ingreso' : 'gasto'} de ajuste por ${formatCurrencyByCode(Math.abs(preview.difference), preview.currency)}. Â¿Confirmas?`;
+            const confirmText = `Vas a aplicar un ${preview.difference > 0 ? 'ingreso' : 'gasto'} de ajuste por ${formatCurrencyByCode(Math.abs(preview.difference), preview.currency)}. ¿Confirmas?`;
             const confirmed = await showAppConfirmModal('Confirmar conciliacion', confirmText, 'Aplicar', 'Cancelar');
             if (!confirmed) {
                 return;
@@ -2334,7 +2434,7 @@ async function saveCategoriesList(nextCategories) {
                     const amountLabel = formatCurrencyByCode(Math.abs(preview.difference), preview.currency);
                     const successText = `Se registro ${preview.difference > 0 ? 'un ingreso' : 'un gasto'} de ajuste por ${amountLabel}.`;
                     showMessage('settingsReconciliationMessage', `Conciliacion aplicada. ${successText}`, true);
-                    await showAppSuccessModal('âœ… ConciliaciÃ³n aplicada', successText, 'Cerrar');
+                    await showAppSuccessModal('✅ Conciliación aplicada', successText, 'Cerrar');
                     const panel = document.getElementById('settingsReconciliationPanel');
                     if (panel) {
                         panel.classList.remove('is-success');
@@ -2362,7 +2462,7 @@ async function saveCategoriesList(nextCategories) {
             if (!id) return;
             const confirmed = await showAppConfirmModal(
                 'Revertir conciliacion',
-                'Se va a crear un movimiento inverso para deshacer esta conciliacion. Â¿Continuar?',
+                'Se va a crear un movimiento inverso para deshacer esta conciliacion. ¿Continuar?',
                 'Revertir',
                 'Cancelar'
             );
@@ -2751,6 +2851,12 @@ async function saveCategoriesList(nextCategories) {
         document.getElementById('currencySelect').addEventListener('change', saveCurrency);
         downloadMonthlyXLSXBtn?.addEventListener('click', () => downloadMonthlyReport('xlsx'));
         downloadMonthlyPDFBtn?.addEventListener('click', () => downloadMonthlyReport('pdf'));
+        reportMonthSelect?.addEventListener('change', renderReportPreviewState);
+        reportYearInput?.addEventListener('input', renderReportPreviewState);
+        reportCurrencySelect?.addEventListener('change', renderReportPreviewState);
+        reportIncludeCreditCardCheckbox?.addEventListener('change', renderReportPreviewState);
+        reportPremiumActivateBtn?.addEventListener('click', openPremiumUpsell);
+        reportPreviewActivateBtn?.addEventListener('click', openPremiumUpsell);
         telegramOpenBotBtn?.addEventListener('click', () => {
             const targetURL = getTelegramOpenURL();
             if (!targetURL) {
@@ -2921,4 +3027,5 @@ async function saveCategoriesList(nextCategories) {
     </script>
 </body>
 </html>
+
 

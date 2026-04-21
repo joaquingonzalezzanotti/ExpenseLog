@@ -1,4 +1,4 @@
-const SW_VERSION = '2026-04-13-v10';
+const SW_VERSION = '2026-04-21-v11';
 const STATIC_CACHE = `expenselog-static-${SW_VERSION}`;
 const PAGE_CACHE = `expenselog-pages-${SW_VERSION}`;
 

@@ -3045,16 +3045,15 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
 .settings-reports-section {
     --reports-primary: #4f6bed;
-    --reports-premium-grad: linear-gradient(135deg, #667eea, #764ba2);
+    --reports-premium-grad: linear-gradient(135deg, rgba(79, 107, 237, 0.18), rgba(79, 107, 237, 0.08));
     --reports-success: #22c55e;
-    --reports-bg: #f8fafc;
-    --reports-card: #ffffff;
+    --reports-bg: var(--bg-secondary);
+    --reports-card: var(--bg-secondary);
     --reports-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    background: var(--reports-bg);
-    border: 1px solid rgba(79, 107, 237, 0.2);
-    border-radius: 12px;
-    box-shadow: var(--reports-shadow);
-    font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 140%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
 }
 
 .settings-reports-detail-header h2 {
@@ -3063,14 +3062,6 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     gap: 0.45rem;
     font-size: 1.16rem;
     margin: 0;
-}
-
-.reports-shell {
-    display: block;
-}
-
-.reports-desktop-sidebar {
-    display: none;
 }
 
 .reports-main-grid {
@@ -3089,7 +3080,8 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     border-radius: 12px;
     padding: 0.85rem;
     background: var(--reports-premium-grad);
-    color: #eff6ff;
+    color: var(--text-primary);
+    border: 1px solid rgba(79, 107, 237, 0.22);
     box-shadow: var(--reports-shadow);
     margin-bottom: 0.78rem;
 }
@@ -3106,8 +3098,9 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     width: max-content;
     padding: 0.18rem 0.58rem;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.16);
-    border: 1px solid rgba(255, 255, 255, 0.28);
+    background: rgba(79, 107, 237, 0.14);
+    border: 1px solid rgba(79, 107, 237, 0.28);
+    color: var(--accent);
     font-size: 0.72rem;
     font-weight: 800;
     text-transform: uppercase;
@@ -3117,21 +3110,21 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 .reports-premium-text {
     font-size: 0.9rem;
     line-height: 1.35;
-    color: rgba(239, 246, 255, 0.95);
+    color: var(--text-secondary);
 }
 
 .reports-premium-cta {
     margin-top: 0.72rem;
     min-height: 44px;
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.36);
-    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(79, 107, 237, 0.45);
+    background: #4f6bed;
     color: #ffffff;
     font-weight: 700;
 }
 
 .reports-premium-cta:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: #3f5bd8;
 }
 
 .reports-form-card {
@@ -3442,58 +3435,7 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     color: #64748b;
 }
 
-body.settings-page .mobile-bottom-nav {
-    border-top: 1px solid rgba(148, 163, 184, 0.34);
-}
-
-body.settings-page .mobile-nav-item.active {
-    box-shadow: 0 8px 16px rgba(79, 107, 237, 0.28);
-}
-
 @media (min-width: 1024px) {
-    .reports-shell {
-        display: grid;
-        grid-template-columns: 220px minmax(0, 1fr);
-        gap: 1rem;
-        align-items: start;
-    }
-
-    .reports-desktop-sidebar {
-        display: grid;
-        gap: 0.45rem;
-        border: 1px solid rgba(148, 163, 184, 0.3);
-        border-radius: 12px;
-        background: #ffffff;
-        padding: 0.55rem;
-        box-shadow: var(--reports-shadow);
-        position: sticky;
-        top: 5.6rem;
-    }
-
-    .reports-side-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.55rem;
-        min-height: 40px;
-        border-radius: 8px;
-        text-decoration: none;
-        color: #334155;
-        padding: 0.4rem 0.6rem;
-        border: 1px solid transparent;
-        font-weight: 600;
-    }
-
-    .reports-side-link:hover {
-        border-color: rgba(79, 107, 237, 0.25);
-        background: rgba(79, 107, 237, 0.08);
-    }
-
-    .reports-side-link.is-active {
-        background: #4f6bed;
-        border-color: #4f6bed;
-        color: #ffffff;
-    }
-
     .reports-main-grid {
         grid-template-columns: minmax(320px, 40%) minmax(420px, 60%);
         gap: 1rem;

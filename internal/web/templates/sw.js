@@ -1,4 +1,4 @@
-const SW_VERSION = '2026-04-21-v12';
+const SW_VERSION = '2026-04-22-v13';
 const STATIC_CACHE = `expenselog-static-${SW_VERSION}`;
 const PAGE_CACHE = `expenselog-pages-${SW_VERSION}`;
 
@@ -28,6 +28,7 @@ const APP_ROUTES = [
     '/app/conciliacion',
     '/app/analisis',
     '/app/reportes',
+    '/app/bots',
     '/app/telegram',
     '/app/whatsapp',
 ];
@@ -36,6 +37,7 @@ function normalizeAppPath(pathname) {
     const cleaned = String(pathname || '').replace(/\/+$/, '') || '/';
     if (cleaned === '/app/index' || cleaned === '/app/index.html') return '/app';
     if (cleaned === '/app/settings') return '/app/perfil';
+    if (cleaned === '/app/telegram' || cleaned === '/app/whatsapp') return '/app/bots';
     return cleaned;
 }
 

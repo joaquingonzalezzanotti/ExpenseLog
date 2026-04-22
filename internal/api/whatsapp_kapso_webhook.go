@@ -445,7 +445,7 @@ func (h *Handler) handleKapsoInboundMessage(event kapsoMessageEvent) {
 
 	link, err := h.storage.GetWhatsAppUserLinkByPhone(fromPhone)
 	if err == sql.ErrNoRows {
-		reply := "Tu numero no esta vinculado a ExpenseLog. Entra a Ajustes > WhatsApp Bot, genera un codigo y envia: /vincular CODIGO"
+		reply := "Tu numero no esta vinculado a ExpenseLog. Entra a Ajustes > Bots de gastos, genera un codigo y envia: /vincular CODIGO"
 		if sendErr := sendKapsoTextMessage(phoneNumberID, fromPhone, reply); sendErr != nil {
 			log.Printf("WHATSAPP KAPSO: failed sending unlinked reply to %s: %v", fromPhone, sendErr)
 		}

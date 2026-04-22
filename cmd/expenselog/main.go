@@ -104,8 +104,9 @@ func runServer(port int) {
 	http.HandleFunc("/app/recurrentes", handler.ServeSettingsRecurringPage)
 	http.HandleFunc("/app/conciliacion", handler.ServeSettingsReconciliationPage)
 	http.HandleFunc("/app/reportes", handler.ServeSettingsReportsPage)
-	http.HandleFunc("/app/telegram", handler.ServeSettingsTelegramPage)
-	http.HandleFunc("/app/whatsapp", handler.ServeSettingsWhatsAppPage)
+	http.HandleFunc("/app/bots", handler.ServeSettingsBotsPage)
+	http.HandleFunc("/app/telegram", handler.ServeSettingsBotsPage)
+	http.HandleFunc("/app/whatsapp", handler.ServeSettingsBotsPage)
 	http.HandleFunc("/table", handler.ServeTableView)
 	http.HandleFunc("/analisis", handler.ServeAnalyticsView)
 	http.HandleFunc("/settings", handler.ServeSettingsPage)
@@ -114,8 +115,9 @@ func runServer(port int) {
 	http.HandleFunc("/recurrentes", handler.ServeSettingsRecurringPage)
 	http.HandleFunc("/conciliacion", handler.ServeSettingsReconciliationPage)
 	http.HandleFunc("/reportes", handler.ServeSettingsReportsPage)
-	http.HandleFunc("/telegram", handler.ServeSettingsTelegramPage)
-	http.HandleFunc("/whatsapp", handler.ServeSettingsWhatsAppPage)
+	http.HandleFunc("/bots", handler.ServeSettingsBotsPage)
+	http.HandleFunc("/telegram", handler.ServeSettingsBotsPage)
+	http.HandleFunc("/whatsapp", handler.ServeSettingsBotsPage)
 
 	// Static File Handlers
 	staticPaths := []string{
@@ -282,7 +284,7 @@ func shouldNoIndexPath(path string) bool {
 		return true
 	}
 	switch clean {
-	case "/app", "/table", "/analisis", "/settings", "/perfil", "/categorias", "/recurrentes", "/conciliacion", "/reportes", "/telegram", "/whatsapp":
+	case "/app", "/table", "/analisis", "/settings", "/perfil", "/categorias", "/recurrentes", "/conciliacion", "/reportes", "/bots", "/telegram", "/whatsapp":
 		return true
 	}
 	return strings.HasPrefix(clean, "/app/")

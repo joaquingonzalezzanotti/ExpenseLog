@@ -148,8 +148,11 @@ function normalizeNavigationRoute(pathname, search = '') {
         '/categorias': '/app/categorias',
         '/recurrentes': '/app/recurrentes',
         '/conciliacion': '/app/conciliacion',
-        '/telegram': '/app/telegram',
-        '/whatsapp': '/app/whatsapp',
+        '/bots': '/app/bots',
+        '/telegram': '/app/bots',
+        '/whatsapp': '/app/bots',
+        '/app/telegram': '/app/bots',
+        '/app/whatsapp': '/app/bots',
         '/app/settings': '/app/perfil',
     };
     const canonicalPath = aliases[cleanedPath] || cleanedPath;
@@ -1174,9 +1177,9 @@ function setupRoutePrefetch() {
             return ['/app/table?view=calendar', '/app', '/app/analisis', '/app/reportes', '/app/perfil'];
         }
         if (path.startsWith('/app/perfil') || path.startsWith('/app/settings')) {
-            return ['/app/analisis', '/app/reportes', '/app/telegram', '/app/whatsapp', '/app/table', '/app/categorias', '/app/recurrentes', '/app'];
+            return ['/app/analisis', '/app/reportes', '/app/bots', '/app/table', '/app/categorias', '/app/recurrentes', '/app'];
         }
-        if (path.startsWith('/app/categorias') || path.startsWith('/app/recurrentes') || path.startsWith('/app/conciliacion') || path.startsWith('/app/reportes') || path.startsWith('/app/telegram') || path.startsWith('/app/whatsapp')) {
+        if (path.startsWith('/app/categorias') || path.startsWith('/app/recurrentes') || path.startsWith('/app/conciliacion') || path.startsWith('/app/reportes') || path.startsWith('/app/bots') || path.startsWith('/app/telegram') || path.startsWith('/app/whatsapp')) {
             return ['/app/perfil', '/app/table', '/app/table?view=calendar', '/app/analisis', '/app'];
         }
         return ['/app', '/app/table', '/app/table?view=calendar', '/app/analisis', '/app/reportes'];

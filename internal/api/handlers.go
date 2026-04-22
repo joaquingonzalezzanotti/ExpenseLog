@@ -798,12 +798,16 @@ func (h *Handler) ServeSettingsReportsPage(w http.ResponseWriter, r *http.Reques
 	h.serveSettingsPageWithSection(w, r, "reports")
 }
 
+func (h *Handler) ServeSettingsBotsPage(w http.ResponseWriter, r *http.Request) {
+	h.serveSettingsPageWithSection(w, r, "bots")
+}
+
 func (h *Handler) ServeSettingsTelegramPage(w http.ResponseWriter, r *http.Request) {
-	h.serveSettingsPageWithSection(w, r, "telegram")
+	h.serveSettingsPageWithSection(w, r, "bots")
 }
 
 func (h *Handler) ServeSettingsWhatsAppPage(w http.ResponseWriter, r *http.Request) {
-	h.serveSettingsPageWithSection(w, r, "whatsapp")
+	h.serveSettingsPageWithSection(w, r, "bots")
 }
 
 func (h *Handler) serveSettingsPageWithSection(w http.ResponseWriter, r *http.Request, _ string) {

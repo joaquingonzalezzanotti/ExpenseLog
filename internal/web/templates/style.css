@@ -3530,12 +3530,30 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     flex-wrap: wrap;
 }
 
+.settings-bots-grid {
+    display: grid;
+    gap: 0.95rem;
+}
+
 .settings-bot-section {
     border: 1px solid var(--bot-border, rgba(79, 107, 237, 0.22));
     background:
         radial-gradient(circle at 100% 0%, var(--bot-gradient-top, rgba(79, 107, 237, 0.12)), transparent 40%),
         radial-gradient(circle at 0% 100%, var(--bot-gradient-bottom, rgba(16, 185, 129, 0.08)), transparent 35%),
         linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 130%);
+}
+
+.settings-bot-provider {
+    border-radius: 14px;
+    padding: 0.9rem;
+}
+
+.settings-bot-provider-title {
+    margin: 0 0 0.7rem;
+    font-size: 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
 }
 
 .settings-telegram-section {
@@ -4868,8 +4886,7 @@ html[data-settings-route='categories'] body.settings-page .settings-shell-sectio
 html[data-settings-route='recurring'] body.settings-page .settings-shell-section,
 html[data-settings-route='reconciliation'] body.settings-page .settings-shell-section,
 html[data-settings-route='reports'] body.settings-page .settings-shell-section,
-html[data-settings-route='telegram'] body.settings-page .settings-shell-section,
-html[data-settings-route='whatsapp'] body.settings-page .settings-shell-section {
+html[data-settings-route='bots'] body.settings-page .settings-shell-section {
     display: none !important;
 }
 
@@ -4877,8 +4894,7 @@ html[data-settings-route='categories'] body.settings-page #categoriesSection[hid
 html[data-settings-route='recurring'] body.settings-page #recurringSection[hidden],
 html[data-settings-route='reconciliation'] body.settings-page #reconciliationSection[hidden],
 html[data-settings-route='reports'] body.settings-page #reportsSection[hidden],
-html[data-settings-route='telegram'] body.settings-page #telegramSection[hidden],
-html[data-settings-route='whatsapp'] body.settings-page #whatsappSection[hidden] {
+html[data-settings-route='bots'] body.settings-page #botsSection[hidden] {
     display: block !important;
 }
 

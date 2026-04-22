@@ -3532,7 +3532,19 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
 .settings-bots-grid {
     display: grid;
+    grid-template-columns: 1fr;
     gap: 0.95rem;
+}
+
+@media (min-width: 980px) {
+    .settings-bots-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+    }
+
+    .settings-bot-provider {
+        height: 100%;
+    }
 }
 
 .settings-bot-section {

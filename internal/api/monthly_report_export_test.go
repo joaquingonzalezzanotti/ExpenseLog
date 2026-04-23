@@ -175,3 +175,25 @@ func TestApplyMonthlyReportScope(t *testing.T) {
 		}
 	}
 }
+
+func TestMonthlyReportCutoffDate(t *testing.T) {
+	t.Run("full month boundary", func(t *testing.T) {
+		query := monthlyReportQuery{
+			End: time.Date(2026, time.May, 1, 0, 0, 0, 0, time.UTC),
+		}
+		got := monthlyReportCutoffDate(query)
+		if got.Format("2006-01-02") != "2026-04-30" {
+			t.Fatalf("expected cutoff 2026-04-30, got %s", got.Format("2006-01-02"))
+		}
+	})
+
+	t.Run("month to date boundary", func(t *testing.T) {
+		query := monthlyReportQuery{
+			End: time.Date(2026, time.April, 24, 0, 0, 0, 0, time.UTC),
+		}
+		got := monthlyReportCutoffDate(query)
+		if got.Format("2006-01-02") != "2026-04-23" {
+			t.Fatalf("expected cutoff 2026-04-23, got %s", got.Format("2006-01-02"))
+		}
+	})
+}

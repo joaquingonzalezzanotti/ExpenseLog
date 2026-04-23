@@ -236,6 +236,12 @@ func (h *Handler) parseMonthlyReportQuery(r *http.Request, userID string) (month
 
 	start := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
 	end := start.AddDate(0, 1, 0)
+	if year == now.Year() && month == int(now.Month()) {
+		todayEndExclusive := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, time.UTC)
+		if todayEndExclusive.Before(end) {
+			end = todayEndExclusive
+		}
+	}
 
 	return monthlyReportQuery{
 		Year:              year,
@@ -701,7 +707,12 @@ func buildMonthlyReportXLSX(expenses []storage.Expense, query monthlyReportQuery
 	})
 
 	periodLabel := fmt.Sprintf("%s %d", monthlyReportMonthName(query.Month), query.Year)
-	metadata := fmt.Sprintf("Moneda: %s | Emitido: %s UTC", strings.ToUpper(query.Currency), time.Now().UTC().Format("2006-01-02 15:04"))
+	metadata := fmt.Sprintf(
+		"Moneda: %s | Corte: %s | Emitido: %s UTC",
+		strings.ToUpper(query.Currency),
+		monthlyReportCutoffDate(query).Format("2006-01-02"),
+		time.Now().UTC().Format("2006-01-02 15:04"),
+	)
 
 	_ = file.SetCellValue(movementsSheet, "A1", "ExpenseLog | Reporte mensual profesional")
 	_ = file.MergeCell(movementsSheet, "A1", "J1")
@@ -1143,7 +1154,23 @@ func drawPDFSummaryPage(pdf *gofpdf.Fpdf, query monthlyReportQuery, metrics mont
 	pdf.SetTextColor(51, 65, 85)
 	pdf.SetXY(pageLeft+3, 31)
 	pdf.SetFont("Arial", "", 10)
-	pdf.CellFormat(0, 5, fmt.Sprintf("Moneda: %s | Alcance: %s | Emitido: %s UTC", strings.ToUpper(query.Currency), monthlyReportScopeLabel(query.IncludeCreditCard), time.Now().UTC().Format("2006-01-02 15:04")), "", 1, "L", false, 0, "")
+	pdf.CellFormat(
+		0,
+		5,
+		fmt.Sprintf(
+			"Moneda: %s | Alcance: %s | Corte: %s | Emitido: %s UTC",
+			strings.ToUpper(query.Currency),
+			monthlyReportScopeLabel(query.IncludeCreditCard),
+			monthlyReportCutoffDate(query).Format("2006-01-02"),
+			time.Now().UTC().Format("2006-01-02 15:04"),
+		),
+		"",
+		1,
+		"L",
+		false,
+		0,
+		"",
+	)
 
 	cardExpenseValue := formatReportAmount(metrics.CardOutflow, query.Currency)
 	if !query.IncludeCreditCard {
@@ -1711,6 +1738,13 @@ func monthlyReportMonthName(month int) string {
 		return fmt.Sprintf("Mes %d", month)
 	}
 	return names[month-1]
+}
+
+func monthlyReportCutoffDate(query monthlyReportQuery) time.Time {
+	if query.End.IsZero() {
+		return time.Time{}
+	}
+	return query.End.Add(-time.Nanosecond).UTC()
 }
 
 func drawPDFReportTableHeader(pdf *gofpdf.Fpdf, headers []string, widths []float64) {

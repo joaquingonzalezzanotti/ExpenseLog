@@ -698,6 +698,20 @@
             return isNegative ? `-${result}` : result;
         }
 
+        function formatCurrencyWithCurrencyNoDecimals(amount, currencyCode) {
+            const behavior = currencyBehaviors[currencyCode] || currencyBehaviors[currentCurrency] || {symbol:"$",useComma:false,useDecimals:true,useSpace:false,right:false};
+            const numericAmount = Number(amount);
+            const safeAmount = Number.isFinite(numericAmount) ? numericAmount : 0;
+            const isNegative = safeAmount < 0;
+            const absAmount = Math.trunc(Math.abs(safeAmount));
+            const formatted = new Intl.NumberFormat(behavior.useComma ? "de-DE" : "en-US", {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+            }).format(absAmount);
+            const result = behavior.right ? `${formatted}${behavior.useSpace ? " " : ""}${behavior.symbol}` : `${behavior.symbol}${behavior.useSpace ? " " : ""}${formatted}`;
+            return isNegative ? `-${result}` : result;
+        }
+
         function formatAlertDueDate(isoDate) {
             const ymd = getDateInputValueFromISO(isoDate);
             if (!ymd) return '-';
@@ -1160,7 +1174,7 @@
             const hasPending = Object.values(cardPayableByCurrency).some(value => value > 0);
 
             cardPaymentModule.style.display = '';
-            cardPayableValue.textContent = formatCurrencyWithCurrency(pendingSelected, selectedCurrency);
+            cardPayableValue.textContent = formatCurrencyWithCurrencyNoDecimals(pendingSelected, selectedCurrency);
             if (cardPaymentDueDate) {
                 cardPaymentDueDate.textContent = formatCardDueDate(currentDate);
             }

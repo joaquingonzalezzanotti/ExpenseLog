@@ -259,8 +259,8 @@
             <h3>Eliminar gasto</h3>
             <p>Seguro que queres eliminar este gasto? (no se puede deshacer)</p>
             <div class="modal-buttons">
-                <button class="modal-button" onclick="closeDeleteModal()">Cancelar</button>
-                <button class="modal-button confirm" onclick="confirmDelete()">Eliminar</button>
+                <button id="deleteModalCancelBtn" class="modal-button" type="button">Cancelar</button>
+                <button id="deleteModalConfirmBtn" class="modal-button confirm" type="button">Eliminar</button>
             </div>
         </div>
     </div>
@@ -1202,12 +1202,12 @@
                                 <td class="actions-col col-center">
                                     <div class="row-actions-desktop">
                                         ${expense.systemLocked ? `
-                                            <button class="nav-button button-secondary" type="button" onclick="goToReconciliationSettings()">Gestionar en Ajustes</button>
+                                            <button class="nav-button button-secondary" type="button" data-row-action="manage-reconciliation">Gestionar en Ajustes</button>
                                         ` : `
-                                            <button class="edit-button" onclick="editExpenseByIndex(${index})">
+                                            <button class="edit-button" type="button" data-row-action="edit" data-row-index="${index}">
                                                 <i class="fa-solid fa-pen-to-square"></i>
                                             </button>
-                                            <button class="delete-button" onclick="handleDeleteClick(event, '${expense.id}')">
+                                            <button class="delete-button" type="button" data-row-action="delete" data-row-id="${expense.id}">
                                                 <i class="fa-solid fa-trash-can"></i>
                                             </button>
                                         `}
@@ -1748,15 +1748,6 @@
             document.getElementById('deleteModal').classList.add('active');
         }
 
-        function handleDeleteClick(event, id) {
-            if (event.shiftKey) {
-                expenseToDelete = id;
-                confirmDelete();
-            } else {
-                showDeleteModal(id);
-            }
-        }
-
         function closeDeleteModal() {
             expenseToDelete = null;
             document.getElementById('deleteModal').classList.remove('active');
@@ -1791,6 +1782,10 @@
             if (e.target.className === 'modal active') {
                 closeDeleteModal();
             }
+        });
+        document.getElementById('deleteModalCancelBtn')?.addEventListener('click', closeDeleteModal);
+        document.getElementById('deleteModalConfirmBtn')?.addEventListener('click', () => {
+            confirmDelete();
         });
 
         function resetTableExpenseForm({ closeForm = false } = {}) {
@@ -1997,13 +1992,18 @@
                     const action = rowAction.dataset.rowAction;
                     if (action === 'edit') {
                         const index = Number(rowAction.dataset.rowIndex);
-                    if (!Number.isNaN(index)) {
-                        editExpenseByIndex(index);
-                    }
+                        if (!Number.isNaN(index)) {
+                            editExpenseByIndex(index);
+                        }
                     } else if (action === 'delete') {
                         const expenseId = rowAction.dataset.rowId;
                         if (expenseId) {
-                            showDeleteModal(expenseId);
+                            if (e.shiftKey) {
+                                expenseToDelete = expenseId;
+                                confirmDelete();
+                            } else {
+                                showDeleteModal(expenseId);
+                            }
                         }
                     } else if (action === 'manage-reconciliation') {
                         goToReconciliationSettings();

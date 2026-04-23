@@ -1,6 +1,8 @@
 package web
 
 import (
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -76,6 +78,29 @@ func TestIndexTemplateDoesNotContainLegacyPieChartModule(t *testing.T) {
 	for _, token := range forbidden {
 		if strings.Contains(index, token) {
 			t.Fatalf("index.html should not contain legacy chart token %q", token)
+		}
+	}
+}
+
+func TestTemplatesDoNotUseInlineEventHandlers(t *testing.T) {
+	files, err := content.ReadDir("templates")
+	if err != nil {
+		t.Fatalf("failed to read templates dir: %v", err)
+	}
+
+	inlineEventAttr := regexp.MustCompile(`(?i)<[^>]+\son[a-z]+\s*=`)
+	allowList := []string{}
+
+	for _, file := range files {
+		if file.IsDir() || !strings.HasSuffix(strings.ToLower(file.Name()), ".html") {
+			continue
+		}
+		if slices.Contains(allowList, file.Name()) {
+			continue
+		}
+		raw := readTemplateForTest(t, file.Name())
+		if inlineEventAttr.MatchString(raw) {
+			t.Fatalf("template %s contains inline event handlers, which are blocked by CSP", file.Name())
 		}
 	}
 }

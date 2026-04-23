@@ -550,9 +550,9 @@
             <h3>Eliminar transaccion recurrente</h3>
             <p>Quers borrar todas las instancias o solo las futuras?</p>
             <div class="modal-buttons">
-                <button class="modal-button" onclick="closeRecurringDeleteModal()">Cancelar</button>
-                <button class="modal-button" onclick="confirmRecurringDelete(false)">Eliminar futuras</button>
-                <button class="modal-button confirm" onclick="confirmRecurringDelete(true)">Eliminar todas</button>
+                <button id="recurringDeleteCancelBtn" class="modal-button" type="button">Cancelar</button>
+                <button id="recurringDeleteFutureBtn" class="modal-button" type="button">Eliminar futuras</button>
+                <button id="recurringDeleteAllBtn" class="modal-button confirm" type="button">Eliminar todas</button>
             </div>
         </div>
     </div>
@@ -608,9 +608,9 @@
                 </div>
             </form>
             <div class="modal-buttons">
-                <button class="modal-button" onclick="closeRecurringEditModal()">Cancelar</button>
-                <button class="modal-button" onclick="confirmRecurringUpdate(false)">Actualizar futuras</button>
-                <button class="modal-button confirm" onclick="confirmRecurringUpdate(true)">Actualizar todas</button>
+                <button id="recurringEditCancelBtn" class="modal-button" type="button">Cancelar</button>
+                <button id="recurringEditFutureBtn" class="modal-button" type="button">Actualizar futuras</button>
+                <button id="recurringEditAllBtn" class="modal-button confirm" type="button">Actualizar todas</button>
             </div>
         </div>
     </div>
@@ -2066,8 +2066,8 @@ async function saveCategoriesList(nextCategories) {
                                 <td class="recurring-col-secondary col-center">${formatIntervalLabel(r.interval)}</td>
                                 <td class="col-center">${findNextOccurrence(r)}</td>
                                 <td class="actions-col col-center">
-                                    <button class="edit-button" onclick="showRecurringEditModal('${r.id}')"><i class="fa-solid fa-pen-to-square"></i></button>
-                                    <button class="delete-button" onclick="showRecurringDeleteModal('${r.id}')"><i class="fa-solid fa-trash-can"></i></button>
+                                    <button class="edit-button" type="button" data-recurring-action="edit" data-recurring-id="${r.id}"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <button class="delete-button" type="button" data-recurring-action="delete" data-recurring-id="${r.id}"><i class="fa-solid fa-trash-can"></i></button>
                                 </td>
                             </tr>
                         `).join('')}
@@ -3081,6 +3081,34 @@ async function saveCategoriesList(nextCategories) {
                 console.error('Error adding recurring expense:', error);
                 showMessage('recurringExpenseMessage', 'Error: No se pudo agregar la transaccion recurrente', false);
             }
+        });
+        document.getElementById('recurring-expenses-list')?.addEventListener('click', (e) => {
+            const button = e.target.closest('[data-recurring-action]');
+            if (!button) return;
+            const recurringId = button.dataset.recurringId;
+            if (!recurringId) return;
+            const action = button.dataset.recurringAction;
+            if (action === 'edit') {
+                showRecurringEditModal(recurringId);
+                return;
+            }
+            if (action === 'delete') {
+                showRecurringDeleteModal(recurringId);
+            }
+        });
+        document.getElementById('recurringDeleteCancelBtn')?.addEventListener('click', closeRecurringDeleteModal);
+        document.getElementById('recurringDeleteFutureBtn')?.addEventListener('click', () => {
+            confirmRecurringDelete(false);
+        });
+        document.getElementById('recurringDeleteAllBtn')?.addEventListener('click', () => {
+            confirmRecurringDelete(true);
+        });
+        document.getElementById('recurringEditCancelBtn')?.addEventListener('click', closeRecurringEditModal);
+        document.getElementById('recurringEditFutureBtn')?.addEventListener('click', () => {
+            confirmRecurringUpdate(false);
+        });
+        document.getElementById('recurringEditAllBtn')?.addEventListener('click', () => {
+            confirmRecurringUpdate(true);
         });
 
         document.addEventListener('DOMContentLoaded', guardAppInit(initialize));

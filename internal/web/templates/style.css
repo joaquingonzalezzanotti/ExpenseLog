@@ -6914,6 +6914,12 @@ html[data-settings-route='bots'] body.settings-page #botsSection[hidden] {
     background-color: var(--bg-primary);
 }
 
+.financial-calendar-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
 .financial-calendar-weekdays {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -7014,7 +7020,6 @@ html[data-settings-route='bots'] body.settings-page #botsSection[hidden] {
 .financial-calendar-details {
     border: 1px solid var(--border);
     border-radius: 14px;
-    margin-top: 0.9rem;
     padding: 0.75rem;
     background-color: var(--bg-primary);
 }
@@ -7102,6 +7107,22 @@ html[data-settings-route='bots'] body.settings-page #botsSection[hidden] {
 
 .financial-calendar-movement.negative .financial-calendar-movement-amount {
     color: var(--danger);
+}
+
+@media (min-width: 1160px) {
+    .financial-calendar-content {
+        display: grid;
+        grid-template-columns: minmax(0, 7fr) minmax(320px, 3fr);
+        align-items: start;
+        gap: 1rem;
+    }
+
+    .financial-calendar-details {
+        position: sticky;
+        top: 1rem;
+        max-height: calc(100vh - 120px);
+        overflow: auto;
+    }
 }
 
 .table-footer-controls {

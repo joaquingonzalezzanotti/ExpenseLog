@@ -514,10 +514,16 @@
 
         function applyHomeConfig(config) {
             const categorySelect = document.getElementById('category');
-            categories = Array.isArray(config?.categories) ? config.categories : [];
-            categorySelect.innerHTML = categories.map(cat =>
-                `<option value="${cat}">${cat}</option>`
-            ).join('');
+            categories = Array.isArray(config?.categories)
+                ? config.categories.map((cat) => String(cat || '').trim()).filter(Boolean)
+                : [];
+            categorySelect.replaceChildren();
+            for (const cat of categories) {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                categorySelect.appendChild(option);
+            }
 
             currentCurrency = (config?.currency || 'ars').toLowerCase();
             if (!supportedCurrencies.includes(currentCurrency)) {

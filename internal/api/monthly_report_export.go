@@ -607,10 +607,18 @@ func buildMonthlyReportXLSX(expenses []storage.Expense, query monthlyReportQuery
 	const categoriesSheet = "Categorias"
 	const analysisSheet = "Analisis"
 
-	file.SetSheetName("Sheet1", movementsSheet)
-	_, _ = file.NewSheet(summarySheet)
-	_, _ = file.NewSheet(categoriesSheet)
-	_, _ = file.NewSheet(analysisSheet)
+	if err := file.SetSheetName("Sheet1", movementsSheet); err != nil {
+		return nil, fmt.Errorf("set movimientos sheet: %w", err)
+	}
+	if _, err := file.NewSheet(summarySheet); err != nil {
+		return nil, fmt.Errorf("create resumen sheet: %w", err)
+	}
+	if _, err := file.NewSheet(categoriesSheet); err != nil {
+		return nil, fmt.Errorf("create categorias sheet: %w", err)
+	}
+	if _, err := file.NewSheet(analysisSheet); err != nil {
+		return nil, fmt.Errorf("create analisis sheet: %w", err)
+	}
 
 	titleStyle, _ := file.NewStyle(&excelize.Style{
 		Font: &excelize.Font{Bold: true, Color: "#0F172A", Size: 16},

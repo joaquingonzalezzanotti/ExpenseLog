@@ -3669,8 +3669,31 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     font-size: 0.88rem;
 }
 
+.settings-bot-provider,
+.settings-bot-card {
+    min-width: 0;
+}
+
+.settings-bot-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(152px, 1fr));
+    gap: 0.62rem;
+    align-items: stretch;
+}
+
 .settings-bot-actions .nav-button {
-    min-width: 190px;
+    min-width: 0;
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.56rem 0.92rem;
+    white-space: normal;
+    line-height: 1.2;
+    text-align: center;
+    font-weight: 600;
+    border-width: 1px;
 }
 
 .settings-bot-caption {
@@ -3702,13 +3725,13 @@ html[data-theme='dark'] .expense-table td.amount-balance {
         min-width: 0;
     }
 
-    .settings-bot-actions {
-        flex-direction: column;
-    }
-
     .settings-bot-actions .nav-button {
         width: 100%;
         min-width: 0;
+    }
+
+    .settings-bot-actions {
+        grid-template-columns: 1fr;
     }
 
     .settings-report-select-wrap select,

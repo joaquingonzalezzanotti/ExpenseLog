@@ -1650,9 +1650,27 @@ function sanitizeCategoryName(raw) {
 }
 
 function renderCategorySelects() {
-    const options = categories.map(c => `<option value="${c}">${formatSettingsCategoryLabel(c)}</option>`).join('');
-    document.getElementById('recurringCategory').innerHTML = options;
-    document.getElementById('editRecurringCategory').innerHTML = options;
+    const recurringCategorySelect = document.getElementById('recurringCategory');
+    const editRecurringCategorySelect = document.getElementById('editRecurringCategory');
+    fillCategorySelectOptions(recurringCategorySelect, categories);
+    fillCategorySelectOptions(editRecurringCategorySelect, categories);
+}
+
+function fillCategorySelectOptions(selectEl, categoryList) {
+    if (!selectEl) return;
+    const previousValue = String(selectEl.value || '');
+    selectEl.replaceChildren();
+    (Array.isArray(categoryList) ? categoryList : []).forEach((value) => {
+        const normalized = String(value || '').trim();
+        if (!normalized) return;
+        const option = document.createElement('option');
+        option.value = normalized;
+        option.textContent = formatSettingsCategoryLabel(normalized);
+        selectEl.appendChild(option);
+    });
+    if (previousValue && Array.from(selectEl.options).some((option) => option.value === previousValue)) {
+        selectEl.value = previousValue;
+    }
 }
 
 function applyCategoriesUpdate(updatedCategories) {

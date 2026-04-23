@@ -1,4 +1,4 @@
-FROM public.ecr.aws/docker/library/golang:1.23.2-alpine3.20 AS builder
+FROM public.ecr.aws/docker/library/golang:1.25.9-alpine3.22 AS builder
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ COPY . .
 # Build a small Linux binary.
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /app/expenselog ./cmd/expenselog
 
-FROM public.ecr.aws/docker/library/alpine:3.20
+FROM public.ecr.aws/docker/library/alpine:3.22
 
 WORKDIR /app
 

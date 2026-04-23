@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"log"
@@ -38,7 +40,9 @@ func runServer(port int) {
 			return
 		}
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.Write([]byte(version))
+		if _, err := w.Write([]byte(version)); err != nil {
+			log.Printf("HTTP ERROR: Failed to write version response: %v", err)
+		}
 	}
 	http.HandleFunc("/version", versionHandler)
 	http.HandleFunc("/api/version", versionHandler)
@@ -238,6 +242,7 @@ func runServer(port int) {
 
 func withSecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cspNonce := newCSPNonce()
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
@@ -245,7 +250,7 @@ func withSecurityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
 		w.Header().Set("Cross-Origin-Resource-Policy", "same-origin")
 		w.Header().Set("X-Permitted-Cross-Domain-Policies", "none")
-		w.Header().Set("Content-Security-Policy", defaultContentSecurityPolicy())
+		w.Header().Set("Content-Security-Policy", defaultContentSecurityPolicy(cspNonce))
 		if shouldNoIndexPath(r.URL.Path) {
 			w.Header().Set("X-Robots-Tag", "noindex, nofollow")
 		}
@@ -256,9 +261,13 @@ func withSecurityHeaders(next http.Handler) http.Handler {
 	})
 }
 
-func defaultContentSecurityPolicy() string {
+func defaultContentSecurityPolicy(nonce string) string {
 	if configured := strings.TrimSpace(os.Getenv("CONTENT_SECURITY_POLICY")); configured != "" {
 		return configured
+	}
+	scriptSrc := "script-src 'self' 'unsafe-inline'"
+	if strings.TrimSpace(nonce) != "" {
+		scriptSrc = "script-src 'self' 'nonce-" + nonce + "'"
 	}
 	return strings.Join([]string{
 		"default-src 'self'",
@@ -266,13 +275,22 @@ func defaultContentSecurityPolicy() string {
 		"object-src 'none'",
 		"frame-ancestors 'none'",
 		"form-action 'self'",
-		"script-src 'self' 'unsafe-inline'",
+		scriptSrc,
 		"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
 		"img-src 'self' data: https:",
 		"font-src 'self' data: https://fonts.gstatic.com",
 		"connect-src 'self'",
 		"frame-src 'none'",
+		"worker-src 'self'",
 	}, "; ")
+}
+
+func newCSPNonce() string {
+	nonceBytes := make([]byte, 16)
+	if _, err := rand.Read(nonceBytes); err != nil {
+		return ""
+	}
+	return base64.RawStdEncoding.EncodeToString(nonceBytes)
 }
 
 func shouldNoIndexPath(path string) bool {

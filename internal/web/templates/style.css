@@ -1358,6 +1358,26 @@ input:focus-visible {
     min-height: 0;
 }
 
+.analytics-insight-card--top {
+    border-color: color-mix(in srgb, var(--accent) 42%, var(--border) 58%);
+    background:
+        linear-gradient(160deg, color-mix(in srgb, var(--accent) 14%, var(--bg-secondary) 86%), var(--bg-secondary));
+}
+
+.analytics-insight-card--summary {
+    border-color: color-mix(in srgb, var(--success) 34%, var(--border) 66%);
+    background:
+        linear-gradient(160deg, color-mix(in srgb, var(--success) 10%, var(--bg-secondary) 90%), var(--bg-secondary));
+}
+
+.analytics-insight-card--top .analytics-card-title {
+    color: color-mix(in srgb, var(--accent) 70%, var(--text-primary) 30%);
+}
+
+.analytics-insight-card--summary .analytics-card-title {
+    color: color-mix(in srgb, var(--success) 65%, var(--text-primary) 35%);
+}
+
 .analytics-insight-list {
     gap: 0.65rem;
 }
@@ -1388,6 +1408,18 @@ input:focus-visible {
     font-size: 0.92rem;
     line-height: 1.2;
     font-variant-numeric: tabular-nums;
+}
+
+.analytics-insight-card--top .analytics-insight-highlight:nth-child(1) {
+    background: color-mix(in srgb, #f59e0b 18%, var(--bg-primary) 82%);
+}
+
+.analytics-insight-card--top .analytics-insight-highlight:nth-child(2) {
+    background: color-mix(in srgb, #3b82f6 16%, var(--bg-primary) 84%);
+}
+
+.analytics-insight-card--top .analytics-insight-highlight:nth-child(3) {
+    background: color-mix(in srgb, #14b8a6 16%, var(--bg-primary) 84%);
 }
 
 .analytics-insight-row {
@@ -1473,6 +1505,46 @@ input:focus-visible {
     background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #8ec5ff 30%));
 }
 
+.analytics-insight-row--rank-1 .analytics-insight-rank {
+    background: linear-gradient(140deg, #f59e0b, #f97316);
+}
+
+.analytics-insight-row--rank-2 .analytics-insight-rank {
+    background: linear-gradient(140deg, #2563eb, #38bdf8);
+}
+
+.analytics-insight-row--rank-3 .analytics-insight-rank {
+    background: linear-gradient(140deg, #14b8a6, #22c55e);
+}
+
+.analytics-insight-row--rank-4 .analytics-insight-rank {
+    background: linear-gradient(140deg, #0f766e, #06b6d4);
+}
+
+.analytics-insight-row--rank-5 .analytics-insight-rank {
+    background: linear-gradient(140deg, #0ea5e9, #22d3ee);
+}
+
+.analytics-insight-row--rank-1 .analytics-insight-meter span {
+    background: linear-gradient(90deg, #f59e0b, #f97316);
+}
+
+.analytics-insight-row--rank-2 .analytics-insight-meter span {
+    background: linear-gradient(90deg, #2563eb, #38bdf8);
+}
+
+.analytics-insight-row--rank-3 .analytics-insight-meter span {
+    background: linear-gradient(90deg, #14b8a6, #22c55e);
+}
+
+.analytics-insight-row--rank-4 .analytics-insight-meter span {
+    background: linear-gradient(90deg, #0f766e, #06b6d4);
+}
+
+.analytics-insight-row--rank-5 .analytics-insight-meter span {
+    background: linear-gradient(90deg, #0ea5e9, #22d3ee);
+}
+
 .analytics-kpi-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1485,8 +1557,8 @@ input:focus-visible {
     padding: 0.68rem 0.72rem;
     background: linear-gradient(
         140deg,
-        color-mix(in srgb, var(--accent) 14%, var(--bg-primary) 86%),
-        color-mix(in srgb, var(--bg-secondary) 88%, var(--bg-primary) 12%)
+        color-mix(in srgb, var(--success) 16%, var(--bg-primary) 84%),
+        color-mix(in srgb, var(--accent) 12%, var(--bg-secondary) 88%)
     );
     display: flex;
     flex-direction: column;
@@ -1606,6 +1678,22 @@ input:focus-visible {
     color: var(--accent-contrast);
     background: color-mix(in srgb, var(--accent) 90%, #ffffff 10%);
     font-size: 0.74rem;
+}
+
+.analytics-insight-card--summary .analytics-kpi-item:nth-child(1) .analytics-kpi-icon {
+    background: linear-gradient(140deg, #16a34a, #22c55e);
+}
+
+.analytics-insight-card--summary .analytics-kpi-item:nth-child(2) .analytics-kpi-icon {
+    background: linear-gradient(140deg, #0284c7, #38bdf8);
+}
+
+.analytics-insight-card--summary .analytics-kpi-item:nth-child(3) .analytics-kpi-icon {
+    background: linear-gradient(140deg, #0f766e, #06b6d4);
+}
+
+.analytics-insight-card--summary .analytics-kpi-item:nth-child(4) .analytics-kpi-icon {
+    background: linear-gradient(140deg, #f59e0b, #f97316);
 }
 
 .analytics-kpi-label {

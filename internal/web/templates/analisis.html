@@ -97,68 +97,6 @@
         <div id="analyticsEmptyState" class="empty-state" style="display: none;"></div>
 
         <section id="analyticsGrid" class="analytics-grid">
-            <div class="analytics-overview-grid">
-                <article class="chart-container analytics-card analytics-insight-card" id="topExpensesCard">
-                    <div class="analytics-head">
-                        <div class="analytics-card-title">Top 5 gastos</div>
-                    </div>
-                    <div id="topExpensesList" class="analytics-card-body analytics-insight-list">
-                        <p class="analytics-card-hint">Aun no hay datos para mostrar.</p>
-                    </div>
-                </article>
-
-                <article class="chart-container analytics-card analytics-insight-card" id="monthlySummaryCard">
-                    <div class="analytics-head">
-                        <div class="analytics-card-title">Resumen del mes</div>
-                    </div>
-                    <div class="analytics-summary-hero">
-                        <div class="analytics-summary-head">
-                            <span id="analyticsSummaryStatus" class="analytics-summary-status is-neutral">Balance en seguimiento</span>
-                        </div>
-                        <strong id="analyticsMonthBalance" class="analytics-summary-balance">$0</strong>
-                        <div class="analytics-summary-meta">
-                            <div class="analytics-summary-metric">
-                                <span>Ingresos</span>
-                                <strong id="analyticsMonthIncome">$0</strong>
-                            </div>
-                            <div class="analytics-summary-metric">
-                                <span>Gastos</span>
-                                <strong id="analyticsMonthExpense">$0</strong>
-                            </div>
-                        </div>
-                        <div class="analytics-summary-pressure" aria-hidden="true">
-                            <span id="analyticsExpensePressureBar" style="width: 0%;"></span>
-                        </div>
-                    </div>
-                    <div class="analytics-card-body analytics-kpi-grid">
-                        <div class="analytics-kpi-item">
-                            <span class="analytics-kpi-icon" aria-hidden="true"><i class="fa-solid fa-piggy-bank"></i></span>
-                            <span class="analytics-kpi-label">Tasa de ahorro</span>
-                            <strong id="analyticsSavingRate">0%</strong>
-                            <span class="analytics-kpi-hint" id="analyticsSavingRateHint">Sin ingresos cargados</span>
-                        </div>
-                        <div class="analytics-kpi-item">
-                            <span class="analytics-kpi-icon" aria-hidden="true"><i class="fa-solid fa-calendar-day"></i></span>
-                            <span class="analytics-kpi-label">Gasto diario promedio</span>
-                            <strong id="analyticsDailySpend">-</strong>
-                            <span class="analytics-kpi-hint" id="analyticsDailySpendHint">0 dias con movimiento</span>
-                        </div>
-                        <div class="analytics-kpi-item">
-                            <span class="analytics-kpi-icon" aria-hidden="true"><i class="fa-solid fa-bullseye"></i></span>
-                            <span class="analytics-kpi-label">Proyeccion fin de mes</span>
-                            <strong id="analyticsMonthProjection">-</strong>
-                            <span class="analytics-kpi-hint" id="analyticsMonthProjectionHint">Sin proyeccion</span>
-                        </div>
-                        <div class="analytics-kpi-item">
-                            <span class="analytics-kpi-icon" aria-hidden="true"><i class="fa-solid fa-clock"></i></span>
-                            <span class="analytics-kpi-label">Dias sin movimientos</span>
-                            <strong id="analyticsNoMovementDays">0 dias</strong>
-                            <span class="analytics-kpi-hint" id="analyticsNoMovementHint">Actividad 0%</span>
-                        </div>
-                    </div>
-                </article>
-            </div>
-
             <article id="analyticsCard" class="chart-container analytics-card analytics-chart-card">
                 <div class="analytics-head">
                     <div id="analyticsCardTitle" class="analytics-card-title">Vista de gastos</div>
@@ -208,6 +146,68 @@
                     </div>
                 </article>
             </section>
+
+            <div class="analytics-overview-grid">
+                <article class="chart-container analytics-card analytics-insight-card analytics-insight-card--top" id="topExpensesCard">
+                    <div class="analytics-head">
+                        <div class="analytics-card-title">🔥 Top 5 gastos</div>
+                    </div>
+                    <div id="topExpensesList" class="analytics-card-body analytics-insight-list">
+                        <p class="analytics-card-hint">Aun no hay datos para mostrar.</p>
+                    </div>
+                </article>
+
+                <article class="chart-container analytics-card analytics-insight-card analytics-insight-card--summary" id="monthlySummaryCard">
+                    <div class="analytics-head">
+                        <div class="analytics-card-title">✨ Resumen del mes</div>
+                    </div>
+                    <div class="analytics-summary-hero">
+                        <div class="analytics-summary-head">
+                            <span id="analyticsSummaryStatus" class="analytics-summary-status is-neutral">Balance en seguimiento</span>
+                        </div>
+                        <strong id="analyticsMonthBalance" class="analytics-summary-balance">$0</strong>
+                        <div class="analytics-summary-meta">
+                            <div class="analytics-summary-metric">
+                                <span>Ingresos</span>
+                                <strong id="analyticsMonthIncome">$0</strong>
+                            </div>
+                            <div class="analytics-summary-metric">
+                                <span>Gastos</span>
+                                <strong id="analyticsMonthExpense">$0</strong>
+                            </div>
+                        </div>
+                        <div class="analytics-summary-pressure" aria-hidden="true">
+                            <span id="analyticsExpensePressureBar" style="width: 0%;"></span>
+                        </div>
+                    </div>
+                    <div class="analytics-card-body analytics-kpi-grid">
+                        <div class="analytics-kpi-item">
+                            <span class="analytics-kpi-icon" aria-hidden="true"><i class="fa-solid fa-piggy-bank"></i></span>
+                            <span class="analytics-kpi-label">Tasa de ahorro</span>
+                            <strong id="analyticsSavingRate">0%</strong>
+                            <span class="analytics-kpi-hint" id="analyticsSavingRateHint">Sin ingresos cargados</span>
+                        </div>
+                        <div class="analytics-kpi-item">
+                            <span class="analytics-kpi-icon" aria-hidden="true"><i class="fa-solid fa-calendar-day"></i></span>
+                            <span class="analytics-kpi-label">Gasto diario promedio</span>
+                            <strong id="analyticsDailySpend">-</strong>
+                            <span class="analytics-kpi-hint" id="analyticsDailySpendHint">0 dias con movimiento</span>
+                        </div>
+                        <div class="analytics-kpi-item">
+                            <span class="analytics-kpi-icon" aria-hidden="true"><i class="fa-solid fa-bullseye"></i></span>
+                            <span class="analytics-kpi-label">Proyeccion fin de mes</span>
+                            <strong id="analyticsMonthProjection">-</strong>
+                            <span class="analytics-kpi-hint" id="analyticsMonthProjectionHint">Sin proyeccion</span>
+                        </div>
+                        <div class="analytics-kpi-item">
+                            <span class="analytics-kpi-icon" aria-hidden="true"><i class="fa-solid fa-clock"></i></span>
+                            <span class="analytics-kpi-label">Dias sin movimientos</span>
+                            <strong id="analyticsNoMovementDays">0 dias</strong>
+                            <span class="analytics-kpi-hint" id="analyticsNoMovementHint">Actividad 0%</span>
+                        </div>
+                    </div>
+                </article>
+            </div>
 
         </section>
     </div>
@@ -501,7 +501,7 @@
                     </div>
                 </div>
                 ${topEntries.map((entry, index) => `
-                <div class="analytics-insight-row">
+                <div class="analytics-insight-row analytics-insight-row--rank-${index + 1}">
                     <div class="analytics-insight-row-head">
                         <div class="analytics-insight-rank">${index + 1}</div>
                         <div class="analytics-insight-content">

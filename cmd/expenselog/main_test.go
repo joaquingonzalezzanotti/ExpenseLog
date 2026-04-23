@@ -11,6 +11,7 @@ func TestShouldNoIndexPath(t *testing.T) {
 		{path: "/robots.txt", want: false},
 		{path: "/sitemap.xml", want: false},
 		{path: "/app", want: true},
+		{path: "/analisis", want: true},
 		{path: "/app/settings", want: true},
 		{path: "/api/auth/login", want: true},
 		{path: "/style.css", want: false},

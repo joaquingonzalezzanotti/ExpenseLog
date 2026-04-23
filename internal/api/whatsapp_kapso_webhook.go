@@ -64,6 +64,7 @@ var (
 	whatsAppURLRE            = regexp.MustCompile(`https?://\S+`)
 	whatsAppEditCommandRE    = regexp.MustCompile(`(?i)^/?editar\s+\[?([a-z0-9\-]{8,})\]?\s+(monto|importe|descripcion|desc|nombre)\s+(.+)$`)
 	whatsAppDeleteCommandRE  = regexp.MustCompile(`(?i)^/?(borrar|eliminar)\s+\[?([a-z0-9\-]{8,})\]?$`)
+	whatsAppOCRLangsRE       = regexp.MustCompile(`^[a-z]{3}(?:\+[a-z]{3})*$`)
 )
 
 var kapsoWebhookProcessedKeys = struct {
@@ -445,7 +446,7 @@ func (h *Handler) handleKapsoInboundMessage(event kapsoMessageEvent) {
 
 	link, err := h.storage.GetWhatsAppUserLinkByPhone(fromPhone)
 	if err == sql.ErrNoRows {
-		reply := "Tu numero no esta vinculado a ExpenseLog. Entra a Ajustes > WhatsApp Bot, genera un codigo y envia: /vincular CODIGO"
+		reply := "Tu numero no esta vinculado a ExpenseLog. Entra a Ajustes > Bots de gastos, genera un codigo y envia: /vincular CODIGO"
 		if sendErr := sendKapsoTextMessage(phoneNumberID, fromPhone, reply); sendErr != nil {
 			log.Printf("WHATSAPP KAPSO: failed sending unlinked reply to %s: %v", fromPhone, sendErr)
 		}
@@ -1527,7 +1528,9 @@ func runTesseractOnBytes(data []byte, ext string) (string, error) {
 	path := tmpFile.Name()
 	defer os.Remove(path)
 	if _, err := tmpFile.Write(data); err != nil {
-		tmpFile.Close()
+		if closeErr := tmpFile.Close(); closeErr != nil {
+			return "", errors.Join(err, closeErr)
+		}
 		return "", err
 	}
 	if err := tmpFile.Close(); err != nil {
@@ -1537,7 +1540,11 @@ func runTesseractOnBytes(data []byte, ext string) (string, error) {
 }
 
 func runTesseractOnFile(path string) (string, error) {
-	stdout, stderr, err := runCommandAndCapture("tesseract", path, "stdout", "-l", whatsAppOCRLangs())
+	safePath, err := sanitizeLocalOCRPath(path)
+	if err != nil {
+		return "", err
+	}
+	stdout, stderr, err := runCommandAndCapture(exec.Command("tesseract", safePath, "stdout", "-l", whatsAppOCRLangs()))
 	if err != nil {
 		return "", fmt.Errorf("tesseract failed: %w (%s)", err, strings.TrimSpace(stderr))
 	}
@@ -1556,14 +1563,21 @@ func extractTextFromPDFBytes(data []byte) (string, error) {
 	pdfPath := tmpPDF.Name()
 	defer os.Remove(pdfPath)
 	if _, err := tmpPDF.Write(data); err != nil {
-		tmpPDF.Close()
+		if closeErr := tmpPDF.Close(); closeErr != nil {
+			return "", errors.Join(err, closeErr)
+		}
 		return "", err
 	}
 	if err := tmpPDF.Close(); err != nil {
 		return "", err
 	}
 
-	if text, _, err := runCommandAndCapture("pdftotext", "-q", pdfPath, "-"); err == nil {
+	safePDFPath, err := sanitizeLocalOCRPath(pdfPath)
+	if err != nil {
+		return "", err
+	}
+
+	if text, _, err := runCommandAndCapture(exec.Command("pdftotext", "-q", safePDFPath, "-")); err == nil {
 		if trimmed := strings.TrimSpace(text); trimmed != "" {
 			return trimmed, nil
 		}
@@ -1575,8 +1589,11 @@ func extractTextFromPDFBytes(data []byte) (string, error) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	prefix := filepath.Join(tempDir, "page")
-	_, stderr, err := runCommandAndCapture("pdftoppm", "-png", "-f", "1", "-l", "1", pdfPath, prefix)
+	prefix, err := sanitizeLocalOCRPath(filepath.Join(tempDir, "page"))
+	if err != nil {
+		return "", err
+	}
+	_, stderr, err := runCommandAndCapture(exec.Command("pdftoppm", "-png", "-f", "1", "-l", "1", safePDFPath, prefix))
 	if err != nil {
 		return "", fmt.Errorf("pdftoppm failed: %w (%s)", err, strings.TrimSpace(stderr))
 	}
@@ -1584,8 +1601,10 @@ func extractTextFromPDFBytes(data []byte) (string, error) {
 	return runTesseractOnFile(renderedPath)
 }
 
-func runCommandAndCapture(name string, args ...string) (string, string, error) {
-	cmd := exec.Command(name, args...)
+func runCommandAndCapture(cmd *exec.Cmd) (string, string, error) {
+	if cmd == nil {
+		return "", "", fmt.Errorf("nil command")
+	}
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -1709,7 +1728,22 @@ func whatsAppOCRLangs() string {
 	if langs == "" {
 		return whatsAppOCRDefaultLangs
 	}
-	return langs
+	normalized := strings.ToLower(langs)
+	if !whatsAppOCRLangsRE.MatchString(normalized) {
+		return whatsAppOCRDefaultLangs
+	}
+	return normalized
+}
+
+func sanitizeLocalOCRPath(path string) (string, error) {
+	clean := strings.TrimSpace(path)
+	if clean == "" {
+		return "", fmt.Errorf("empty local OCR path")
+	}
+	if strings.HasPrefix(clean, "-") {
+		return "", fmt.Errorf("invalid local OCR path")
+	}
+	return clean, nil
 }
 
 func extractKapsoMediaContext(event kapsoMessageEvent) kapsoMediaContext {

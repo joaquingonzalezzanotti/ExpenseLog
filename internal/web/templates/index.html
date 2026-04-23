@@ -30,7 +30,6 @@
         }
     </script>
     <title>Panel ExpenseLog</title>
-    <script src="/app/chart.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -74,7 +73,7 @@
                     <a href="/app/categorias" class="mobile-drawer-link"><i class="fa-solid fa-tags" aria-hidden="true"></i><span>Categorias</span></a>
                     <a href="/app/recurrentes" class="mobile-drawer-link"><i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i><span>Recurrentes</span></a>
                     <a href="/app/conciliacion" class="mobile-drawer-link"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i><span>Conciliacion</span></a>
-                    <a href="/app/reportes" class="mobile-drawer-link"><i class="fa-regular fa-file-lines" aria-hidden="true"></i><span>Reportes</span></a>
+                    <a href="/app/analisis" class="mobile-drawer-link" data-plan-nav-slot="analytics"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i><span>Analisis</span></a>
                 </nav>
             </aside>
 
@@ -82,7 +81,7 @@
                     <a href="/app" class="mobile-nav-item active" aria-current="page"><i class="fa-solid fa-house"></i><span>Inicio</span></a>
                     <a href="/app/table" class="mobile-nav-item"><i class="fa-solid fa-table"></i><span>Tabla</span></a>
                     <a href="/app/table?view=calendar" class="mobile-nav-item"><i class="fa-regular fa-calendar-days"></i><span>Calendario</span></a>
-                    <a href="/app/reportes" class="mobile-nav-item"><i class="fa-regular fa-file-lines"></i><span>Reportes</span></a>
+                    <a href="/app/analisis" class="mobile-nav-item" data-plan-nav-slot="analytics"><i class="fa-solid fa-chart-pie"></i><span>Analisis</span></a>
                     <a href="/app/perfil" class="mobile-nav-item"><i class="fa-regular fa-user"></i><span>Usuario</span></a>
         </nav>
 
@@ -242,35 +241,7 @@
             <div id="recentList" class="recent-list"></div>
         </div>
 
-        <div class="panel-filters home-filters">
-            <div class="filter-group">
-                <span class="filter-label">Moneda</span>
-                <select id="filterCurrency" class="filter-select">
-                    <option value="all">Todas</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <span class="filter-label">Medio de pago</span>
-                <select id="filterSource" class="filter-select">
-                    <option value="all">Todos</option>
-                </select>
-            </div>
-            <button id="clearFilters" class="nav-button button-secondary">Limpiar</button>
-            <button id="toggleChart" class="nav-button button-primary" style="display: none;">📊 Ver grafico</button>
-        </div>
-
         <div id="emptyStateBanner" class="empty-state" style="display: none;"></div>
-
-        <div class="chart-container">
-            <div id="noDataMessage" class="empty-state" style="display: none;">
-                <strong>📭 Aun no hay gastos.</strong> Carga el primero con Agregar gasto.
-            </div>
-            <div class="chart-box">
-                <canvas id="categoryPieChart"></canvas>
-            </div>
-            <div class="legend-box" id="customLegend">
-            </div>
-        </div>
 
         <section class="home-credit-fx-grid">
             <section id="cardPaymentModule" class="card-payment-module" style="display: none;">
@@ -543,10 +514,16 @@
 
         function applyHomeConfig(config) {
             const categorySelect = document.getElementById('category');
-            categories = Array.isArray(config?.categories) ? config.categories : [];
-            categorySelect.innerHTML = categories.map(cat =>
-                `<option value="${cat}">${cat}</option>`
-            ).join('');
+            categories = Array.isArray(config?.categories)
+                ? config.categories.map((cat) => String(cat || '').trim()).filter(Boolean)
+                : [];
+            categorySelect.replaceChildren();
+            for (const cat of categories) {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                categorySelect.appendChild(option);
+            }
 
             currentCurrency = (config?.currency || 'ars').toLowerCase();
             if (!supportedCurrencies.includes(currentCurrency)) {
@@ -555,7 +532,6 @@
             baseCurrency = currentCurrency;
             startDate = Number(config?.startDate) || 1;
             populateFormCurrency();
-            populateFilters();
         }
 
         function resolveOnboardingTemplateCategory(flow) {
@@ -1317,7 +1293,7 @@
 
         function updateChartAndLegend() {
             const monthExpensesAll = getVisiblePeriodExpenses(allExpenses);
-            const monthExpenses = getFilteredMonthExpenses(monthExpensesAll);
+            const monthExpenses = monthExpensesAll;
             const monthBounds = getMonthBounds(currentDate);
             const dashboardCutoffDate = getDashboardCutoffDate();
             const carryoverByCurrency = calculateCarryoverByCurrency(allExpenses, monthBounds.start, dashboardCutoffDate);
@@ -1326,31 +1302,17 @@
             const defaultCurrency = previousCurrency || baseCurrency;
             populateCardPaymentCurrencyOptions(defaultCurrency);
             renderCardPaymentModule();
+
             const hasCarryover = Object.values(carryoverByCurrency).some(amount => amount !== 0);
-            const chartContainer = document.querySelector('.chart-container');
-            const chartBox = document.querySelector('.chart-box');
-            const legendBox = document.getElementById('customLegend');
             const cashflowSection = document.getElementById('cashflow-section');
-            const noDataMessage = document.getElementById('noDataMessage');
-            const filtersRow = document.querySelector('.panel-filters');
             const emptyStateBanner = document.getElementById('emptyStateBanner');
             const baseSummary = document.getElementById('baseSummary');
-            const toggleChart = document.getElementById('toggleChart');
             const homeCreditFxGrid = document.querySelector('.home-credit-fx-grid');
 
             const hasTransactions = monthExpensesAll.length > 0;
-            const hasBaseExpenses = monthExpensesAll.some(e => (e.currency || baseCurrency) === baseCurrency && e.amount < 0);
             if (!hasTransactions && !hasCarryover) {
-                if (pieChart) {
-                    pieChart.destroy();
-                    pieChart = null;
-                }
-                chartContainer.style.display = 'none';
                 cashflowSection.style.display = 'none';
                 baseSummary.style.display = 'none';
-                filtersRow.style.display = 'none';
-                updateHomeFilterControls(false);
-                noDataMessage.style.display = 'none';
                 emptyStateBanner.style.display = 'block';
                 emptyStateBanner.innerHTML = getHomeEmptyStateHTML(allExpenses.length === 0 ? 'first_user' : 'default');
                 renderCashflowByCurrency([], {});
@@ -1362,45 +1324,14 @@
                 return;
             }
 
-            // Cashflow por moneda (siempre usando todas las monedas del periodo visible)
-            // para que no desaparezcan USD/EUR cuando se activa el filtro ARS del grafico.
             renderCashflowByCurrency(monthExpensesAll, carryoverByCurrency);
             cashflowSection.style.display = cashflowSection.innerHTML.trim() ? '' : 'none';
             baseSummary.style.display = baseSummary.innerHTML.trim() ? '' : 'none';
             if (homeCreditFxGrid) {
                 homeCreditFxGrid.classList.toggle('home-credit-fx-grid--no-fx', !cashflowSection.innerHTML.trim());
             }
-            noDataMessage.style.display = 'none';
             emptyStateBanner.style.display = 'none';
             renderRecentMovements(monthExpenses);
-            filtersRow.style.display = hasBaseExpenses ? '' : 'none';
-            toggleChart.style.display = hasBaseExpenses ? 'inline-flex' : 'none';
-            toggleChart.textContent = chartExpanded ? 'Ocultar grafico' : '📊 Ver grafico';
-            updateHomeFilterControls(hasBaseExpenses);
-
-            // Grafico solo para moneda base y gastos
-            const filteredForChart = monthExpenses.filter(e => e.currency === baseCurrency && e.amount < 0);
-            if (filteredForChart.length === 0) {
-                if (pieChart) { pieChart.destroy(); pieChart = null; }
-                chartContainer.style.display = 'none';
-                noDataMessage.style.display = 'none';
-                if (hasBaseExpenses) {
-                    emptyStateBanner.style.display = 'none';
-                } else {
-                    emptyStateBanner.style.display = 'block';
-                    emptyStateBanner.innerHTML = getHomeEmptyStateHTML('base_currency');
-                }
-            } else if (!chartExpanded) {
-                if (pieChart) { pieChart.destroy(); pieChart = null; }
-                chartContainer.style.display = 'none';
-            } else {
-                chartContainer.style.display = 'flex';
-                chartBox.style.display = 'flex';
-                legendBox.style.display = 'flex';
-                const categoryData = calculateCategoryBreakdown(filteredForChart);
-                createPieChart(categoryData);
-                updateLegend(categoryData, filteredForChart);
-            }
             renderFirstUserOnboarding();
         }
 
@@ -1409,7 +1340,6 @@
             const baseContainer = document.getElementById('baseSummary');
             container.innerHTML = '';
             baseContainer.innerHTML = '';
-            // Bank balance only: keep CA (or empty legacy source), exclude EFECTIVO/TARJETA.
             const cashflowExpenses = expenses.filter(exp => {
                 const source = normalizeSourceCode(exp.source || 'CA');
                 return source === '' || source === 'CA';
@@ -1464,7 +1394,6 @@
                 baseContainer.appendChild(baseWrapper);
             }
 
-            // Other currencies grouped in one panel
             const fxRows = [];
             supportedCurrencies.filter(cur => cur !== baseCurrency).forEach(cur => {
                 const data = byCurrency[cur];
@@ -1499,7 +1428,6 @@
                 container.appendChild(panel);
             }
         }
-
         function renderRecentMovements(expenses) {
             const container = document.getElementById('recentMovements');
             const list = document.getElementById('recentList');
@@ -1698,9 +1626,11 @@
             }
         }
 
-        Chart.defaults.color = '#b3b3b3';
-        Chart.defaults.borderColor = '#606060';
-        Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        if (window.Chart) {
+            Chart.defaults.color = '#b3b3b3';
+            Chart.defaults.borderColor = '#606060';
+            Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        }
 
         function setupTagInput() {
             const container = document.getElementById('tags-input-container');
@@ -2081,38 +2011,51 @@
             });
         }
 
-        document.getElementById('filterCurrency').addEventListener('change', (e) => {
-            filterCurrency = e.target.value;
-            updateHomeFilterControls();
-            updateChartAndLegend();
-        });
+        const filterCurrencySelect = document.getElementById('filterCurrency');
+        const filterSourceSelect = document.getElementById('filterSource');
+        const clearFiltersBtn = document.getElementById('clearFilters');
+        const toggleChartBtn = document.getElementById('toggleChart');
 
-        document.getElementById('filterSource').addEventListener('change', (e) => {
-            filterSource = e.target.value;
-            updateHomeFilterControls();
-            updateChartAndLegend();
-        });
-
-        document.getElementById('clearFilters').addEventListener('click', () => {
-            filterCurrency = 'all';
-            filterSource = 'all';
-            document.getElementById('filterCurrency').value = 'all';
-            document.getElementById('filterSource').value = 'all';
-            updateHomeFilterControls();
-            updateChartAndLegend();
-        });
-
-        document.getElementById('toggleChart').addEventListener('click', () => {
-            if (!chartExpanded) {
-                filterCurrency = 'ars';
-                filterSource = 'CA';
-                document.getElementById('filterCurrency').value = 'ars';
-                document.getElementById('filterSource').value = 'CA';
+        if (filterCurrencySelect) {
+            filterCurrencySelect.addEventListener('change', (e) => {
+                filterCurrency = e.target.value;
                 updateHomeFilterControls();
-            }
-            chartExpanded = !chartExpanded;
-            updateChartAndLegend();
-        });
+                updateChartAndLegend();
+            });
+        }
+
+        if (filterSourceSelect) {
+            filterSourceSelect.addEventListener('change', (e) => {
+                filterSource = e.target.value;
+                updateHomeFilterControls();
+                updateChartAndLegend();
+            });
+        }
+
+        if (clearFiltersBtn) {
+            clearFiltersBtn.addEventListener('click', () => {
+                filterCurrency = 'all';
+                filterSource = 'all';
+                if (filterCurrencySelect) filterCurrencySelect.value = 'all';
+                if (filterSourceSelect) filterSourceSelect.value = 'all';
+                updateHomeFilterControls();
+                updateChartAndLegend();
+            });
+        }
+
+        if (toggleChartBtn) {
+            toggleChartBtn.addEventListener('click', () => {
+                if (!chartExpanded) {
+                    filterCurrency = 'ars';
+                    filterSource = 'CA';
+                    if (filterCurrencySelect) filterCurrencySelect.value = 'ars';
+                    if (filterSourceSelect) filterSourceSelect.value = 'CA';
+                    updateHomeFilterControls();
+                }
+                chartExpanded = !chartExpanded;
+                updateChartAndLegend();
+            });
+        }
 
         if (liquidityAlertToggle) {
             liquidityAlertToggle.addEventListener('click', (e) => {
@@ -2324,3 +2267,4 @@
     </script>
 </body>
 </html>
+

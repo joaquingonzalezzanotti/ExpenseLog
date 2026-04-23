@@ -1,13 +1,16 @@
 package web
 
 import (
+	"bytes"
 	"embed"
 	"net/http"
 	"path/filepath"
+	"regexp"
 )
 
 //go:embed templates
 var content embed.FS
+var cspNonceRegexp = regexp.MustCompile(`'nonce-([A-Za-z0-9+/_=-]+)'`)
 
 func GetTemplates() *embed.FS {
 	return &content
@@ -18,6 +21,9 @@ func ServeTemplate(w http.ResponseWriter, templateName string) error {
 	if err != nil {
 		return err
 	}
+	if nonce := cspNonceFromHeader(w.Header().Get("Content-Security-Policy")); nonce != "" {
+		templateContent = injectScriptNonce(templateContent, nonce)
+	}
 	if w.Header().Get("Content-Type") == "" {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	}
@@ -27,6 +33,19 @@ func ServeTemplate(w http.ResponseWriter, templateName string) error {
 	}
 	_, err = w.Write(templateContent)
 	return err
+}
+
+func cspNonceFromHeader(cspHeader string) string {
+	matches := cspNonceRegexp.FindStringSubmatch(cspHeader)
+	if len(matches) != 2 {
+		return ""
+	}
+	return matches[1]
+}
+
+func injectScriptNonce(templateContent []byte, nonce string) []byte {
+	noncePrefix := []byte(`<script nonce="` + nonce + `"`)
+	return bytes.ReplaceAll(templateContent, []byte("<script"), noncePrefix)
 }
 
 func ServeStatic(w http.ResponseWriter, staticPath string) error {

@@ -46,6 +46,11 @@
       "permanent": true
     },
     {
+      "source": "/analisis",
+      "destination": "/app/analisis",
+      "permanent": true
+    },
+    {
       "source": "/reportes",
       "destination": "/app/reportes",
       "permanent": true

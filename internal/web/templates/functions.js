@@ -48,6 +48,10 @@ let currentVisibleNotificationItems = [];
 let notificationCenterDisabled = false;
 let notificationCenterFetchWarned = false;
 let logoutInFlight = false;
+let navigationPlanTier = 'free';
+let planTierRefreshPromise = null;
+const PLAN_TIER_CACHE_KEY = 'expenselog_plan_tier_cache_v1';
+const PLAN_TIER_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const API_ROUTE_REGEX = /^\/(auth|config|categories|currency|startdate|reconciliation|expense|expenses|recurring-expense|recurring-expenses|alerts|export|import|version|card|telegram|whatsapp)(\/|$)/;
 const originalFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : null;
@@ -89,6 +93,140 @@ function showAuthMessageFromURL() {
     window.history.replaceState({}, '', nextURL);
 }
 
+function normalizePlanTier(value) {
+    return String(value || '').trim().toLowerCase() === 'premium' ? 'premium' : 'free';
+}
+
+function readPlanTierCache() {
+    try {
+        const raw = localStorage.getItem(PLAN_TIER_CACHE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return null;
+        if (typeof parsed.planTier !== 'string') return null;
+        if (typeof parsed.cachedAt !== 'number') return null;
+        return {
+            planTier: normalizePlanTier(parsed.planTier),
+            cachedAt: parsed.cachedAt,
+        };
+    } catch (_) {
+        return null;
+    }
+}
+
+function writePlanTierCache(planTier) {
+    try {
+        localStorage.setItem(PLAN_TIER_CACHE_KEY, JSON.stringify({
+            planTier: normalizePlanTier(planTier),
+            cachedAt: Date.now(),
+        }));
+    } catch (_) {
+        // ignore storage failures
+    }
+}
+
+function clearPlanTierCache() {
+    try {
+        localStorage.removeItem(PLAN_TIER_CACHE_KEY);
+    } catch (_) {
+        // ignore storage failures
+    }
+}
+
+function getPlanAwareAnalyticsRoute(planTier) {
+    return normalizePlanTier(planTier) === 'premium' ? '/app/reportes' : '/app/analisis';
+}
+
+function normalizeNavigationRoute(pathname, search = '') {
+    const cleanedPath = String(pathname || '/').replace(/\/+$/, '') || '/';
+    const aliases = {
+        '/table': '/app/table',
+        '/analisis': '/app/analisis',
+        '/reportes': '/app/reportes',
+        '/settings': '/app/perfil',
+        '/perfil': '/app/perfil',
+        '/categorias': '/app/categorias',
+        '/recurrentes': '/app/recurrentes',
+        '/conciliacion': '/app/conciliacion',
+        '/bots': '/app/bots',
+        '/telegram': '/app/bots',
+        '/whatsapp': '/app/bots',
+        '/app/telegram': '/app/bots',
+        '/app/whatsapp': '/app/bots',
+        '/app/settings': '/app/perfil',
+    };
+    const canonicalPath = aliases[cleanedPath] || cleanedPath;
+    return `${canonicalPath}${String(search || '')}`;
+}
+
+function applyPlanAwareAnalyticsNavigation(planTier) {
+    navigationPlanTier = normalizePlanTier(planTier);
+    const currentRoute = normalizeNavigationRoute(window.location.pathname, window.location.search);
+    const fallbackRoute = getPlanAwareAnalyticsRoute(navigationPlanTier);
+    const targetRoute = (currentRoute === '/app/analisis' || currentRoute === '/app/reportes')
+        ? currentRoute
+        : fallbackRoute;
+    const isReportsTarget = targetRoute === '/app/reportes';
+    const iconClasses = isReportsTarget ? 'fa-regular fa-file-lines' : 'fa-solid fa-chart-pie';
+    const label = isReportsTarget ? 'Reportes' : 'Analisis';
+
+    document.querySelectorAll('[data-plan-nav-slot="analytics"]').forEach((node) => {
+        if (!(node instanceof HTMLAnchorElement)) return;
+        node.setAttribute('href', targetRoute);
+        node.dataset.planTier = navigationPlanTier;
+        const icon = node.querySelector('i');
+        if (icon) {
+            icon.className = iconClasses;
+            icon.setAttribute('aria-hidden', 'true');
+        }
+        const text = node.querySelector('span');
+        if (text) {
+            text.textContent = label;
+        }
+    });
+
+    window.dispatchEvent(new CustomEvent('expenselog:routechange'));
+}
+
+async function refreshPlanTierNavigation(options = {}) {
+    if (planTierRefreshPromise) return planTierRefreshPromise;
+    const force = !!options.force;
+    const cached = readPlanTierCache();
+    if (cached && !force) {
+        applyPlanAwareAnalyticsNavigation(cached.planTier);
+        if ((Date.now() - cached.cachedAt) < PLAN_TIER_CACHE_TTL_MS) {
+            return cached.planTier;
+        }
+    }
+
+    planTierRefreshPromise = (async () => {
+        if (!currentUser) {
+            clearPlanTierCache();
+            applyPlanAwareAnalyticsNavigation('free');
+            return 'free';
+        }
+        try {
+            const response = await fetch('/config', { cache: 'no-store' });
+            if (!response.ok) {
+                throw new Error(`status ${response.status}`);
+            }
+            const config = await response.json();
+            const resolvedPlanTier = normalizePlanTier(config?.planTier);
+            writePlanTierCache(resolvedPlanTier);
+            applyPlanAwareAnalyticsNavigation(resolvedPlanTier);
+            return resolvedPlanTier;
+        } catch (_) {
+            clearPlanTierCache();
+            applyPlanAwareAnalyticsNavigation('free');
+            return 'free';
+        }
+    })().finally(() => {
+        planTierRefreshPromise = null;
+    });
+
+    return planTierRefreshPromise;
+}
+
 async function checkAuthStatus() {
     if (authCheckPromise) return authCheckPromise;
 
@@ -108,6 +246,7 @@ async function checkAuthStatus() {
                 updateUserBadge(user);
                 hideAuthOverlay();
                 ensureNotificationCenter();
+                await refreshPlanTierNavigation();
                 authChecked = true;
                 setAuthPending(false);
                 return user;
@@ -116,6 +255,8 @@ async function checkAuthStatus() {
                 currentUser = null;
                 updateUserBadge(null);
                 teardownNotificationCenter();
+                clearPlanTierCache();
+                applyPlanAwareAnalyticsNavigation('free');
                 if (pendingAuthErrorMessage) {
                     showAuthOverlay(pendingAuthErrorMessage, 'error');
                     pendingAuthErrorMessage = null;
@@ -128,10 +269,13 @@ async function checkAuthStatus() {
             }
             showAuthOverlay('No se pudo validar la sesion', 'error');
             teardownNotificationCenter();
+            applyPlanAwareAnalyticsNavigation('free');
         } catch (error) {
             console.error('Auth check failed:', error);
             showAuthOverlay('No se pudo validar la sesion', 'error');
             teardownNotificationCenter();
+            clearPlanTierCache();
+            applyPlanAwareAnalyticsNavigation('free');
         }
         authChecked = true;
         setAuthPending(false);
@@ -554,6 +698,8 @@ async function expenseLogLogout() {
         console.error('Logout failed:', error);
     } finally {
         teardownNotificationCenter();
+        clearPlanTierCache();
+        applyPlanAwareAnalyticsNavigation('free');
         showAuthOverlay();
         window.location.reload();
     }
@@ -782,30 +928,12 @@ function setupMobileDrawer() {
     let restoreFocusElement = toggleButton;
     const supportsInert = 'inert' in HTMLElement.prototype;
 
-    const normalizeRoute = (pathname, search = '') => {
-        const cleanedPath = String(pathname || '/').replace(/\/+$/, '') || '/';
-        const aliases = {
-            '/table': '/app/table',
-            '/settings': '/app/perfil',
-            '/perfil': '/app/perfil',
-            '/categorias': '/app/categorias',
-            '/recurrentes': '/app/recurrentes',
-            '/conciliacion': '/app/conciliacion',
-            '/reportes': '/app/reportes',
-            '/telegram': '/app/telegram',
-            '/whatsapp': '/app/whatsapp',
-            '/app/settings': '/app/perfil',
-        };
-        const canonicalPath = aliases[cleanedPath] || cleanedPath;
-        return `${canonicalPath}${String(search || '')}`;
-    };
-
     const updateDrawerActiveState = () => {
-        const currentRoute = normalizeRoute(window.location.pathname, window.location.search);
+        const currentRoute = normalizeNavigationRoute(window.location.pathname, window.location.search);
         drawerLinks.forEach((link) => {
             try {
                 const target = new URL(link.href, window.location.origin);
-                const targetRoute = normalizeRoute(target.pathname, target.search);
+                const targetRoute = normalizeNavigationRoute(target.pathname, target.search);
                 const isActive = targetRoute === currentRoute;
                 link.classList.toggle('active', isActive);
                 if (isActive) {
@@ -936,6 +1064,35 @@ function setupMobileDrawer() {
     });
 }
 
+function setupMobileBottomNavActiveState() {
+    const navLinks = Array.from(document.querySelectorAll('.mobile-bottom-nav .mobile-nav-item'));
+    if (navLinks.length === 0) return;
+
+    const updateBottomNavActiveState = () => {
+        const currentRoute = normalizeNavigationRoute(window.location.pathname, window.location.search);
+        navLinks.forEach((link) => {
+            if (!(link instanceof HTMLAnchorElement)) return;
+            try {
+                const target = new URL(link.href, window.location.origin);
+                const targetRoute = normalizeNavigationRoute(target.pathname, target.search);
+                const isActive = targetRoute === currentRoute;
+                link.classList.toggle('active', isActive);
+                if (isActive) {
+                    link.setAttribute('aria-current', 'page');
+                } else {
+                    link.removeAttribute('aria-current');
+                }
+            } catch (error) {
+                console.error('Failed to parse bottom nav route:', error);
+            }
+        });
+    };
+
+    updateBottomNavActiveState();
+    window.addEventListener('popstate', updateBottomNavActiveState);
+    window.addEventListener('expenselog:routechange', updateBottomNavActiveState);
+}
+
 function setupRoutePrefetch() {
     const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
     const effectiveType = String(connection?.effectiveType || '').toLowerCase();
@@ -1008,21 +1165,24 @@ function setupRoutePrefetch() {
         const path = String(window.location.pathname || '').toLowerCase();
         const search = String(window.location.search || '').toLowerCase();
         if (path === '/app' || path === '/app/' || path === '/app/index' || path === '/app/index.html') {
-            return ['/app/table', '/app/table?view=calendar', '/app/reportes', '/app/perfil'];
+            return ['/app/table', '/app/table?view=calendar', '/app/analisis', '/app/reportes', '/app/perfil'];
+        }
+        if (path.startsWith('/app/analisis')) {
+            return ['/app', '/app/table', '/app/table?view=calendar', '/app/perfil', '/app/reportes'];
         }
         if (path.startsWith('/app/table')) {
             if (search.includes('view=calendar')) {
-                return ['/app/table', '/app', '/app/reportes', '/app/perfil'];
+                return ['/app/table', '/app', '/app/analisis', '/app/reportes', '/app/perfil'];
             }
-            return ['/app/table?view=calendar', '/app', '/app/reportes', '/app/perfil'];
+            return ['/app/table?view=calendar', '/app', '/app/analisis', '/app/reportes', '/app/perfil'];
         }
         if (path.startsWith('/app/perfil') || path.startsWith('/app/settings')) {
-            return ['/app/reportes', '/app/telegram', '/app/whatsapp', '/app/table', '/app/categorias', '/app/recurrentes', '/app'];
+            return ['/app/analisis', '/app/reportes', '/app/bots', '/app/table', '/app/categorias', '/app/recurrentes', '/app'];
         }
-        if (path.startsWith('/app/categorias') || path.startsWith('/app/recurrentes') || path.startsWith('/app/conciliacion') || path.startsWith('/app/reportes') || path.startsWith('/app/telegram') || path.startsWith('/app/whatsapp')) {
-            return ['/app/perfil', '/app/table', '/app/table?view=calendar', '/app'];
+        if (path.startsWith('/app/categorias') || path.startsWith('/app/recurrentes') || path.startsWith('/app/conciliacion') || path.startsWith('/app/reportes') || path.startsWith('/app/bots') || path.startsWith('/app/telegram') || path.startsWith('/app/whatsapp')) {
+            return ['/app/perfil', '/app/table', '/app/table?view=calendar', '/app/analisis', '/app'];
         }
-        return ['/app', '/app/table', '/app/table?view=calendar', '/app/reportes'];
+        return ['/app', '/app/table', '/app/table?view=calendar', '/app/analisis', '/app/reportes'];
     })();
 
     const scheduleWarmup = window.requestIdleCallback
@@ -1035,8 +1195,11 @@ function setupRoutePrefetch() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    const cachedPlanTier = readPlanTierCache()?.planTier || 'free';
+    applyPlanAwareAnalyticsNavigation(cachedPlanTier);
     setupAuthUI();
     setupMobileDrawer();
+    setupMobileBottomNavActiveState();
     setupRoutePrefetch();
     showAuthMessageFromURL();
     if (!authChecked) {

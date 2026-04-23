@@ -111,22 +111,49 @@
                     <div class="analytics-head">
                         <div class="analytics-card-title">Resumen del mes</div>
                     </div>
+                    <div class="analytics-summary-hero">
+                        <div class="analytics-summary-head">
+                            <span id="analyticsSummaryStatus" class="analytics-summary-status is-neutral">Balance en seguimiento</span>
+                        </div>
+                        <strong id="analyticsMonthBalance" class="analytics-summary-balance">$0</strong>
+                        <div class="analytics-summary-meta">
+                            <div class="analytics-summary-metric">
+                                <span>Ingresos</span>
+                                <strong id="analyticsMonthIncome">$0</strong>
+                            </div>
+                            <div class="analytics-summary-metric">
+                                <span>Gastos</span>
+                                <strong id="analyticsMonthExpense">$0</strong>
+                            </div>
+                        </div>
+                        <div class="analytics-summary-pressure" aria-hidden="true">
+                            <span id="analyticsExpensePressureBar" style="width: 0%;"></span>
+                        </div>
+                    </div>
                     <div class="analytics-card-body analytics-kpi-grid">
                         <div class="analytics-kpi-item">
+                            <span class="analytics-kpi-icon" aria-hidden="true"><i class="fa-solid fa-piggy-bank"></i></span>
                             <span class="analytics-kpi-label">Tasa de ahorro</span>
                             <strong id="analyticsSavingRate">0%</strong>
+                            <span class="analytics-kpi-hint" id="analyticsSavingRateHint">Sin ingresos cargados</span>
                         </div>
                         <div class="analytics-kpi-item">
+                            <span class="analytics-kpi-icon" aria-hidden="true"><i class="fa-solid fa-calendar-day"></i></span>
                             <span class="analytics-kpi-label">Gasto diario promedio</span>
                             <strong id="analyticsDailySpend">-</strong>
+                            <span class="analytics-kpi-hint" id="analyticsDailySpendHint">0 dias con movimiento</span>
                         </div>
                         <div class="analytics-kpi-item">
+                            <span class="analytics-kpi-icon" aria-hidden="true"><i class="fa-solid fa-bullseye"></i></span>
                             <span class="analytics-kpi-label">Proyeccion fin de mes</span>
                             <strong id="analyticsMonthProjection">-</strong>
+                            <span class="analytics-kpi-hint" id="analyticsMonthProjectionHint">Sin proyeccion</span>
                         </div>
                         <div class="analytics-kpi-item">
+                            <span class="analytics-kpi-icon" aria-hidden="true"><i class="fa-solid fa-clock"></i></span>
                             <span class="analytics-kpi-label">Dias sin movimientos</span>
                             <strong id="analyticsNoMovementDays">0 dias</strong>
+                            <span class="analytics-kpi-hint" id="analyticsNoMovementHint">Actividad 0%</span>
                         </div>
                     </div>
                 </article>
@@ -430,12 +457,50 @@
         function renderTopExpenses(expenses, currencyCode) {
             const container = document.getElementById('topExpensesList');
             if (!container) return;
-            const topEntries = calculateCategoryBreakdown(expenses).slice(0, 5);
-            if (!topEntries.length) {
+            const grouped = {};
+            expenses.forEach((expense) => {
+                const category = String(expense.category || 'Sin categoria');
+                const amount = Math.abs(Number(expense.amount) || 0);
+                if (!grouped[category]) {
+                    grouped[category] = { category, total: 0, count: 0 };
+                }
+                grouped[category].total += amount;
+                grouped[category].count += 1;
+            });
+
+            const allEntries = Object.values(grouped).sort((a, b) => b.total - a.total);
+            if (!allEntries.length) {
                 container.innerHTML = '<p class="analytics-card-hint">Aun no hay datos para mostrar.</p>';
                 return;
             }
-            container.innerHTML = topEntries.map((entry, index) => `
+
+            const grandTotal = allEntries.reduce((sum, entry) => sum + entry.total, 0);
+            const totalMovements = allEntries.reduce((sum, entry) => sum + entry.count, 0);
+            const topEntries = allEntries.slice(0, 5).map((entry) => ({
+                ...entry,
+                percentage: grandTotal > 0 ? (entry.total / grandTotal) * 100 : 0,
+                avgTicket: entry.count > 0 ? entry.total / entry.count : 0,
+            }));
+            const topFiveTotal = topEntries.reduce((sum, entry) => sum + entry.total, 0);
+            const topFiveShare = grandTotal > 0 ? (topFiveTotal / grandTotal) * 100 : 0;
+            const averageTicket = totalMovements > 0 ? grandTotal / totalMovements : 0;
+
+            container.innerHTML = `
+                <div class="analytics-insight-highlights">
+                    <div class="analytics-insight-highlight">
+                        <span>Concentracion top 5</span>
+                        <strong>${topFiveShare.toFixed(1)}%</strong>
+                    </div>
+                    <div class="analytics-insight-highlight">
+                        <span>Movimientos</span>
+                        <strong>${totalMovements}</strong>
+                    </div>
+                    <div class="analytics-insight-highlight">
+                        <span>Ticket promedio</span>
+                        <strong>${formatCurrencyWithCurrency(averageTicket, currencyCode)}</strong>
+                    </div>
+                </div>
+                ${topEntries.map((entry, index) => `
                 <div class="analytics-insight-row">
                     <div class="analytics-insight-row-head">
                         <div class="analytics-insight-rank">${index + 1}</div>
@@ -445,11 +510,16 @@
                         </div>
                         <div class="amount analytics-insight-amount">-${formatCurrencyWithCurrency(entry.total, currencyCode)}</div>
                     </div>
+                    <div class="analytics-insight-row-meta">
+                        <span>${entry.count} mov.</span>
+                        <span>Ticket prom. ${formatCurrencyWithCurrency(entry.avgTicket, currencyCode)}</span>
+                    </div>
                     <div class="analytics-insight-meter" aria-hidden="true">
                         <span style="width:${Math.max(4, Math.min(100, entry.percentage)).toFixed(1)}%"></span>
                     </div>
                 </div>
-            `).join('');
+                `).join('')}
+            `;
         }
 
         function calculateSummaryKPIs(monthExpenses, filteredExpenses) {
@@ -468,14 +538,39 @@
             const avgDailySpend = filteredTotalExpenses / elapsedDays;
             const monthProjection = avgDailySpend * monthEnd.getDate();
             const savingRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
+            const expenseToIncomeRatio = totalIncome > 0 ? (totalExpenses / totalIncome) * 100 : (totalExpenses > 0 ? 100 : 0);
+            const netBalance = totalIncome - totalExpenses;
 
             const activityDays = new Set(filteredExpenses.map((expense) => {
                 const date = getComparableExpenseDate(expense);
                 return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
             }));
             const noMovementDays = Math.max(0, elapsedDays - activityDays.size);
+            const activeDays = activityDays.size;
+            const totalDaysInMonth = monthEnd.getDate();
+            const remainingDays = Math.max(0, totalDaysInMonth - elapsedDays);
+            const activityRate = elapsedDays > 0 ? (activeDays / elapsedDays) * 100 : 0;
+            const totalCashSpend = filteredExpenses.reduce((sum, expense) => {
+                const source = normalizeSourceCode(expense.source || 'CA');
+                if (source !== 'CA') return sum;
+                return sum + Math.abs(Number(expense.amount) || 0);
+            }, 0);
+            const cashShare = filteredTotalExpenses > 0 ? (totalCashSpend / filteredTotalExpenses) * 100 : 0;
 
-            return { savingRate, avgDailySpend, monthProjection, noMovementDays };
+            return {
+                savingRate,
+                avgDailySpend,
+                monthProjection,
+                noMovementDays,
+                totalExpenses,
+                totalIncome,
+                netBalance,
+                expenseToIncomeRatio,
+                activeDays,
+                remainingDays,
+                activityRate,
+                cashShare,
+            };
         }
 
         function renderSummaryKPIs(monthExpenses, filteredExpenses, currencyCode) {
@@ -484,10 +579,72 @@
             const dailySpendEl = document.getElementById('analyticsDailySpend');
             const monthProjectionEl = document.getElementById('analyticsMonthProjection');
             const noMovementDaysEl = document.getElementById('analyticsNoMovementDays');
+            const monthBalanceEl = document.getElementById('analyticsMonthBalance');
+            const monthIncomeEl = document.getElementById('analyticsMonthIncome');
+            const monthExpenseEl = document.getElementById('analyticsMonthExpense');
+            const statusEl = document.getElementById('analyticsSummaryStatus');
+            const pressureBarEl = document.getElementById('analyticsExpensePressureBar');
+            const savingRateHintEl = document.getElementById('analyticsSavingRateHint');
+            const dailySpendHintEl = document.getElementById('analyticsDailySpendHint');
+            const monthProjectionHintEl = document.getElementById('analyticsMonthProjectionHint');
+            const noMovementHintEl = document.getElementById('analyticsNoMovementHint');
+
             if (savingRateEl) savingRateEl.textContent = `${kpis.savingRate.toFixed(1)}%`;
             if (dailySpendEl) dailySpendEl.textContent = formatCurrencyWithCurrency(kpis.avgDailySpend, currencyCode);
             if (monthProjectionEl) monthProjectionEl.textContent = formatCurrencyWithCurrency(kpis.monthProjection, currencyCode);
             if (noMovementDaysEl) noMovementDaysEl.textContent = `${kpis.noMovementDays} dias`;
+
+            if (monthBalanceEl) {
+                const absoluteBalance = formatCurrencyWithCurrency(Math.abs(kpis.netBalance), currencyCode);
+                monthBalanceEl.textContent = `${kpis.netBalance < 0 ? '-' : ''}${absoluteBalance}`;
+                monthBalanceEl.classList.toggle('is-negative', kpis.netBalance < 0);
+                monthBalanceEl.classList.toggle('is-positive', kpis.netBalance >= 0);
+            }
+            if (monthIncomeEl) monthIncomeEl.textContent = formatCurrencyWithCurrency(kpis.totalIncome, currencyCode);
+            if (monthExpenseEl) monthExpenseEl.textContent = `-${formatCurrencyWithCurrency(kpis.totalExpenses, currencyCode)}`;
+
+            if (statusEl) {
+                let label = 'Balance en seguimiento';
+                let tone = 'is-neutral';
+                if (kpis.netBalance > 0 && kpis.savingRate >= 20) {
+                    label = 'Mes saludable';
+                    tone = 'is-positive';
+                } else if (kpis.netBalance > 0) {
+                    label = 'Ahorro ajustado';
+                    tone = 'is-neutral';
+                } else if (kpis.totalIncome > 0) {
+                    label = 'Gasto por encima de ingresos';
+                    tone = 'is-negative';
+                } else if (kpis.totalExpenses > 0) {
+                    label = 'Sin ingresos registrados';
+                    tone = 'is-negative';
+                }
+                statusEl.textContent = label;
+                statusEl.classList.remove('is-positive', 'is-neutral', 'is-negative');
+                statusEl.classList.add(tone);
+            }
+
+            if (pressureBarEl) {
+                const width = Math.max(6, Math.min(100, kpis.expenseToIncomeRatio || (kpis.totalExpenses > 0 ? 100 : 0)));
+                pressureBarEl.style.width = `${width.toFixed(1)}%`;
+            }
+
+            if (savingRateHintEl) {
+                if (kpis.totalIncome > 0) {
+                    savingRateHintEl.textContent = `Gasto / ingreso: ${kpis.expenseToIncomeRatio.toFixed(1)}%`;
+                } else {
+                    savingRateHintEl.textContent = 'Sin ingresos cargados';
+                }
+            }
+            if (dailySpendHintEl) {
+                dailySpendHintEl.textContent = `${kpis.activeDays} dias con movimiento`;
+            }
+            if (monthProjectionHintEl) {
+                monthProjectionHintEl.textContent = `Quedan ${kpis.remainingDays} dias del mes`;
+            }
+            if (noMovementHintEl) {
+                noMovementHintEl.textContent = `Actividad ${kpis.activityRate.toFixed(0)}% | CA ${kpis.cashShare.toFixed(0)}%`;
+            }
         }
 
         function isMobileAnalyticsLayout() {

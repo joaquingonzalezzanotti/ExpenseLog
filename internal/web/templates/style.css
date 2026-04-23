@@ -1300,8 +1300,9 @@ input:focus-visible {
 
 .analytics-overview-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
     gap: 1rem;
+    align-items: start;
 }
 
 .analytics-desktop-grid {
@@ -1322,6 +1323,7 @@ input:focus-visible {
 
 .analytics-grid .chart-container {
     margin-bottom: 0;
+    min-height: 0;
 }
 
 .analytics-card {
@@ -1358,6 +1360,34 @@ input:focus-visible {
 
 .analytics-insight-list {
     gap: 0.65rem;
+}
+
+.analytics-insight-highlights {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+.analytics-insight-highlight {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.5rem 0.55rem;
+    background: color-mix(in srgb, var(--bg-primary) 80%, var(--accent) 20%);
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.analytics-insight-highlight span {
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    line-height: 1.2;
+}
+
+.analytics-insight-highlight strong {
+    font-size: 0.92rem;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
 }
 
 .analytics-insight-row {
@@ -1408,6 +1438,16 @@ input:focus-visible {
     font-size: 0.78rem;
 }
 
+.analytics-insight-row-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
 .analytics-insight-amount {
     color: var(--danger);
     font-size: 0.98rem;
@@ -1439,6 +1479,112 @@ input:focus-visible {
     gap: 0.65rem;
 }
 
+.analytics-summary-hero {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.68rem 0.72rem;
+    background: linear-gradient(
+        140deg,
+        color-mix(in srgb, var(--accent) 14%, var(--bg-primary) 86%),
+        color-mix(in srgb, var(--bg-secondary) 88%, var(--bg-primary) 12%)
+    );
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.7rem;
+}
+
+.analytics-summary-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.analytics-summary-status {
+    display: inline-flex;
+    align-items: center;
+    border-radius: var(--radius-pill);
+    padding: 0.2rem 0.55rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border: 1px solid transparent;
+}
+
+.analytics-summary-status.is-positive {
+    color: var(--success);
+    background: color-mix(in srgb, var(--success-soft) 85%, transparent 15%);
+    border-color: color-mix(in srgb, var(--success) 40%, transparent 60%);
+}
+
+.analytics-summary-status.is-neutral {
+    color: color-mix(in srgb, var(--text-primary) 82%, var(--accent) 18%);
+    background: color-mix(in srgb, var(--accent) 12%, var(--bg-primary) 88%);
+    border-color: color-mix(in srgb, var(--accent) 35%, transparent 65%);
+}
+
+.analytics-summary-status.is-negative {
+    color: var(--danger);
+    background: color-mix(in srgb, var(--danger-soft) 82%, transparent 18%);
+    border-color: color-mix(in srgb, var(--danger) 38%, transparent 62%);
+}
+
+.analytics-summary-balance {
+    font-size: clamp(1.22rem, 2.6vw, 1.7rem);
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.analytics-summary-balance.is-positive {
+    color: var(--success);
+}
+
+.analytics-summary-balance.is-negative {
+    color: var(--danger);
+}
+
+.analytics-summary-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.42rem;
+}
+
+.analytics-summary-metric {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.4rem 0.5rem;
+    background: color-mix(in srgb, var(--bg-primary) 90%, transparent 10%);
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.analytics-summary-metric span {
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+}
+
+.analytics-summary-metric strong {
+    font-size: 0.96rem;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+
+.analytics-summary-pressure {
+    width: 100%;
+    height: 0.38rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--border) 82%, transparent 18%);
+    overflow: hidden;
+}
+
+.analytics-summary-pressure span {
+    display: block;
+    height: 100%;
+    min-width: 0.4rem;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 65%, var(--danger) 35%));
+}
+
 .analytics-kpi-item {
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -1448,6 +1594,18 @@ input:focus-visible {
     flex-direction: column;
     gap: 0.3rem;
     min-height: 78px;
+}
+
+.analytics-kpi-icon {
+    width: 1.65rem;
+    height: 1.65rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-contrast);
+    background: color-mix(in srgb, var(--accent) 90%, #ffffff 10%);
+    font-size: 0.74rem;
 }
 
 .analytics-kpi-label {
@@ -1460,6 +1618,18 @@ input:focus-visible {
     font-size: clamp(1.15rem, 2vw, 1.5rem);
     line-height: 1.2;
     font-variant-numeric: tabular-nums;
+}
+
+.analytics-kpi-hint {
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    line-height: 1.2;
+}
+
+@media (max-width: 1180px) and (min-width: 769px) {
+    .analytics-overview-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .analytics-chart-card .analytics-card-body {
@@ -5321,6 +5491,23 @@ html[data-settings-route='bots'] body.settings-page #botsSection[hidden] {
         padding: 0.78rem;
     }
 
+    .analytics-insight-highlights {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .analytics-summary-hero {
+        padding: 0.6rem 0.62rem;
+        gap: 0.42rem;
+    }
+
+    .analytics-summary-balance {
+        font-size: clamp(1.16rem, 5vw, 1.45rem);
+    }
+
+    .analytics-summary-meta {
+        gap: 0.35rem;
+    }
+
     .analytics-insight-card,
     .analytics-bot-card {
         min-height: 0;
@@ -6226,6 +6413,12 @@ html[data-settings-route='bots'] body.settings-page #botsSection[hidden] {
         gap: 0.38rem;
     }
 
+    body.analytics-page .analytics-kpi-icon {
+        width: 1.5rem;
+        height: 1.5rem;
+        font-size: 0.68rem;
+    }
+
     body.analytics-page .analytics-kpi-label {
         font-size: 0.74rem;
         line-height: 1.18;
@@ -6236,9 +6429,19 @@ html[data-settings-route='bots'] body.settings-page #botsSection[hidden] {
         line-height: 1.12;
     }
 
+    body.analytics-page .analytics-kpi-hint {
+        font-size: 0.69rem;
+        line-height: 1.16;
+    }
+
     .analytics-insight-row-head {
         grid-template-columns: auto minmax(0, 1fr);
         row-gap: 0.3rem;
+    }
+
+    .analytics-insight-row-meta {
+        flex-wrap: wrap;
+        gap: 0.2rem 0.5rem;
     }
 
     .analytics-insight-amount {
@@ -6441,6 +6644,11 @@ html[data-settings-route='bots'] body.settings-page #botsSection[hidden] {
 
     .current-month {
         min-width: 0;
+    }
+
+    .analytics-insight-highlights,
+    .analytics-summary-meta {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -6914,6 +7122,12 @@ html[data-settings-route='bots'] body.settings-page #botsSection[hidden] {
     background-color: var(--bg-primary);
 }
 
+.financial-calendar-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
 .financial-calendar-weekdays {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -7014,7 +7228,6 @@ html[data-settings-route='bots'] body.settings-page #botsSection[hidden] {
 .financial-calendar-details {
     border: 1px solid var(--border);
     border-radius: 14px;
-    margin-top: 0.9rem;
     padding: 0.75rem;
     background-color: var(--bg-primary);
 }
@@ -7102,6 +7315,22 @@ html[data-settings-route='bots'] body.settings-page #botsSection[hidden] {
 
 .financial-calendar-movement.negative .financial-calendar-movement-amount {
     color: var(--danger);
+}
+
+@media (min-width: 1160px) {
+    .financial-calendar-content {
+        display: grid;
+        grid-template-columns: minmax(0, 7fr) minmax(320px, 3fr);
+        align-items: start;
+        gap: 1rem;
+    }
+
+    .financial-calendar-details {
+        position: sticky;
+        top: 1rem;
+        max-height: calc(100vh - 120px);
+        overflow: auto;
+    }
 }
 
 .table-footer-controls {

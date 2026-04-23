@@ -33,6 +33,11 @@ const (
 	maxResetReqAttempts     = 6
 	maxResetConfAttempts    = 8
 	resetCodeMaxAttempts    = 5
+	throttlePruneInterval   = 2 * time.Minute
+	loginAttemptRetention   = 24 * time.Hour
+	authThrottleRetention   = 24 * time.Hour
+	maxLoginAttemptEntries  = 20000
+	maxAuthThrottleEntries  = 20000
 	userStatusActive        = "active"
 	userStatusPending       = "pending"
 )
@@ -62,10 +67,12 @@ type authProfilePayload struct {
 type loginAttempt struct {
 	count       int
 	lockedUntil time.Time
+	lastSeen    time.Time
 }
 
 var loginAttemptMu = &sync.Mutex{}
 var loginAttempts = map[string]*loginAttempt{}
+var loginAttemptLastPrune time.Time
 
 type actionThrottle struct {
 	count       int
@@ -75,6 +82,7 @@ type actionThrottle struct {
 
 var authThrottleMu = &sync.Mutex{}
 var authThrottleState = map[string]*actionThrottle{}
+var authThrottleLastPrune time.Time
 
 type resetRequestPayload struct {
 	Email string `json:"email"`
@@ -580,6 +588,8 @@ func loginKey(email, ip string) string {
 func isLoginBlocked(key string) (bool, time.Duration) {
 	loginAttemptMu.Lock()
 	defer loginAttemptMu.Unlock()
+	now := time.Now()
+	pruneLoginAttemptsLocked(now)
 	attempt, ok := loginAttempts[key]
 	if !ok {
 		return false, 0
@@ -587,7 +597,7 @@ func isLoginBlocked(key string) (bool, time.Duration) {
 	if attempt.lockedUntil.IsZero() {
 		return false, 0
 	}
-	if time.Now().After(attempt.lockedUntil) {
+	if now.After(attempt.lockedUntil) {
 		delete(loginAttempts, key)
 		return false, 0
 	}
@@ -597,17 +607,20 @@ func isLoginBlocked(key string) (bool, time.Duration) {
 func recordLoginFailure(key string) (bool, time.Duration) {
 	loginAttemptMu.Lock()
 	defer loginAttemptMu.Unlock()
+	now := time.Now()
+	pruneLoginAttemptsLocked(now)
 	attempt, ok := loginAttempts[key]
 	if !ok {
 		attempt = &loginAttempt{}
 		loginAttempts[key] = attempt
 	}
-	if !attempt.lockedUntil.IsZero() && time.Now().Before(attempt.lockedUntil) {
+	attempt.lastSeen = now
+	if !attempt.lockedUntil.IsZero() && now.Before(attempt.lockedUntil) {
 		return true, time.Until(attempt.lockedUntil)
 	}
 	attempt.count++
 	if attempt.count >= maxLoginAttempts {
-		attempt.lockedUntil = time.Now().Add(loginBlockDuration)
+		attempt.lockedUntil = now.Add(loginBlockDuration)
 		return true, loginBlockDuration
 	}
 	return false, 0
@@ -624,6 +637,7 @@ func consumeAuthThrottle(key string, maxAttempts int) (bool, time.Duration) {
 	defer authThrottleMu.Unlock()
 
 	now := time.Now()
+	pruneAuthThrottleLocked(now)
 	entry, ok := authThrottleState[key]
 	if !ok {
 		authThrottleState[key] = &actionThrottle{
@@ -654,6 +668,74 @@ func clearAuthThrottle(key string) {
 	authThrottleMu.Lock()
 	defer authThrottleMu.Unlock()
 	delete(authThrottleState, key)
+}
+
+func pruneLoginAttemptsLocked(now time.Time) {
+	if !loginAttemptLastPrune.IsZero() &&
+		now.Sub(loginAttemptLastPrune) < throttlePruneInterval &&
+		len(loginAttempts) <= maxLoginAttemptEntries {
+		return
+	}
+	loginAttemptLastPrune = now
+
+	for key, attempt := range loginAttempts {
+		if attempt == nil {
+			delete(loginAttempts, key)
+			continue
+		}
+		if !attempt.lockedUntil.IsZero() && now.After(attempt.lockedUntil.Add(loginAttemptRetention)) {
+			delete(loginAttempts, key)
+			continue
+		}
+		if attempt.lastSeen.IsZero() || now.After(attempt.lastSeen.Add(loginAttemptRetention)) {
+			delete(loginAttempts, key)
+		}
+	}
+	if len(loginAttempts) <= maxLoginAttemptEntries {
+		return
+	}
+	overflow := len(loginAttempts) - maxLoginAttemptEntries
+	for key := range loginAttempts {
+		delete(loginAttempts, key)
+		overflow--
+		if overflow <= 0 {
+			return
+		}
+	}
+}
+
+func pruneAuthThrottleLocked(now time.Time) {
+	if !authThrottleLastPrune.IsZero() &&
+		now.Sub(authThrottleLastPrune) < throttlePruneInterval &&
+		len(authThrottleState) <= maxAuthThrottleEntries {
+		return
+	}
+	authThrottleLastPrune = now
+
+	for key, entry := range authThrottleState {
+		if entry == nil {
+			delete(authThrottleState, key)
+			continue
+		}
+		reference := entry.windowStart
+		if !entry.lockedUntil.IsZero() {
+			reference = entry.lockedUntil
+		}
+		if reference.IsZero() || now.After(reference.Add(authThrottleRetention)) {
+			delete(authThrottleState, key)
+		}
+	}
+	if len(authThrottleState) <= maxAuthThrottleEntries {
+		return
+	}
+	overflow := len(authThrottleState) - maxAuthThrottleEntries
+	for key := range authThrottleState {
+		delete(authThrottleState, key)
+		overflow--
+		if overflow <= 0 {
+			return
+		}
+	}
 }
 
 func trustProxyHeaders() bool {

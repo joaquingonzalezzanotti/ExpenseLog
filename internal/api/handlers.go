@@ -39,7 +39,9 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if v != nil {
-		json.NewEncoder(w).Encode(v)
+		if err := json.NewEncoder(w).Encode(v); err != nil {
+			log.Printf("API ERROR: Failed to write JSON response: %v", err)
+		}
 	}
 }
 
@@ -767,6 +769,17 @@ func (h *Handler) ServeTableView(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handler) ServeAnalyticsView(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{Error: "Method not allowed"})
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := web.ServeTemplate(w, "analisis.html"); err != nil {
+		http.Error(w, "Failed to serve template", http.StatusInternalServerError)
+	}
+}
+
 func (h *Handler) ServeSettingsPage(w http.ResponseWriter, r *http.Request) {
 	h.serveSettingsPageWithSection(w, r, "profile")
 }
@@ -787,12 +800,16 @@ func (h *Handler) ServeSettingsReportsPage(w http.ResponseWriter, r *http.Reques
 	h.serveSettingsPageWithSection(w, r, "reports")
 }
 
+func (h *Handler) ServeSettingsBotsPage(w http.ResponseWriter, r *http.Request) {
+	h.serveSettingsPageWithSection(w, r, "bots")
+}
+
 func (h *Handler) ServeSettingsTelegramPage(w http.ResponseWriter, r *http.Request) {
-	h.serveSettingsPageWithSection(w, r, "telegram")
+	h.serveSettingsPageWithSection(w, r, "bots")
 }
 
 func (h *Handler) ServeSettingsWhatsAppPage(w http.ResponseWriter, r *http.Request) {
-	h.serveSettingsPageWithSection(w, r, "whatsapp")
+	h.serveSettingsPageWithSection(w, r, "bots")
 }
 
 func (h *Handler) serveSettingsPageWithSection(w http.ResponseWriter, r *http.Request, _ string) {

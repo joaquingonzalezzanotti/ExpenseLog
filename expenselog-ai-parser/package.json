@@ -28,5 +28,10 @@
     "@types/node": "^22.14.0",
     "tsx": "^4.21.0",
     "typescript": "^5.8.2"
+  },
+  "overrides": {
+    "protobufjs": "^7.5.5",
+    "path-to-regexp": "0.1.13",
+    "brace-expansion": "^2.0.3"
   }
 }

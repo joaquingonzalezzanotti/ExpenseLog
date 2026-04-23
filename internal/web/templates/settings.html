@@ -23,8 +23,9 @@
                 if (normalized === 'recurring' || normalized === 'recurrentes') return 'recurring';
                 if (normalized === 'reconciliation' || normalized === 'conciliacion') return 'reconciliation';
                 if (normalized === 'reports' || normalized === 'reportes') return 'reports';
-                if (normalized === 'telegram' || normalized === 'telegrambot' || normalized === 'bottelegram') return 'telegram';
-                if (normalized === 'whatsapp' || normalized === 'wsp' || normalized === 'wspbot' || normalized === 'botwhatsapp' || normalized === 'kapso') return 'whatsapp';
+                if (normalized === 'bots' || normalized === 'bot' || normalized === 'botsdegastos' || normalized === 'gastosbots') return 'bots';
+                if (normalized === 'telegram' || normalized === 'telegrambot' || normalized === 'bottelegram') return 'bots';
+                if (normalized === 'whatsapp' || normalized === 'wsp' || normalized === 'wspbot' || normalized === 'botwhatsapp' || normalized === 'kapso') return 'bots';
                 if (normalized === 'profile' || normalized === 'perfil' || normalized === 'settings') return 'profile';
                 return '';
             };
@@ -38,8 +39,9 @@
                 if (path === '/app/recurrentes' || path === '/recurrentes') return 'recurring';
                 if (path === '/app/conciliacion' || path === '/conciliacion') return 'reconciliation';
                 if (path === '/app/reportes' || path === '/reportes') return 'reports';
-                if (path === '/app/telegram' || path === '/telegram') return 'telegram';
-                if (path === '/app/whatsapp' || path === '/whatsapp') return 'whatsapp';
+                if (path === '/app/bots' || path === '/bots') return 'bots';
+                if (path === '/app/telegram' || path === '/telegram') return 'bots';
+                if (path === '/app/whatsapp' || path === '/whatsapp') return 'bots';
                 if (path === '/app/perfil' || path === '/perfil' || path === '/app/settings' || path === '/settings') return 'profile';
                 return '';
             })();
@@ -92,7 +94,7 @@
                     <a href="/app/categorias" class="mobile-drawer-link"><i class="fa-solid fa-tags" aria-hidden="true"></i><span>Categorias</span></a>
                     <a href="/app/recurrentes" class="mobile-drawer-link"><i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i><span>Recurrentes</span></a>
                     <a href="/app/conciliacion" class="mobile-drawer-link"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i><span>Conciliacion</span></a>
-                    <a href="/app/reportes" class="mobile-drawer-link"><i class="fa-regular fa-file-lines" aria-hidden="true"></i><span>Reportes</span></a>
+                    <a href="/app/analisis" class="mobile-drawer-link" data-plan-nav-slot="analytics"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i><span>Analisis</span></a>
                 </nav>
             </aside>
 
@@ -100,7 +102,7 @@
                     <a id="mobileNavHome" href="/app" class="mobile-nav-item"><i class="fa-solid fa-house"></i><span>Inicio</span></a>
                     <a id="mobileNavTable" href="/app/table" class="mobile-nav-item"><i class="fa-solid fa-table"></i><span>Tabla</span></a>
                     <a id="mobileNavCalendar" href="/app/table?view=calendar" class="mobile-nav-item"><i class="fa-regular fa-calendar-days"></i><span>Calendario</span></a>
-                    <a id="mobileNavReports" href="/app/reportes" class="mobile-nav-item"><i class="fa-regular fa-file-lines"></i><span>Reportes</span></a>
+                    <a id="mobileNavReports" href="/app/analisis" class="mobile-nav-item" data-plan-nav-slot="analytics"><i class="fa-solid fa-chart-pie"></i><span>Analisis</span></a>
                     <a id="mobileNavUser" href="/app/perfil" class="mobile-nav-item active" aria-current="page"><i class="fa-regular fa-user"></i><span>Usuario</span></a>
         </nav>
 
@@ -169,124 +171,211 @@
                     <span>🧮 Conciliacion de balance</span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
+                <a class="settings-nav-item" href="/app/analisis">
+                    <span>📊 Analisis</span>
+                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </a>
                 <button class="settings-nav-item" id="openReportsSection" type="button" data-settings-section="reportsSection" data-settings-route="/app/reportes" aria-expanded="false">
                     <span>🧾 Reportes mensuales <span class="settings-reports-badge">Premium</span></span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
 
-                <button class="settings-nav-item" id="openTelegramSection" type="button" data-settings-section="telegramSection" data-settings-route="/app/telegram" aria-expanded="false">
-                    <span class="settings-nav-item-label">🤖 Telegram Bot <span class="settings-reports-badge">Premium</span></span>
-                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-                </button>
-                <button class="settings-nav-item" id="openWhatsAppSection" type="button" data-settings-section="whatsappSection" data-settings-route="/app/whatsapp" aria-expanded="false">
-                    <span class="settings-nav-item-label"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> WhatsApp Bot (Kapso) <span class="settings-reports-badge">Premium</span></span>
+                <button class="settings-nav-item" id="openBotsSection" type="button" data-settings-section="botsSection" data-settings-route="/app/bots" aria-expanded="false">
+                    <span class="settings-nav-item-label"><i class="fa-solid fa-robot" aria-hidden="true"></i> Bots de gastos <span class="settings-reports-badge">Premium</span></span>
                     <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                 </button>
             </div>
         </section>
 
         <section id="reportsSection" class="form-container settings-section settings-detail-section settings-reports-section" hidden>
-            <div class="settings-detail-header">
-                <h2>🧾 Reportes mensuales</h2>
+            <div class="settings-detail-header settings-reports-detail-header">
+                <h2><i class="fa-regular fa-file-lines" aria-hidden="true"></i> Reportes mensuales</h2>
                 <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="reportsSection" aria-label="Cerrar reportes" title="Cerrar reportes">
                     <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 </button>
             </div>
-            <p class="settings-helper-text settings-reports-helper">Genera y descarga tu reporte mensual en el momento. Los archivos no se guardan en el servidor.</p>
-            <div class="settings-reports-highlight" role="note">
-                <span class="settings-reports-badge">Premium</span>
-                <span>Incluye resumen ejecutivo, desglose por categoria y detalle completo de movimientos.</span>
+
+            <div class="reports-main-grid">
+                        <div class="reports-config-column">
+                            <p class="settings-helper-text settings-reports-helper">Configura y descarga un reporte mensual en segundos.</p>
+
+                            <div id="reportPremiumBanner" class="settings-premium-upsell" role="note">
+                                <div class="settings-premium-upsell-head">
+                                    <span class="settings-premium-pill"><i class="fa-solid fa-lock" aria-hidden="true"></i> Premium</span>
+                                    <h3 class="settings-premium-title">Desbloquea reportes mensuales avanzados</h3>
+                                </div>
+                                <p class="settings-premium-copy">Exporta Excel y PDF con resumen ejecutivo, categorias y detalle completo del periodo.</p>
+                                <button id="reportPremiumActivateBtn" type="button" class="nav-button settings-premium-cta" hidden>Activar Premium</button>
+                            </div>
+
+                            <div class="reports-form-card">
+                                <div class="reports-form-grid">
+                                    <div class="reports-field">
+                                        <label for="reportMonthSelect">Mes</label>
+                                        <div class="reports-select-wrap">
+                                            <select id="reportMonthSelect"></select>
+                                            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                        </div>
+                                    </div>
+                                    <div class="reports-field">
+                                        <label for="reportYearInput">A&ntilde;o</label>
+                                        <div class="reports-select-wrap">
+                                            <input id="reportYearInput" type="number" min="2000" max="2100" step="1" placeholder="2026" inputmode="numeric">
+                                        </div>
+                                    </div>
+                                    <div class="reports-field">
+                                        <label for="reportCurrencySelect">Moneda</label>
+                                        <div class="reports-select-wrap">
+                                            <select id="reportCurrencySelect">
+                                                <option value="ars">ARS</option>
+                                                <option value="usd">USD</option>
+                                                <option value="eur">EUR</option>
+                                            </select>
+                                            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                        </div>
+                                    </div>
+                                    <div class="reports-field reports-field-toggle">
+                                        <label class="reports-toggle-row" for="reportIncludeCreditCardCheckbox">
+                                            <span>
+                                                <strong>Gasto tarjeta</strong>
+                                                <small>Incluir gastos con tarjeta de credito</small>
+                                            </span>
+                                            <span class="reports-toggle-switch">
+                                                <input id="reportIncludeCreditCardCheckbox" type="checkbox" checked>
+                                                <span class="reports-toggle-slider" aria-hidden="true"></span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="settings-export-actions reports-download-actions">
+                                <button id="downloadMonthlyXLSXBtn" class="nav-button reports-download-btn reports-download-btn-excel" type="button">
+                                    <span class="reports-download-btn-title"><i class="fa-regular fa-file-excel" aria-hidden="true"></i> Descargar Excel</span>
+                                    <span class="reports-download-btn-sub">.xlsx</span>
+                                </button>
+                                <button id="downloadMonthlyPDFBtn" class="nav-button reports-download-btn reports-download-btn-pdf" type="button">
+                                    <span class="reports-download-btn-title"><i class="fa-regular fa-file-pdf" aria-hidden="true"></i> Descargar PDF</span>
+                                    <span class="reports-download-btn-sub">.pdf</span>
+                                </button>
+                            </div>
+
+                            <p class="settings-reports-caption">Tip: usa el mismo mes y moneda de tu analisis para compartir resultados claros.</p>
+                            <div id="reportExportMessage" class="form-message"></div>
+                        </div>
+
+                        <div class="reports-preview-column">
+                            <section id="reportPreviewCard" class="reports-preview-card">
+                                <div class="reports-preview-head">
+                                    <h3>Vista previa del reporte</h3>
+                                    <span id="reportPreviewPeriod" class="reports-preview-period">-</span>
+                                </div>
+                                <div id="reportPreviewChecklist" class="reports-preview-checklist">
+                                    <div class="reports-preview-check-item"><i class="fa-solid fa-check" aria-hidden="true"></i><span>Resumen ejecutivo</span></div>
+                                    <div class="reports-preview-check-item"><i class="fa-solid fa-check" aria-hidden="true"></i><span>Desglose por categoria</span></div>
+                                    <div class="reports-preview-check-item"><i class="fa-solid fa-check" aria-hidden="true"></i><span>Detalle de movimientos</span></div>
+                                </div>
+                                <div class="reports-preview-mock">
+                                    <article class="reports-mock-summary">
+                                        <span class="reports-mock-title">Resumen ejecutivo</span>
+                                        <div class="reports-mock-bars">
+                                            <span></span><span></span><span></span>
+                                        </div>
+                                    </article>
+                                    <article class="reports-mock-breakdown">
+                                        <span class="reports-mock-title">Categorias</span>
+                                        <div class="reports-mock-donut"></div>
+                                    </article>
+                                    <article class="reports-mock-table">
+                                        <span class="reports-mock-title">Movimientos</span>
+                                        <div class="reports-mock-table-lines">
+                                            <span></span><span></span><span></span><span></span>
+                                        </div>
+                                    </article>
+                                </div>
+                                <div id="reportPremiumOverlay" class="reports-preview-overlay" hidden>
+                                    <i class="fa-solid fa-lock" aria-hidden="true"></i>
+                                    <p>Activar Premium para descargar</p>
+                                    <button id="reportPreviewActivateBtn" type="button" class="nav-button settings-premium-cta">Activar Premium</button>
+                                </div>
+                            </section>
+                        </div>
             </div>
-            <div class="settings-export-grid">
-                <div class="settings-preference-item">
-                    <label for="reportMonthSelect">Mes</label>
-                    <div class="settings-preference-control">
-                        <select id="reportMonthSelect"></select>
-                    </div>
-                </div>
-                <div class="settings-preference-item">
-                    <label for="reportYearInput">A&ntilde;o</label>
-                    <div class="settings-preference-control">
-                        <input id="reportYearInput" type="number" min="2000" max="2100" step="1" placeholder="2026" inputmode="numeric">
-                    </div>
-                </div>
-                <div class="settings-preference-item">
-                    <label for="reportCurrencySelect">Moneda</label>
-                    <div class="settings-preference-control">
-                        <select id="reportCurrencySelect">
-                            <option value="ars">ARS</option>
-                            <option value="usd">USD</option>
-                            <option value="eur">EUR</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="settings-preference-item">
-                    <label for="reportIncludeCreditCardCheckbox">Gasto tarjeta</label>
-                    <div class="settings-preference-control">
-                        <label class="checkbox-inline">
-                            <input id="reportIncludeCreditCardCheckbox" type="checkbox" class="styled-checkbox" checked>
-                            <span>Incluir gastos con tarjeta de credito</span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-            <div class="settings-export-actions">
-                <button id="downloadMonthlyXLSXBtn" class="nav-button button-secondary" type="button">Descargar Excel (.xlsx)</button>
-                <button id="downloadMonthlyPDFBtn" class="nav-button button-primary" type="button">Descargar PDF (.pdf)</button>
-            </div>
-            <p class="settings-reports-caption">Sugerencia: usa el mismo mes y moneda de tu analisis para compartir resultados claros.</p>
-            <div id="reportExportMessage" class="form-message"></div>
         </section>
 
-        <section id="telegramSection" class="form-container settings-section settings-detail-section settings-telegram-section" hidden>
+        <section id="botsSection" class="form-container settings-section settings-detail-section settings-bots-section" hidden>
             <div class="settings-detail-header">
-                <h2><i class="fa-brands fa-telegram"></i> Telegram Bot</h2>
-                <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="telegramSection" aria-label="Cerrar Telegram Bot" title="Cerrar Telegram Bot">
+                <h2><i class="fa-solid fa-robot"></i> Bots de gastos</h2>
+                <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="botsSection" aria-label="Cerrar bots de gastos" title="Cerrar bots de gastos">
                     <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 </button>
             </div>
-            <p class="settings-helper-text settings-telegram-helper">Vincula tu cuenta para cargar comprobantes desde Telegram. Flujo: 1) genera codigo, 2) abre el bot, 3) confirma con <code>/vincular CODIGO</code>.</p>
-            <div id="telegramStatusBanner" class="telegram-status-box telegram-status-info">Cargando estado...</div>
-            <p id="telegramStatusHint" class="settings-helper-text settings-telegram-hint"></p>
-            <div id="telegramCodeWrap" class="settings-telegram-code-wrap" hidden>
-                <div class="settings-telegram-code-label">Codigo vigente</div>
-                <div id="telegramGeneratedCode" class="settings-telegram-code-value">----</div>
-                <div id="telegramCodeMeta" class="settings-telegram-code-meta"></div>
+            <p class="settings-helper-text settings-bot-helper">Telegram permite enviar comprobantes y archivos. WhatsApp recibe solo texto para registrar movimientos.</p>
+            <div id="botsPremiumBanner" class="settings-premium-upsell" role="note" hidden>
+                <div class="settings-premium-upsell-head">
+                    <span class="settings-premium-pill"><i class="fa-solid fa-lock" aria-hidden="true"></i> Premium</span>
+                    <h3 class="settings-premium-title">Bots de gastos disponibles con Premium</h3>
+                </div>
+                <p class="settings-premium-copy">Activa Premium para vincular Telegram y WhatsApp y registrar movimientos desde chat.</p>
+                <button id="botsPremiumActivateBtn" type="button" class="nav-button settings-premium-cta">Hacerme Premium</button>
             </div>
-            <div class="settings-export-actions settings-telegram-actions">
-                <button id="telegramOpenBotBtn" class="nav-button button-secondary" type="button"><i class="fa-brands fa-telegram"></i> Abrir bot</button>
-                <button id="telegramGenerateCodeBtn" class="nav-button button-primary" type="button">Generar codigo de vinculacion</button>
-                <button id="telegramRefreshStatusBtn" class="nav-button button-secondary" type="button">Actualizar estado</button>
+            <div class="settings-bots-grid">
+                <article class="settings-bot-section settings-telegram-section settings-bot-provider">
+                    <h3 class="settings-bot-provider-title"><i class="fa-brands fa-telegram" aria-hidden="true"></i> Telegram Bot</h3>
+                    <div class="settings-bot-card">
+                        <div id="telegramStatusBanner" class="settings-bot-status settings-bot-status-info">Cargando estado...</div>
+                        <p id="telegramStatusHint" class="settings-helper-text settings-bot-hint"></p>
+                        <div id="telegramCodeWrap" class="settings-bot-data-card" hidden>
+                            <div class="settings-bot-data-label">Codigo vigente</div>
+                            <div id="telegramGeneratedCode" class="settings-bot-data-value">----</div>
+                            <div id="telegramCodeMeta" class="settings-bot-data-meta"></div>
+                        </div>
+                        <ol class="settings-bot-steps">
+                            <li>Genera un codigo de vinculacion.</li>
+                            <li>Abre el bot oficial de Telegram.</li>
+                            <li>Envia <code>/vincular CODIGO</code> y confirma.</li>
+                            <li>Envia texto, imagenes o PDF de comprobantes para registrar movimientos.</li>
+                        </ol>
+                        <div class="settings-export-actions settings-bot-actions">
+                            <button id="telegramOpenBotBtn" class="nav-button button-secondary" type="button"><i class="fa-brands fa-telegram"></i> Abrir bot</button>
+                            <button id="telegramGenerateCodeBtn" class="nav-button button-primary" type="button">Generar codigo</button>
+                            <button id="telegramRefreshStatusBtn" class="nav-button button-secondary" type="button">Actualizar estado</button>
+                        </div>
+                    </div>
+                    <p class="settings-reports-caption settings-bot-caption">Si el codigo vence, genera uno nuevo y reintenta la vinculacion.</p>
+                    <div id="telegramBotMessage" class="form-message"></div>
+                </article>
+
+                <article class="settings-bot-section settings-whatsapp-section settings-bot-provider">
+                    <h3 class="settings-bot-provider-title"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> WhatsApp Bot (Kapso)</h3>
+                    <div class="settings-bot-card">
+                        <div id="whatsappStatusBanner" class="settings-bot-status settings-bot-status-info">Cargando configuracion...</div>
+                        <p id="whatsappStatusHint" class="settings-helper-text settings-bot-hint"></p>
+                        <div id="whatsappNumberWrap" class="settings-bot-data-card" hidden>
+                            <div class="settings-bot-data-label">Numero activo</div>
+                            <div id="whatsappNumberValue" class="settings-bot-data-value">----</div>
+                        </div>
+                        <div id="whatsappCodeWrap" class="settings-bot-data-card" hidden>
+                            <div class="settings-bot-data-label">Codigo vigente</div>
+                            <div id="whatsappGeneratedCode" class="settings-bot-data-value">----</div>
+                            <div id="whatsappCodeMeta" class="settings-bot-data-meta"></div>
+                        </div>
+                        <ol class="settings-bot-steps">
+                            <li>Genera un codigo de vinculacion.</li>
+                            <li>Abre el chat de WhatsApp (Kapso).</li>
+                            <li>Envia <code>/vincular CODIGO</code> y espera confirmacion.</li>
+                            <li>Registra gastos por texto con <code>/gasto 1500 Supermercado</code> o lenguaje natural.</li>
+                        </ol>
+                        <div class="settings-export-actions settings-bot-actions">
+                            <button id="whatsappOpenBotBtn" class="nav-button button-primary" type="button"><i class="fa-brands fa-whatsapp"></i> Abrir chat</button>
+                            <button id="whatsappGenerateCodeBtn" class="nav-button button-secondary" type="button">Generar codigo</button>
+                            <button id="whatsappRefreshStatusBtn" class="nav-button button-secondary" type="button">Actualizar estado</button>
+                        </div>
+                    </div>
+                    <p class="settings-reports-caption settings-bot-caption">Canal operado por Kapso. Este canal usa solo texto. Verifica numero activo y webhook en entorno antes de usar en produccion.</p>
+                    <div id="whatsappBotMessage" class="form-message"></div>
+                </article>
             </div>
-            <p class="settings-reports-caption">Genera un codigo para abrir Telegram con vinculacion rapida.</p>
-            <div id="telegramBotMessage" class="form-message"></div>
-        </section>
-        <section id="whatsappSection" class="form-container settings-section settings-detail-section settings-whatsapp-section" hidden>
-            <div class="settings-detail-header">
-                <h2><i class="fa-brands fa-whatsapp"></i> WhatsApp Bot (Kapso)</h2>
-                <button class="nav-button button-secondary settings-close-btn settings-close-icon-btn" type="button" data-settings-close="whatsappSection" aria-label="Cerrar WhatsApp Bot" title="Cerrar WhatsApp Bot">
-                    <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
-                </button>
-            </div>
-            <p class="settings-helper-text settings-whatsapp-helper">Vincula tu numero para registrar gastos por WhatsApp. Flujo: 1) genera codigo, 2) abre chat, 3) envia <code>/vincular CODIGO</code>, 4) registra con <code>/gasto 1500 Supermercado</code>.</p>
-            <div id="whatsappStatusBanner" class="whatsapp-status-box whatsapp-status-info">Cargando configuracion...</div>
-            <p id="whatsappStatusHint" class="settings-helper-text settings-whatsapp-hint"></p>
-            <div id="whatsappNumberWrap" class="settings-whatsapp-number-wrap" hidden>
-                <div class="settings-whatsapp-number-label">Numero cargado</div>
-                <div id="whatsappNumberValue" class="settings-whatsapp-number-value">----</div>
-            </div>
-            <div id="whatsappCodeWrap" class="settings-whatsapp-number-wrap" hidden>
-                <div class="settings-whatsapp-number-label">Codigo vigente</div>
-                <div id="whatsappGeneratedCode" class="settings-whatsapp-number-value">----</div>
-                <div id="whatsappCodeMeta" class="settings-whatsapp-number-label"></div>
-            </div>
-            <div class="settings-export-actions settings-whatsapp-actions">
-                <button id="whatsappOpenBotBtn" class="nav-button button-primary" type="button"><i class="fa-brands fa-whatsapp"></i> Abrir chat</button>
-                <button id="whatsappGenerateCodeBtn" class="nav-button button-secondary" type="button">Generar codigo de vinculacion</button>
-                <button id="whatsappRefreshStatusBtn" class="nav-button button-secondary" type="button">Actualizar estado</button>
-            </div>
-            <p class="settings-reports-caption">Configura <code>WHATSAPP_KAPSO_NUMBER</code>, <code>KAPSO_API_KEY</code> y el webhook en Kapso.</p>
-            <div id="whatsappBotMessage" class="form-message"></div>
         </section>
         <section id="categoriesSection" class="form-container settings-section settings-detail-section" hidden>
             <div class="settings-detail-header">
@@ -406,34 +495,51 @@
             <h3 class="settings-subtitle">🧮 Conciliacion rapida de balance</h3>
             <p class="settings-helper-text">Ingresa el saldo real para crear un ajuste automatico sin buscar el origen de la diferencia.</p>
             <div id="settingsReconciliationPanel" class="reconciliation-container settings-reconciliation-panel">
-                <div class="reconciliation-metrics">
-                    <div class="reconciliation-metric">
-                        <span>Balance app</span>
-                        <strong id="settingsReconciliationAppBalance">-</strong>
+                <form id="settingsReconciliationForm" class="settings-recon-module settings-recon-form" novalidate>
+                    <p class="settings-recon-formula">Ajuste = Saldo real - Balance app</p>
+                    <div class="settings-recon-calc" aria-live="polite">
+                        <article class="settings-recon-card settings-recon-card-input">
+                            <p class="settings-recon-card-label">Saldo real (ARS)</p>
+                            <div id="settingsReconciliationTargetWrap" class="settings-recon-input-wrap">
+                                <input id="settingsReconciliationTarget" class="settings-recon-input" type="text" inputmode="decimal" autocomplete="off" placeholder="Ej: 154230,35" aria-describedby="settingsReconciliationTargetError">
+                                <button id="settingsReconciliationClearTarget" class="settings-recon-clear-btn" type="button" aria-label="Limpiar saldo real" hidden>&times;</button>
+                            </div>
+                            <p id="settingsReconciliationTargetError" class="settings-recon-error" role="alert" hidden>Ingresa un saldo valido para conciliar.</p>
+                        </article>
+
+                        <span class="settings-recon-operator" aria-hidden="true">-</span>
+
+                        <article class="settings-recon-card settings-recon-card-emphasis">
+                            <p class="settings-recon-card-label">Balance app</p>
+                            <p id="settingsReconciliationAppBalance" class="settings-recon-card-value settings-recon-amount settings-recon-app-balance">-$53.000,00</p>
+                        </article>
+
+                        <span class="settings-recon-operator" aria-hidden="true">=</span>
+
+                        <article id="settingsReconciliationDifferenceCard" class="settings-recon-card settings-recon-card-result neutral">
+                            <p class="settings-recon-card-label">Ajuste a aplicar</p>
+                            <p id="settingsReconciliationDifference" class="settings-recon-card-value settings-recon-amount neutral">-</p>
+                        </article>
                     </div>
-                    <div class="reconciliation-metric">
-                        <span>Diferencia a aplicar</span>
-                        <strong id="settingsReconciliationDifference">-</strong>
+
+                    <div class="settings-recon-meta-grid">
+                        <div class="settings-recon-note-field">
+                            <label for="settingsReconciliationNote" class="settings-recon-label">Nota (opcional)</label>
+                            <input id="settingsReconciliationNote" class="settings-recon-note-input" type="text" maxlength="90" placeholder="Ej: cierre de mes sin detalle">
+                        </div>
+                        <div id="settingsReconciliationImpact" class="settings-recon-impact neutral">Ajuste estimado: -</div>
                     </div>
-                </div>
-                <form id="settingsReconciliationForm" class="reconciliation-form">
-                    <label for="settingsReconciliationTarget">Saldo real (<span id="settingsReconciliationCurrency">ARS</span>)</label>
-                    <input type="number" id="settingsReconciliationTarget" step="0.01" placeholder="Ej: 154230.35" required>
-                    <div class="settings-reconciliation-shortcuts">
-                        <button type="button" id="settingsReconciliationUseCurrent" class="nav-button button-secondary">Usar balance app</button>
-                    </div>
-                    <label for="settingsReconciliationNote">Nota (opcional)</label>
-                    <input type="text" id="settingsReconciliationNote" maxlength="90" placeholder="Ej: cierre de mes sin detalle">
-                    <div id="settingsReconciliationImpact" class="settings-reconciliation-impact">Ajuste estimado: -</div>
-                    <div class="reconciliation-actions">
-                        <button type="submit" id="settingsReconciliationSubmit" class="nav-button button-primary">Aplicar conciliacion</button>
-                    </div>
+
+                    <button type="submit" id="settingsReconciliationSubmit" class="nav-button button-primary settings-recon-cta is-disabled" disabled>
+                        <span id="settingsReconciliationSubmitSpinner" class="settings-recon-spinner" aria-hidden="true" hidden></span>
+                        <span id="settingsReconciliationSubmitLabel">Aplicar conciliacion</span>
+                    </button>
+                    <div id="settingsReconciliationMessage" class="form-message settings-recon-inline-message" role="status"></div>
                 </form>
-                <div id="settingsReconciliationMessage" class="form-message"></div>
             </div>
 
             <h3 class="settings-subtitle">🗂️ Historial de conciliaciones</h3>
-            <div id="reconciliation-history-list" class="recurring-table-box"></div>
+            <div id="reconciliation-history-list" class="reconciliation-history-list"></div>
 
         </section>
 
@@ -694,6 +800,14 @@
         const reportIncludeCreditCardCheckbox = document.getElementById('reportIncludeCreditCardCheckbox');
         const downloadMonthlyXLSXBtn = document.getElementById('downloadMonthlyXLSXBtn');
         const downloadMonthlyPDFBtn = document.getElementById('downloadMonthlyPDFBtn');
+        const reportPremiumBanner = document.getElementById('reportPremiumBanner');
+        const reportPremiumActivateBtn = document.getElementById('reportPremiumActivateBtn');
+        const reportPreviewCard = document.getElementById('reportPreviewCard');
+        const reportPreviewOverlay = document.getElementById('reportPremiumOverlay');
+        const reportPreviewActivateBtn = document.getElementById('reportPreviewActivateBtn');
+        const reportPreviewPeriod = document.getElementById('reportPreviewPeriod');
+        const botsPremiumBanner = document.getElementById('botsPremiumBanner');
+        const botsPremiumActivateBtn = document.getElementById('botsPremiumActivateBtn');
         const telegramStatusBanner = document.getElementById('telegramStatusBanner');
         const telegramStatusHint = document.getElementById('telegramStatusHint');
         const telegramCodeWrap = document.getElementById('telegramCodeWrap');
@@ -702,7 +816,7 @@
         const telegramOpenBotBtn = document.getElementById('telegramOpenBotBtn');
         const telegramGenerateCodeBtn = document.getElementById('telegramGenerateCodeBtn');
         const telegramRefreshStatusBtn = document.getElementById('telegramRefreshStatusBtn');
-        const openWhatsAppSection = document.getElementById('openWhatsAppSection');
+        const openBotsSection = document.getElementById('openBotsSection');
         const whatsappStatusBanner = document.getElementById('whatsappStatusBanner');
         const whatsappStatusHint = document.getElementById('whatsappStatusHint');
         const whatsappNumberWrap = document.getElementById('whatsappNumberWrap');
@@ -725,7 +839,7 @@
         }
 
         function showOnlySettingsSection(sectionId, options = {}) {
-            const targets = ['categoriesSection', 'recurringSection', 'reconciliationSection', 'reportsSection', 'telegramSection', 'whatsappSection'];
+            const targets = ['categoriesSection', 'recurringSection', 'reconciliationSection', 'reportsSection', 'botsSection'];
             targets.forEach((id) => setSettingsSection(id, id === sectionId));
             setRecurringComposerVisible(false);
             const shouldScroll = options.scroll !== false;
@@ -850,11 +964,43 @@
             return String(value || '').trim().toLowerCase() === 'premium' ? 'premium' : 'free';
         }
 
+        function renderReportPreviewState() {
+            if (!reportPreviewPeriod) return;
+            const selectedMonthLabel = reportMonthSelect?.selectedOptions?.[0]?.textContent?.trim() || 'Mes';
+            const selectedYear = String(reportYearInput?.value || '').trim() || String(new Date().getFullYear());
+            const currency = (reportCurrencySelect?.value || currentCurrency || 'ars').toUpperCase();
+            const includeCard = reportIncludeCreditCardCheckbox ? !!reportIncludeCreditCardCheckbox.checked : true;
+            reportPreviewPeriod.textContent = `${selectedMonthLabel} ${selectedYear} - ${currency} ${includeCard ? 'con tarjeta' : 'sin tarjeta'}`;
+        }
+
+        function openPremiumUpsell() {
+            window.location.href = '/app/perfil?upgrade=premium';
+        }
+
+        function premiumBlockedMessage(featureLabel) {
+            const feature = String(featureLabel || '').trim();
+            if (!feature) return 'Funcion disponible solo para cuentas Premium.';
+            return `Funcion Premium: activa Premium para ${feature}.`;
+        }
+
+        function renderPremiumUpsellBanner(bannerElement, ctaElement, locked) {
+            if (!bannerElement) return;
+            const isLocked = !!locked;
+            bannerElement.hidden = !isLocked;
+            bannerElement.classList.toggle('is-locked', isLocked);
+            if (ctaElement) ctaElement.hidden = !isLocked;
+        }
+
         function renderReportAccessState() {
             const isPremium = currentPlanTier === 'premium';
             if (downloadMonthlyXLSXBtn) downloadMonthlyXLSXBtn.disabled = !isPremium;
             if (downloadMonthlyPDFBtn) downloadMonthlyPDFBtn.disabled = !isPremium;
+            renderPremiumUpsellBanner(reportPremiumBanner, reportPremiumActivateBtn, !isPremium);
+            if (reportPreviewActivateBtn) reportPreviewActivateBtn.hidden = isPremium;
+            if (reportPreviewOverlay) reportPreviewOverlay.hidden = isPremium;
+            if (reportPreviewCard) reportPreviewCard.classList.toggle('is-locked', !isPremium);
             const messageDiv = document.getElementById('reportExportMessage');
+            renderReportPreviewState();
             if (!messageDiv) return;
             if (isPremium) {
                 if (messageDiv.dataset.locked === '1') {
@@ -864,9 +1010,14 @@
                 }
                 return;
             }
-            messageDiv.textContent = 'Disponible en Premium: exporta tus movimientos mensuales en Excel y PDF.';
+            messageDiv.textContent = premiumBlockedMessage('exportar reportes mensuales en Excel y PDF');
             messageDiv.className = 'form-message error';
             messageDiv.dataset.locked = '1';
+        }
+
+        function renderBotsAccessState() {
+            const isPremium = currentPlanTier === 'premium';
+            renderPremiumUpsellBanner(botsPremiumBanner, botsPremiumActivateBtn, !isPremium);
         }
 
         function applyReportContextFromURL() {
@@ -924,6 +1075,7 @@
                 reportIncludeCreditCardCheckbox.checked = true;
             }
             applyReportContextFromURL();
+            renderReportPreviewState();
             renderReportAccessState();
         }
 
@@ -950,7 +1102,7 @@
 
         async function downloadMonthlyReport(format) {
             if (currentPlanTier !== 'premium') {
-                showMessage('reportExportMessage', 'La exportacion mensual es una funcion Premium.', false);
+                showMessage('reportExportMessage', premiumBlockedMessage('exportar reportes mensuales'), false);
                 return;
             }
             const month = parseInt(reportMonthSelect?.value || '', 10);
@@ -1059,7 +1211,7 @@
         function setTelegramStatusBox(message, tone = 'info') {
             if (!telegramStatusBanner) return;
             telegramStatusBanner.textContent = message;
-            telegramStatusBanner.className = `telegram-status-box telegram-status-${tone}`;
+            telegramStatusBanner.className = `settings-bot-status settings-bot-status-${tone}`;
         }
 
         function renderTelegramCodePanel() {
@@ -1097,13 +1249,14 @@
 
         function renderTelegramState() {
             const isPremium = currentPlanTier === 'premium' && !!telegramState.premium;
+            if (telegramOpenBotBtn) telegramOpenBotBtn.disabled = !isPremium || !telegramState.bot_url;
             if (telegramGenerateCodeBtn) telegramGenerateCodeBtn.disabled = !isPremium;
-            if (telegramOpenBotBtn) telegramOpenBotBtn.disabled = !telegramState.bot_url;
+            if (telegramRefreshStatusBtn) telegramRefreshStatusBtn.disabled = !isPremium;
 
             if (!isPremium) {
-                setTelegramStatusBox('Estado: disponible solo para cuentas Premium.', 'warning');
+                setTelegramStatusBox('Estado: canal bloqueado para plan Free.', 'warning');
                 if (telegramStatusHint) {
-                    telegramStatusHint.textContent = 'Activa Premium para generar un codigo de vinculacion y usar el bot de Telegram.';
+                    telegramStatusHint.textContent = 'Activa Premium para vincular Telegram y cargar gastos por texto o archivos.';
                 }
                 telegramState.generated_code = '';
                 telegramState.generated_expires_at = '';
@@ -1117,7 +1270,7 @@
                 const linkedAt = formatTelegramDate(telegramState.linked_at);
                 setTelegramStatusBox(`Estado: cuenta vinculada (${usernameLabel}).`, 'success');
                 if (telegramStatusHint) {
-                    telegramStatusHint.textContent = `Vinculada el ${linkedAt}. Puedes enviar comprobantes al bot.`;
+                    telegramStatusHint.textContent = `Vinculada el ${linkedAt}. Puedes enviar texto, imagenes o PDF de comprobantes al bot.`;
                 }
             } else {
                 setTelegramStatusBox('Estado: cuenta premium sin vincular.', 'info');
@@ -1154,7 +1307,7 @@
 
         async function generateTelegramLinkCode() {
             if (currentPlanTier !== 'premium') {
-                showMessage('telegramBotMessage', 'Disponible solo para cuentas Premium.', false);
+                showMessage('telegramBotMessage', premiumBlockedMessage('usar Telegram Bot'), false);
                 return;
             }
             if (telegramGenerateCodeBtn) telegramGenerateCodeBtn.disabled = true;
@@ -1174,14 +1327,14 @@
                 console.error('Error generando codigo de Telegram:', error);
                 showMessage('telegramBotMessage', error.message || 'No se pudo generar codigo', false);
             } finally {
-                if (telegramGenerateCodeBtn) telegramGenerateCodeBtn.disabled = !(currentPlanTier === 'premium');
+                if (telegramGenerateCodeBtn) telegramGenerateCodeBtn.disabled = !(currentPlanTier === 'premium' && !!telegramState.premium);
             }
         }
 
         function setWhatsAppStatusBox(message, tone = 'info') {
             if (!whatsappStatusBanner) return;
             whatsappStatusBanner.textContent = message;
-            whatsappStatusBanner.className = `whatsapp-status-box whatsapp-status-${tone}`;
+            whatsappStatusBanner.className = `settings-bot-status settings-bot-status-${tone}`;
         }
 
         function normalizeWhatsAppCodeCompact(value) {
@@ -1250,15 +1403,15 @@
 
         function renderWhatsAppState() {
             const isPremium = currentPlanTier === 'premium' && !!whatsappState.premium;
-            if (openWhatsAppSection) openWhatsAppSection.hidden = !isPremium;
+            if (openBotsSection) openBotsSection.hidden = false;
 
             if (!isPremium) {
                 if (whatsappOpenBotBtn) whatsappOpenBotBtn.disabled = true;
                 if (whatsappGenerateCodeBtn) whatsappGenerateCodeBtn.disabled = true;
                 if (whatsappRefreshStatusBtn) whatsappRefreshStatusBtn.disabled = true;
-                setWhatsAppStatusBox('Estado: disponible solo para cuentas Premium.', 'warning');
+                setWhatsAppStatusBox('Estado: canal bloqueado para plan Free.', 'warning');
                 if (whatsappStatusHint) {
-                    whatsappStatusHint.textContent = 'Activa Premium para habilitar el bot de WhatsApp (Kapso).';
+                    whatsappStatusHint.textContent = 'Activa Premium para habilitar vinculacion y carga de gastos por WhatsApp (solo texto).';
                 }
                 if (whatsappNumberWrap) whatsappNumberWrap.hidden = true;
                 if (whatsappNumberValue) whatsappNumberValue.textContent = '----';
@@ -1299,9 +1452,9 @@
                 if (whatsappState.linked) {
                     const linkedAt = formatWhatsAppDate(whatsappState.linked_at);
                     const linkedPhone = whatsappState.whatsapp_phone ? `+${whatsappState.whatsapp_phone}` : 'sin telefono';
-                    whatsappStatusHint.textContent = `Numero activo: ${displayNumber || 'sin formato'}. Vinculado ${linkedPhone} (${linkedAt}). Usa /gasto para registrar movimientos.`;
+                    whatsappStatusHint.textContent = `Numero activo: ${displayNumber || 'sin formato'}. Vinculado ${linkedPhone} (${linkedAt}). Usa /gasto o texto natural para registrar movimientos (solo texto).`;
                 } else {
-                    whatsappStatusHint.textContent = `Numero activo: ${displayNumber || 'sin formato'}. Genera un codigo y envia /vincular CODIGO en el chat.`;
+                    whatsappStatusHint.textContent = `Numero activo: ${displayNumber || 'sin formato'}. Genera un codigo y envia /vincular CODIGO en el chat (solo texto).`;
                 }
             }
             if (whatsappNumberWrap) whatsappNumberWrap.hidden = false;
@@ -1337,7 +1490,7 @@
 
         async function generateWhatsAppLinkCode() {
             if (currentPlanTier !== 'premium') {
-                showMessage('whatsappBotMessage', 'Disponible solo para cuentas Premium.', false);
+                showMessage('whatsappBotMessage', premiumBlockedMessage('usar WhatsApp Bot'), false);
                 return;
             }
             if (whatsappGenerateCodeBtn) whatsappGenerateCodeBtn.disabled = true;
@@ -1357,7 +1510,7 @@
                 console.error('Error generando codigo de WhatsApp:', error);
                 showMessage('whatsappBotMessage', error.message || 'No se pudo generar codigo', false);
             } finally {
-                if (whatsappGenerateCodeBtn) whatsappGenerateCodeBtn.disabled = !(currentPlanTier === 'premium');
+                if (whatsappGenerateCodeBtn) whatsappGenerateCodeBtn.disabled = !(currentPlanTier === 'premium' && !!whatsappState.premium);
             }
         }
 
@@ -1497,9 +1650,27 @@ function sanitizeCategoryName(raw) {
 }
 
 function renderCategorySelects() {
-    const options = categories.map(c => `<option value="${c}">${formatSettingsCategoryLabel(c)}</option>`).join('');
-    document.getElementById('recurringCategory').innerHTML = options;
-    document.getElementById('editRecurringCategory').innerHTML = options;
+    const recurringCategorySelect = document.getElementById('recurringCategory');
+    const editRecurringCategorySelect = document.getElementById('editRecurringCategory');
+    fillCategorySelectOptions(recurringCategorySelect, categories);
+    fillCategorySelectOptions(editRecurringCategorySelect, categories);
+}
+
+function fillCategorySelectOptions(selectEl, categoryList) {
+    if (!selectEl) return;
+    const previousValue = String(selectEl.value || '');
+    selectEl.replaceChildren();
+    (Array.isArray(categoryList) ? categoryList : []).forEach((value) => {
+        const normalized = String(value || '').trim();
+        if (!normalized) return;
+        const option = document.createElement('option');
+        option.value = normalized;
+        option.textContent = formatSettingsCategoryLabel(normalized);
+        selectEl.appendChild(option);
+    });
+    if (previousValue && Array.from(selectEl.options).some((option) => option.value === previousValue)) {
+        selectEl.value = previousValue;
+    }
 }
 
 function applyCategoriesUpdate(updatedCategories) {
@@ -1990,11 +2161,6 @@ async function saveCategoriesList(nextCategories) {
         }
 
 
-        function formatSignedCurrency(amount, currencyCode) {
-            const sign = amount >= 0 ? '+' : '-';
-            return `${sign}${formatCurrency(Math.abs(amount), currencyCode)}`;
-        }
-
         function calculateSettingsCurrentCABalance(currency = currentCurrency) {
             const now = new Date();
             return (allExpensesCache || []).reduce((sum, exp) => {
@@ -2009,40 +2175,212 @@ async function saveCategoriesList(nextCategories) {
             }, 0);
         }
 
+        function formatCurrencyByCode(amount, currencyCode) {
+            const code = String(currencyCode || currentCurrency || 'ars').toLowerCase();
+            return formatCurrency(Math.abs(Number(amount || 0)), code);
+        }
+
+        function formatSignedCurrency(amount, currencyCode) {
+            const sign = amount >= 0 ? '+' : '-';
+            return `${sign}${formatCurrencyByCode(Math.abs(amount), currencyCode)}`;
+        }
+
+        function parseLocalizedAmountInput(rawInput) {
+            const raw = String(rawInput || '').trim();
+            if (!raw) return null;
+            const sanitized = raw.replace(/[^\d,.\-]/g, '');
+            if (!sanitized) return null;
+            const isNegative = sanitized.startsWith('-');
+            const unsigned = sanitized.replace(/-/g, '');
+            if (!unsigned) return null;
+
+            const commaCount = (unsigned.match(/,/g) || []).length;
+            const dotCount = (unsigned.match(/\./g) || []).length;
+            const hasComma = commaCount > 0;
+            const hasDot = dotCount > 0;
+
+            let integerRaw = '';
+            let decimalRaw = '';
+
+            if (hasComma) {
+                // Historical AR format: comma is decimal separator, dot is thousand separator.
+                const lastComma = unsigned.lastIndexOf(',');
+                integerRaw = unsigned.slice(0, lastComma).replace(/[^\d]/g, '');
+                decimalRaw = unsigned.slice(lastComma + 1).replace(/[^\d]/g, '');
+            } else if (hasDot) {
+                if (dotCount > 1) {
+                    // Multiple dots are treated as thousand separators (e.g. 1.234.567).
+                    integerRaw = unsigned.replace(/[^\d]/g, '');
+                    decimalRaw = '';
+                } else {
+                    const singleDot = unsigned.indexOf('.');
+                    const left = unsigned.slice(0, singleDot).replace(/[^\d]/g, '');
+                    const right = unsigned.slice(singleDot + 1).replace(/[^\d]/g, '');
+                    if (right.length === 3 && left.length >= 1) {
+                        // 154.000 -> 154000 (thousand separator).
+                        integerRaw = `${left}${right}`;
+                        decimalRaw = '';
+                    } else if (right.length >= 1 && right.length <= 2) {
+                        // Allow decimal typing with dot for compatibility: 1.5 / 1.50.
+                        integerRaw = left;
+                        decimalRaw = right;
+                    } else {
+                        // Any other case falls back to thousand separator behavior.
+                        integerRaw = `${left}${right}`;
+                        decimalRaw = '';
+                    }
+                }
+            } else {
+                integerRaw = unsigned.replace(/[^\d]/g, '');
+                decimalRaw = '';
+            }
+
+            if (!integerRaw && !decimalRaw) return null;
+
+            const integerPart = integerRaw || '0';
+            const composed = decimalRaw ? `${integerPart}.${decimalRaw.slice(0, 2)}` : integerPart;
+            const parsed = Number.parseFloat(composed);
+            if (!Number.isFinite(parsed)) return null;
+            return isNegative ? -parsed : parsed;
+        }
+
+        function isTransientAmountInput(rawInput) {
+            const value = String(rawInput || '').trim();
+            if (!value) return true;
+            return /^-?$/.test(value) || /^-?[.,]$/.test(value) || /^-?[\d.,]+[.,]$/.test(value);
+        }
+
+        function formatLocalizedAmountInput(value) {
+            if (!Number.isFinite(value)) return '';
+            const isNegative = value < 0;
+            const absolute = Math.abs(value);
+            const rounded = Math.round(absolute * 100) / 100;
+            const [wholeRaw, decimalRaw = '00'] = rounded.toFixed(2).split('.');
+            const whole = Number(wholeRaw).toLocaleString('es-AR');
+            let formatted = whole;
+            if (decimalRaw !== '00') {
+                formatted = decimalRaw.endsWith('0') ? `${whole},${decimalRaw[0]}` : `${whole},${decimalRaw}`;
+            }
+            return isNegative ? `-${formatted}` : formatted;
+        }
+
+        function sanitizeLocalizedAmountTyping(rawInput) {
+            const compact = String(rawInput || '').replace(/\s+/g, '');
+            if (!compact) return '';
+            const isNegative = compact.trim().startsWith('-');
+            const unsigned = compact.replace(/-/g, '').replace(/[^\d.,]/g, '');
+            return `${isNegative ? '-' : ''}${unsigned}`;
+        }
+
+        function reconciliationTone(difference) {
+            if (!Number.isFinite(difference) || Math.abs(difference) < 0.005) return 'neutral';
+            return difference > 0 ? 'positive' : 'negative';
+        }
+
+        function applyReconciliationTone(element, tone) {
+            if (!element) return;
+            element.classList.remove('positive', 'negative', 'neutral');
+            element.classList.add(tone);
+        }
+
+        function handleReconciliationTargetInput(rawValue, { formatOnValid = false } = {}) {
+            const input = document.getElementById('settingsReconciliationTarget');
+            if (!input) return renderSettingsReconciliationPreview();
+
+            const raw = sanitizeLocalizedAmountTyping(rawValue);
+            if (!raw.trim()) {
+                input.value = '';
+                return renderSettingsReconciliationPreview();
+            }
+
+            input.value = raw;
+            const parsed = parseLocalizedAmountInput(raw);
+            if (parsed === null) {
+                return renderSettingsReconciliationPreview();
+            }
+
+            if (formatOnValid) {
+                input.value = formatLocalizedAmountInput(parsed);
+            }
+            return renderSettingsReconciliationPreview();
+        }
+
+        function setReconciliationSubmitState(isLoading) {
+            const submitButton = document.getElementById('settingsReconciliationSubmit');
+            const submitLabel = document.getElementById('settingsReconciliationSubmitLabel');
+            const spinner = document.getElementById('settingsReconciliationSubmitSpinner');
+            if (!submitButton) return;
+            submitButton.classList.toggle('is-loading', isLoading);
+            if (spinner) spinner.hidden = !isLoading;
+            if (submitLabel) submitLabel.textContent = isLoading ? 'Aplicando...' : 'Aplicar conciliacion';
+        }
+
         function renderSettingsReconciliationPreview() {
             const currency = (currentCurrency || 'ars').toLowerCase();
             const appBalance = calculateSettingsCurrentCABalance(currency);
             const targetInput = document.getElementById('settingsReconciliationTarget');
-            const targetAmount = Number.parseFloat(targetInput?.value || '');
+            const targetWrap = document.getElementById('settingsReconciliationTargetWrap');
+            const targetError = document.getElementById('settingsReconciliationTargetError');
+            const clearButton = document.getElementById('settingsReconciliationClearTarget');
+            const targetRaw = String(targetInput?.value || '').trim();
+            const targetAmount = parseLocalizedAmountInput(targetRaw);
+            const hasInvalidInput = targetRaw !== '' && targetAmount === null && !isTransientAmountInput(targetRaw);
             const difference = Number.isFinite(targetAmount) ? (targetAmount - appBalance) : null;
 
             const appBalanceEl = document.getElementById('settingsReconciliationAppBalance');
+            const diffCard = document.getElementById('settingsReconciliationDifferenceCard');
             const diffEl = document.getElementById('settingsReconciliationDifference');
             const impactEl = document.getElementById('settingsReconciliationImpact');
-            const currencyEl = document.getElementById('settingsReconciliationCurrency');
+            const submitButton = document.getElementById('settingsReconciliationSubmit');
 
-            if (currencyEl) currencyEl.textContent = currency.toUpperCase();
-            if (appBalanceEl) appBalanceEl.textContent = formatCurrency(appBalance, currency);
+            if (appBalanceEl) appBalanceEl.textContent = formatSignedCurrency(appBalance, currency);
             if (diffEl) {
-                if (difference === null) {
-                    diffEl.textContent = '-';
-                    diffEl.className = '';
-                } else {
-                    diffEl.textContent = formatSignedCurrency(difference, currency);
-                    diffEl.className = difference >= 0 ? 'positive' : 'negative';
+                const previousValue = Number.parseFloat(diffEl.dataset.value || 'NaN');
+                diffEl.textContent = Number.isFinite(difference) ? formatSignedCurrency(difference, currency) : '-';
+                diffEl.dataset.value = Number.isFinite(difference) ? String(difference) : '';
+                if (Number.isFinite(difference) && (!Number.isFinite(previousValue) || Math.abs(previousValue - difference) >= 0.005)) {
+                    diffEl.classList.remove('is-updating');
+                    void diffEl.offsetWidth;
+                    diffEl.classList.add('is-updating');
                 }
             }
+
+            const tone = reconciliationTone(difference);
+            applyReconciliationTone(diffEl, tone);
+            applyReconciliationTone(diffCard, tone);
+            applyReconciliationTone(impactEl, tone);
+
+            if (targetWrap) targetWrap.classList.toggle('invalid', hasInvalidInput);
+            if (targetError) targetError.hidden = !hasInvalidInput;
+            if (clearButton) clearButton.hidden = targetRaw === '';
+            if (targetInput) targetInput.setAttribute('aria-invalid', hasInvalidInput ? 'true' : 'false');
+
             if (impactEl) {
-                if (difference === null) {
+                if (hasInvalidInput) {
+                    impactEl.textContent = 'Ajuste estimado: revisa el saldo real ingresado.';
+                } else if (!Number.isFinite(difference)) {
                     impactEl.textContent = 'Ajuste estimado: -';
                 } else if (Math.abs(difference) < 0.005) {
                     impactEl.textContent = 'Ajuste estimado: sin cambios, el balance ya coincide.';
                 } else {
                     const action = difference > 0 ? 'Ingreso de ajuste' : 'Gasto de ajuste';
-                    impactEl.textContent = `${action}: ${formatCurrency(Math.abs(difference), currency)}.`;
+                    impactEl.textContent = `${action}: ${formatCurrencyByCode(Math.abs(difference), currency)}.`;
                 }
             }
-            return { appBalance, difference, currency };
+
+            const disableSubmit = reconciliationSubmitInFlight || hasInvalidInput || !Number.isFinite(difference) || Math.abs(difference) < 0.005;
+            if (submitButton) {
+                submitButton.disabled = disableSubmit;
+                submitButton.classList.toggle('is-disabled', disableSubmit);
+            }
+
+            return {
+                appBalance,
+                difference,
+                currency,
+                targetAmount: Number.isFinite(targetAmount) ? targetAmount : null,
+                hasInvalidInput,
+            };
         }
 
         function shortReconciliationID(id) {
@@ -2056,47 +2394,60 @@ async function saveCategoriesList(nextCategories) {
             if (!items || items.length === 0) {
                 return '<div class="no-data">Sin conciliaciones aplicadas todavia.</div>';
             }
+            const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+            }[char]));
+
             return `
-                <table class="expense-table reconciliation-history-table">
-                    <thead><tr><th class="col-left">Fecha</th><th class="col-left">Tipo</th><th class="col-right">Monto</th><th class="col-left">Detalle</th><th class="actions-col col-center">Accion</th></tr></thead>
-                    <tbody>
-                        ${items.map(item => {
-                            const isAdjustment = item.type === 'adjustment';
-                            const canRevert = isAdjustment && !item.reversed;
-                            const date = item.date ? new Date(item.date).toLocaleString('es-AR') : '-';
-                            const amount = Number(item.amount || 0);
-                            const amountClass = amount >= 0 ? 'positive' : 'negative';
-                            const detailMain = isAdjustment
-                                ? `Objetivo: ${item.targetBalance != null ? formatCurrency(item.targetBalance, item.currency || currentCurrency) : '-'} • Balance previo: ${item.appBalanceBefore != null ? formatCurrency(item.appBalanceBefore, item.currency || currentCurrency) : '-'}`
-                                : `Revierte ajuste ${shortReconciliationID(item.adjustmentExpenseId)}`;
-                            const statusBadge = isAdjustment
-                                ? (item.reversed
-                                    ? '<span class="history-status-badge history-status-reverted">Revertido</span>'
-                                    : '<span class="history-status-badge history-status-active">Activo</span>')
-                                : '<span class="history-status-badge history-status-applied">Aplicada</span>';
-                            const typeChip = isAdjustment
-                                ? '<span class="history-type-chip history-type-adjustment">Ajuste</span>'
-                                : '<span class="history-type-chip history-type-reversal">Reversion</span>';
-                            return `
-                                <tr>
-                                    <td class="col-left">${date}</td>
-                                    <td class="col-left">${typeChip}</td>
-                                    <td class="col-right"><span class="history-amount ${amountClass}">${formatSignedCurrency(amount, item.currency || currentCurrency)}</span></td>
-                                    <td class="col-left">
-                                        <div class="history-detail-main">${detailMain}</div>
-                                        <div class="history-detail-meta">
-                                            ${statusBadge}
-                                            <span class="history-id-chip">ID ${shortReconciliationID(item.id)}</span>
-                                        </div>
-                                    </td>
-                                    <td class="actions-col col-center">
-                                        ${canRevert ? `<button class="nav-button button-secondary history-action-btn" data-revert-reconciliation-id="${item.id}">Revertir</button>` : ''}
-                                    </td>
-                                </tr>
-                            `;
-                        }).join('')}
-                    </tbody>
-                </table>
+                <div class="reconciliation-history-stack">
+                    ${items.map(item => {
+                        const isAdjustment = item.type === 'adjustment';
+                        const canRevert = isAdjustment && !item.reversed;
+                        const date = item.date ? new Date(item.date).toLocaleString('es-AR') : '-';
+                        const amount = Number(item.amount || 0);
+                        const amountClass = amount >= 0 ? 'positive' : 'negative';
+                        const detailMain = isAdjustment
+                            ? `Objetivo: ${item.targetBalance != null ? formatCurrency(item.targetBalance, item.currency || currentCurrency) : '-'} | Balance previo: ${item.appBalanceBefore != null ? formatCurrency(item.appBalanceBefore, item.currency || currentCurrency) : '-'}`
+                            : `Revierte ajuste ${shortReconciliationID(item.adjustmentExpenseId)}`;
+                        const note = String(item.note || '').trim();
+                        const statusBadge = isAdjustment
+                            ? (item.reversed
+                                ? '<span class="history-status-badge history-status-reverted">Revertido</span>'
+                                : '<span class="history-status-badge history-status-active">Activo</span>')
+                            : '<span class="history-status-badge history-status-applied">Aplicada</span>';
+                        const typeChip = isAdjustment
+                            ? '<span class="history-type-chip history-type-adjustment">Ajuste</span>'
+                            : '<span class="history-type-chip history-type-reversal">Reversion</span>';
+
+                        return `
+                            <article class="reconciliation-history-card ${isAdjustment ? 'is-adjustment' : 'is-reversal'}">
+                                <div class="reconciliation-history-card-top">
+                                    <div class="reconciliation-history-chip-row">
+                                        ${typeChip}
+                                        ${statusBadge}
+                                    </div>
+                                    <time class="reconciliation-history-date">${date}</time>
+                                </div>
+                                <div class="reconciliation-history-amount-row">
+                                    <span class="reconciliation-history-amount-label">Monto</span>
+                                    <span class="history-amount ${amountClass}">${formatSignedCurrency(amount, item.currency || currentCurrency)}</span>
+                                </div>
+                                <div class="history-detail-main">${detailMain}</div>
+                                ${note ? `<p class="reconciliation-history-note">${escapeHtml(note)}</p>` : ''}
+                                <div class="reconciliation-history-card-bottom">
+                                    <span class="history-id-chip">ID ${shortReconciliationID(item.id)}</span>
+                                    ${canRevert
+                                        ? `<button class="nav-button button-secondary history-action-btn" data-revert-reconciliation-id="${item.id}">Revertir</button>`
+                                        : '<span class="reconciliation-history-action-spacer" aria-hidden="true"></span>'}
+                                </div>
+                            </article>
+                        `;
+                    }).join('')}
+                </div>
             `;
         }
 
@@ -2123,11 +2474,9 @@ async function saveCategoriesList(nextCategories) {
         }
 
         async function submitSettingsReconciliation() {
-            const messageEl = document.getElementById('settingsReconciliationMessage');
-            const submitButton = document.getElementById('settingsReconciliationSubmit');
             if (reconciliationSubmitInFlight) return;
             const preview = renderSettingsReconciliationPreview();
-            if (!Number.isFinite(preview.difference)) {
+            if (preview.hasInvalidInput || !Number.isFinite(preview.targetAmount)) {
                 showMessage('settingsReconciliationMessage', 'Ingresa un saldo real valido para conciliar.', false);
                 return;
             }
@@ -2135,21 +2484,22 @@ async function saveCategoriesList(nextCategories) {
                 showMessage('settingsReconciliationMessage', 'No hay diferencia para conciliar.', true);
                 return;
             }
-            const confirmText = `Vas a aplicar un ${preview.difference > 0 ? 'ingreso' : 'gasto'} de ajuste por ${formatCurrency(Math.abs(preview.difference), preview.currency)}. ¿Confirmas?`;
+            const confirmText = `Vas a aplicar un ${preview.difference > 0 ? 'ingreso' : 'gasto'} de ajuste por ${formatCurrencyByCode(Math.abs(preview.difference), preview.currency)}. ¿Confirmas?`;
             const confirmed = await showAppConfirmModal('Confirmar conciliacion', confirmText, 'Aplicar', 'Cancelar');
             if (!confirmed) {
                 return;
             }
 
-            const targetInput = document.getElementById('settingsReconciliationTarget');
             const noteInput = document.getElementById('settingsReconciliationNote');
             const payload = {
-                targetBalance: Number.parseFloat(targetInput.value),
+                targetBalance: preview.targetAmount,
                 currency: preview.currency,
                 note: (noteInput?.value || '').trim(),
             };
+
             reconciliationSubmitInFlight = true;
-            if (submitButton) submitButton.disabled = true;
+            setReconciliationSubmitState(true);
+            renderSettingsReconciliationPreview();
             const idempotencyKey = `rec-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
             try {
@@ -2167,11 +2517,17 @@ async function saveCategoriesList(nextCategories) {
                 if (result.status === 'noop') {
                     showMessage('settingsReconciliationMessage', 'No se realizaron cambios: la app ya coincide con tu balance real.', true);
                 } else {
-                    const amountLabel = formatCurrency(Math.abs(preview.difference), preview.currency);
+                    const amountLabel = formatCurrencyByCode(Math.abs(preview.difference), preview.currency);
                     const successText = `Se registro ${preview.difference > 0 ? 'un ingreso' : 'un gasto'} de ajuste por ${amountLabel}.`;
                     showMessage('settingsReconciliationMessage', `Conciliacion aplicada. ${successText}`, true);
                     await showAppSuccessModal('✅ Conciliación aplicada', successText, 'Cerrar');
-                    hideSettingsSection('reconciliationSection');
+                    const panel = document.getElementById('settingsReconciliationPanel');
+                    if (panel) {
+                        panel.classList.remove('is-success');
+                        void panel.offsetWidth;
+                        panel.classList.add('is-success');
+                    }
+                    const targetInput = document.getElementById('settingsReconciliationTarget');
                     if (targetInput) targetInput.value = '';
                     if (noteInput) noteInput.value = '';
                     renderSettingsReconciliationPreview();
@@ -2183,7 +2539,8 @@ async function saveCategoriesList(nextCategories) {
                 showMessage('settingsReconciliationMessage', error.message || 'No se pudo aplicar la conciliacion.', false);
             } finally {
                 reconciliationSubmitInFlight = false;
-                if (submitButton) submitButton.disabled = false;
+                setReconciliationSubmitState(false);
+                renderSettingsReconciliationPreview();
             }
         }
 
@@ -2215,8 +2572,9 @@ async function saveCategoriesList(nextCategories) {
             if (normalized === 'recurring' || normalized === 'recurrentes') return 'recurring';
             if (normalized === 'reconciliation' || normalized === 'conciliacion') return 'reconciliation';
             if (normalized === 'reports' || normalized === 'reportes') return 'reports';
-            if (normalized === 'telegram' || normalized === 'telegrambot' || normalized === 'bottelegram') return 'telegram';
-            if (normalized === 'whatsapp' || normalized === 'wsp' || normalized === 'wspbot' || normalized === 'botwhatsapp' || normalized === 'kapso') return 'whatsapp';
+            if (normalized === 'bots' || normalized === 'bot' || normalized === 'botsdegastos' || normalized === 'gastosbots') return 'bots';
+            if (normalized === 'telegram' || normalized === 'telegrambot' || normalized === 'bottelegram') return 'bots';
+            if (normalized === 'whatsapp' || normalized === 'wsp' || normalized === 'wspbot' || normalized === 'botwhatsapp' || normalized === 'kapso') return 'bots';
             if (normalized === 'profile' || normalized === 'perfil' || normalized === 'settings') return 'profile';
             return '';
         }
@@ -2231,8 +2589,9 @@ async function saveCategoriesList(nextCategories) {
             if (normalizedPath === '/app/recurrentes' || normalizedPath === '/recurrentes') return 'recurring';
             if (normalizedPath === '/app/conciliacion' || normalizedPath === '/conciliacion') return 'reconciliation';
             if (normalizedPath === '/app/reportes' || normalizedPath === '/reportes') return 'reports';
-            if (normalizedPath === '/app/telegram' || normalizedPath === '/telegram') return 'telegram';
-            if (normalizedPath === '/app/whatsapp' || normalizedPath === '/whatsapp') return 'whatsapp';
+            if (normalizedPath === '/app/bots' || normalizedPath === '/bots') return 'bots';
+            if (normalizedPath === '/app/telegram' || normalizedPath === '/telegram') return 'bots';
+            if (normalizedPath === '/app/whatsapp' || normalizedPath === '/whatsapp') return 'bots';
             if (
                 normalizedPath === '/app/perfil' ||
                 normalizedPath === '/perfil' ||
@@ -2274,11 +2633,29 @@ async function saveCategoriesList(nextCategories) {
                 case 'recurring': return '/app/recurrentes';
                 case 'reconciliation': return '/app/conciliacion';
                 case 'reports': return '/app/reportes';
-                case 'telegram': return '/app/telegram';
-                case 'whatsapp': return '/app/whatsapp';
+                case 'bots': return '/app/bots';
                 case 'profile':
                 default:
                     return '/app/perfil';
+            }
+        }
+
+        function runSettingsViewTransition(updateFn) {
+            if (typeof updateFn !== 'function') return;
+            if (typeof document.startViewTransition !== 'function') {
+                updateFn();
+                return;
+            }
+
+            try {
+                const transition = document.startViewTransition(() => {
+                    updateFn();
+                });
+                if (transition?.finished?.catch) {
+                    transition.finished.catch(() => {});
+                }
+            } catch (_) {
+                updateFn();
             }
         }
 
@@ -2304,11 +2681,7 @@ async function saveCategoriesList(nextCategories) {
                 window.dispatchEvent(new CustomEvent('expenselog:routechange'));
             };
 
-            if (document.startViewTransition) {
-                document.startViewTransition(applySectionNavigation);
-            } else {
-                applySectionNavigation();
-            }
+            runSettingsViewTransition(applySectionNavigation);
         }
 
         function bindSettingsRouteAnchors() {
@@ -2345,7 +2718,7 @@ async function saveCategoriesList(nextCategories) {
             const hashSection = normalizeSettingsSection((window.location.hash || '').replace(/^#/, ''));
             const pathSection = sectionFromPath(window.location.pathname);
             const activeSection = querySection || hashSection || pathSection || 'profile';
-            const resolvedSection = (activeSection === 'whatsapp' && currentPlanTier !== 'premium') ? 'profile' : activeSection;
+            const resolvedSection = activeSection;
             document.documentElement.setAttribute('data-settings-route', resolvedSection);
             const isModuleRoute = resolvedSection !== 'profile' && (
                 pathSection !== '' ||
@@ -2372,12 +2745,8 @@ async function saveCategoriesList(nextCategories) {
                 showOnlySettingsSection('reportsSection', { scroll: false });
                 return;
             }
-            if (resolvedSection === 'telegram') {
-                showOnlySettingsSection('telegramSection', { scroll: false });
-                return;
-            }
-            if (resolvedSection === 'whatsapp') {
-                showOnlySettingsSection('whatsappSection', { scroll: false });
+            if (resolvedSection === 'bots') {
+                showOnlySettingsSection('botsSection', { scroll: false });
                 return;
             }
 
@@ -2386,14 +2755,14 @@ async function saveCategoriesList(nextCategories) {
             hideSettingsSection('recurringSection');
             hideSettingsSection('reconciliationSection');
             hideSettingsSection('reportsSection');
-            hideSettingsSection('telegramSection');
-            hideSettingsSection('whatsappSection');
+            hideSettingsSection('botsSection');
         }
 
         // --- Initialization ---
         async function initialize() {
             try {
                 openSectionFromURL();
+                renderBotsAccessState();
                 categoriesLoading = true;
                 const cached = loadCachedCategories();
                 if (cached && cached.length > 0) {
@@ -2434,6 +2803,7 @@ async function saveCategoriesList(nextCategories) {
 
                 currentCurrency = (config.currency || 'ars').toLowerCase();
                 currentPlanTier = normalizePlanTier(config.planTier);
+                renderBotsAccessState();
                 allTags.clear();
                 (allExpensesCache || []).forEach(exp => (exp.tags || []).forEach(tag => allTags.add(tag)));
                 (recurringExpenses || []).forEach(exp => (exp.tags || []).forEach(tag => allTags.add(tag)));
@@ -2445,8 +2815,7 @@ async function saveCategoriesList(nextCategories) {
                 hideSettingsSection('recurringSection');
                 hideSettingsSection('reconciliationSection');
                 hideSettingsSection('reportsSection');
-                hideSettingsSection('telegramSection');
-                hideSettingsSection('whatsappSection');
+                hideSettingsSection('botsSection');
                 setRecurringComposerVisible(false);
                 openSectionFromURL();
                 renderSettingsReconciliationPreview();
@@ -2488,6 +2857,7 @@ async function saveCategoriesList(nextCategories) {
 
             } catch (error) {
                 console.error('No se pudo inicializar la configuracion:', error);
+                renderBotsAccessState();
                 categoriesLoading = false;
                 renderCategories();
                 populateReportPeriodControls();
@@ -2565,6 +2935,13 @@ async function saveCategoriesList(nextCategories) {
         document.getElementById('currencySelect').addEventListener('change', saveCurrency);
         downloadMonthlyXLSXBtn?.addEventListener('click', () => downloadMonthlyReport('xlsx'));
         downloadMonthlyPDFBtn?.addEventListener('click', () => downloadMonthlyReport('pdf'));
+        reportMonthSelect?.addEventListener('change', renderReportPreviewState);
+        reportYearInput?.addEventListener('input', renderReportPreviewState);
+        reportCurrencySelect?.addEventListener('change', renderReportPreviewState);
+        reportIncludeCreditCardCheckbox?.addEventListener('change', renderReportPreviewState);
+        reportPremiumActivateBtn?.addEventListener('click', openPremiumUpsell);
+        reportPreviewActivateBtn?.addEventListener('click', openPremiumUpsell);
+        botsPremiumActivateBtn?.addEventListener('click', openPremiumUpsell);
         telegramOpenBotBtn?.addEventListener('click', () => {
             const targetURL = getTelegramOpenURL();
             if (!targetURL) {
@@ -2612,16 +2989,19 @@ async function saveCategoriesList(nextCategories) {
         });
         document.getElementById('newCategory').addEventListener('keypress', e => e.key === 'Enter' && addCategory());
 
-        document.getElementById('settingsReconciliationTarget')?.addEventListener('input', () => {
-            renderSettingsReconciliationPreview();
+        document.getElementById('settingsReconciliationTarget')?.addEventListener('input', (e) => {
+            handleReconciliationTargetInput(e.target.value);
         });
-        document.getElementById('settingsReconciliationUseCurrent')?.addEventListener('click', () => {
-            const preview = renderSettingsReconciliationPreview();
+        document.getElementById('settingsReconciliationTarget')?.addEventListener('blur', (e) => {
+            handleReconciliationTargetInput(e.target.value, { formatOnValid: true });
+        });
+        document.getElementById('settingsReconciliationClearTarget')?.addEventListener('click', () => {
             const targetInput = document.getElementById('settingsReconciliationTarget');
             if (targetInput) {
-                targetInput.value = preview.appBalance.toFixed(2);
-                renderSettingsReconciliationPreview();
+                targetInput.value = '';
+                targetInput.focus();
             }
+            renderSettingsReconciliationPreview();
         });
         document.getElementById('settingsReconciliationForm')?.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -2651,11 +3031,7 @@ async function saveCategoriesList(nextCategories) {
                 openSectionFromURL();
                 window.dispatchEvent(new CustomEvent('expenselog:routechange'));
             };
-            if (document.startViewTransition) {
-                document.startViewTransition(applyHistoryNavigation);
-            } else {
-                applyHistoryNavigation();
-            }
+            runSettingsViewTransition(applyHistoryNavigation);
         });
         bindSettingsRouteAnchors();
         document.getElementById('reconciliation-history-list')?.addEventListener('click', async (e) => {
@@ -2736,3 +3112,5 @@ async function saveCategoriesList(nextCategories) {
     </script>
 </body>
 </html>
+
+

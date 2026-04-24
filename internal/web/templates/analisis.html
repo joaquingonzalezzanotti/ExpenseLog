@@ -97,64 +97,59 @@
         <div id="analyticsEmptyState" class="empty-state" style="display: none;"></div>
 
         <section id="analyticsGrid" class="analytics-grid">
-            <article id="analyticsCard" class="chart-container analytics-card analytics-chart-card">
-                <div class="analytics-head">
-                    <div id="analyticsCardTitle" class="analytics-card-title">Vista de gastos</div>
-                    <div class="analytics-mode-switch" role="tablist" aria-label="Modo de analisis">
-                        <button id="analyticsModeCategory" class="analytics-mode-btn" type="button" role="tab" aria-selected="false">Categoria</button>
-                        <button id="analyticsModeSource" class="analytics-mode-btn" type="button" role="tab" aria-selected="false">Medio de pago</button>
-                    </div>
-                    <button id="analyticsCollapseToggle" class="analytics-collapse-btn" type="button" aria-expanded="true" aria-controls="analyticsCardBody">
-                        <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
-                        <span>Ocultar</span>
-                    </button>
-                </div>
-                <div id="analyticsCardBody" class="analytics-card-body">
-                    <p class="analytics-card-hint">Selecciona un modo para cargar el grafico.</p>
-                    <div id="analyticsModePlaceholder" class="empty-state analytics-mode-placeholder">
-                        Elegi categoria o medio de pago para visualizar el grafico.
-                    </div>
-                    <div id="analyticsChartWrap" class="chart-box" style="display: none;">
-                        <canvas id="analyticsMainChart"></canvas>
-                    </div>
-                    <div class="legend-box" id="analyticsMainLegend" style="display: none;"></div>
-                </div>
-            </article>
-
-            <section id="analyticsDesktopCharts" class="analytics-desktop-grid" style="display: none;">
-                <article class="chart-container analytics-card analytics-chart-card analytics-desktop-card" id="analyticsCategoryDesktopCard">
+            <section class="analytics-charts-section" aria-label="Graficos de torta">
+                <article id="analyticsCard" class="chart-container analytics-card analytics-chart-card">
                     <div class="analytics-head">
-                        <div class="analytics-card-title">Gastos por categoria</div>
-                    </div>
-                    <div class="analytics-card-body">
-                        <div id="analyticsCategoryChartWrap" class="chart-box" style="display: none;">
-                            <canvas id="analyticsCategoryChart"></canvas>
+                        <div id="analyticsCardTitle" class="analytics-card-title">Vista de gastos</div>
+                        <div class="analytics-mode-switch" role="tablist" aria-label="Modo de analisis">
+                            <button id="analyticsModeCategory" class="analytics-mode-btn" type="button" role="tab" aria-selected="false">Categoria</button>
+                            <button id="analyticsModeSource" class="analytics-mode-btn" type="button" role="tab" aria-selected="false">Medio de pago</button>
                         </div>
-                        <div class="legend-box" id="analyticsCategoryLegend" style="display: none;"></div>
+                        <button id="analyticsCollapseToggle" class="analytics-collapse-btn" type="button" aria-expanded="true" aria-controls="analyticsCardBody">
+                            <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
+                            <span>Ocultar</span>
+                        </button>
+                    </div>
+                    <div id="analyticsCardBody" class="analytics-card-body">
+                        <p class="analytics-card-hint">Selecciona un modo para cargar el grafico.</p>
+                        <div id="analyticsModePlaceholder" class="empty-state analytics-mode-placeholder">
+                            Elegi categoria o medio de pago para visualizar el grafico.
+                        </div>
+                        <div id="analyticsChartWrap" class="chart-box" style="display: none;">
+                            <canvas id="analyticsMainChart"></canvas>
+                        </div>
+                        <div class="legend-box" id="analyticsMainLegend" style="display: none;"></div>
                     </div>
                 </article>
 
-                <article class="chart-container analytics-card analytics-chart-card analytics-desktop-card" id="analyticsSourceDesktopCard">
-                    <div class="analytics-head">
-                        <div class="analytics-card-title">Gastos por medio de pago</div>
-                    </div>
-                    <div class="analytics-card-body">
-                        <div id="analyticsSourceChartWrap" class="chart-box" style="display: none;">
-                            <canvas id="analyticsSourceChart"></canvas>
+                <section id="analyticsDesktopCharts" class="analytics-desktop-grid" style="display: none;">
+                    <article class="chart-container analytics-card analytics-chart-card analytics-desktop-card" id="analyticsCategoryDesktopCard">
+                        <div class="analytics-head">
+                            <div class="analytics-card-title">Gastos por categoria</div>
                         </div>
-                        <div class="legend-box" id="analyticsSourceLegend" style="display: none;"></div>
-                    </div>
-                </article>
+                        <div class="analytics-card-body">
+                            <div id="analyticsCategoryChartWrap" class="chart-box" style="display: none;">
+                                <canvas id="analyticsCategoryChart"></canvas>
+                            </div>
+                            <div class="legend-box" id="analyticsCategoryLegend" style="display: none;"></div>
+                        </div>
+                    </article>
+
+                    <article class="chart-container analytics-card analytics-chart-card analytics-desktop-card" id="analyticsSourceDesktopCard">
+                        <div class="analytics-head">
+                            <div class="analytics-card-title">Gastos por medio de pago</div>
+                        </div>
+                        <div class="analytics-card-body">
+                            <div id="analyticsSourceChartWrap" class="chart-box" style="display: none;">
+                                <canvas id="analyticsSourceChart"></canvas>
+                            </div>
+                            <div class="legend-box" id="analyticsSourceLegend" style="display: none;"></div>
+                        </div>
+                    </article>
+                </section>
             </section>
 
-            <div class="analytics-overview-grid">
-                <div class="analytics-insight-toggle-card">
-                    <label class="analytics-insight-toggle-control" for="analyticsInsightsToggleInput">
-                        <input id="analyticsInsightsToggleInput" type="checkbox" class="styled-checkbox" checked>
-                        <span id="analyticsInsightsToggleLabel">Incluyendo tarjeta de credito</span>
-                    </label>
-                    <p id="analyticsInsightsToggleHint" class="analytics-insight-toggle-hint">Top 5 y resumen contemplan consumos con tarjeta.</p>
-                </div>
+            <section class="analytics-insights-section" aria-label="Resumen y tendencias">
                 <article class="chart-container analytics-card analytics-insight-card analytics-insight-card--top" id="topExpensesCard">
                     <div class="analytics-head">
                         <div class="analytics-card-title">🔥 Top 5 gastos</div>
@@ -165,8 +160,18 @@
                 </article>
 
                 <article class="chart-container analytics-card analytics-insight-card analytics-insight-card--summary" id="monthlySummaryCard">
-                    <div class="analytics-head">
+                    <div class="analytics-head analytics-head--summary">
                         <div class="analytics-card-title">✨ Resumen del mes</div>
+                        <label class="analytics-insight-switch" for="analyticsInsightsToggleInput">
+                            <span class="analytics-insight-switch-copy">
+                                <strong id="analyticsInsightsToggleLabel">Incluyendo tarjeta de credito</strong>
+                                <small id="analyticsInsightsToggleHint">Top 5 y resumen contemplan consumos y pagos de tarjeta.</small>
+                            </span>
+                            <span class="analytics-insight-switch-control">
+                                <input id="analyticsInsightsToggleInput" type="checkbox" checked>
+                                <span class="analytics-insight-switch-slider" aria-hidden="true"></span>
+                            </span>
+                        </label>
                     </div>
                     <div class="analytics-summary-hero">
                         <div class="analytics-summary-head">
@@ -214,7 +219,7 @@
                         </div>
                     </div>
                 </article>
-            </div>
+            </section>
 
         </section>
     </div>
@@ -408,6 +413,23 @@
             return flow === 'expense' && Number(expense.amount) < 0;
         }
 
+        function isIncomeForAnalysis(expense) {
+            const flow = resolveFlow(expense);
+            return (flow === 'income' || flow === 'refund') && Number(expense.amount) > 0;
+        }
+
+        function isCardLinkedMovement(expense) {
+            const source = normalizeSourceCode(expense?.source || 'CA');
+            if (source === 'TARJETA') return true;
+
+            const category = String(expense?.category || '').trim().toLowerCase();
+            if (category === 'tarjeta por pagar') return true;
+
+            const systemOriginRaw = expense?.systemOrigin || expense?.system_origin || '';
+            const systemOrigin = String(systemOriginRaw).trim().toLowerCase();
+            return systemOrigin.startsWith('card_payment_');
+        }
+
         function getCurrentMonthExpenses() {
             const now = new Date();
             const viewingCurrentMonth = currentDate.getFullYear() === now.getFullYear() && currentDate.getMonth() === now.getMonth();
@@ -416,10 +438,10 @@
             return monthExpenses.filter((expense) => getComparableExpenseDate(expense) <= now);
         }
 
-        function getFilteredExpenses() {
+        function getFilteredMonthMovements() {
             const monthExpenses = getCurrentMonthExpenses();
             return monthExpenses.filter((expense) => {
-                if (!isExpenseForAnalysis(expense)) return false;
+                if (!isExpenseForAnalysis(expense) && !isIncomeForAnalysis(expense)) return false;
                 const currency = (expense.currency || currentCurrency).toLowerCase();
                 if (filterCurrency !== 'all' && currency !== filterCurrency) return false;
                 const normalizedSource = normalizeSourceCode(expense.source || 'CA');
@@ -429,9 +451,13 @@
             });
         }
 
+        function getFilteredExpenses() {
+            return getFilteredMonthMovements().filter((expense) => isExpenseForAnalysis(expense));
+        }
+
         function getInsightExpenses(expenses) {
             if (analyticsInsightsIncludeCards) return expenses;
-            return expenses.filter((expense) => normalizeSourceCode(expense.source || 'CA') !== 'TARJETA');
+            return expenses.filter((expense) => !isCardLinkedMovement(expense));
         }
 
         function updateInsightToggleUI() {
@@ -446,8 +472,8 @@
             }
             if (hint) {
                 hint.textContent = analyticsInsightsIncludeCards
-                    ? 'Top 5 y resumen contemplan consumos con tarjeta.'
-                    : 'Top 5 y resumen excluyen consumos con tarjeta.';
+                    ? 'Top 5 y resumen contemplan consumos y pagos de tarjeta.'
+                    : 'Top 5 y resumen excluyen consumos y pagos de tarjeta.';
             }
         }
 
@@ -552,12 +578,12 @@
             `;
         }
 
-        function calculateSummaryKPIs(monthExpenses, filteredExpenses) {
-            const expensesOnly = monthExpenses.filter((expense) => resolveFlow(expense) === 'expense' && Number(expense.amount) < 0);
-            const incomesOnly = monthExpenses.filter((expense) => resolveFlow(expense) === 'income' && Number(expense.amount) > 0);
+        function calculateSummaryKPIs(monthMovements) {
+            const expensesOnly = monthMovements.filter((expense) => isExpenseForAnalysis(expense));
+            const incomesOnly = monthMovements.filter((expense) => isIncomeForAnalysis(expense));
             const totalExpenses = expensesOnly.reduce((sum, item) => sum + Math.abs(Number(item.amount) || 0), 0);
             const totalIncome = incomesOnly.reduce((sum, item) => sum + Math.abs(Number(item.amount) || 0), 0);
-            const filteredTotalExpenses = filteredExpenses.reduce((sum, item) => sum + Math.abs(Number(item.amount) || 0), 0);
+            const filteredTotalExpenses = totalExpenses;
 
             const today = new Date();
             const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
@@ -571,7 +597,7 @@
             const expenseToIncomeRatio = totalIncome > 0 ? (totalExpenses / totalIncome) * 100 : (totalExpenses > 0 ? 100 : 0);
             const netBalance = totalIncome - totalExpenses;
 
-            const activityDays = new Set(filteredExpenses.map((expense) => {
+            const activityDays = new Set(expensesOnly.map((expense) => {
                 const date = getComparableExpenseDate(expense);
                 return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
             }));
@@ -580,7 +606,7 @@
             const totalDaysInMonth = monthEnd.getDate();
             const remainingDays = Math.max(0, totalDaysInMonth - elapsedDays);
             const activityRate = elapsedDays > 0 ? (activeDays / elapsedDays) * 100 : 0;
-            const totalCashSpend = filteredExpenses.reduce((sum, expense) => {
+            const totalCashSpend = expensesOnly.reduce((sum, expense) => {
                 const source = normalizeSourceCode(expense.source || 'CA');
                 if (source !== 'CA') return sum;
                 return sum + Math.abs(Number(expense.amount) || 0);
@@ -603,8 +629,8 @@
             };
         }
 
-        function renderSummaryKPIs(monthExpenses, filteredExpenses, currencyCode) {
-            const kpis = calculateSummaryKPIs(monthExpenses, filteredExpenses);
+        function renderSummaryKPIs(monthMovements, currencyCode) {
+            const kpis = calculateSummaryKPIs(monthMovements);
             const savingRateEl = document.getElementById('analyticsSavingRate');
             const dailySpendEl = document.getElementById('analyticsDailySpend');
             const monthProjectionEl = document.getElementById('analyticsMonthProjection');
@@ -887,17 +913,18 @@
             const title = document.getElementById('analyticsCardTitle');
             const desktopGrid = document.getElementById('analyticsDesktopCharts');
             const mobileCard = document.getElementById('analyticsCard');
+            const filteredMonthMovements = getFilteredMonthMovements();
             const filteredExpenses = getFilteredExpenses();
             const insightExpenses = getInsightExpenses(filteredExpenses);
-            const monthExpenses = getCurrentMonthExpenses();
+            const summaryMovements = getInsightExpenses(filteredMonthMovements);
             const chartCurrency = filterCurrency === 'all' ? currentCurrency : filterCurrency;
             analyticsIsMobileLayout = isMobileAnalyticsLayout();
 
             updateInsightToggleUI();
             renderTopExpenses(insightExpenses, chartCurrency);
-            renderSummaryKPIs(monthExpenses, insightExpenses, chartCurrency);
+            renderSummaryKPIs(summaryMovements, chartCurrency);
 
-            if (!filteredExpenses.length) {
+            if (!filteredMonthMovements.length) {
                 destroyAllAnalyticsCharts();
                 if (grid) grid.style.display = 'none';
                 if (desktopGrid) desktopGrid.style.display = 'none';
@@ -907,7 +934,7 @@
                     emptyState.innerHTML = `
                         <div class="analytics-empty-card">
                             <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
-                            <strong>No hay gastos para este periodo o filtro.</strong>
+                            <strong>No hay movimientos para este periodo o filtro.</strong>
                             <span>Cambia el mes o limpia filtros para ver el analisis.</span>
                         </div>
                     `;
@@ -918,6 +945,14 @@
 
             if (grid) grid.style.display = 'grid';
             if (emptyState) emptyState.style.display = 'none';
+            if (!filteredExpenses.length) {
+                destroyAllAnalyticsCharts();
+                if (desktopGrid) desktopGrid.style.display = 'none';
+                if (mobileCard) mobileCard.style.display = 'none';
+                requestAnalyticsLayoutRefresh();
+                return;
+            }
+
             if (!analyticsIsMobileLayout) {
                 destroyMainChart();
                 if (mobileCard) mobileCard.style.display = 'none';

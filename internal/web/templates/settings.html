@@ -310,18 +310,18 @@
                     <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 </button>
             </div>
-            <p class="settings-helper-text settings-bot-helper">Telegram permite enviar comprobantes y archivos. WhatsApp recibe solo texto para registrar movimientos.</p>
-            <div id="botsPremiumBanner" class="settings-premium-upsell" role="note" hidden>
-                <div class="settings-premium-upsell-head">
-                    <span class="settings-premium-pill"><i class="fa-solid fa-lock" aria-hidden="true"></i> Premium</span>
-                    <h3 class="settings-premium-title">Bots de gastos disponibles con Premium</h3>
-                </div>
-                <p class="settings-premium-copy">Activa Premium para vincular Telegram y WhatsApp y registrar movimientos desde chat.</p>
-                <button id="botsPremiumActivateBtn" type="button" class="nav-button settings-premium-cta">Hacerme Premium</button>
-            </div>
+            <p class="settings-helper-text settings-bot-helper">Conecta Telegram y WhatsApp para cargar comprobantes y registrar gastos desde chat.</p>
             <div class="settings-bots-grid">
                 <article class="settings-bot-section settings-telegram-section settings-bot-provider">
                     <h3 class="settings-bot-provider-title"><i class="fa-brands fa-telegram" aria-hidden="true"></i> Telegram Bot</h3>
+                    <div id="telegramPremiumBanner" class="settings-premium-upsell settings-premium-upsell-inline" role="note" hidden>
+                        <div class="settings-premium-upsell-head">
+                            <span class="settings-premium-pill"><i class="fa-solid fa-lock" aria-hidden="true"></i> Premium</span>
+                            <h3 class="settings-premium-title">Canal Telegram disponible con Premium</h3>
+                        </div>
+                        <p class="settings-premium-copy">Activa Premium para vincular tu cuenta y operar por chat con codigo temporal.</p>
+                        <button id="telegramPremiumActivateBtn" type="button" class="nav-button settings-premium-cta">Activar Premium</button>
+                    </div>
                     <div class="settings-bot-card">
                         <div id="telegramStatusBanner" class="settings-bot-status settings-bot-status-info">Cargando estado...</div>
                         <p id="telegramStatusHint" class="settings-helper-text settings-bot-hint"></p>
@@ -334,7 +334,6 @@
                             <li>Genera un codigo de vinculacion.</li>
                             <li>Abre el bot oficial de Telegram.</li>
                             <li>Envia <code>/vincular CODIGO</code> y confirma.</li>
-                            <li>Envia texto, imagenes o PDF de comprobantes para registrar movimientos.</li>
                         </ol>
                         <div class="settings-export-actions settings-bot-actions">
                             <button id="telegramOpenBotBtn" class="nav-button button-secondary" type="button"><i class="fa-brands fa-telegram"></i> Abrir bot</button>
@@ -348,6 +347,14 @@
 
                 <article class="settings-bot-section settings-whatsapp-section settings-bot-provider">
                     <h3 class="settings-bot-provider-title"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> WhatsApp Bot (Kapso)</h3>
+                    <div id="whatsappPremiumBanner" class="settings-premium-upsell settings-premium-upsell-inline" role="note" hidden>
+                        <div class="settings-premium-upsell-head">
+                            <span class="settings-premium-pill"><i class="fa-solid fa-lock" aria-hidden="true"></i> Premium</span>
+                            <h3 class="settings-premium-title">Canal WhatsApp disponible con Premium</h3>
+                        </div>
+                        <p class="settings-premium-copy">Activa Premium para vincular tu numero y registrar gastos por WhatsApp.</p>
+                        <button id="whatsappPremiumActivateBtn" type="button" class="nav-button settings-premium-cta">Activar Premium</button>
+                    </div>
                     <div class="settings-bot-card">
                         <div id="whatsappStatusBanner" class="settings-bot-status settings-bot-status-info">Cargando configuracion...</div>
                         <p id="whatsappStatusHint" class="settings-helper-text settings-bot-hint"></p>
@@ -364,7 +371,7 @@
                             <li>Genera un codigo de vinculacion.</li>
                             <li>Abre el chat de WhatsApp (Kapso).</li>
                             <li>Envia <code>/vincular CODIGO</code> y espera confirmacion.</li>
-                            <li>Registra gastos por texto con <code>/gasto 1500 Supermercado</code> o lenguaje natural.</li>
+                            <li>Registra gastos con <code>/gasto 1500 Supermercado</code>.</li>
                         </ol>
                         <div class="settings-export-actions settings-bot-actions">
                             <button id="whatsappOpenBotBtn" class="nav-button button-primary" type="button"><i class="fa-brands fa-whatsapp"></i> Abrir chat</button>
@@ -372,7 +379,7 @@
                             <button id="whatsappRefreshStatusBtn" class="nav-button button-secondary" type="button">Actualizar estado</button>
                         </div>
                     </div>
-                    <p class="settings-reports-caption settings-bot-caption">Canal operado por Kapso. Este canal usa solo texto. Verifica numero activo y webhook en entorno antes de usar en produccion.</p>
+                    <p class="settings-reports-caption settings-bot-caption">Canal operado por Kapso. Verifica numero activo y webhook en entorno antes de usar en produccion.</p>
                     <div id="whatsappBotMessage" class="form-message"></div>
                 </article>
             </div>
@@ -492,8 +499,8 @@
                 </button>
             </div>
             <div class="settings-divider"></div>
-            <h3 class="settings-subtitle">🧮 Conciliacion rapida de balance</h3>
-            <p class="settings-helper-text">Ingresa el saldo real para crear un ajuste automatico sin buscar el origen de la diferencia.</p>
+            <h3 class="settings-subtitle"> Ingresa el saldo real para crear un ajuste automatico sin buscar el origen de la diferencia.</h3>
+            <!-- <p class="settings-helper-text">Ingresa el saldo real para crear un ajuste automatico sin buscar el origen de la diferencia.</p> -->
             <div id="settingsReconciliationPanel" class="reconciliation-container settings-reconciliation-panel">
                 <form id="settingsReconciliationForm" class="settings-recon-module settings-recon-form" novalidate>
                     <p class="settings-recon-formula">Ajuste = Saldo real - Balance app</p>
@@ -548,7 +555,7 @@
     <div id="deleteRecurringModal" class="modal">
         <div class="modal-content">
             <h3>Eliminar transaccion recurrente</h3>
-            <p>Quers borrar todas las instancias o solo las futuras?</p>
+            <p>Queres borrar todas las instancias o solo las futuras?</p>
             <div class="modal-buttons">
                 <button id="recurringDeleteCancelBtn" class="modal-button" type="button">Cancelar</button>
                 <button id="recurringDeleteFutureBtn" class="modal-button" type="button">Eliminar futuras</button>
@@ -806,8 +813,8 @@
         const reportPreviewOverlay = document.getElementById('reportPremiumOverlay');
         const reportPreviewActivateBtn = document.getElementById('reportPreviewActivateBtn');
         const reportPreviewPeriod = document.getElementById('reportPreviewPeriod');
-        const botsPremiumBanner = document.getElementById('botsPremiumBanner');
-        const botsPremiumActivateBtn = document.getElementById('botsPremiumActivateBtn');
+        const telegramPremiumBanner = document.getElementById('telegramPremiumBanner');
+        const telegramPremiumActivateBtn = document.getElementById('telegramPremiumActivateBtn');
         const telegramStatusBanner = document.getElementById('telegramStatusBanner');
         const telegramStatusHint = document.getElementById('telegramStatusHint');
         const telegramCodeWrap = document.getElementById('telegramCodeWrap');
@@ -827,6 +834,8 @@
         const whatsappOpenBotBtn = document.getElementById('whatsappOpenBotBtn');
         const whatsappGenerateCodeBtn = document.getElementById('whatsappGenerateCodeBtn');
         const whatsappRefreshStatusBtn = document.getElementById('whatsappRefreshStatusBtn');
+        const whatsappPremiumBanner = document.getElementById('whatsappPremiumBanner');
+        const whatsappPremiumActivateBtn = document.getElementById('whatsappPremiumActivateBtn');
 
         function setSettingsSection(sectionId, expanded) {
             const section = document.getElementById(sectionId);
@@ -1013,11 +1022,6 @@
             messageDiv.textContent = premiumBlockedMessage('exportar reportes mensuales en Excel y PDF');
             messageDiv.className = 'form-message error';
             messageDiv.dataset.locked = '1';
-        }
-
-        function renderBotsAccessState() {
-            const isPremium = currentPlanTier === 'premium';
-            renderPremiumUpsellBanner(botsPremiumBanner, botsPremiumActivateBtn, !isPremium);
         }
 
         function applyReportContextFromURL() {
@@ -1249,6 +1253,7 @@
 
         function renderTelegramState() {
             const isPremium = currentPlanTier === 'premium' && !!telegramState.premium;
+            renderPremiumUpsellBanner(telegramPremiumBanner, telegramPremiumActivateBtn, !isPremium);
             if (telegramOpenBotBtn) telegramOpenBotBtn.disabled = !isPremium || !telegramState.bot_url;
             if (telegramGenerateCodeBtn) telegramGenerateCodeBtn.disabled = !isPremium;
             if (telegramRefreshStatusBtn) telegramRefreshStatusBtn.disabled = !isPremium;
@@ -1256,7 +1261,7 @@
             if (!isPremium) {
                 setTelegramStatusBox('Estado: canal bloqueado para plan Free.', 'warning');
                 if (telegramStatusHint) {
-                    telegramStatusHint.textContent = 'Activa Premium para vincular Telegram y cargar gastos por texto o archivos.';
+                    telegramStatusHint.textContent = 'Activa Premium para vincular Telegram y cargar gastos desde chat.';
                 }
                 telegramState.generated_code = '';
                 telegramState.generated_expires_at = '';
@@ -1270,7 +1275,7 @@
                 const linkedAt = formatTelegramDate(telegramState.linked_at);
                 setTelegramStatusBox(`Estado: cuenta vinculada (${usernameLabel}).`, 'success');
                 if (telegramStatusHint) {
-                    telegramStatusHint.textContent = `Vinculada el ${linkedAt}. Puedes enviar texto, imagenes o PDF de comprobantes al bot.`;
+                    telegramStatusHint.textContent = `Vinculada el ${linkedAt}. Puedes enviar comprobantes al bot.`;
                 }
             } else {
                 setTelegramStatusBox('Estado: cuenta premium sin vincular.', 'info');
@@ -1404,6 +1409,7 @@
         function renderWhatsAppState() {
             const isPremium = currentPlanTier === 'premium' && !!whatsappState.premium;
             if (openBotsSection) openBotsSection.hidden = false;
+            renderPremiumUpsellBanner(whatsappPremiumBanner, whatsappPremiumActivateBtn, !isPremium);
 
             if (!isPremium) {
                 if (whatsappOpenBotBtn) whatsappOpenBotBtn.disabled = true;
@@ -1411,7 +1417,7 @@
                 if (whatsappRefreshStatusBtn) whatsappRefreshStatusBtn.disabled = true;
                 setWhatsAppStatusBox('Estado: canal bloqueado para plan Free.', 'warning');
                 if (whatsappStatusHint) {
-                    whatsappStatusHint.textContent = 'Activa Premium para habilitar vinculacion y carga de gastos por WhatsApp (solo texto).';
+                    whatsappStatusHint.textContent = 'Activa Premium para habilitar vinculacion y carga de gastos por WhatsApp.';
                 }
                 if (whatsappNumberWrap) whatsappNumberWrap.hidden = true;
                 if (whatsappNumberValue) whatsappNumberValue.textContent = '----';
@@ -1452,9 +1458,9 @@
                 if (whatsappState.linked) {
                     const linkedAt = formatWhatsAppDate(whatsappState.linked_at);
                     const linkedPhone = whatsappState.whatsapp_phone ? `+${whatsappState.whatsapp_phone}` : 'sin telefono';
-                    whatsappStatusHint.textContent = `Numero activo: ${displayNumber || 'sin formato'}. Vinculado ${linkedPhone} (${linkedAt}). Usa /gasto o texto natural para registrar movimientos (solo texto).`;
+                    whatsappStatusHint.textContent = `Numero activo: ${displayNumber || 'sin formato'}. Vinculado ${linkedPhone} (${linkedAt}). Usa /gasto para registrar movimientos.`;
                 } else {
-                    whatsappStatusHint.textContent = `Numero activo: ${displayNumber || 'sin formato'}. Genera un codigo y envia /vincular CODIGO en el chat (solo texto).`;
+                    whatsappStatusHint.textContent = `Numero activo: ${displayNumber || 'sin formato'}. Genera un codigo y envia /vincular CODIGO en el chat.`;
                 }
             }
             if (whatsappNumberWrap) whatsappNumberWrap.hidden = false;
@@ -1650,27 +1656,9 @@ function sanitizeCategoryName(raw) {
 }
 
 function renderCategorySelects() {
-    const recurringCategorySelect = document.getElementById('recurringCategory');
-    const editRecurringCategorySelect = document.getElementById('editRecurringCategory');
-    fillCategorySelectOptions(recurringCategorySelect, categories);
-    fillCategorySelectOptions(editRecurringCategorySelect, categories);
-}
-
-function fillCategorySelectOptions(selectEl, categoryList) {
-    if (!selectEl) return;
-    const previousValue = String(selectEl.value || '');
-    selectEl.replaceChildren();
-    (Array.isArray(categoryList) ? categoryList : []).forEach((value) => {
-        const normalized = String(value || '').trim();
-        if (!normalized) return;
-        const option = document.createElement('option');
-        option.value = normalized;
-        option.textContent = formatSettingsCategoryLabel(normalized);
-        selectEl.appendChild(option);
-    });
-    if (previousValue && Array.from(selectEl.options).some((option) => option.value === previousValue)) {
-        selectEl.value = previousValue;
-    }
+    const options = categories.map(c => `<option value="${c}">${formatSettingsCategoryLabel(c)}</option>`).join('');
+    document.getElementById('recurringCategory').innerHTML = options;
+    document.getElementById('editRecurringCategory').innerHTML = options;
 }
 
 function applyCategoriesUpdate(updatedCategories) {
@@ -2762,7 +2750,6 @@ async function saveCategoriesList(nextCategories) {
         async function initialize() {
             try {
                 openSectionFromURL();
-                renderBotsAccessState();
                 categoriesLoading = true;
                 const cached = loadCachedCategories();
                 if (cached && cached.length > 0) {
@@ -2803,7 +2790,6 @@ async function saveCategoriesList(nextCategories) {
 
                 currentCurrency = (config.currency || 'ars').toLowerCase();
                 currentPlanTier = normalizePlanTier(config.planTier);
-                renderBotsAccessState();
                 allTags.clear();
                 (allExpensesCache || []).forEach(exp => (exp.tags || []).forEach(tag => allTags.add(tag)));
                 (recurringExpenses || []).forEach(exp => (exp.tags || []).forEach(tag => allTags.add(tag)));
@@ -2857,7 +2843,6 @@ async function saveCategoriesList(nextCategories) {
 
             } catch (error) {
                 console.error('No se pudo inicializar la configuracion:', error);
-                renderBotsAccessState();
                 categoriesLoading = false;
                 renderCategories();
                 populateReportPeriodControls();
@@ -2941,7 +2926,8 @@ async function saveCategoriesList(nextCategories) {
         reportIncludeCreditCardCheckbox?.addEventListener('change', renderReportPreviewState);
         reportPremiumActivateBtn?.addEventListener('click', openPremiumUpsell);
         reportPreviewActivateBtn?.addEventListener('click', openPremiumUpsell);
-        botsPremiumActivateBtn?.addEventListener('click', openPremiumUpsell);
+        telegramPremiumActivateBtn?.addEventListener('click', openPremiumUpsell);
+        whatsappPremiumActivateBtn?.addEventListener('click', openPremiumUpsell);
         telegramOpenBotBtn?.addEventListener('click', () => {
             const targetURL = getTelegramOpenURL();
             if (!targetURL) {

@@ -148,6 +148,13 @@
             </section>
 
             <div class="analytics-overview-grid">
+                <div class="analytics-insight-toggle-card">
+                    <label class="analytics-insight-toggle-control" for="analyticsInsightsToggleInput">
+                        <input id="analyticsInsightsToggleInput" type="checkbox" class="styled-checkbox" checked>
+                        <span id="analyticsInsightsToggleLabel">Incluyendo tarjeta de credito</span>
+                    </label>
+                    <p id="analyticsInsightsToggleHint" class="analytics-insight-toggle-hint">Top 5 y resumen contemplan consumos con tarjeta.</p>
+                </div>
                 <article class="chart-container analytics-card analytics-insight-card analytics-insight-card--top" id="topExpensesCard">
                     <div class="analytics-head">
                         <div class="analytics-card-title">🔥 Top 5 gastos</div>
@@ -304,6 +311,7 @@
         let analyticsCardCollapsed = false;
         let analyticsRenderPending = false;
         let analyticsIsMobileLayout = null;
+        let analyticsInsightsIncludeCards = true;
         const supportedCurrencies = Object.keys(currencyBehaviors);
         const categoryColors = {};
         const disabledCategories = new Set();
@@ -419,6 +427,28 @@
                 if (filterSource === 'CA') return normalizedSource === 'CA';
                 return normalizedSource === filterSource;
             });
+        }
+
+        function getInsightExpenses(expenses) {
+            if (analyticsInsightsIncludeCards) return expenses;
+            return expenses.filter((expense) => normalizeSourceCode(expense.source || 'CA') !== 'TARJETA');
+        }
+
+        function updateInsightToggleUI() {
+            const label = document.getElementById('analyticsInsightsToggleLabel');
+            const hint = document.getElementById('analyticsInsightsToggleHint');
+            const input = document.getElementById('analyticsInsightsToggleInput');
+            if (input) input.checked = analyticsInsightsIncludeCards;
+            if (label) {
+                label.textContent = analyticsInsightsIncludeCards
+                    ? 'Incluyendo tarjeta de credito'
+                    : 'Solo gastos propios (sin tarjeta de credito)';
+            }
+            if (hint) {
+                hint.textContent = analyticsInsightsIncludeCards
+                    ? 'Top 5 y resumen contemplan consumos con tarjeta.'
+                    : 'Top 5 y resumen excluyen consumos con tarjeta.';
+            }
         }
 
         function calculateCategoryBreakdown(expenses) {
@@ -858,12 +888,14 @@
             const desktopGrid = document.getElementById('analyticsDesktopCharts');
             const mobileCard = document.getElementById('analyticsCard');
             const filteredExpenses = getFilteredExpenses();
+            const insightExpenses = getInsightExpenses(filteredExpenses);
             const monthExpenses = getCurrentMonthExpenses();
             const chartCurrency = filterCurrency === 'all' ? currentCurrency : filterCurrency;
             analyticsIsMobileLayout = isMobileAnalyticsLayout();
 
-            renderTopExpenses(filteredExpenses, chartCurrency);
-            renderSummaryKPIs(monthExpenses, filteredExpenses, chartCurrency);
+            updateInsightToggleUI();
+            renderTopExpenses(insightExpenses, chartCurrency);
+            renderSummaryKPIs(monthExpenses, insightExpenses, chartCurrency);
 
             if (!filteredExpenses.length) {
                 destroyAllAnalyticsCharts();
@@ -1079,6 +1111,11 @@
         document.getElementById('analyticsCollapseToggle')?.addEventListener('click', (event) => {
             event.preventDefault();
             setAnalyticsCardCollapsed(!analyticsCardCollapsed);
+        });
+
+        document.getElementById('analyticsInsightsToggleInput')?.addEventListener('change', (event) => {
+            analyticsInsightsIncludeCards = !!event.target.checked;
+            renderCharts();
         });
 
         window.addEventListener('resize', () => {

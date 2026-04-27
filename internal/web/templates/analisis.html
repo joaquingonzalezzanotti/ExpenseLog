@@ -152,7 +152,7 @@
             <section class="analytics-insights-section" aria-label="Resumen y tendencias">
                 <article class="chart-container analytics-card analytics-insight-card analytics-insight-card--top" id="topExpensesCard">
                     <div class="analytics-head">
-                        <div class="analytics-card-title">🔥 Top 5 gastos</div>
+                        <div class="analytics-card-title">Top 5 categorias de gasto</div>
                     </div>
                     <div id="topExpensesList" class="analytics-card-body analytics-insight-list">
                         <p class="analytics-card-hint">Aun no hay datos para mostrar.</p>
@@ -164,11 +164,11 @@
                         <div class="analytics-card-title">✨ Resumen del mes</div>
                         <label class="analytics-insight-switch" for="analyticsInsightsToggleInput">
                             <span class="analytics-insight-switch-copy">
-                                <strong id="analyticsInsightsToggleLabel">Incluyendo tarjeta de credito</strong>
-                                <small id="analyticsInsightsToggleHint">Top 5 y resumen contemplan consumos y pagos de tarjeta.</small>
+                                <strong id="analyticsInsightsToggleLabel">Solo caja y debito</strong>
+                                <small id="analyticsInsightsToggleHint">Graficos, top 5 y resumen muestran solo gastos propios sin consumos con tarjeta.</small>
                             </span>
                             <span class="analytics-insight-switch-control">
-                                <input id="analyticsInsightsToggleInput" type="checkbox" checked>
+                                <input id="analyticsInsightsToggleInput" type="checkbox">
                                 <span class="analytics-insight-switch-slider" aria-hidden="true"></span>
                             </span>
                         </label>
@@ -301,6 +301,8 @@
         </div>
     </div>
 
+    <script src="/app/cashflow_ui.js"></script>
+    <script src="/app/analytics_ui.js"></script>
     <script src="/app/functions.js"></script>
     <script>
         let currentCurrency = 'ars';
@@ -316,7 +318,7 @@
         let analyticsCardCollapsed = false;
         let analyticsRenderPending = false;
         let analyticsIsMobileLayout = null;
-        let analyticsInsightsIncludeCards = true;
+        let analyticsInsightsIncludeCards = false;
         const supportedCurrencies = Object.keys(currencyBehaviors);
         const categoryColors = {};
         const disabledCategories = new Set();
@@ -410,24 +412,32 @@
 
         function isExpenseForAnalysis(expense) {
             const flow = resolveFlow(expense);
-            return flow === 'expense' && Number(expense.amount) < 0;
+            const systemOrigin = String(expense?.systemOrigin || expense?.system_origin || '').trim().toLowerCase();
+            return flow === 'expense' && Number(expense.amount) < 0 && systemOrigin !== 'reconciliation_reversal';
         }
 
         function isIncomeForAnalysis(expense) {
             const flow = resolveFlow(expense);
-            return (flow === 'income' || flow === 'refund') && Number(expense.amount) > 0;
+            const systemOrigin = String(expense?.systemOrigin || expense?.system_origin || '').trim().toLowerCase();
+            return (flow === 'income' || flow === 'refund') && Number(expense.amount) > 0 && systemOrigin !== 'reconciliation_reversal';
         }
 
-        function isCardLinkedMovement(expense) {
+        function isCardPurchaseMovement(expense) {
             const source = normalizeSourceCode(expense?.source || 'CA');
-            if (source === 'TARJETA') return true;
+            return source === 'TARJETA' && isExpenseForAnalysis(expense);
+        }
 
+        function isCardSettlementMovement(expense) {
             const category = String(expense?.category || '').trim().toLowerCase();
             if (category === 'tarjeta por pagar') return true;
 
             const systemOriginRaw = expense?.systemOrigin || expense?.system_origin || '';
             const systemOrigin = String(systemOriginRaw).trim().toLowerCase();
             return systemOrigin.startsWith('card_payment_');
+        }
+
+        function isCardLinkedMovement(expense) {
+            return isCardPurchaseMovement(expense) || isCardSettlementMovement(expense);
         }
 
         function getCurrentMonthExpenses() {
@@ -451,13 +461,48 @@
             });
         }
 
-        function getFilteredExpenses() {
-            return getFilteredMonthMovements().filter((expense) => isExpenseForAnalysis(expense));
-        }
+        function buildAnalyticsScope(monthMovements, currencyCode) {
+            if (window.ExpenseLogAnalytics && typeof window.ExpenseLogAnalytics.buildScopedAnalytics === 'function') {
+                return window.ExpenseLogAnalytics.buildScopedAnalytics(monthMovements, {
+                    includeCreditCard: analyticsInsightsIncludeCards,
+                    fallbackCurrency: currencyCode,
+                    currency: filterCurrency === 'all' ? '' : currencyCode,
+                });
+            }
 
-        function getInsightExpenses(expenses) {
-            if (analyticsInsightsIncludeCards) return expenses;
-            return expenses.filter((expense) => !isCardLinkedMovement(expense));
+            const visibleMovements = analyticsInsightsIncludeCards
+                ? monthMovements.filter((expense) => !isCardSettlementMovement(expense))
+                : monthMovements.filter((expense) => !isCardLinkedMovement(expense));
+            const expenseMovements = visibleMovements.filter((expense) => isExpenseForAnalysis(expense));
+            const totalIncome = visibleMovements.reduce((sum, expense) => {
+                const amount = Number(expense.amount) || 0;
+                return resolveFlow(expense) === 'income' && amount > 0 ? sum + amount : sum;
+            }, 0);
+            const totalRefund = visibleMovements.reduce((sum, expense) => {
+                const amount = Number(expense.amount) || 0;
+                return resolveFlow(expense) === 'refund' && amount > 0 ? sum + amount : sum;
+            }, 0);
+            const totalExpenses = expenseMovements.reduce((sum, expense) => sum + Math.abs(Number(expense.amount) || 0), 0);
+            const totalCashSpend = expenseMovements.reduce((sum, expense) => {
+                return normalizeSourceCode(expense.source || 'CA') === 'TARJETA'
+                    ? sum
+                    : sum + Math.abs(Number(expense.amount) || 0);
+            }, 0);
+            const totalCardSpend = expenseMovements.reduce((sum, expense) => {
+                return isCardPurchaseMovement(expense)
+                    ? sum + Math.abs(Number(expense.amount) || 0)
+                    : sum;
+            }, 0);
+            return {
+                visibleMovements,
+                expenseMovements,
+                totalIncome,
+                totalRefund,
+                totalInflow: totalIncome + totalRefund,
+                totalExpenses,
+                totalCashSpend,
+                totalCardSpend,
+            };
         }
 
         function updateInsightToggleUI() {
@@ -467,13 +512,13 @@
             if (input) input.checked = analyticsInsightsIncludeCards;
             if (label) {
                 label.textContent = analyticsInsightsIncludeCards
-                    ? 'Incluyendo tarjeta de credito'
-                    : 'Solo gastos propios (sin tarjeta de credito)';
+                    ? 'Incluyendo consumos con tarjeta'
+                    : 'Solo caja y debito';
             }
             if (hint) {
                 hint.textContent = analyticsInsightsIncludeCards
-                    ? 'Top 5 y resumen contemplan consumos y pagos de tarjeta.'
-                    : 'Top 5 y resumen excluyen consumos y pagos de tarjeta.';
+                    ? 'Graficos, top 5 y resumen incluyen consumos con tarjeta. Los pagos se excluyen para no duplicar gasto.'
+                    : 'Graficos, top 5 y resumen muestran solo gastos propios sin consumos con tarjeta.';
             }
         }
 
@@ -578,11 +623,12 @@
             `;
         }
 
-        function calculateSummaryKPIs(monthMovements) {
-            const expensesOnly = monthMovements.filter((expense) => isExpenseForAnalysis(expense));
-            const incomesOnly = monthMovements.filter((expense) => isIncomeForAnalysis(expense));
-            const totalExpenses = expensesOnly.reduce((sum, item) => sum + Math.abs(Number(item.amount) || 0), 0);
-            const totalIncome = incomesOnly.reduce((sum, item) => sum + Math.abs(Number(item.amount) || 0), 0);
+        function calculateSummaryKPIs(scope) {
+            const expensesOnly = Array.isArray(scope?.expenseMovements) ? scope.expenseMovements : [];
+            const totalExpenses = Number(scope?.totalExpenses) || 0;
+            const totalIncome = Number(scope?.totalIncome) || 0;
+            const totalRefund = Number(scope?.totalRefund) || 0;
+            const totalInflow = Number(scope?.totalInflow) || (totalIncome + totalRefund);
             const filteredTotalExpenses = totalExpenses;
 
             const today = new Date();
@@ -593,9 +639,9 @@
                 : monthEnd.getDate();
             const avgDailySpend = filteredTotalExpenses / elapsedDays;
             const monthProjection = avgDailySpend * monthEnd.getDate();
-            const savingRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
-            const expenseToIncomeRatio = totalIncome > 0 ? (totalExpenses / totalIncome) * 100 : (totalExpenses > 0 ? 100 : 0);
-            const netBalance = totalIncome - totalExpenses;
+            const savingRate = totalInflow > 0 ? ((totalInflow - totalExpenses) / totalInflow) * 100 : 0;
+            const expenseToInflowRatio = totalInflow > 0 ? (totalExpenses / totalInflow) * 100 : (totalExpenses > 0 ? 100 : 0);
+            const netBalance = totalInflow - totalExpenses;
 
             const activityDays = new Set(expensesOnly.map((expense) => {
                 const date = getComparableExpenseDate(expense);
@@ -612,6 +658,8 @@
                 return sum + Math.abs(Number(expense.amount) || 0);
             }, 0);
             const cashShare = filteredTotalExpenses > 0 ? (totalCashSpend / filteredTotalExpenses) * 100 : 0;
+            const totalCardSpend = Number(scope?.totalCardSpend) || 0;
+            const cardShare = filteredTotalExpenses > 0 ? (totalCardSpend / filteredTotalExpenses) * 100 : 0;
 
             return {
                 savingRate,
@@ -620,17 +668,20 @@
                 noMovementDays,
                 totalExpenses,
                 totalIncome,
+                totalRefund,
+                totalInflow,
                 netBalance,
-                expenseToIncomeRatio,
+                expenseToInflowRatio,
                 activeDays,
                 remainingDays,
                 activityRate,
                 cashShare,
+                cardShare,
             };
         }
 
-        function renderSummaryKPIs(monthMovements, currencyCode) {
-            const kpis = calculateSummaryKPIs(monthMovements);
+        function renderSummaryKPIs(scope, currencyCode) {
+            const kpis = calculateSummaryKPIs(scope);
             const savingRateEl = document.getElementById('analyticsSavingRate');
             const dailySpendEl = document.getElementById('analyticsDailySpend');
             const monthProjectionEl = document.getElementById('analyticsMonthProjection');
@@ -657,7 +708,7 @@
                 monthBalanceEl.classList.toggle('is-positive', kpis.netBalance >= 0);
             }
             if (monthIncomeEl) monthIncomeEl.textContent = formatCurrencyWithCurrency(kpis.totalIncome, currencyCode);
-            if (monthExpenseEl) monthExpenseEl.textContent = `-${formatCurrencyWithCurrency(kpis.totalExpenses, currencyCode)}`;
+            if (monthExpenseEl) monthExpenseEl.textContent = formatCurrencyWithCurrency(kpis.totalExpenses, currencyCode);
 
             if (statusEl) {
                 let label = 'Balance en seguimiento';
@@ -668,8 +719,8 @@
                 } else if (kpis.netBalance > 0) {
                     label = 'Ahorro ajustado';
                     tone = 'is-neutral';
-                } else if (kpis.totalIncome > 0) {
-                    label = 'Gasto por encima de ingresos';
+                } else if (kpis.totalInflow > 0) {
+                    label = 'Gasto por encima del ingreso';
                     tone = 'is-negative';
                 } else if (kpis.totalExpenses > 0) {
                     label = 'Sin ingresos registrados';
@@ -681,13 +732,16 @@
             }
 
             if (pressureBarEl) {
-                const width = Math.max(6, Math.min(100, kpis.expenseToIncomeRatio || (kpis.totalExpenses > 0 ? 100 : 0)));
+                const width = Math.max(6, Math.min(100, kpis.expenseToInflowRatio || (kpis.totalExpenses > 0 ? 100 : 0)));
                 pressureBarEl.style.width = `${width.toFixed(1)}%`;
             }
 
             if (savingRateHintEl) {
-                if (kpis.totalIncome > 0) {
-                    savingRateHintEl.textContent = `Gasto / ingreso: ${kpis.expenseToIncomeRatio.toFixed(1)}%`;
+                if (kpis.totalInflow > 0) {
+                    const baseHint = `Gasto / entrada: ${kpis.expenseToInflowRatio.toFixed(1)}%`;
+                    savingRateHintEl.textContent = kpis.totalRefund > 0
+                        ? `${baseHint} | Reintegros ${formatCurrencyWithCurrency(kpis.totalRefund, currencyCode)}`
+                        : baseHint;
                 } else {
                     savingRateHintEl.textContent = 'Sin ingresos cargados';
                 }
@@ -699,7 +753,9 @@
                 monthProjectionHintEl.textContent = `Quedan ${kpis.remainingDays} dias del mes`;
             }
             if (noMovementHintEl) {
-                noMovementHintEl.textContent = `Actividad ${kpis.activityRate.toFixed(0)}% | CA ${kpis.cashShare.toFixed(0)}%`;
+                noMovementHintEl.textContent = analyticsInsightsIncludeCards && kpis.cardShare > 0
+                    ? `Actividad ${kpis.activityRate.toFixed(0)}% | CA ${kpis.cashShare.toFixed(0)}% | TC ${kpis.cardShare.toFixed(0)}%`
+                    : `Actividad ${kpis.activityRate.toFixed(0)}% | CA ${kpis.cashShare.toFixed(0)}%`;
             }
         }
 
@@ -914,15 +970,14 @@
             const desktopGrid = document.getElementById('analyticsDesktopCharts');
             const mobileCard = document.getElementById('analyticsCard');
             const filteredMonthMovements = getFilteredMonthMovements();
-            const filteredExpenses = getFilteredExpenses();
-            const insightExpenses = getInsightExpenses(filteredExpenses);
-            const summaryMovements = getInsightExpenses(filteredMonthMovements);
             const chartCurrency = filterCurrency === 'all' ? currentCurrency : filterCurrency;
+            const analyticsScope = buildAnalyticsScope(filteredMonthMovements, chartCurrency);
+            const filteredExpenses = analyticsScope.expenseMovements;
             analyticsIsMobileLayout = isMobileAnalyticsLayout();
 
             updateInsightToggleUI();
-            renderTopExpenses(insightExpenses, chartCurrency);
-            renderSummaryKPIs(summaryMovements, chartCurrency);
+            renderTopExpenses(filteredExpenses, chartCurrency);
+            renderSummaryKPIs(analyticsScope, chartCurrency);
 
             if (!filteredMonthMovements.length) {
                 destroyAllAnalyticsCharts();
@@ -936,6 +991,25 @@
                             <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
                             <strong>No hay movimientos para este periodo o filtro.</strong>
                             <span>Cambia el mes o limpia filtros para ver el analisis.</span>
+                        </div>
+                    `;
+                }
+                requestAnalyticsLayoutRefresh();
+                return;
+            }
+
+            if (!analyticsScope.visibleMovements.length) {
+                destroyAllAnalyticsCharts();
+                if (grid) grid.style.display = 'none';
+                if (desktopGrid) desktopGrid.style.display = 'none';
+                if (mobileCard) mobileCard.style.display = 'none';
+                if (emptyState) {
+                    emptyState.style.display = 'block';
+                    emptyState.innerHTML = `
+                        <div class="analytics-empty-card">
+                            <i class="fa-solid fa-filter-circle-xmark" aria-hidden="true"></i>
+                            <strong>El alcance actual no deja movimientos para analizar.</strong>
+                            <span>Activa tarjeta o cambia los filtros para recuperar datos.</span>
                         </div>
                     `;
                 }

@@ -134,7 +134,8 @@ function clearPlanTierCache() {
 }
 
 function getPlanAwareAnalyticsRoute(planTier) {
-    return normalizePlanTier(planTier) === 'premium' ? '/app/reportes' : '/app/analisis';
+    void planTier;
+    return '/app/analisis';
 }
 
 function normalizeNavigationRoute(pathname, search = '') {
@@ -161,14 +162,9 @@ function normalizeNavigationRoute(pathname, search = '') {
 
 function applyPlanAwareAnalyticsNavigation(planTier) {
     navigationPlanTier = normalizePlanTier(planTier);
-    const currentRoute = normalizeNavigationRoute(window.location.pathname, window.location.search);
-    const fallbackRoute = getPlanAwareAnalyticsRoute(navigationPlanTier);
-    const targetRoute = (currentRoute === '/app/analisis' || currentRoute === '/app/reportes')
-        ? currentRoute
-        : fallbackRoute;
-    const isReportsTarget = targetRoute === '/app/reportes';
-    const iconClasses = isReportsTarget ? 'fa-regular fa-file-lines' : 'fa-solid fa-chart-pie';
-    const label = isReportsTarget ? 'Reportes' : 'Analisis';
+    const targetRoute = getPlanAwareAnalyticsRoute(navigationPlanTier);
+    const iconClasses = 'fa-solid fa-chart-pie';
+    const label = 'Analisis';
 
     document.querySelectorAll('[data-plan-nav-slot="analytics"]').forEach((node) => {
         if (!(node instanceof HTMLAnchorElement)) return;

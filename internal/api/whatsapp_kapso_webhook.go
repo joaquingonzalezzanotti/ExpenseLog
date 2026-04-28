@@ -28,6 +28,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/botcore"
 	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/storage"
 )
 
@@ -823,20 +824,56 @@ func (h *Handler) createExpenseFromWhatsAppText(userID, text string) (string, st
 	if err != nil || strings.TrimSpace(defaultCurrency) == "" {
 		defaultCurrency = "ars"
 	}
-
-	parsed, parseErr := parseWhatsAppExpenseText(text, defaultCurrency)
-	if parseErr != nil {
-		if parseErr.Error() == "help" {
-			return "Comandos: /gasto 1500 Supermercado | /ingreso 50000 Sueldo | /reintegro 1200 Devolucion | o texto: gaste 2000 en super", ""
+	candidates := botcore.SplitBatchTextCandidates(text)
+	if len(candidates) <= 1 {
+		parsed, parseErr := parseWhatsAppExpenseText(text, defaultCurrency)
+		if parseErr != nil {
+			if parseErr.Error() == "help" {
+				return "Comandos: /gasto 1500 Supermercado | /ingreso 50000 Sueldo | /reintegro 1200 Devolucion | o texto: gaste 2000 en super", ""
+			}
+			aiParsed, aiErr := h.tryParseWhatsAppWithAI(text, nil, defaultCurrency)
+			if aiErr != nil {
+				return "No pude interpretar el mensaje. Usa: /gasto 1500 Supermercado o texto: gaste 2000 en super", ""
+			}
+			parsed = aiParsed
 		}
-		aiParsed, aiErr := h.tryParseWhatsAppWithAI(text, nil, defaultCurrency)
-		if aiErr != nil {
-			return "No pude interpretar el mensaje. Usa: /gasto 1500 Supermercado o texto: gaste 2000 en super", ""
-		}
-		parsed = aiParsed
+		return h.saveWhatsAppParsedExpense(userID, parsed)
 	}
 
-	return h.saveWhatsAppParsedExpense(userID, parsed)
+	parsedItems := make([]whatsAppParsedExpense, 0, len(candidates))
+	failedItems := make([]string, 0, len(candidates))
+	for idx, candidate := range candidates {
+		parsed, parseErr := parseWhatsAppExpenseText(candidate, defaultCurrency)
+		if parseErr != nil {
+			if parseErr.Error() == "help" {
+				failedItems = append(failedItems, fmt.Sprintf("%d) %s", idx+1, candidate))
+				continue
+			}
+			aiParsed, aiErr := h.tryParseWhatsAppWithAI(candidate, nil, defaultCurrency)
+			if aiErr != nil {
+				failedItems = append(failedItems, fmt.Sprintf("%d) %s", idx+1, candidate))
+				continue
+			}
+			parsed = aiParsed
+		}
+		parsedItems = append(parsedItems, parsed)
+	}
+	if len(failedItems) > 0 {
+		return "No pude interpretar algunos renglones. Corrigelos y reenvialos por separado:\n" + strings.Join(failedItems, "\n"), ""
+	}
+	expenses := make([]storage.Expense, 0, len(parsedItems))
+	for _, parsed := range parsedItems {
+		expense, resolveErr := h.buildWhatsAppExpenseFromParsed(userID, parsed, time.Now().UTC())
+		if resolveErr != nil {
+			return resolveErr.Error(), ""
+		}
+		expenses = append(expenses, expense)
+	}
+	if persistErr := persistExpensesWithRollback(h.storage, userID, expenses); persistErr != nil {
+		log.Printf("WHATSAPP KAPSO: batch add failed for user %s: %v", userID, persistErr)
+		return "No pude guardar el lote de movimientos. Reintenta en unos segundos.", ""
+	}
+	return summarizeWhatsAppBatchResult(expenses), expenses[0].ID
 }
 
 func (h *Handler) createExpenseFromWhatsAppMedia(userID string, event kapsoMessageEvent) (string, string) {
@@ -881,34 +918,9 @@ func (h *Handler) createExpenseFromWhatsAppMedia(userID string, event kapsoMessa
 }
 
 func (h *Handler) saveWhatsAppParsedExpense(userID string, parsed whatsAppParsedExpense) (string, string) {
-	flow, adjustedAmount, err := normalizeFlow(parsed.Flow, parsed.Amount)
+	expense, err := h.buildWhatsAppExpenseFromParsed(userID, parsed, time.Now().UTC())
 	if err != nil {
-		return "No pude interpretar el tipo de movimiento. Usa /gasto, /ingreso o /reintegro.", ""
-	}
-
-	source := strings.TrimSpace(parsed.Source)
-	if source == "" {
-		source = "CA"
-	}
-	when := parsed.Date
-	if when.IsZero() {
-		when = time.Now().UTC()
-	}
-
-	expense := storage.Expense{
-		ID:           uuid.New().String(),
-		Flow:         flow,
-		Name:         parsed.Name,
-		Category:     parsed.Category,
-		Amount:       adjustedAmount,
-		Currency:     parsed.Currency,
-		Source:       source,
-		Tags:         uniqueTags([]string{"whatsapp_bot"}),
-		SystemOrigin: "whatsapp_bot",
-		Date:         when,
-	}
-	if err := expense.Validate(); err != nil {
-		return "No pude crear el movimiento. Verifica formato y reintenta.", ""
+		return err.Error(), ""
 	}
 	if err := h.storage.AddExpense(userID, expense); err != nil {
 		log.Printf("WHATSAPP KAPSO: add expense failed for user %s: %v", userID, err)
@@ -916,10 +928,91 @@ func (h *Handler) saveWhatsAppParsedExpense(userID string, parsed whatsAppParsed
 	}
 	return fmt.Sprintf(
 		"Movimiento registrado: %s de %.2f %s.",
-		whatsAppFlowLabel(flow, adjustedAmount),
-		math.Abs(adjustedAmount),
+		whatsAppFlowLabel(expense.Flow, expense.Amount),
+		math.Abs(expense.Amount),
 		strings.ToUpper(expense.Currency),
 	), expense.ID
+}
+
+func (h *Handler) buildWhatsAppExpenseFromParsed(userID string, parsed whatsAppParsedExpense, now time.Time) (storage.Expense, error) {
+	defaultCurrency := strings.ToLower(strings.TrimSpace(parsed.Currency))
+	if defaultCurrency == "" {
+		if configCurrency, getErr := h.storage.GetCurrency(userID); getErr == nil {
+			defaultCurrency = strings.ToLower(strings.TrimSpace(configCurrency))
+		}
+	}
+	if defaultCurrency == "" {
+		defaultCurrency = "ars"
+	}
+
+	var expense storage.Expense
+	if isUnifiedDecisionEngineEnabled() {
+		candidate := buildWhatsAppParseCandidate(parsed)
+		decision, err := h.decideFromCandidate(userID, candidate, defaultCurrency, now)
+		if err != nil {
+			return storage.Expense{}, fmt.Errorf("no pude interpretar el tipo de movimiento. Usa /gasto, /ingreso o /reintegro")
+		}
+		h.recordBotDecisionEvent(userID, candidate, decision, now)
+		if decision.Ambiguous {
+			return storage.Expense{}, fmt.Errorf("movimiento ambiguo: confirmame si fue ingreso o gasto y lo registro")
+		}
+		expense = decisionToExpense(decision, []string{"whatsapp_bot"}, "whatsapp_bot")
+	} else {
+		flow, adjustedAmount, err := normalizeFlow(parsed.Flow, parsed.Amount)
+		if err != nil {
+			return storage.Expense{}, fmt.Errorf("no pude interpretar el tipo de movimiento. Usa /gasto, /ingreso o /reintegro")
+		}
+		source := strings.TrimSpace(parsed.Source)
+		if source == "" {
+			source = "CA"
+		}
+		when := parsed.Date
+		if when.IsZero() {
+			when = now
+		}
+		expense = storage.Expense{
+			ID:           uuid.New().String(),
+			Flow:         flow,
+			Name:         parsed.Name,
+			Category:     parsed.Category,
+			Amount:       adjustedAmount,
+			Currency:     defaultCurrency,
+			Source:       source,
+			Tags:         uniqueTags([]string{"whatsapp_bot"}),
+			SystemOrigin: "whatsapp_bot",
+			Date:         when,
+		}
+	}
+	if err := expense.Validate(); err != nil {
+		return storage.Expense{}, fmt.Errorf("no pude crear el movimiento. Verifica formato y reintenta")
+	}
+	return expense, nil
+}
+
+func summarizeWhatsAppBatchResult(expenses []storage.Expense) string {
+	if len(expenses) == 0 {
+		return "No se registraron movimientos."
+	}
+	var income float64
+	var expense float64
+	for _, item := range expenses {
+		if item.Amount > 0 {
+			income += item.Amount
+			continue
+		}
+		expense += math.Abs(item.Amount)
+	}
+	net := income - expense
+	return fmt.Sprintf(
+		"Listo, cargue %d movimientos.\nTotal ingresado: %.2f %s\nTotal gastado: %.2f %s\nSaldo neto: %.2f %s",
+		len(expenses),
+		income,
+		strings.ToUpper(expenses[0].Currency),
+		expense,
+		strings.ToUpper(expenses[0].Currency),
+		net,
+		strings.ToUpper(expenses[0].Currency),
+	)
 }
 
 func parseWhatsAppExplicitCommand(text, defaultCurrency string) (whatsAppParsedExpense, bool, error) {

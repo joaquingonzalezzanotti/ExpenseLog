@@ -314,3 +314,24 @@ func TestWhatsAppFlowLabel(t *testing.T) {
 		}
 	}
 }
+
+func TestSummarizeWhatsAppBatchResult(t *testing.T) {
+	message := summarizeWhatsAppBatchResult([]storage.Expense{
+		{Flow: "expense", Amount: -350000, Currency: "ars"},
+		{Flow: "expense", Amount: -15000, Currency: "ars"},
+		{Flow: "expense", Amount: -250000, Currency: "ars"},
+		{Flow: "income", Amount: 150000, Currency: "ars"},
+	})
+	if !strings.Contains(message, "cargue 4 movimientos") {
+		t.Fatalf("expected movement count summary, got: %q", message)
+	}
+	if !strings.Contains(message, "Total ingresado: 150000.00 ARS") {
+		t.Fatalf("expected income total in summary, got: %q", message)
+	}
+	if !strings.Contains(message, "Total gastado: 615000.00 ARS") {
+		t.Fatalf("expected expense total in summary, got: %q", message)
+	}
+	if !strings.Contains(message, "Saldo neto: -465000.00 ARS") {
+		t.Fatalf("expected net balance in summary, got: %q", message)
+	}
+}

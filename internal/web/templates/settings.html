@@ -335,6 +335,29 @@
                             <li>Abre el bot oficial de Telegram.</li>
                             <li>Envia <code>/vincular CODIGO</code> y confirma.</li>
                         </ol>
+                        <div id="telegramIdentityCard" class="settings-bot-data-card" hidden>
+                            <div class="settings-bot-data-label">Identidad para transferencias</div>
+                            <p class="settings-helper-text settings-bot-hint">Configura alias tuyos y huellas de cuentas propias para mejorar precision de ingresos/egresos sin hardcode.</p>
+                            <div class="settings-preference-control telegram-identity-inline-row">
+                                <input id="telegramIdentityAliasInput" class="telegram-identity-alias-input" type="text" placeholder="Ej: Joaquin Gonzalez">
+                                <button id="telegramIdentityAliasAddBtn" class="nav-button button-secondary" type="button">Agregar alias</button>
+                            </div>
+                            <div id="telegramIdentityAliasesList" class="settings-bot-data-meta telegram-identity-list"></div>
+                            <div class="settings-bot-data-label telegram-identity-subtitle">Cuentas propias (huellas)</div>
+                            <div class="settings-preference-control telegram-identity-fingerprint-grid">
+                                <input id="telegramIdentityBankInput" type="text" placeholder="Banco (ej: Santander)">
+                                <input id="telegramIdentityAccountLast4Input" type="text" placeholder="Ultimos 4 cuenta" maxlength="4" inputmode="numeric">
+                                <input id="telegramIdentityCBULast4Input" type="text" placeholder="Ultimos 4 CBU/CVU" maxlength="4" inputmode="numeric">
+                                <input id="telegramIdentityHolderInput" type="text" placeholder="Titular (ej: Joaquin Gonzalez)">
+                            </div>
+                            <div class="settings-export-actions settings-bot-actions telegram-identity-actions-sm">
+                                <button id="telegramIdentityFingerprintAddBtn" class="nav-button button-secondary" type="button">Agregar cuenta propia</button>
+                            </div>
+                            <div id="telegramIdentityFingerprintsList" class="settings-bot-data-meta telegram-identity-list telegram-identity-list-grid"></div>
+                            <div class="settings-export-actions settings-bot-actions telegram-identity-actions-lg">
+                                <button id="telegramIdentitySaveBtn" class="nav-button button-primary" type="button">Guardar identidad</button>
+                            </div>
+                        </div>
                         <div class="settings-export-actions settings-bot-actions">
                             <button id="telegramOpenBotBtn" class="nav-button button-secondary" type="button"><i class="fa-brands fa-telegram"></i> Abrir bot</button>
                             <button id="telegramGenerateCodeBtn" class="nav-button button-primary" type="button">Generar codigo</button>
@@ -775,6 +798,11 @@
             generated_code: '',
             generated_expires_at: '',
         };
+        let telegramIdentityState = {
+            enabled: false,
+            aliases: [],
+            fingerprints: [],
+        };
         let whatsappState = {
             premium: false,
             provider: 'Kapso',
@@ -823,6 +851,17 @@
         const telegramOpenBotBtn = document.getElementById('telegramOpenBotBtn');
         const telegramGenerateCodeBtn = document.getElementById('telegramGenerateCodeBtn');
         const telegramRefreshStatusBtn = document.getElementById('telegramRefreshStatusBtn');
+        const telegramIdentityCard = document.getElementById('telegramIdentityCard');
+        const telegramIdentityAliasInput = document.getElementById('telegramIdentityAliasInput');
+        const telegramIdentityAliasAddBtn = document.getElementById('telegramIdentityAliasAddBtn');
+        const telegramIdentityAliasesList = document.getElementById('telegramIdentityAliasesList');
+        const telegramIdentityBankInput = document.getElementById('telegramIdentityBankInput');
+        const telegramIdentityAccountLast4Input = document.getElementById('telegramIdentityAccountLast4Input');
+        const telegramIdentityCBULast4Input = document.getElementById('telegramIdentityCBULast4Input');
+        const telegramIdentityHolderInput = document.getElementById('telegramIdentityHolderInput');
+        const telegramIdentityFingerprintAddBtn = document.getElementById('telegramIdentityFingerprintAddBtn');
+        const telegramIdentityFingerprintsList = document.getElementById('telegramIdentityFingerprintsList');
+        const telegramIdentitySaveBtn = document.getElementById('telegramIdentitySaveBtn');
         const openBotsSection = document.getElementById('openBotsSection');
         const whatsappStatusBanner = document.getElementById('whatsappStatusBanner');
         const whatsappStatusHint = document.getElementById('whatsappStatusHint');
@@ -1251,6 +1290,225 @@
             telegramCodeCountdownTimer = setInterval(updateMeta, 1000);
         }
 
+        function normalizeLast4Digits(value) {
+            const digits = String(value || '').replace(/\D/g, '');
+            if (!digits) return '';
+            return digits.slice(-4);
+        }
+
+        function canManageTelegramIdentity() {
+            return currentPlanTier === 'premium' &&
+                !!telegramState.premium &&
+                !!telegramState.linked &&
+                !!telegramIdentityState.enabled;
+        }
+
+        function normalizeIdentityText(value) {
+            return String(value || '').replace(/\s+/g, ' ').trim();
+        }
+
+        function parseTelegramIdentityPayload(payload) {
+            telegramIdentityState.enabled = !!payload.enabled;
+            telegramIdentityState.aliases = Array.isArray(payload.aliases)
+                ? payload.aliases
+                    .map((item) => ({
+                        alias: normalizeIdentityText(item.alias),
+                        confidence: Number(item.confidence) || 1,
+                    }))
+                    .filter((item) => item.alias)
+                : [];
+            telegramIdentityState.fingerprints = Array.isArray(payload.fingerprints)
+                ? payload.fingerprints.map((item) => ({
+                    bank_norm: normalizeIdentityText(item.bank_norm),
+                    account_last4: normalizeLast4Digits(item.account_last4 || ''),
+                    cbu_cvu_last4: normalizeLast4Digits(item.cbu_cvu_last4 || ''),
+                    holder_norm: normalizeIdentityText(item.holder_norm),
+                    confidence: Number(item.confidence) || 1,
+                }))
+                : [];
+        }
+
+        function makeTelegramIdentityChip(label, onRemove) {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'telegram-identity-chip';
+            chip.setAttribute('aria-label', `Quitar ${label}`);
+            const text = document.createElement('span');
+            text.textContent = label;
+            const icon = document.createElement('i');
+            icon.className = 'fa-solid fa-xmark';
+            icon.setAttribute('aria-hidden', 'true');
+            chip.append(text, icon);
+            chip.addEventListener('click', onRemove);
+            return chip;
+        }
+
+        function renderTelegramIdentityEditor() {
+            if (!telegramIdentityCard) return;
+            const visible = canManageTelegramIdentity();
+            telegramIdentityCard.hidden = !visible;
+            if (!visible) return;
+
+            if (telegramIdentityAliasesList) {
+                telegramIdentityAliasesList.innerHTML = '';
+                if (!telegramIdentityState.aliases.length) {
+                    telegramIdentityAliasesList.textContent = 'Sin alias cargados.';
+                } else {
+                    telegramIdentityState.aliases.forEach((alias, index) => {
+                        const chip = makeTelegramIdentityChip(alias.alias, () => {
+                            telegramIdentityState.aliases = telegramIdentityState.aliases.filter((_, i) => i !== index);
+                            renderTelegramIdentityEditor();
+                        });
+                        telegramIdentityAliasesList.appendChild(chip);
+                    });
+                }
+            }
+
+            if (telegramIdentityFingerprintsList) {
+                telegramIdentityFingerprintsList.innerHTML = '';
+                if (!telegramIdentityState.fingerprints.length) {
+                    telegramIdentityFingerprintsList.textContent = 'Sin cuentas propias cargadas.';
+                } else {
+                    telegramIdentityState.fingerprints.forEach((fp, index) => {
+                        const row = document.createElement('div');
+                        row.className = 'telegram-identity-fingerprint-row';
+                        const pieces = [
+                            fp.bank_norm ? `Banco: ${fp.bank_norm}` : '',
+                            fp.account_last4 ? `Cuenta: ****${fp.account_last4}` : '',
+                            fp.cbu_cvu_last4 ? `CBU/CVU: ****${fp.cbu_cvu_last4}` : '',
+                            fp.holder_norm ? `Titular: ${fp.holder_norm}` : '',
+                        ].filter(Boolean);
+                        const info = document.createElement('span');
+                        info.className = 'telegram-identity-fingerprint-copy';
+                        info.textContent = pieces.join(' | ') || 'Huella incompleta';
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'nav-button button-secondary telegram-identity-remove-btn';
+                        removeBtn.textContent = 'Quitar';
+                        removeBtn.addEventListener('click', () => {
+                            telegramIdentityState.fingerprints = telegramIdentityState.fingerprints.filter((_, i) => i !== index);
+                            renderTelegramIdentityEditor();
+                        });
+                        row.append(info, removeBtn);
+                        telegramIdentityFingerprintsList.appendChild(row);
+                    });
+                }
+            }
+        }
+
+        function readTelegramIdentityAliasInput() {
+            const alias = normalizeIdentityText(telegramIdentityAliasInput?.value);
+            if (!alias) return '';
+            return alias;
+        }
+
+        function addTelegramIdentityAliasFromInput() {
+            const alias = readTelegramIdentityAliasInput();
+            if (!alias) return;
+            if (telegramIdentityState.aliases.length >= 20) {
+                showMessage('telegramBotMessage', 'Llegaste al limite de 20 alias.', false);
+                return;
+            }
+            const key = alias.toLowerCase();
+            const exists = telegramIdentityState.aliases.some((item) => String(item.alias || '').trim().toLowerCase() === key);
+            if (exists) {
+                showMessage('telegramBotMessage', 'Ese alias ya existe.', false);
+                return;
+            }
+            telegramIdentityState.aliases.push({ alias, confidence: 1 });
+            if (telegramIdentityAliasInput) telegramIdentityAliasInput.value = '';
+            renderTelegramIdentityEditor();
+        }
+
+        function addTelegramIdentityFingerprintFromInput() {
+            if (telegramIdentityState.fingerprints.length >= 20) {
+                showMessage('telegramBotMessage', 'Llegaste al limite de 20 cuentas propias.', false);
+                return;
+            }
+            const bank_norm = normalizeIdentityText(telegramIdentityBankInput?.value);
+            const account_last4 = normalizeLast4Digits(telegramIdentityAccountLast4Input?.value || '');
+            const cbu_cvu_last4 = normalizeLast4Digits(telegramIdentityCBULast4Input?.value || '');
+            const holder_norm = normalizeIdentityText(telegramIdentityHolderInput?.value);
+            if (!bank_norm && !account_last4 && !cbu_cvu_last4 && !holder_norm) {
+                showMessage('telegramBotMessage', 'Completa al menos un dato de la cuenta propia.', false);
+                return;
+            }
+            const key = `${bank_norm.toLowerCase()}|${account_last4}|${cbu_cvu_last4}|${holder_norm.toLowerCase()}`;
+            const exists = telegramIdentityState.fingerprints.some((fp) => (
+                `${String(fp.bank_norm || '').toLowerCase()}|${String(fp.account_last4 || '')}|${String(fp.cbu_cvu_last4 || '')}|${String(fp.holder_norm || '').toLowerCase()}`
+            ) === key);
+            if (exists) {
+                showMessage('telegramBotMessage', 'Esa cuenta propia ya existe.', false);
+                return;
+            }
+            telegramIdentityState.fingerprints.push({
+                bank_norm,
+                account_last4,
+                cbu_cvu_last4,
+                holder_norm,
+                confidence: 1,
+            });
+            if (telegramIdentityBankInput) telegramIdentityBankInput.value = '';
+            if (telegramIdentityAccountLast4Input) telegramIdentityAccountLast4Input.value = '';
+            if (telegramIdentityCBULast4Input) telegramIdentityCBULast4Input.value = '';
+            if (telegramIdentityHolderInput) telegramIdentityHolderInput.value = '';
+            renderTelegramIdentityEditor();
+        }
+
+        async function fetchTelegramIdentity() {
+            telegramIdentityState.enabled = false;
+            telegramIdentityState.aliases = [];
+            telegramIdentityState.fingerprints = [];
+            if (!(currentPlanTier === 'premium' && telegramState.premium && telegramState.linked)) {
+                renderTelegramIdentityEditor();
+                return;
+            }
+            const response = await fetch('/api/telegram/identity', { method: 'GET', cache: 'no-store' });
+            if (response.status === 404) {
+                renderTelegramIdentityEditor();
+                return;
+            }
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(payload.error || 'No se pudo obtener identidad de Telegram');
+            }
+            parseTelegramIdentityPayload(payload);
+            renderTelegramIdentityEditor();
+        }
+
+        async function saveTelegramIdentity() {
+            if (!canManageTelegramIdentity()) return;
+            if (telegramIdentitySaveBtn) telegramIdentitySaveBtn.disabled = true;
+            try {
+                const response = await fetch('/api/telegram/identity', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        aliases: telegramIdentityState.aliases,
+                        fingerprints: telegramIdentityState.fingerprints,
+                    }),
+                });
+                if (response.status === 404) {
+                    telegramIdentityState.enabled = false;
+                    renderTelegramIdentityEditor();
+                    showMessage('telegramBotMessage', 'La configuracion de identidad no esta habilitada en este entorno.', false);
+                    return;
+                }
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(payload.error || 'No se pudo guardar identidad de Telegram');
+                }
+                parseTelegramIdentityPayload(payload);
+                renderTelegramIdentityEditor();
+                showMessage('telegramBotMessage', 'Identidad Telegram guardada.', true);
+            } catch (error) {
+                console.error('Error guardando identidad Telegram:', error);
+                showMessage('telegramBotMessage', error.message || 'No se pudo guardar identidad de Telegram', false);
+            } finally {
+                if (telegramIdentitySaveBtn) telegramIdentitySaveBtn.disabled = false;
+            }
+        }
+
         function renderTelegramState() {
             const isPremium = currentPlanTier === 'premium' && !!telegramState.premium;
             renderPremiumUpsellBanner(telegramPremiumBanner, telegramPremiumActivateBtn, !isPremium);
@@ -1267,6 +1525,7 @@
                 telegramState.generated_expires_at = '';
                 telegramState.deep_link_url = '';
                 renderTelegramCodePanel();
+                renderTelegramIdentityEditor();
                 return;
             }
 
@@ -1290,6 +1549,7 @@
                 telegramState.deep_link_url = '';
             }
             renderTelegramCodePanel();
+            renderTelegramIdentityEditor();
         }
 
         async function fetchTelegramStatus(endpoint = '/api/telegram/link-status') {
@@ -1307,6 +1567,7 @@
             telegramState.bot_url = String(payload.bot_url || telegramState.bot_url || '').trim();
             telegramState.bot_username = String(payload.bot_username || telegramState.bot_username || '').trim();
             renderTelegramState();
+            await fetchTelegramIdentity();
             return payload;
         }
 
@@ -2948,6 +3209,19 @@ async function saveCategoriesList(nextCategories) {
             } finally {
                 if (telegramRefreshStatusBtn) telegramRefreshStatusBtn.disabled = false;
             }
+        });
+        telegramIdentityAliasAddBtn?.addEventListener('click', addTelegramIdentityAliasFromInput);
+        telegramIdentityAliasInput?.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            addTelegramIdentityAliasFromInput();
+        });
+        telegramIdentityFingerprintAddBtn?.addEventListener('click', addTelegramIdentityFingerprintFromInput);
+        telegramIdentitySaveBtn?.addEventListener('click', saveTelegramIdentity);
+        [telegramIdentityAccountLast4Input, telegramIdentityCBULast4Input].forEach((input) => {
+            input?.addEventListener('input', () => {
+                input.value = normalizeLast4Digits(input.value);
+            });
         });
         whatsappOpenBotBtn?.addEventListener('click', () => {
             const targetURL = getWhatsAppOpenURL();

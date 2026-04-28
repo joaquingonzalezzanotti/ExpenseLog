@@ -87,6 +87,11 @@ type Storage interface {
 	InvalidateActiveTelegramLinkCodes(userID string, usedAt time.Time) error
 	CreateTelegramLinkCode(userID, codeHash string, expiresAt, createdAt time.Time) (TelegramLinkCode, error)
 	ConsumeTelegramLinkCode(codeHash string, telegramUserID int64, telegramUsername string, now time.Time) (TelegramUserLink, error)
+	GetTelegramIdentityAliases(userID string) ([]TelegramIdentityAlias, error)
+	ReplaceTelegramIdentityAliases(userID string, aliases []TelegramIdentityAlias, now time.Time) error
+	GetTelegramOwnedAccountFingerprints(userID string) ([]TelegramOwnedAccountFingerprint, error)
+	ReplaceTelegramOwnedAccountFingerprints(userID string, fingerprints []TelegramOwnedAccountFingerprint, now time.Time) error
+	AddBotDecisionEvent(userID string, event BotDecisionEvent) error
 
 	// WhatsApp Bot integration
 	GetWhatsAppUserLinkByUserID(userID string) (WhatsAppUserLink, error)
@@ -311,6 +316,45 @@ type TelegramLinkCode struct {
 	UsedAt               *time.Time
 	UsedByTelegramUserID *int64
 	UsedTelegramUsername string
+}
+
+type TelegramIdentityAlias struct {
+	ID         string
+	UserID     string
+	AliasRaw   string
+	AliasNorm  string
+	Confidence float64
+	Source     string
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
+type TelegramOwnedAccountFingerprint struct {
+	ID           string
+	UserID       string
+	BankNorm     string
+	AccountLast4 string
+	CBUCVULast4  string
+	HolderNorm   string
+	Confidence   float64
+	Source       string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
+type BotDecisionEvent struct {
+	ID           string
+	UserID       string
+	Channel      string
+	Decision     string
+	Amount       float64
+	Currency     string
+	Confidence   float64
+	Ambiguous    bool
+	Reasons      []string
+	RawText      string
+	MediaCaption string
+	CreatedAt    time.Time
 }
 
 type WhatsAppUserLink struct {

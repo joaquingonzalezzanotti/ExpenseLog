@@ -575,43 +575,112 @@ func (h *Handler) CreateBotExpense(w http.ResponseWriter, r *http.Request) {
 		writeBotError(w, http.StatusForbidden, "Premium requerido", "premium_required")
 		return
 	}
-
-	flow, adjustedAmount, err := normalizeFlow(payload.Type, payload.Amount)
-	if err != nil {
-		writeBotError(w, http.StatusBadRequest, err.Error(), "invalid_payload")
+	now := time.Now().UTC()
+	resolvedPayload, ready, duplicate := h.resolveTelegramAtomicIngestPayload(payload, now)
+	if duplicate {
+		writeJSON(w, http.StatusOK, map[string]string{
+			"status": "duplicate_ignored",
+		})
 		return
 	}
-	currency := strings.ToLower(strings.TrimSpace(payload.Currency))
-	if currency == "" {
+	if !ready {
+		writeJSON(w, http.StatusAccepted, map[string]string{
+			"status": "pending_group_assembly",
+		})
+		return
+	}
+	payload = resolvedPayload
+
+	defaultCurrency := strings.ToLower(strings.TrimSpace(payload.Currency))
+	if defaultCurrency == "" {
 		if configCurrency, getErr := h.storage.GetCurrency(link.UserID); getErr == nil {
-			currency = strings.ToLower(strings.TrimSpace(configCurrency))
+			defaultCurrency = strings.ToLower(strings.TrimSpace(configCurrency))
 		}
 	}
-	if currency == "" {
-		currency = "ars"
-	}
-	category := storage.SanitizeString(payload.Category)
-	if category == "" {
-		if flow == "income" {
-			category = "Ingresos"
-		} else {
-			category = "Varios"
-		}
+	if defaultCurrency == "" {
+		defaultCurrency = "ars"
 	}
 
-	createdAt := parseTelegramDateTime(payload.DateTimeISO, time.Now().UTC())
-	tags := uniqueTags(append(payload.Tags, "telegram_bot"))
-	expense := storage.Expense{
-		ID:           uuid.New().String(),
-		Flow:         flow,
-		Name:         buildBotExpenseName(payload.Counterparty, payload.Motive, payload.Reference),
-		Category:     category,
-		Amount:       adjustedAmount,
-		Currency:     currency,
-		Source:       normalizeBotExpenseSource(payload.Provider),
-		Tags:         tags,
-		SystemOrigin: "telegram_bot",
-		Date:         createdAt,
+	batchPayloads := extractTelegramBatchPayloads(payload)
+	if len(batchPayloads) > 0 {
+		if !isUnifiedDecisionEngineEnabled() {
+			writeBotError(w, http.StatusPreconditionFailed, "Batch mode requiere motor unificado habilitado", "feature_disabled")
+			return
+		}
+		expenses := make([]storage.Expense, 0, len(batchPayloads))
+		for idx, item := range batchPayloads {
+			candidate := buildTelegramParseCandidate(item, now)
+			decision, decideErr := h.decideFromCandidate(link.UserID, candidate, defaultCurrency, now)
+			if decideErr != nil {
+				writeBotError(w, http.StatusBadRequest, fmt.Sprintf("item %d invalido: %s", idx+1, decideErr.Error()), "invalid_payload")
+				return
+			}
+			h.recordBotDecisionEvent(link.UserID, candidate, decision, now)
+			if decision.Ambiguous {
+				writeBotError(w, http.StatusConflict, fmt.Sprintf("item %d ambiguo: confirma ingreso/gasto", idx+1), "ambiguous_decision")
+				return
+			}
+			expense := decisionToExpense(decision, append(item.Tags, "telegram_bot"), "telegram_bot")
+			if err := expense.Validate(); err != nil {
+				writeBotError(w, http.StatusBadRequest, fmt.Sprintf("item %d invalido: %s", idx+1, err.Error()), "invalid_payload")
+				return
+			}
+			expenses = append(expenses, expense)
+		}
+		if err := persistExpensesWithRollback(h.storage, link.UserID, expenses); err != nil {
+			writeBotError(w, http.StatusInternalServerError, "No se pudo crear el lote de transacciones", "internal_error")
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"transaction_id": expenses[0].ID,
+			"url":            "/app/table",
+			"count":          len(expenses),
+			"summary":        summarizeTelegramBatchResult(expenses),
+		})
+		return
+	}
+
+	tags := append(payload.Tags, "telegram_bot")
+	var expense storage.Expense
+	if isUnifiedDecisionEngineEnabled() {
+		candidate := buildTelegramParseCandidate(payload, now)
+		decision, decideErr := h.decideFromCandidate(link.UserID, candidate, defaultCurrency, now)
+		if decideErr != nil {
+			writeBotError(w, http.StatusBadRequest, decideErr.Error(), "invalid_payload")
+			return
+		}
+		h.recordBotDecisionEvent(link.UserID, candidate, decision, now)
+		if decision.Ambiguous {
+			writeBotError(w, http.StatusConflict, "Movimiento ambiguo: confirma si fue ingreso o gasto antes de registrar", "ambiguous_decision")
+			return
+		}
+		expense = decisionToExpense(decision, tags, "telegram_bot")
+	} else {
+		flow, adjustedAmount, flowErr := normalizeFlow(payload.Type, payload.Amount)
+		if flowErr != nil {
+			writeBotError(w, http.StatusBadRequest, flowErr.Error(), "invalid_payload")
+			return
+		}
+		category := storage.SanitizeString(payload.Category)
+		if category == "" {
+			if flow == "income" {
+				category = "Ingresos"
+			} else {
+				category = "Varios"
+			}
+		}
+		expense = storage.Expense{
+			ID:           uuid.New().String(),
+			Flow:         flow,
+			Name:         buildBotExpenseName(payload.Counterparty, payload.Motive, payload.Reference),
+			Category:     category,
+			Amount:       adjustedAmount,
+			Currency:     defaultCurrency,
+			Source:       normalizeBotExpenseSource(payload.Provider),
+			Tags:         uniqueTags(tags),
+			SystemOrigin: "telegram_bot",
+			Date:         parseTelegramDateTime(payload.DateTimeISO, now),
+		}
 	}
 	if err := expense.Validate(); err != nil {
 		writeBotError(w, http.StatusBadRequest, err.Error(), "invalid_payload")

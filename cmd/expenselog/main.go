@@ -172,6 +172,7 @@ func runServer(port int) {
 	registerAPI("/telegram/link-status", handler.RequireAuth(handler.GetTelegramLinkStatus))
 	registerAPI("/telegram/link-code", handler.RequireAuth(handler.CreateTelegramLinkCode))
 	registerAPI("/telegram/refresh-status", handler.RequireAuth(handler.RefreshTelegramLinkStatus))
+	registerAPI("/telegram/identity", handler.RequireAuth(handler.TelegramIdentity))
 	registerAPI("/whatsapp/link-status", handler.RequireAuth(handler.GetWhatsAppLinkStatus))
 	registerAPI("/whatsapp/link-code", handler.RequireAuth(handler.CreateWhatsAppLinkCode))
 	registerAPI("/whatsapp/refresh-status", handler.RequireAuth(handler.RefreshWhatsAppLinkStatus))
@@ -216,6 +217,7 @@ func runServer(port int) {
 	// Telegram bot internal API
 	registerAPI("/bot/telegram/consume-link-code", handler.RequireBotAuth(handler.ConsumeTelegramLinkCode))
 	registerAPI("/bot/telegram/link-status", handler.RequireBotAuth(handler.GetBotTelegramLinkStatus))
+	registerAPI("/bot/telegram/identity", handler.RequireBotAuth(handler.GetBotTelegramIdentity))
 	registerAPI("/bot/expense", handler.RequireBotAuth(handler.CreateBotExpense))
 
 	server := &http.Server{

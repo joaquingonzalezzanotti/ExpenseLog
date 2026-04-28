@@ -211,7 +211,7 @@ const (
 	);`
 
 	createWalletIngestEventsTableSQL = `
-	CREATE TABLE IF NOT EXISTS wallet_ingest_events (
+		CREATE TABLE IF NOT EXISTS wallet_ingest_events (
 		id VARCHAR(36) PRIMARY KEY,
 		user_id VARCHAR(36) NOT NULL,
 		source VARCHAR(100) NOT NULL,
@@ -228,8 +228,50 @@ const (
 		created_transaction_id VARCHAR(36),
 		duplicate_of_event_id VARCHAR(36),
 		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-	);`
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		);`
+
+	createTelegramIdentityAliasesTableSQL = `
+		CREATE TABLE IF NOT EXISTS telegram_identity_aliases (
+			id VARCHAR(36) PRIMARY KEY,
+			user_id VARCHAR(36) NOT NULL,
+			alias_raw TEXT NOT NULL,
+			alias_norm TEXT NOT NULL,
+			confidence NUMERIC(5, 4) NOT NULL DEFAULT 1.0,
+			source VARCHAR(40) NOT NULL DEFAULT 'user',
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		);`
+
+	createTelegramOwnedAccountFingerprintsTableSQL = `
+		CREATE TABLE IF NOT EXISTS telegram_owned_account_fingerprints (
+			id VARCHAR(36) PRIMARY KEY,
+			user_id VARCHAR(36) NOT NULL,
+			bank_norm VARCHAR(120) NOT NULL DEFAULT '',
+			account_last4 VARCHAR(4) NOT NULL DEFAULT '',
+			cbu_cvu_last4 VARCHAR(4) NOT NULL DEFAULT '',
+			holder_norm TEXT NOT NULL DEFAULT '',
+			confidence NUMERIC(5, 4) NOT NULL DEFAULT 1.0,
+			source VARCHAR(40) NOT NULL DEFAULT 'user',
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		);`
+
+	createBotDecisionEventsTableSQL = `
+		CREATE TABLE IF NOT EXISTS bot_decision_events (
+			id VARCHAR(36) PRIMARY KEY,
+			user_id VARCHAR(36) NOT NULL,
+			channel VARCHAR(30) NOT NULL,
+			decision VARCHAR(20) NOT NULL,
+			amount NUMERIC(14, 2) NOT NULL,
+			currency VARCHAR(10) NOT NULL,
+			confidence NUMERIC(5, 4) NOT NULL DEFAULT 0,
+			ambiguous BOOLEAN NOT NULL DEFAULT FALSE,
+			reasons JSONB NOT NULL DEFAULT '[]'::jsonb,
+			raw_text TEXT,
+			media_caption TEXT,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		);`
 )
 
 func InitializePostgresStore(baseConfig SystemConfig) (Storage, error) {
@@ -275,6 +317,9 @@ func createTables(db *sql.DB) error {
 		createCategoriesTableSQL,
 		createTelegramUserLinksTableSQL,
 		createTelegramLinkCodesTableSQL,
+		createTelegramIdentityAliasesTableSQL,
+		createTelegramOwnedAccountFingerprintsTableSQL,
+		createBotDecisionEventsTableSQL,
 		createWhatsAppUserLinksTableSQL,
 		createWhatsAppLinkCodesTableSQL,
 		createWalletIngestTokensTableSQL,
@@ -400,6 +445,24 @@ func createTables(db *sql.DB) error {
 	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS telegram_link_codes_user_created_idx ON telegram_link_codes (user_id, created_at DESC)`); err != nil {
 		return err
 	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS telegram_identity_aliases_user_norm_key ON telegram_identity_aliases (user_id, alias_norm)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS telegram_identity_aliases_user_updated_idx ON telegram_identity_aliases (user_id, updated_at DESC)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS telegram_owned_account_fingerprints_user_key ON telegram_owned_account_fingerprints (user_id, bank_norm, account_last4, cbu_cvu_last4, holder_norm)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS telegram_owned_account_fingerprints_user_updated_idx ON telegram_owned_account_fingerprints (user_id, updated_at DESC)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS bot_decision_events_user_created_idx ON bot_decision_events (user_id, created_at DESC)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS bot_decision_events_channel_created_idx ON bot_decision_events (channel, created_at DESC)`); err != nil {
+		return err
+	}
 	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS whatsapp_user_links_user_key ON whatsapp_user_links (user_id)`); err != nil {
 		return err
 	}
@@ -506,6 +569,9 @@ func ensureForeignKeys(db *sql.DB) error {
 		{name: "reconciliations_user_fk", table: "reconciliations", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "telegram_user_links_user_fk", table: "telegram_user_links", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "telegram_link_codes_user_fk", table: "telegram_link_codes", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
+		{name: "telegram_identity_aliases_user_fk", table: "telegram_identity_aliases", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
+		{name: "telegram_owned_account_fingerprints_user_fk", table: "telegram_owned_account_fingerprints", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
+		{name: "bot_decision_events_user_fk", table: "bot_decision_events", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "whatsapp_user_links_user_fk", table: "whatsapp_user_links", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "whatsapp_link_codes_user_fk", table: "whatsapp_link_codes", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "wallet_ingest_tokens_user_fk", table: "wallet_ingest_tokens", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
@@ -1279,6 +1345,42 @@ func scanTelegramLinkCode(scanner interface{ Scan(...any) error }) (TelegramLink
 	return code, nil
 }
 
+func scanTelegramIdentityAlias(scanner interface{ Scan(...any) error }) (TelegramIdentityAlias, error) {
+	var alias TelegramIdentityAlias
+	if err := scanner.Scan(
+		&alias.ID,
+		&alias.UserID,
+		&alias.AliasRaw,
+		&alias.AliasNorm,
+		&alias.Confidence,
+		&alias.Source,
+		&alias.CreatedAt,
+		&alias.UpdatedAt,
+	); err != nil {
+		return TelegramIdentityAlias{}, err
+	}
+	return alias, nil
+}
+
+func scanTelegramOwnedAccountFingerprint(scanner interface{ Scan(...any) error }) (TelegramOwnedAccountFingerprint, error) {
+	var fp TelegramOwnedAccountFingerprint
+	if err := scanner.Scan(
+		&fp.ID,
+		&fp.UserID,
+		&fp.BankNorm,
+		&fp.AccountLast4,
+		&fp.CBUCVULast4,
+		&fp.HolderNorm,
+		&fp.Confidence,
+		&fp.Source,
+		&fp.CreatedAt,
+		&fp.UpdatedAt,
+	); err != nil {
+		return TelegramOwnedAccountFingerprint{}, err
+	}
+	return fp, nil
+}
+
 func scanWhatsAppUserLink(scanner interface{ Scan(...any) error }) (WhatsAppUserLink, error) {
 	var link WhatsAppUserLink
 	if err := scanner.Scan(&link.ID, &link.UserID, &link.WhatsAppPhone, &link.CreatedAt, &link.UpdatedAt); err != nil {
@@ -1538,6 +1640,225 @@ func (s *databaseStore) ConsumeTelegramLinkCode(codeHash string, telegramUserID 
 		return TelegramUserLink{}, err
 	}
 	return link, nil
+}
+
+func normalizeTelegramIdentityAlias(raw string) (string, string) {
+	cleanRaw := strings.TrimSpace(SanitizeString(raw))
+	if cleanRaw == "" {
+		return "", ""
+	}
+	norm := strings.ToLower(cleanRaw)
+	return cleanRaw, norm
+}
+
+func normalizeLast4(raw string) string {
+	var digits strings.Builder
+	for _, r := range strings.TrimSpace(raw) {
+		if r >= '0' && r <= '9' {
+			digits.WriteRune(r)
+		}
+	}
+	value := digits.String()
+	if value == "" {
+		return ""
+	}
+	if len(value) <= 4 {
+		return value
+	}
+	return value[len(value)-4:]
+}
+
+func normalizeTelegramOwnedAccountFingerprint(fp TelegramOwnedAccountFingerprint) TelegramOwnedAccountFingerprint {
+	fp.BankNorm = strings.ToLower(strings.TrimSpace(SanitizeString(fp.BankNorm)))
+	fp.AccountLast4 = normalizeLast4(fp.AccountLast4)
+	fp.CBUCVULast4 = normalizeLast4(fp.CBUCVULast4)
+	fp.HolderNorm = strings.ToLower(strings.TrimSpace(SanitizeString(fp.HolderNorm)))
+	fp.Source = strings.TrimSpace(fp.Source)
+	if fp.Source == "" {
+		fp.Source = "user"
+	}
+	if fp.Confidence <= 0 {
+		fp.Confidence = 1
+	}
+	if fp.Confidence > 1 {
+		fp.Confidence = 1
+	}
+	return fp
+}
+
+func (s *databaseStore) GetTelegramIdentityAliases(userID string) ([]TelegramIdentityAlias, error) {
+	rows, err := s.db.Query(`
+		SELECT id, user_id, alias_raw, alias_norm, confidence, source, created_at, updated_at
+		FROM telegram_identity_aliases
+		WHERE user_id = $1
+		ORDER BY updated_at DESC, created_at DESC
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	aliases := make([]TelegramIdentityAlias, 0, 8)
+	for rows.Next() {
+		alias, scanErr := scanTelegramIdentityAlias(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		aliases = append(aliases, alias)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return aliases, nil
+}
+
+func (s *databaseStore) ReplaceTelegramIdentityAliases(userID string, aliases []TelegramIdentityAlias, now time.Time) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	if _, err := tx.Exec(`DELETE FROM telegram_identity_aliases WHERE user_id = $1`, userID); err != nil {
+		return err
+	}
+
+	for _, candidate := range aliases {
+		aliasRaw, aliasNorm := normalizeTelegramIdentityAlias(candidate.AliasRaw)
+		if aliasNorm == "" {
+			continue
+		}
+		confidence := candidate.Confidence
+		if confidence <= 0 {
+			confidence = 1
+		}
+		if confidence > 1 {
+			confidence = 1
+		}
+		source := strings.TrimSpace(candidate.Source)
+		if source == "" {
+			source = "user"
+		}
+		_, err := tx.Exec(`
+			INSERT INTO telegram_identity_aliases (
+				id, user_id, alias_raw, alias_norm, confidence, source, created_at, updated_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
+			ON CONFLICT (user_id, alias_norm)
+			DO UPDATE SET
+				alias_raw = EXCLUDED.alias_raw,
+				confidence = EXCLUDED.confidence,
+				source = EXCLUDED.source,
+				updated_at = EXCLUDED.updated_at
+		`, uuid.New().String(), userID, aliasRaw, aliasNorm, confidence, source, now)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (s *databaseStore) GetTelegramOwnedAccountFingerprints(userID string) ([]TelegramOwnedAccountFingerprint, error) {
+	rows, err := s.db.Query(`
+		SELECT id, user_id, bank_norm, account_last4, cbu_cvu_last4, holder_norm, confidence, source, created_at, updated_at
+		FROM telegram_owned_account_fingerprints
+		WHERE user_id = $1
+		ORDER BY updated_at DESC, created_at DESC
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	fingerprints := make([]TelegramOwnedAccountFingerprint, 0, 8)
+	for rows.Next() {
+		fp, scanErr := scanTelegramOwnedAccountFingerprint(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		fingerprints = append(fingerprints, fp)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return fingerprints, nil
+}
+
+func (s *databaseStore) ReplaceTelegramOwnedAccountFingerprints(userID string, fingerprints []TelegramOwnedAccountFingerprint, now time.Time) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	if _, err := tx.Exec(`DELETE FROM telegram_owned_account_fingerprints WHERE user_id = $1`, userID); err != nil {
+		return err
+	}
+
+	for _, raw := range fingerprints {
+		fp := normalizeTelegramOwnedAccountFingerprint(raw)
+		// At least one ownership signal is required for a valid fingerprint.
+		if fp.BankNorm == "" && fp.AccountLast4 == "" && fp.CBUCVULast4 == "" && fp.HolderNorm == "" {
+			continue
+		}
+		_, err := tx.Exec(`
+			INSERT INTO telegram_owned_account_fingerprints (
+				id, user_id, bank_norm, account_last4, cbu_cvu_last4, holder_norm, confidence, source, created_at, updated_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
+			ON CONFLICT (user_id, bank_norm, account_last4, cbu_cvu_last4, holder_norm)
+			DO UPDATE SET
+				confidence = EXCLUDED.confidence,
+				source = EXCLUDED.source,
+				updated_at = EXCLUDED.updated_at
+		`, uuid.New().String(), userID, fp.BankNorm, fp.AccountLast4, fp.CBUCVULast4, fp.HolderNorm, fp.Confidence, fp.Source, now)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (s *databaseStore) AddBotDecisionEvent(userID string, event BotDecisionEvent) error {
+	eventID := strings.TrimSpace(event.ID)
+	if eventID == "" {
+		eventID = uuid.New().String()
+	}
+	channel := strings.TrimSpace(strings.ToLower(event.Channel))
+	if channel == "" {
+		channel = "unknown"
+	}
+	decision := strings.TrimSpace(strings.ToLower(event.Decision))
+	if decision == "" {
+		decision = "unknown"
+	}
+	currency := normalizeCurrencyCode(event.Currency)
+	confidence := event.Confidence
+	if confidence < 0 {
+		confidence = 0
+	}
+	if confidence > 1 {
+		confidence = 1
+	}
+	createdAt := event.CreatedAt.UTC()
+	if createdAt.IsZero() {
+		createdAt = time.Now().UTC()
+	}
+	reasonsJSON, err := json.Marshal(event.Reasons)
+	if err != nil {
+		reasonsJSON = []byte("[]")
+	}
+
+	_, err = s.db.Exec(`
+		INSERT INTO bot_decision_events (
+			id, user_id, channel, decision, amount, currency, confidence, ambiguous, reasons, raw_text, media_caption, created_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12)
+	`, eventID, userID, channel, decision, event.Amount, currency, confidence, event.Ambiguous, string(reasonsJSON), strings.TrimSpace(event.RawText), strings.TrimSpace(event.MediaCaption), createdAt)
+	return err
 }
 
 func normalizeWhatsAppPhone(raw string) string {

@@ -617,7 +617,19 @@ func (h *Handler) CreateBotExpense(w http.ResponseWriter, r *http.Request) {
 			}
 			h.recordBotDecisionEvent(link.UserID, candidate, decision, now)
 			if decision.Ambiguous {
-				writeBotError(w, http.StatusConflict, fmt.Sprintf("item %d ambiguo: confirma ingreso/gasto", idx+1), "ambiguous_decision")
+				subjectKey := buildTelegramDecisionSubjectKey(item) + fmt.Sprintf(":batch:%d", idx)
+				pending, pendingErr := h.createBotPendingDecision(link.UserID, "telegram", subjectKey, candidate, defaultCurrency, now)
+				if pendingErr != nil {
+					writeBotError(w, http.StatusConflict, fmt.Sprintf("item %d ambiguo: confirma ingreso/gasto", idx+1), "ambiguous_decision")
+					return
+				}
+				writeJSON(w, http.StatusConflict, map[string]any{
+					"error":               fmt.Sprintf("item %d ambiguo: confirma ingreso/gasto", idx+1),
+					"code":                "ambiguous_decision",
+					"pending_decision_id": pending.ID,
+					"suggested_flows":     []string{"income", "expense"},
+					"item_index":          idx,
+				})
 				return
 			}
 			expense := decisionToExpense(decision, append(item.Tags, "telegram_bot"), "telegram_bot")
@@ -651,7 +663,18 @@ func (h *Handler) CreateBotExpense(w http.ResponseWriter, r *http.Request) {
 		}
 		h.recordBotDecisionEvent(link.UserID, candidate, decision, now)
 		if decision.Ambiguous {
-			writeBotError(w, http.StatusConflict, "Movimiento ambiguo: confirma si fue ingreso o gasto antes de registrar", "ambiguous_decision")
+			subjectKey := buildTelegramDecisionSubjectKey(payload)
+			pending, pendingErr := h.createBotPendingDecision(link.UserID, "telegram", subjectKey, candidate, defaultCurrency, now)
+			if pendingErr != nil {
+				writeBotError(w, http.StatusConflict, "Movimiento ambiguo: confirma si fue ingreso o gasto antes de registrar", "ambiguous_decision")
+				return
+			}
+			writeJSON(w, http.StatusConflict, map[string]any{
+				"error":               "Movimiento ambiguo: confirma si fue ingreso o gasto antes de registrar",
+				"code":                "ambiguous_decision",
+				"pending_decision_id": pending.ID,
+				"suggested_flows":     []string{"income", "expense"},
+			})
 			return
 		}
 		expense = decisionToExpense(decision, tags, "telegram_bot")

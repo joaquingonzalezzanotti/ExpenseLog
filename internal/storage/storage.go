@@ -92,6 +92,9 @@ type Storage interface {
 	GetTelegramOwnedAccountFingerprints(userID string) ([]TelegramOwnedAccountFingerprint, error)
 	ReplaceTelegramOwnedAccountFingerprints(userID string, fingerprints []TelegramOwnedAccountFingerprint, now time.Time) error
 	AddBotDecisionEvent(userID string, event BotDecisionEvent) error
+	CreateBotPendingDecision(decision BotPendingDecision) (BotPendingDecision, error)
+	GetBotPendingDecisionByID(id string) (BotPendingDecision, error)
+	ResolveBotPendingDecision(id string, resolvedAt time.Time) (BotPendingDecision, error)
 
 	// WhatsApp Bot integration
 	GetWhatsAppUserLinkByUserID(userID string) (WhatsAppUserLink, error)
@@ -355,6 +358,19 @@ type BotDecisionEvent struct {
 	RawText      string
 	MediaCaption string
 	CreatedAt    time.Time
+}
+
+type BotPendingDecision struct {
+	ID              string
+	UserID          string
+	Channel         string
+	SubjectKey      string
+	CandidateJSON   string
+	DefaultCurrency string
+	Status          string
+	CreatedAt       time.Time
+	ExpiresAt       time.Time
+	ResolvedAt      *time.Time
 }
 
 type WhatsAppUserLink struct {

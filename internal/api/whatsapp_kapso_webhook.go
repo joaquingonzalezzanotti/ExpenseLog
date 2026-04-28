@@ -486,7 +486,7 @@ func (h *Handler) handleKapsoInboundMessage(event kapsoMessageEvent) {
 	}
 
 	if event.Message.Kapso.HasMedia || isKapsoMediaMessageType(event.Message.Type) {
-		reply, createdExpenseID := h.createExpenseFromWhatsAppMedia(link.UserID, event)
+		reply, createdExpenseID := h.createExpenseFromWhatsAppMedia(link.UserID, fromPhone, event, now)
 		if sendErr := sendKapsoTextMessage(phoneNumberID, fromPhone, reply); sendErr != nil {
 			log.Printf("WHATSAPP KAPSO: failed sending media reply to %s: %v", fromPhone, sendErr)
 		}
@@ -496,7 +496,7 @@ func (h *Handler) handleKapsoInboundMessage(event kapsoMessageEvent) {
 		return
 	}
 
-	reply, createdExpenseID := h.createExpenseFromWhatsAppText(link.UserID, textBody)
+	reply, createdExpenseID := h.createExpenseFromWhatsAppText(link.UserID, fromPhone, textBody, now)
 	if sendErr := sendKapsoTextMessage(phoneNumberID, fromPhone, reply); sendErr != nil {
 		log.Printf("WHATSAPP KAPSO: failed sending command reply to %s: %v", fromPhone, sendErr)
 	}
@@ -650,6 +650,23 @@ func (h *Handler) handleWhatsAppPendingActionText(phoneNumberID, fromPhone, user
 		if ok {
 			clearWhatsAppPendingAction(fromPhone)
 			_ = sendWhatsAppMovementButtons(phoneNumberID, fromPhone, pending.ExpenseID)
+		}
+		return true
+	case "confirm_flow":
+		flow, ok := mapWhatsAppFlowConfirmation(trimmed)
+		if !ok {
+			_ = sendKapsoTextMessage(phoneNumberID, fromPhone, "Confirma con 'ingreso' o 'gasto'. Si no, escribe 'cancelar'.")
+			return true
+		}
+		reply, createdExpenseID, resolved := h.resolveWhatsAppPendingFlowDecision(userID, pending.ExpenseID, flow, now)
+		_ = sendKapsoTextMessage(phoneNumberID, fromPhone, reply)
+		if resolved {
+			clearWhatsAppPendingAction(fromPhone)
+			if createdExpenseID != "" {
+				_ = sendWhatsAppMovementButtons(phoneNumberID, fromPhone, createdExpenseID)
+			} else {
+				_ = sendWhatsAppMainMenuButtons(phoneNumberID, fromPhone)
+			}
 		}
 		return true
 	default:
@@ -819,10 +836,13 @@ func parseWhatsAppExpenseText(rawText, defaultCurrency string) (whatsAppParsedEx
 	return parseWhatsAppNaturalText(text, defaultCurrency)
 }
 
-func (h *Handler) createExpenseFromWhatsAppText(userID, text string) (string, string) {
+func (h *Handler) createExpenseFromWhatsAppText(userID, fromPhone, text string, now time.Time) (string, string) {
 	defaultCurrency, err := h.storage.GetCurrency(userID)
 	if err != nil || strings.TrimSpace(defaultCurrency) == "" {
 		defaultCurrency = "ars"
+	}
+	if now.IsZero() {
+		now = time.Now().UTC()
 	}
 	candidates := botcore.SplitBatchTextCandidates(text)
 	if len(candidates) <= 1 {
@@ -837,7 +857,7 @@ func (h *Handler) createExpenseFromWhatsAppText(userID, text string) (string, st
 			}
 			parsed = aiParsed
 		}
-		return h.saveWhatsAppParsedExpense(userID, parsed)
+		return h.saveWhatsAppParsedExpense(userID, fromPhone, parsed, now)
 	}
 
 	parsedItems := make([]whatsAppParsedExpense, 0, len(candidates))
@@ -863,8 +883,17 @@ func (h *Handler) createExpenseFromWhatsAppText(userID, text string) (string, st
 	}
 	expenses := make([]storage.Expense, 0, len(parsedItems))
 	for _, parsed := range parsedItems {
-		expense, resolveErr := h.buildWhatsAppExpenseFromParsed(userID, parsed, time.Now().UTC())
+		expense, resolveErr := h.buildWhatsAppExpenseFromParsed(userID, parsed, now)
 		if resolveErr != nil {
+			var ambiguousErr ambiguousWhatsAppDecisionError
+			if errors.As(resolveErr, &ambiguousErr) {
+				decisionID, decisionErr := h.startWhatsAppAmbiguousFlowDecision(userID, fromPhone, ambiguousErr.Candidate, ambiguousErr.DefaultCurrency, now)
+				if decisionErr != nil {
+					log.Printf("WHATSAPP KAPSO: failed creating pending decision for batch ambiguity: %v", decisionErr)
+					return "No pude abrir la confirmacion del movimiento ambiguo. Reintenta en unos segundos.", ""
+				}
+				return "Uno de los movimientos quedó ambiguo. Responde 'ingreso' o 'gasto' para continuar. ID: " + decisionID, ""
+			}
 			return resolveErr.Error(), ""
 		}
 		expenses = append(expenses, expense)
@@ -876,10 +905,13 @@ func (h *Handler) createExpenseFromWhatsAppText(userID, text string) (string, st
 	return summarizeWhatsAppBatchResult(expenses), expenses[0].ID
 }
 
-func (h *Handler) createExpenseFromWhatsAppMedia(userID string, event kapsoMessageEvent) (string, string) {
+func (h *Handler) createExpenseFromWhatsAppMedia(userID, fromPhone string, event kapsoMessageEvent, now time.Time) (string, string) {
 	defaultCurrency, err := h.storage.GetCurrency(userID)
 	if err != nil || strings.TrimSpace(defaultCurrency) == "" {
 		defaultCurrency = "ars"
+	}
+	if now.IsZero() {
+		now = time.Now().UTC()
 	}
 
 	media := extractKapsoMediaContext(event)
@@ -908,18 +940,30 @@ func (h *Handler) createExpenseFromWhatsAppMedia(userID string, event kapsoMessa
 		log.Printf("WHATSAPP KAPSO: ai parse for media failed: %v", aiErr)
 		ocrParsed, ocrErr := h.tryParseWhatsAppMediaWithOCR(mediaBytes, media, defaultCurrency)
 		if ocrErr == nil {
-			return h.saveWhatsAppParsedExpense(userID, ocrParsed)
+			return h.saveWhatsAppParsedExpense(userID, fromPhone, ocrParsed, now)
 		}
 		log.Printf("WHATSAPP KAPSO: local OCR fallback failed: %v", ocrErr)
 		return "Recibi tu archivo, pero no pude extraer el gasto automaticamente. Proba con texto: gaste 1500 en super.", ""
 	}
 
-	return h.saveWhatsAppParsedExpense(userID, aiParsed)
+	return h.saveWhatsAppParsedExpense(userID, fromPhone, aiParsed, now)
 }
 
-func (h *Handler) saveWhatsAppParsedExpense(userID string, parsed whatsAppParsedExpense) (string, string) {
-	expense, err := h.buildWhatsAppExpenseFromParsed(userID, parsed, time.Now().UTC())
+func (h *Handler) saveWhatsAppParsedExpense(userID, fromPhone string, parsed whatsAppParsedExpense, now time.Time) (string, string) {
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	expense, err := h.buildWhatsAppExpenseFromParsed(userID, parsed, now)
 	if err != nil {
+		var ambiguousErr ambiguousWhatsAppDecisionError
+		if errors.As(err, &ambiguousErr) {
+			decisionID, decisionErr := h.startWhatsAppAmbiguousFlowDecision(userID, fromPhone, ambiguousErr.Candidate, ambiguousErr.DefaultCurrency, now)
+			if decisionErr != nil {
+				log.Printf("WHATSAPP KAPSO: failed creating pending decision: %v", decisionErr)
+				return "Movimiento ambiguo, pero no pude abrir confirmacion. Reintenta en unos segundos.", ""
+			}
+			return "Movimiento ambiguo. Responde 'ingreso' o 'gasto' para confirmar. ID: " + decisionID, ""
+		}
 		return err.Error(), ""
 	}
 	if err := h.storage.AddExpense(userID, expense); err != nil {
@@ -932,6 +976,15 @@ func (h *Handler) saveWhatsAppParsedExpense(userID string, parsed whatsAppParsed
 		math.Abs(expense.Amount),
 		strings.ToUpper(expense.Currency),
 	), expense.ID
+}
+
+type ambiguousWhatsAppDecisionError struct {
+	Candidate       botcore.ParseCandidate
+	DefaultCurrency string
+}
+
+func (e ambiguousWhatsAppDecisionError) Error() string {
+	return "movimiento ambiguo: confirmame si fue ingreso o gasto y lo registro"
 }
 
 func (h *Handler) buildWhatsAppExpenseFromParsed(userID string, parsed whatsAppParsedExpense, now time.Time) (storage.Expense, error) {
@@ -948,13 +1001,17 @@ func (h *Handler) buildWhatsAppExpenseFromParsed(userID string, parsed whatsAppP
 	var expense storage.Expense
 	if isUnifiedDecisionEngineEnabled() {
 		candidate := buildWhatsAppParseCandidate(parsed)
+		candidate.Evidence.RawText = strings.TrimSpace(parsed.Name)
 		decision, err := h.decideFromCandidate(userID, candidate, defaultCurrency, now)
 		if err != nil {
 			return storage.Expense{}, fmt.Errorf("no pude interpretar el tipo de movimiento. Usa /gasto, /ingreso o /reintegro")
 		}
 		h.recordBotDecisionEvent(userID, candidate, decision, now)
 		if decision.Ambiguous {
-			return storage.Expense{}, fmt.Errorf("movimiento ambiguo: confirmame si fue ingreso o gasto y lo registro")
+			return storage.Expense{}, ambiguousWhatsAppDecisionError{
+				Candidate:       candidate,
+				DefaultCurrency: defaultCurrency,
+			}
 		}
 		expense = decisionToExpense(decision, []string{"whatsapp_bot"}, "whatsapp_bot")
 	} else {
@@ -987,6 +1044,81 @@ func (h *Handler) buildWhatsAppExpenseFromParsed(userID string, parsed whatsAppP
 		return storage.Expense{}, fmt.Errorf("no pude crear el movimiento. Verifica formato y reintenta")
 	}
 	return expense, nil
+}
+
+func (h *Handler) startWhatsAppAmbiguousFlowDecision(userID, fromPhone string, candidate botcore.ParseCandidate, defaultCurrency string, now time.Time) (string, error) {
+	subjectKey := "wa:" + normalizeDialNumber(fromPhone) + ":" + strings.ToLower(strings.TrimSpace(candidate.FlowHint)) + ":" + strings.TrimSpace(candidate.Reference)
+	pending, err := h.createBotPendingDecision(userID, "whatsapp", subjectKey, candidate, defaultCurrency, now)
+	if err != nil {
+		return "", err
+	}
+	setWhatsAppPendingAction(fromPhone, whatsAppPendingAction{
+		UserID:    userID,
+		ExpenseID: pending.ID,
+		Kind:      "confirm_flow",
+		ExpiresAt: pending.ExpiresAt,
+	})
+	return pending.ID, nil
+}
+
+func mapWhatsAppFlowConfirmation(text string) (string, bool) {
+	norm := normalizeWhatsAppNaturalText(text)
+	switch norm {
+	case "ingreso", "income", "in":
+		return "income", true
+	case "gasto", "egreso", "expense", "out":
+		return "expense", true
+	default:
+		return "", false
+	}
+}
+
+func (h *Handler) resolveWhatsAppPendingFlowDecision(userID, pendingDecisionID, flow string, now time.Time) (string, string, bool) {
+	pending, err := h.storage.GetBotPendingDecisionByID(pendingDecisionID)
+	if err == sql.ErrNoRows {
+		return "No encontre esa confirmacion pendiente o ya vencio.", "", true
+	}
+	if err != nil {
+		log.Printf("WHATSAPP KAPSO: get pending decision failed: %v", err)
+		return "No pude leer la confirmacion pendiente. Reintenta.", "", false
+	}
+	if pending.UserID != userID || pending.Channel != "whatsapp" {
+		return "Esa confirmacion no pertenece a tu sesion.", "", true
+	}
+
+	resolvedPending, err := h.storage.ResolveBotPendingDecision(pendingDecisionID, now)
+	if err == sql.ErrNoRows {
+		return "Esa confirmacion ya se resolvio o vencio. Envia el movimiento de nuevo.", "", true
+	}
+	if err != nil {
+		log.Printf("WHATSAPP KAPSO: resolve pending decision failed: %v", err)
+		return "No pude resolver la confirmacion. Reintenta.", "", false
+	}
+
+	var candidate botcore.ParseCandidate
+	if err := json.Unmarshal([]byte(resolvedPending.CandidateJSON), &candidate); err != nil {
+		log.Printf("WHATSAPP KAPSO: decode pending candidate failed: %v", err)
+		return "No pude reconstruir el movimiento a confirmar.", "", true
+	}
+	candidate.FlowHint = flow
+
+	decision, err := h.decideFromCandidate(userID, candidate, resolvedPending.DefaultCurrency, now)
+	if err != nil {
+		return "No pude confirmar ese movimiento. Reenvialo por favor.", "", true
+	}
+	decision.Ambiguous = false
+	decision.Reasons = append(decision.Reasons, "user_confirmed_flow_whatsapp")
+	h.recordBotDecisionEvent(userID, candidate, decision, now)
+
+	expense := decisionToExpense(decision, []string{"whatsapp_bot", "manual_confirmation"}, "whatsapp_bot")
+	if err := expense.Validate(); err != nil {
+		return "El movimiento confirmado quedo invalido. Reenvialo.", "", true
+	}
+	if err := h.storage.AddExpense(userID, expense); err != nil {
+		log.Printf("WHATSAPP KAPSO: add confirmed expense failed: %v", err)
+		return "No pude guardar el movimiento confirmado. Reintenta.", "", false
+	}
+	return fmt.Sprintf("Listo, confirmado como %s y registrado.", whatsAppFlowLabel(expense.Flow, expense.Amount)), expense.ID, true
 }
 
 func summarizeWhatsAppBatchResult(expenses []storage.Expense) string {

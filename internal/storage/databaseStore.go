@@ -272,6 +272,20 @@ const (
 			media_caption TEXT,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 		);`
+
+	createBotPendingDecisionsTableSQL = `
+		CREATE TABLE IF NOT EXISTS bot_pending_decisions (
+			id VARCHAR(36) PRIMARY KEY,
+			user_id VARCHAR(36) NOT NULL,
+			channel VARCHAR(30) NOT NULL,
+			subject_key VARCHAR(120) NOT NULL,
+			candidate_json JSONB NOT NULL,
+			default_currency VARCHAR(10) NOT NULL,
+			status VARCHAR(20) NOT NULL DEFAULT 'pending',
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			expires_at TIMESTAMPTZ NOT NULL,
+			resolved_at TIMESTAMPTZ
+		);`
 )
 
 func InitializePostgresStore(baseConfig SystemConfig) (Storage, error) {
@@ -320,6 +334,7 @@ func createTables(db *sql.DB) error {
 		createTelegramIdentityAliasesTableSQL,
 		createTelegramOwnedAccountFingerprintsTableSQL,
 		createBotDecisionEventsTableSQL,
+		createBotPendingDecisionsTableSQL,
 		createWhatsAppUserLinksTableSQL,
 		createWhatsAppLinkCodesTableSQL,
 		createWalletIngestTokensTableSQL,
@@ -463,6 +478,15 @@ func createTables(db *sql.DB) error {
 	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS bot_decision_events_channel_created_idx ON bot_decision_events (channel, created_at DESC)`); err != nil {
 		return err
 	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS bot_pending_decisions_user_created_idx ON bot_pending_decisions (user_id, created_at DESC)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS bot_pending_decisions_status_expires_idx ON bot_pending_decisions (status, expires_at)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS bot_pending_decisions_open_subject_key ON bot_pending_decisions (channel, subject_key) WHERE status = 'pending'`); err != nil {
+		return err
+	}
 	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS whatsapp_user_links_user_key ON whatsapp_user_links (user_id)`); err != nil {
 		return err
 	}
@@ -572,6 +596,7 @@ func ensureForeignKeys(db *sql.DB) error {
 		{name: "telegram_identity_aliases_user_fk", table: "telegram_identity_aliases", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "telegram_owned_account_fingerprints_user_fk", table: "telegram_owned_account_fingerprints", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "bot_decision_events_user_fk", table: "bot_decision_events", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
+		{name: "bot_pending_decisions_user_fk", table: "bot_pending_decisions", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "whatsapp_user_links_user_fk", table: "whatsapp_user_links", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "whatsapp_link_codes_user_fk", table: "whatsapp_link_codes", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
 		{name: "wallet_ingest_tokens_user_fk", table: "wallet_ingest_tokens", column: "user_id", refTable: "users", refColumn: "id", onDelete: "CASCADE"},
@@ -1859,6 +1884,93 @@ func (s *databaseStore) AddBotDecisionEvent(userID string, event BotDecisionEven
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12)
 	`, eventID, userID, channel, decision, event.Amount, currency, confidence, event.Ambiguous, string(reasonsJSON), strings.TrimSpace(event.RawText), strings.TrimSpace(event.MediaCaption), createdAt)
 	return err
+}
+
+func (s *databaseStore) CreateBotPendingDecision(decision BotPendingDecision) (BotPendingDecision, error) {
+	item := decision
+	item.ID = strings.TrimSpace(item.ID)
+	if item.ID == "" {
+		item.ID = uuid.New().String()
+	}
+	item.UserID = strings.TrimSpace(item.UserID)
+	item.Channel = strings.TrimSpace(strings.ToLower(item.Channel))
+	item.SubjectKey = strings.TrimSpace(strings.ToLower(item.SubjectKey))
+	item.DefaultCurrency = normalizeCurrencyCode(item.DefaultCurrency)
+	item.Status = strings.TrimSpace(strings.ToLower(item.Status))
+	if item.Status == "" {
+		item.Status = "pending"
+	}
+	item.CreatedAt = item.CreatedAt.UTC()
+	if item.CreatedAt.IsZero() {
+		item.CreatedAt = time.Now().UTC()
+	}
+	item.ExpiresAt = item.ExpiresAt.UTC()
+	if item.ExpiresAt.IsZero() {
+		item.ExpiresAt = item.CreatedAt.Add(15 * time.Minute)
+	}
+	candidate := strings.TrimSpace(item.CandidateJSON)
+	if candidate == "" {
+		candidate = "{}"
+	}
+
+	if _, err := s.db.Exec(`
+		INSERT INTO bot_pending_decisions (
+			id, user_id, channel, subject_key, candidate_json, default_currency, status, created_at, expires_at, resolved_at
+		) VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10)
+	`, item.ID, item.UserID, item.Channel, item.SubjectKey, candidate, item.DefaultCurrency, item.Status, item.CreatedAt, item.ExpiresAt, item.ResolvedAt); err != nil {
+		return BotPendingDecision{}, err
+	}
+	return s.GetBotPendingDecisionByID(item.ID)
+}
+
+func scanBotPendingDecision(scanner interface{ Scan(...any) error }) (BotPendingDecision, error) {
+	var item BotPendingDecision
+	var candidateRaw []byte
+	var resolvedAt sql.NullTime
+	if err := scanner.Scan(
+		&item.ID,
+		&item.UserID,
+		&item.Channel,
+		&item.SubjectKey,
+		&candidateRaw,
+		&item.DefaultCurrency,
+		&item.Status,
+		&item.CreatedAt,
+		&item.ExpiresAt,
+		&resolvedAt,
+	); err != nil {
+		return BotPendingDecision{}, err
+	}
+	item.CandidateJSON = string(candidateRaw)
+	if resolvedAt.Valid {
+		t := resolvedAt.Time.UTC()
+		item.ResolvedAt = &t
+	}
+	return item, nil
+}
+
+func (s *databaseStore) GetBotPendingDecisionByID(id string) (BotPendingDecision, error) {
+	return scanBotPendingDecision(s.db.QueryRow(`
+		SELECT id, user_id, channel, subject_key, candidate_json, default_currency, status, created_at, expires_at, resolved_at
+		FROM bot_pending_decisions
+		WHERE id = $1
+	`, strings.TrimSpace(id)))
+}
+
+func (s *databaseStore) ResolveBotPendingDecision(id string, resolvedAt time.Time) (BotPendingDecision, error) {
+	now := resolvedAt.UTC()
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	row := s.db.QueryRow(`
+		UPDATE bot_pending_decisions
+		SET status = 'resolved', resolved_at = $2
+		WHERE id = $1
+		  AND status = 'pending'
+		  AND expires_at > $2
+		RETURNING id, user_id, channel, subject_key, candidate_json, default_currency, status, created_at, expires_at, resolved_at
+	`, strings.TrimSpace(id), now)
+	return scanBotPendingDecision(row)
 }
 
 func normalizeWhatsAppPhone(raw string) string {

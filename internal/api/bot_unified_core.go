@@ -302,6 +302,50 @@ func summarizeTelegramBatchResult(expenses []storage.Expense) string {
 	return fmt.Sprintf("Batch registrado: %d movimientos. Ingresos %.2f %s | Gastos %.2f %s | Neto %.2f %s", len(expenses), income, currency, expense, currency, net, currency)
 }
 
+func (h *Handler) createBotPendingDecision(userID, channel, subjectKey string, candidate botcore.ParseCandidate, defaultCurrency string, now time.Time) (storage.BotPendingDecision, error) {
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	candidateJSON, err := json.Marshal(candidate)
+	if err != nil {
+		return storage.BotPendingDecision{}, err
+	}
+	return h.storage.CreateBotPendingDecision(storage.BotPendingDecision{
+		UserID:          userID,
+		Channel:         strings.TrimSpace(strings.ToLower(channel)),
+		SubjectKey:      strings.TrimSpace(strings.ToLower(subjectKey)),
+		CandidateJSON:   string(candidateJSON),
+		DefaultCurrency: strings.ToLower(strings.TrimSpace(defaultCurrency)),
+		Status:          "pending",
+		CreatedAt:       now,
+		ExpiresAt:       now.Add(15 * time.Minute),
+	})
+}
+
+func buildTelegramDecisionSubjectKey(payload botExpensePayload) string {
+	flat := flattenTelegramSourceMeta(payload.SourceMeta)
+	key := firstNonEmpty(
+		flat["ingest_key"],
+		flat["message_id"],
+		flat["telegram_message_id"],
+		flat["media_group_id"],
+		flat["update_id"],
+		flat["event_id"],
+	)
+	if key != "" {
+		return "tg:" + strings.ToLower(strings.TrimSpace(key))
+	}
+	raw := strings.ToLower(strings.TrimSpace(payload.Type)) + "|" +
+		strings.TrimSpace(payload.DateTimeISO) + "|" +
+		strings.TrimSpace(payload.Counterparty) + "|" +
+		strconv.FormatFloat(payload.Amount, 'f', 2, 64)
+	raw = strings.ToLower(strings.TrimSpace(raw))
+	if raw == "" {
+		raw = "tg:fallback"
+	}
+	return raw
+}
+
 func (h *Handler) recordBotDecisionEvent(userID string, candidate botcore.ParseCandidate, decision botcore.Decision, now time.Time) {
 	if now.IsZero() {
 		now = time.Now().UTC()

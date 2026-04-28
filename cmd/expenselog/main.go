@@ -219,6 +219,7 @@ func runServer(port int) {
 	registerAPI("/bot/telegram/link-status", handler.RequireBotAuth(handler.GetBotTelegramLinkStatus))
 	registerAPI("/bot/telegram/identity", handler.RequireBotAuth(handler.GetBotTelegramIdentity))
 	registerAPI("/bot/expense", handler.RequireBotAuth(handler.CreateBotExpense))
+	registerAPI("/bot/expense/confirm", handler.RequireBotAuth(handler.ConfirmBotExpense))
 
 	server := &http.Server{
 		Addr: fmt.Sprint(":", port),

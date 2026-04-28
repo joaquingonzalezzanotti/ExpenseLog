@@ -335,3 +335,23 @@ func TestSummarizeWhatsAppBatchResult(t *testing.T) {
 		t.Fatalf("expected net balance in summary, got: %q", message)
 	}
 }
+
+func TestMapWhatsAppFlowConfirmation(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+		ok    bool
+	}{
+		{input: "ingreso", want: "income", ok: true},
+		{input: "income", want: "income", ok: true},
+		{input: "gasto", want: "expense", ok: true},
+		{input: "egreso", want: "expense", ok: true},
+		{input: "maybe", want: "", ok: false},
+	}
+	for _, tt := range tests {
+		got, ok := mapWhatsAppFlowConfirmation(tt.input)
+		if ok != tt.ok || got != tt.want {
+			t.Fatalf("mapWhatsAppFlowConfirmation(%q) = (%q,%v), want (%q,%v)", tt.input, got, ok, tt.want, tt.ok)
+		}
+	}
+}

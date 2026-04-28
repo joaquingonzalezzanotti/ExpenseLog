@@ -117,7 +117,9 @@ Tasks:
 - [x] Keep legacy paths as fallback while flag is OFF.
 - [x] Add persistent homogeneous decision telemetry table and writer (foundation: insert-only events on unified path).
 - [ ] Add telemetry read APIs/dashboards and correction-loop joins.
-- [ ] Implement explicit clarification state machine for ambiguous decisions.
+- [x] Implement explicit clarification state machine foundation for ambiguous decisions (Telegram internal confirm endpoint + persistent pending decisions).
+- [x] Extend clarification state machine foundation to WhatsApp conversational confirm loop (`ingreso`/`gasto` over pending decision).
+- [ ] Extend WhatsApp clarification loop with interactive buttons and timeout reminders.
 - [x] Enable grouped Telegram attachment intake foundation (`media + caption`) with buffered assembly + dedupe behind `TELEGRAM_ATTACHMENT_ATOMIC_INTAKE_ENABLED`.
 - [ ] Extend Telegram atomic intake with media-group ordering and persistence-backed buffering.
 - [x] Implement multi-transaction text segmentation service (initial integration in WhatsApp text flow).
@@ -136,6 +138,9 @@ Implemented files in Sprint 2 (current increment):
 - `internal/botcore/segmentation_test.go`
 - `internal/storage/storage.go`
 - `internal/storage/databaseStore.go`
+- `internal/api/telegram_bot_confirm.go`
+- `internal/api/telegram_bot_confirm_test.go`
+- `cmd/expenselog/main.go`
 
 ## Sprint 3 - Ingestion Reliability & Batch Parsing
 Goal: Handle real chat behavior correctly before decision.

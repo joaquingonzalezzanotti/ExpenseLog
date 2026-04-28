@@ -338,6 +338,7 @@
                         <div id="telegramIdentityCard" class="settings-bot-data-card" hidden>
                             <div class="settings-bot-data-label">Identidad para transferencias</div>
                             <p class="settings-helper-text settings-bot-hint">Configura alias tuyos y huellas de cuentas propias para mejorar precision de ingresos/egresos sin hardcode.</p>
+                            <div class="telegram-identity-section-title">Alias personales</div>
                             <div class="settings-preference-control telegram-identity-inline-row">
                                 <input id="telegramIdentityAliasInput" class="telegram-identity-alias-input" type="text" placeholder="Ej: Joaquin Gonzalez">
                                 <button id="telegramIdentityAliasAddBtn" class="nav-button button-secondary" type="button">Agregar alias</button>
@@ -345,10 +346,22 @@
                             <div id="telegramIdentityAliasesList" class="settings-bot-data-meta telegram-identity-list"></div>
                             <div class="settings-bot-data-label telegram-identity-subtitle">Cuentas propias (huellas)</div>
                             <div class="settings-preference-control telegram-identity-fingerprint-grid">
-                                <input id="telegramIdentityBankInput" type="text" placeholder="Banco (ej: Santander)">
-                                <input id="telegramIdentityAccountLast4Input" type="text" placeholder="Ultimos 4 cuenta" maxlength="4" inputmode="numeric">
-                                <input id="telegramIdentityCBULast4Input" type="text" placeholder="Ultimos 4 CBU/CVU" maxlength="4" inputmode="numeric">
-                                <input id="telegramIdentityHolderInput" type="text" placeholder="Titular (ej: Joaquin Gonzalez)">
+                                <label class="telegram-identity-field">
+                                    <span>Banco</span>
+                                    <input id="telegramIdentityBankInput" type="text" placeholder="Ej: Santander">
+                                </label>
+                                <label class="telegram-identity-field">
+                                    <span>Ultimos 4 cuenta</span>
+                                    <input id="telegramIdentityAccountLast4Input" type="text" placeholder="Ej: 8536" maxlength="4" inputmode="numeric">
+                                </label>
+                                <label class="telegram-identity-field">
+                                    <span>Ultimos 4 CBU/CVU</span>
+                                    <input id="telegramIdentityCBULast4Input" type="text" placeholder="Ej: 5368" maxlength="4" inputmode="numeric">
+                                </label>
+                                <label class="telegram-identity-field">
+                                    <span>Titular</span>
+                                    <input id="telegramIdentityHolderInput" type="text" placeholder="Ej: Joaquin Gonzalez">
+                                </label>
                             </div>
                             <div class="settings-export-actions settings-bot-actions telegram-identity-actions-sm">
                                 <button id="telegramIdentityFingerprintAddBtn" class="nav-button button-secondary" type="button">Agregar cuenta propia</button>

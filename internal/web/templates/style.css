@@ -4058,6 +4058,16 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     flex-wrap: wrap;
 }
 
+.telegram-identity-section-title {
+    margin-top: 0.2rem;
+    margin-bottom: 0.38rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+}
+
 .telegram-identity-alias-input {
     flex: 1;
     min-width: 180px;
@@ -4083,6 +4093,21 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
+}
+
+.telegram-identity-field {
+    display: grid;
+    gap: 0.22rem;
+}
+
+.telegram-identity-field span {
+    font-size: 0.73rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.telegram-identity-field input {
+    width: 100%;
 }
 
 .telegram-identity-actions-sm {
@@ -4132,6 +4157,19 @@ html[data-theme='dark'] .expense-table td.amount-balance {
     min-width: auto;
 }
 
+.telegram-identity-actions-sm .nav-button {
+    max-width: 280px;
+}
+
+.settings-preference-control.telegram-identity-inline-row {
+    align-items: stretch;
+}
+
+.settings-preference-control.telegram-identity-fingerprint-grid {
+    display: grid;
+    align-items: start;
+}
+
 @media (max-width: 640px) {
     .settings-export-grid {
         grid-template-columns: 1fr;
@@ -4168,6 +4206,10 @@ html[data-theme='dark'] .expense-table td.amount-balance {
 
     .telegram-identity-fingerprint-grid {
         grid-template-columns: 1fr;
+    }
+
+    .telegram-identity-actions-sm .nav-button {
+        max-width: none;
     }
 
     .settings-report-select-wrap select,

@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 
 	"github.com/joaquingonzalezzanotti/ExpenseLog/internal/storage"
 )
@@ -45,6 +46,7 @@ const (
 	aiParserDefaultParsePath     = "/api/parse"
 	whatsAppOCRDefaultLangs      = "spa+eng"
 	whatsAppSessionTTL           = 15 * time.Minute
+	whatsAppInboundEventSource   = "whatsapp_kapso_message"
 
 	whatsAppActionMenuNew       = "menu:new"
 	whatsAppActionMenuLast      = "menu:last"
@@ -469,23 +471,31 @@ func (h *Handler) handleKapsoInboundMessage(event kapsoMessageEvent) {
 		}
 		return
 	}
+	inboundEventID, shouldSkip := h.registerWhatsAppInboundEvent(link.UserID, fromPhone, event, now)
+	if shouldSkip {
+		return
+	}
 
 	if actionID := extractKapsoInteractiveActionID(event); actionID != "" {
 		if handled := h.handleWhatsAppInteractiveAction(phoneNumberID, fromPhone, link.UserID, actionID, now); handled {
+			h.completeWhatsAppInboundEvent(inboundEventID, "handled", "")
 			return
 		}
 	}
 
 	if handled := h.handleWhatsAppPendingActionText(phoneNumberID, fromPhone, link.UserID, textBody, now); handled {
+		h.completeWhatsAppInboundEvent(inboundEventID, "handled", "")
 		return
 	}
 
 	if handled := h.handleWhatsAppConversationalText(phoneNumberID, fromPhone, link.UserID, textBody); handled {
+		h.completeWhatsAppInboundEvent(inboundEventID, "handled", "")
 		return
 	}
 
 	if event.Message.Kapso.HasMedia || isKapsoMediaMessageType(event.Message.Type) {
 		reply, createdExpenseID := h.createExpenseFromWhatsAppMedia(link.UserID, event)
+		h.completeWhatsAppInboundEvent(inboundEventID, whatsAppInboundEventStatusFromResult(createdExpenseID), createdExpenseID)
 		if sendErr := sendKapsoTextMessage(phoneNumberID, fromPhone, reply); sendErr != nil {
 			log.Printf("WHATSAPP KAPSO: failed sending media reply to %s: %v", fromPhone, sendErr)
 		}
@@ -496,11 +506,110 @@ func (h *Handler) handleKapsoInboundMessage(event kapsoMessageEvent) {
 	}
 
 	reply, createdExpenseID := h.createExpenseFromWhatsAppText(link.UserID, textBody)
+	h.completeWhatsAppInboundEvent(inboundEventID, whatsAppInboundEventStatusFromResult(createdExpenseID), createdExpenseID)
 	if sendErr := sendKapsoTextMessage(phoneNumberID, fromPhone, reply); sendErr != nil {
 		log.Printf("WHATSAPP KAPSO: failed sending command reply to %s: %v", fromPhone, sendErr)
 	}
 	if createdExpenseID != "" {
 		_ = sendWhatsAppMovementButtons(phoneNumberID, fromPhone, createdExpenseID)
+	}
+}
+
+func whatsAppInboundEventStatusFromResult(createdExpenseID string) string {
+	if strings.TrimSpace(createdExpenseID) == "" {
+		return "needs_review"
+	}
+	return "confirmed"
+}
+
+func buildWhatsAppInboundMessageKey(fromPhone string, event kapsoMessageEvent) string {
+	messageID := strings.TrimSpace(event.Message.ID)
+	if messageID != "" {
+		return fmt.Sprintf("msg:%s|from:%s", messageID, normalizeDialNumber(fromPhone))
+	}
+	parts := []string{
+		normalizeDialNumber(fromPhone),
+		strings.TrimSpace(event.PhoneNumberID),
+		strings.TrimSpace(event.Conversation.PhoneNumberID),
+		strings.ToLower(strings.TrimSpace(event.Message.Type)),
+		strings.TrimSpace(event.Message.Text.Body),
+		strings.TrimSpace(event.Message.Kapso.Content),
+		strings.TrimSpace(event.Message.Kapso.MediaData.URL),
+		strings.TrimSpace(event.Message.Kapso.MediaURL),
+		strings.TrimSpace(event.Message.Image.Caption),
+		strings.TrimSpace(event.Message.Document.Caption),
+	}
+	sum := sha256.Sum256([]byte(strings.Join(parts, "|")))
+	return "sha256:" + hex.EncodeToString(sum[:])
+}
+
+func firstNonEmptyString(values ...string) string {
+	for _, value := range values {
+		clean := strings.TrimSpace(value)
+		if clean != "" {
+			return clean
+		}
+	}
+	return ""
+}
+
+func buildWhatsAppInboundEventRawPayload(fromPhone, messageKey string, event kapsoMessageEvent) string {
+	payload := map[string]any{
+		"message_key":     strings.TrimSpace(messageKey),
+		"message_id":      strings.TrimSpace(event.Message.ID),
+		"from_phone":      normalizeDialNumber(fromPhone),
+		"message_type":    strings.TrimSpace(event.Message.Type),
+		"phone_number_id": firstNonEmptyString(event.PhoneNumberID, event.Conversation.PhoneNumberID, event.Message.Kapso.PhoneNumberID),
+	}
+	encoded, err := json.Marshal(payload)
+	if err != nil {
+		return `{"message_key":"marshal_error"}`
+	}
+	return string(encoded)
+}
+
+func isUniqueViolationOnWhatsAppInboundMessage(err error) bool {
+	var pqErr *pq.Error
+	if !errors.As(err, &pqErr) {
+		return false
+	}
+	return string(pqErr.Code) == "23505" && pqErr.Constraint == "wallet_ingest_events_whatsapp_message_key"
+}
+
+func (h *Handler) registerWhatsAppInboundEvent(userID, fromPhone string, event kapsoMessageEvent, now time.Time) (string, bool) {
+	messageKey := buildWhatsAppInboundMessageKey(fromPhone, event)
+	inboundEvent, err := h.storage.CreateWalletIngestEvent(storage.WalletIngestEvent{
+		ID:          uuid.New().String(),
+		UserID:      userID,
+		Source:      whatsAppInboundEventSource,
+		MerchantRaw: messageKey,
+		RawPayload:  buildWhatsAppInboundEventRawPayload(fromPhone, messageKey, event),
+		Status:      "received",
+		Confidence:  "low",
+		PaidAt:      now,
+	})
+	if err == nil {
+		return inboundEvent.ID, false
+	}
+	if isUniqueViolationOnWhatsAppInboundMessage(err) {
+		log.Printf("WHATSAPP KAPSO: duplicate inbound message ignored user=%s key=%s", userID, messageKey)
+		return "", true
+	}
+	existing, findErr := h.storage.GetWalletIngestEventBySourceMerchantRaw(userID, whatsAppInboundEventSource, messageKey)
+	if findErr == nil {
+		log.Printf("WHATSAPP KAPSO: duplicate inbound message found user=%s key=%s existing_event=%s", userID, messageKey, existing.ID)
+		return existing.ID, true
+	}
+	log.Printf("WHATSAPP KAPSO: failed registering inbound event user=%s key=%s err=%v", userID, messageKey, err)
+	return "", false
+}
+
+func (h *Handler) completeWhatsAppInboundEvent(eventID, status, createdExpenseID string) {
+	if strings.TrimSpace(eventID) == "" {
+		return
+	}
+	if err := h.storage.UpdateWalletIngestEventResult(eventID, status, "low", strings.TrimSpace(createdExpenseID), ""); err != nil {
+		log.Printf("WHATSAPP KAPSO: failed updating inbound event %s status=%s err=%v", eventID, status, err)
 	}
 }
 

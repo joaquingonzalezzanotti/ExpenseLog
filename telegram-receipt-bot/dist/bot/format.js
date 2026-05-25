@@ -24,6 +24,12 @@ const formatPaymentMethodLabel = (sourceApp) => {
         return 'Efectivo (solo registro)';
     return 'Transferencia / Debito';
 };
+const compactLine = (label, value) => {
+    const clean = String(value || '').trim();
+    if (!clean || clean === '-')
+        return '';
+    return `${label}: ${clean}`;
+};
 const normalizeMoney = (amount) => (typeof amount === 'number' && Number.isFinite(amount)
     ? amount.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
     : '-');
@@ -50,14 +56,22 @@ const resolveTypeLabel = (r) => {
         return 'Gasto';
     return 'Pendiente';
 };
+const looksLikeUUID = (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+const shouldShowReference = (reference) => {
+    const clean = String(reference || '').trim();
+    if (!clean)
+        return false;
+    if (looksLikeUUID(clean))
+        return false;
+    return clean.length <= 24;
+};
 export const draftSummary = (r) => [
-    '*Resumen del comprobante*',
-    `Tipo: ${resolveTypeLabel(r)}`,
-    `Monto: ${normalizeMoney(r.amount)} ${r.currency}`,
-    `Fecha/Hora: ${formatDateTimeLabel(r.datetime_iso)}`,
-    `Contraparte (comercio/destino): ${r.counterparty ?? '-'}`,
-    `Referencia (comprobante): ${r.reference ?? '-'}`,
-    `Categoria (regla): ${resolveSuggestedCategory(r) ?? '-'}`,
-    `Metodo: ${formatPaymentMethodLabel(r.source_app)}`,
-    `Motivo: ${r.motive ?? '-'}`
-].join('\n');
+    '*Movimiento detectado*',
+    `${resolveTypeLabel(r)} • ${normalizeMoney(r.amount)} ${String(r.currency || 'ARS').trim().toUpperCase()}`,
+    formatDateTimeLabel(r.datetime_iso),
+    String(r.counterparty || '').trim() || '-',
+    formatPaymentMethodLabel(r.source_app),
+    compactLine('Motivo', r.motive),
+    compactLine('Categoria', resolveSuggestedCategory(r)),
+    shouldShowReference(r.reference) ? compactLine('Ref', r.reference) : ''
+].filter(Boolean).join('\n');

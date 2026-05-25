@@ -427,6 +427,9 @@ func createTables(db *sql.DB) error {
 	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS wallet_ingest_events_user_amount_idx ON wallet_ingest_events (user_id, amount)`); err != nil {
 		return err
 	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS wallet_ingest_events_whatsapp_message_key ON wallet_ingest_events (user_id, source, merchant_raw) WHERE source = 'whatsapp_kapso_message' AND merchant_raw IS NOT NULL AND merchant_raw <> ''`); err != nil {
+		return err
+	}
 	if err := ensureRecurringInstanceUniqueIndex(db); err != nil {
 		return err
 	}
@@ -2923,6 +2926,42 @@ func (s *databaseStore) UpdateWalletIngestEventResult(eventID, status, confidenc
 		WHERE id = $1
 	`, eventID, status, confidence, createdTransactionID, duplicateOfEventID)
 	return err
+}
+
+func (s *databaseStore) GetWalletIngestEventBySourceMerchantRaw(userID, source, merchantRaw string) (WalletIngestEvent, error) {
+	query := `
+		SELECT id, user_id, source, COALESCE(amount, 0), COALESCE(merchant, ''), COALESCE(merchant_raw, ''),
+			COALESCE(card_label, ''), COALESCE(wallet_category, ''), paid_at,
+			raw_payload::text, COALESCE(request_headers::text, ''), status, confidence,
+			COALESCE(created_transaction_id, ''), COALESCE(duplicate_of_event_id, ''), created_at, updated_at
+		FROM wallet_ingest_events
+		WHERE user_id = $1 AND source = $2 AND COALESCE(merchant_raw, '') = $3
+		ORDER BY created_at DESC
+		LIMIT 1
+	`
+	var event WalletIngestEvent
+	if err := s.db.QueryRow(query, userID, source, strings.TrimSpace(merchantRaw)).Scan(
+		&event.ID,
+		&event.UserID,
+		&event.Source,
+		&event.Amount,
+		&event.Merchant,
+		&event.MerchantRaw,
+		&event.CardLabel,
+		&event.WalletCategory,
+		&event.PaidAt,
+		&event.RawPayload,
+		&event.RequestHeaders,
+		&event.Status,
+		&event.Confidence,
+		&event.CreatedTransactionID,
+		&event.DuplicateOfEventID,
+		&event.CreatedAt,
+		&event.UpdatedAt,
+	); err != nil {
+		return WalletIngestEvent{}, err
+	}
+	return event, nil
 }
 
 func (s *databaseStore) FindPotentialDuplicateWalletIngestEvent(userID string, amount float64, merchantNormalized string, paidAt time.Time, window time.Duration) (WalletIngestEvent, error) {

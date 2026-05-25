@@ -314,3 +314,41 @@ func TestWhatsAppFlowLabel(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildWhatsAppInboundMessageKeyUsesMessageIDWhenAvailable(t *testing.T) {
+	event := kapsoMessageEvent{
+		Message: kapsoWebhookMessage{
+			ID:   "wamid-123",
+			Type: "image",
+		},
+	}
+	got := buildWhatsAppInboundMessageKey("5491122334455", event)
+	want := "msg:wamid-123|from:5491122334455"
+	if got != want {
+		t.Fatalf("unexpected key. got=%q want=%q", got, want)
+	}
+}
+
+func TestBuildWhatsAppInboundMessageKeyFallsBackToStableHash(t *testing.T) {
+	event := kapsoMessageEvent{
+		Message: kapsoWebhookMessage{
+			Type: "text",
+			Text: kapsoWebhookMessageText{Body: "gaste 2500 en super"},
+			Kapso: kapsoWebhookMessageKapso{
+				Content: "gaste 2500 en super",
+			},
+		},
+		Conversation: kapsoWebhookConversation{PhoneNumberID: "pnid-1"},
+	}
+	got1 := buildWhatsAppInboundMessageKey("5491122334455", event)
+	got2 := buildWhatsAppInboundMessageKey("5491122334455", event)
+	if got1 == "" || got2 == "" {
+		t.Fatalf("expected non-empty keys")
+	}
+	if got1 != got2 {
+		t.Fatalf("expected stable fallback key, got %q and %q", got1, got2)
+	}
+	if !strings.HasPrefix(got1, "sha256:") {
+		t.Fatalf("expected sha256 fallback key, got %q", got1)
+	}
+}

@@ -6,18 +6,32 @@ import { processReceipt } from '../processing/pipeline.js';
 import { canUseAIParser, parseWithAIParser } from '../processing/ai_parser.js';
 import { logger } from '../observability/logger.js';
 import { draftSummary } from './format.js';
+import { parseDraftAction } from './callback_data.js';
 import { dedupeKeyboard, fixMenuKeyboard, mainDecisionKeyboard, postConfirmKeyboard } from './keyboards.js';
 import { ExpenseLogAdapter, ExpenseLogAPIError } from '../expenselog/client.js';
 import { applyRules } from '../rules/engine.js';
 import { draftResults, parseResults, receiptsReceived, stageLatency } from '../observability/metrics.js';
+import { AUTO_TEXT_RECEIPT_GRACE_MS, AUTO_TEXT_RECEIPT_SUPPRESSION_MS, getRecentReceiptActivity, markRecentReceiptActivity, shouldSuppressAutoTextFromRecentReceipt } from './text_routing.js';
 import { writeFile } from 'node:fs/promises';
 const expenselogClient = new ExpenseLogAdapter();
 const pendingFix = new Map();
 const inFlightReceiptMessages = new Set();
+const recentReceiptActivity = new Map();
 const linkStatusCache = new Map();
 const LINK_STATUS_CACHE_TTL_MS = 30_000;
 const multiUserLinkingEnabled = Boolean(String(config.expenselogBotInternalSecret || '').trim());
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const toReceiptParseResult = (value) => value;
+const getPendingFixState = (userId) => {
+    const pending = pendingFix.get(userId);
+    if (!pending) {
+        return null;
+    }
+    if (typeof pending === 'string') {
+        return { field: pending, draftId: '' };
+    }
+    return pending;
+};
 const fieldPromptByKey = {
     source_app: { label: 'metodo de pago', hint: 'Escribi: "transferencia", "efectivo" o "tarjeta credito".' },
     type: { label: 'tipo', hint: 'Escribi "gasto" o "ingreso".' },
@@ -233,6 +247,18 @@ const isWithin24Hours = (aIso, bIso) => {
     return diffMs <= (24 * 60 * 60 * 1000);
 };
 const latestDraftByUser = async (telegramUserId) => (prisma.receiptDraft.findFirst({ where: { telegramUserId }, orderBy: { updatedAt: 'desc' } }));
+const findDraftByIDForUser = async (telegramUserId, draftId) => {
+    const safeDraftId = String(draftId || '').trim();
+    if (!safeDraftId) {
+        return null;
+    }
+    return prisma.receiptDraft.findFirst({
+        where: {
+            id: safeDraftId,
+            telegramUserId
+        }
+    });
+};
 const buildReceiptMessageKey = (telegramUserId, chatId, messageId) => (`${telegramUserId}:${chatId}:${messageId}`);
 const answerCallback = async (ctx) => {
     if (typeof ctx.answerCbQuery !== 'function')
@@ -256,6 +282,18 @@ const findFallbackDuplicateByTimeWindow = async (telegramUserId, parsed) => {
         }
     }
     return null;
+};
+const findRecentMediaDraftForConversation = async (telegramUserId, chatId) => {
+    const since = new Date(Date.now() - AUTO_TEXT_RECEIPT_SUPPRESSION_MS);
+    return prisma.receiptDraft.findFirst({
+        where: {
+            telegramUserId,
+            chatId,
+            fileType: { in: ['image', 'pdf'] },
+            createdAt: { gte: since }
+        },
+        orderBy: { createdAt: 'desc' }
+    });
 };
 const mapLinkErrorToMessage = (error) => {
     if (error.code === 'invalid_link_code')
@@ -512,9 +550,9 @@ export const buildBot = () => {
                 }
             });
             if (probableDuplicate) {
-                await ctx.reply('Detecte una posible carga duplicada. Quieres crearla igual?', dedupeKeyboard());
+                await ctx.reply('Detecte una posible carga duplicada. Quieres crearla igual?', dedupeKeyboard(draft.id));
             }
-            await ctx.reply(draftSummary(parsed), { parse_mode: 'Markdown', ...mainDecisionKeyboard() });
+            await ctx.reply(draftSummary(parsed), { parse_mode: 'Markdown', ...mainDecisionKeyboard(draft.id) });
             logger.info('draft_created_from_text', { id: draft.id, origin });
         }
         catch (error) {
@@ -527,6 +565,43 @@ export const buildBot = () => {
             }
             await ctx.reply('No pude procesar ese texto con parser AI. Prueba reformularlo o envia una imagen/PDF.');
         }
+    };
+    const shouldSuppressAutoTextForCtx = async (ctx) => {
+        const telegramUserId = BigInt(ctx.from.id);
+        const chatId = BigInt(ctx.chat.id);
+        await sleep(AUTO_TEXT_RECEIPT_GRACE_MS);
+        const nowMs = Date.now();
+        const recentActivity = getRecentReceiptActivity(recentReceiptActivity, {
+            telegramUserId,
+            chatId,
+            nowMs,
+            windowMs: AUTO_TEXT_RECEIPT_SUPPRESSION_MS
+        });
+        let recentMediaDraftCreatedAtMs;
+        try {
+            const recentMediaDraft = await findRecentMediaDraftForConversation(telegramUserId, chatId);
+            if (recentMediaDraft?.createdAt instanceof Date) {
+                recentMediaDraftCreatedAtMs = recentMediaDraft.createdAt.getTime();
+            }
+        }
+        catch (error) {
+            logger.warn('recent_media_draft_lookup_failed', { telegramUserId: String(telegramUserId), chatId: String(chatId), error });
+        }
+        const shouldSuppress = shouldSuppressAutoTextFromRecentReceipt({
+            recentActivity,
+            recentMediaDraftCreatedAtMs,
+            nowMs
+        });
+        if (shouldSuppress) {
+            logger.info('plain_text_ignored_due_to_recent_receipt', {
+                telegramUserId: String(telegramUserId),
+                chatId: String(chatId),
+                messageId: ctx.message?.message_id,
+                recentActivityPhase: recentActivity?.phase || '',
+                recentActivityMessageId: recentActivity?.messageId || null
+            });
+        }
+        return shouldSuppress;
     };
     bot.start(async (ctx) => {
         if (!(await ensurePrivateAllowed(ctx)))
@@ -614,18 +689,26 @@ export const buildBot = () => {
             return;
         if (/^\/cargar(?:@\w+)?(?:\s+|$)/i.test(rawText))
             return;
-        if (!(await requireLinkedPremium(ctx)))
-            return;
-        const field = pendingFix.get(ctx.from.id);
-        if (!field) {
+        const pending = getPendingFixState(ctx.from.id);
+        if (!pending) {
             if (!config.aiParserTextEnabled) {
                 return;
             }
+            if (await shouldSuppressAutoTextForCtx(ctx)) {
+                return;
+            }
+            if (!(await requireLinkedPremium(ctx)))
+                return;
             await processTextTransactionForCtx(ctx, rawText, 'plain_text');
             return;
         }
+        if (!(await requireLinkedPremium(ctx)))
+            return;
         const telegramUserId = BigInt(ctx.from.id);
-        const draft = await latestDraftByUser(telegramUserId);
+        const field = pending.field;
+        const draft = pending.draftId
+            ? await findDraftByIDForUser(telegramUserId, pending.draftId)
+            : await latestDraftByUser(telegramUserId);
         if (!draft)
             return;
         const parsed = toReceiptParseResult(draft.parseResultJson);
@@ -661,7 +744,7 @@ export const buildBot = () => {
         });
         pendingFix.delete(ctx.from.id);
         draftResults.inc({ status: 'corrected' });
-        await ctx.reply(draftSummary(parsed), { parse_mode: 'Markdown', ...mainDecisionKeyboard() });
+        await ctx.reply(draftSummary(parsed), { parse_mode: 'Markdown', ...mainDecisionKeyboard(draft.id) });
     });
     bot.on(['photo', 'document'], async (ctx) => {
         if (!(await ensurePrivateAllowed(ctx)))
@@ -691,9 +774,16 @@ export const buildBot = () => {
             return;
         }
         inFlightReceiptMessages.add(receiptMessageKey);
+        markRecentReceiptActivity(recentReceiptActivity, {
+            telegramUserId,
+            chatId,
+            messageId,
+            phase: 'processing'
+        });
         const link = await ctx.telegram.getFileLink(fileId);
         const ext = fileType === 'pdf' ? 'pdf' : 'jpg';
         const tempPath = await tempPathFor(ext);
+        let createdDraft = null;
         try {
             const existingDraft = await prisma.receiptDraft.findFirst({
                 where: {
@@ -728,10 +818,7 @@ export const buildBot = () => {
             const processed = await processReceipt({
                 filePath: tempPath,
                 fileType,
-                telegramMeta,
-                onFallbackAttempt: async () => {
-                    await ctx.reply('No pude interpretar completamente el comprobante con el parser interno. Estoy probando parser AI como respaldo, espera unos segundos...');
-                }
+                telegramMeta
             });
             const parsed = processed?.result ?? processed;
             const fallbackInfo = processed?.fallback;
@@ -752,12 +839,6 @@ export const buildBot = () => {
                 when: r.whenJson,
                 then: r.thenJson
             })));
-            if (fallbackInfo?.attempted && fallbackInfo?.used) {
-                await ctx.reply('Listo, el parser AI devolvio una propuesta. Revisala y confirma.');
-            }
-            if (fallbackInfo?.attempted && !fallbackInfo?.used && String(fallbackInfo?.reason || '').includes('ai_failed')) {
-                await ctx.reply('Intente parser AI como respaldo pero no respondio a tiempo. Te muestro la mejor lectura disponible para que la corrijas si hace falta.');
-            }
             const parseStatus = fallbackInfo?.used
                 ? 'ok_fallback_ai'
                 : (fallbackInfo?.attempted ? 'ok_fallback_native' : 'ok');
@@ -785,11 +866,18 @@ export const buildBot = () => {
                     reference: parsed.reference
                 }
             });
+            createdDraft = draft;
+            markRecentReceiptActivity(recentReceiptActivity, {
+                telegramUserId,
+                chatId,
+                messageId,
+                phase: 'draft_created'
+            });
             if (probableDuplicate) {
-                await ctx.reply('Detecte una posible carga duplicada. Quieres crearla igual?', dedupeKeyboard());
+                await ctx.reply('Detecte una posible carga duplicada. Quieres crearla igual?', dedupeKeyboard(draft.id));
             }
             const autoConfirmed = shouldAutoConfirmDraft(parsed);
-            await ctx.reply(draftSummary(parsed), { parse_mode: 'Markdown', ...(autoConfirmed ? {} : mainDecisionKeyboard()) });
+            await ctx.reply(draftSummary(parsed), { parse_mode: 'Markdown', ...(autoConfirmed ? {} : mainDecisionKeyboard(draft.id)) });
             if (autoConfirmed) {
                 const created = await createTransactionFromDraft(ctx, draft, 'auto');
                 if (created) {
@@ -800,9 +888,15 @@ export const buildBot = () => {
             logger.info('draft_created', { id: draft.id, autoConfirmed });
         }
         catch (error) {
-            parseResults.inc({ status: 'fail' });
-            logger.error('processing_failed', { error });
-            await ctx.reply('No pude leer bien el comprobante. Prueba con otra imagen mas nitida o envia el PDF.');
+            if (!createdDraft) {
+                parseResults.inc({ status: 'fail' });
+                logger.error('processing_failed', { error, phase: 'pre_draft' });
+                await ctx.reply('No pude leer bien el comprobante. Prueba con otra imagen mas nitida o envia el PDF.');
+            }
+            else {
+                logger.error('processing_failed', { error, phase: 'post_draft', draftId: createdDraft.id });
+                await ctx.reply('Pude leer el comprobante y el borrador ya existe, pero fallo un paso posterior. No reenvies el mismo comprobante; usa el borrador actual.');
+            }
         }
         finally {
             inFlightReceiptMessages.delete(receiptMessageKey);
@@ -810,21 +904,27 @@ export const buildBot = () => {
             stopTotal();
         }
     });
-    bot.action('fix_menu', async (ctx) => {
+    bot.action(/^fix_menu:[0-9a-f-]+$/i, async (ctx) => {
         if (!(await ensurePrivateAllowed(ctx)))
             return;
         if (!(await requireLinkedPremium(ctx)))
             return;
         await answerCallback(ctx);
-        await ctx.editMessageReplyMarkup(fixMenuKeyboard().reply_markup);
+        const action = parseDraftAction(ctx.callbackQuery?.data, 'fix_menu');
+        if (!action)
+            return;
+        await ctx.editMessageReplyMarkup(fixMenuKeyboard(action.draftId).reply_markup);
     });
-    bot.action('back_summary', async (ctx) => {
+    bot.action(/^back_summary:[0-9a-f-]+$/i, async (ctx) => {
         if (!(await ensurePrivateAllowed(ctx)))
             return;
         if (!(await requireLinkedPremium(ctx)))
             return;
         await answerCallback(ctx);
-        await ctx.editMessageReplyMarkup(mainDecisionKeyboard().reply_markup);
+        const action = parseDraftAction(ctx.callbackQuery?.data, 'back_summary');
+        if (!action)
+            return;
+        await ctx.editMessageReplyMarkup(mainDecisionKeyboard(action.draftId).reply_markup);
     });
     for (const { field, action } of [
         { field: 'amount', action: 'amount' },
@@ -834,19 +934,22 @@ export const buildBot = () => {
         { field: 'source_app', action: 'source' },
         { field: 'motive', action: 'motive' }
     ]) {
-        bot.action(`fix_${action}`, async (ctx) => {
+        bot.action(new RegExp(`^fix_${action}:[0-9a-f-]+$`, 'i'), async (ctx) => {
             if (!(await ensurePrivateAllowed(ctx)))
                 return;
             if (!(await requireLinkedPremium(ctx)))
                 return;
             await answerCallback(ctx);
-            pendingFix.set(ctx.from.id, field);
+            const parsedAction = parseDraftAction(ctx.callbackQuery?.data, `fix_${action}`);
+            if (!parsedAction)
+                return;
+            pendingFix.set(ctx.from.id, { field, draftId: parsedAction.draftId });
             const prompt = fieldPromptByKey[field];
             const hintLine = prompt?.hint ? `\n${prompt.hint}` : '';
             await ctx.reply(`Escribe el nuevo valor para ${prompt?.label ?? 'este campo'}.${hintLine}`);
         });
     }
-    bot.action('fix_retry_ai', async (ctx) => {
+    bot.action(/^fix_retry_ai:[0-9a-f-]+$/i, async (ctx) => {
         if (!(await ensurePrivateAllowed(ctx)))
             return;
         if (!(await requireLinkedPremium(ctx)))
@@ -856,8 +959,11 @@ export const buildBot = () => {
             await ctx.reply('El parser AI no esta habilitado en este entorno.');
             return;
         }
+        const action = parseDraftAction(ctx.callbackQuery?.data, 'fix_retry_ai');
+        if (!action)
+            return;
         const telegramUserId = BigInt(ctx.from.id);
-        const draft = await latestDraftByUser(telegramUserId);
+        const draft = await findDraftByIDForUser(telegramUserId, action.draftId);
         if (!draft) {
             await ctx.reply('No encontre un borrador reciente para mejorar.');
             return;
@@ -915,7 +1021,7 @@ export const buildBot = () => {
             else {
                 await ctx.reply('AI no mejoro el borrador. Mantengo la version actual.');
             }
-            await ctx.reply(draftSummary(finalParsed), { parse_mode: 'Markdown', ...mainDecisionKeyboard() });
+            await ctx.reply(draftSummary(finalParsed), { parse_mode: 'Markdown', ...mainDecisionKeyboard(draft.id) });
         }
         catch (error) {
             parseResults.inc({ status: 'fail_fix_ai' });
@@ -923,26 +1029,32 @@ export const buildBot = () => {
             await ctx.reply('No pude completar el reintento AI en este momento. Intenta de nuevo en unos segundos.');
         }
     });
-    bot.action('reject', async (ctx) => {
+    bot.action(/^reject:[0-9a-f-]+$/i, async (ctx) => {
         if (!(await ensurePrivateAllowed(ctx)))
             return;
         if (!(await requireLinkedPremium(ctx)))
             return;
         await answerCallback(ctx);
-        const draft = await latestDraftByUser(BigInt(ctx.from.id));
+        const action = parseDraftAction(ctx.callbackQuery?.data, 'reject');
+        if (!action)
+            return;
+        const draft = await findDraftByIDForUser(BigInt(ctx.from.id), action.draftId);
         if (!draft)
             return;
         await prisma.receiptDraft.update({ where: { id: draft.id }, data: { status: 'rejected' } });
         draftResults.inc({ status: 'rejected' });
         await ctx.reply('Listo, descarte este borrador.');
     });
-    bot.action('dedupe_cancel', async (ctx) => {
+    bot.action(/^dedupe_cancel:[0-9a-f-]+$/i, async (ctx) => {
         if (!(await ensurePrivateAllowed(ctx)))
             return;
         if (!(await requireLinkedPremium(ctx)))
             return;
         await answerCallback(ctx);
-        const draft = await latestDraftByUser(BigInt(ctx.from.id));
+        const action = parseDraftAction(ctx.callbackQuery?.data, 'dedupe_cancel');
+        if (!action)
+            return;
+        const draft = await findDraftByIDForUser(BigInt(ctx.from.id), action.draftId);
         if (draft) {
             await prisma.receiptDraft.update({ where: { id: draft.id }, data: { status: 'rejected' } });
             draftResults.inc({ status: 'rejected' });
@@ -1026,13 +1138,16 @@ export const buildBot = () => {
         draftResults.inc({ status: 'confirmed' });
         return created;
     };
-    const confirmHandler = async (ctx) => {
+    const confirmHandler = async (ctx, callbackAction) => {
         if (!(await ensurePrivateAllowed(ctx)))
             return;
         if (!(await requireLinkedPremium(ctx, true)))
             return;
         await answerCallback(ctx);
-        const draft = await latestDraftByUser(BigInt(ctx.from.id));
+        const action = parseDraftAction(ctx.callbackQuery?.data, callbackAction);
+        if (!action)
+            return;
+        const draft = await findDraftByIDForUser(BigInt(ctx.from.id), action.draftId);
         if (!draft)
             return;
         const created = await createTransactionFromDraft(ctx, draft, 'manual');
@@ -1049,7 +1164,7 @@ export const buildBot = () => {
         await answerCallback(ctx);
         await ctx.reply('Entendido. Si quieres revertirla, puedes abrir la transaccion desde ExpenseLog y eliminarla manualmente.');
     });
-    bot.action('confirm', confirmHandler);
-    bot.action('dedupe_create_anyway', confirmHandler);
+    bot.action(/^confirm:[0-9a-f-]+$/i, async (ctx) => confirmHandler(ctx, 'confirm'));
+    bot.action(/^dedupe_create_anyway:[0-9a-f-]+$/i, async (ctx) => confirmHandler(ctx, 'dedupe_create_anyway'));
     return bot;
 };

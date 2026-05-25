@@ -1,8 +1,9 @@
 import { Markup } from 'telegraf';
-export const mainDecisionKeyboard = () => Markup.inlineKeyboard([
-    [Markup.button.callback('Confirmar', 'confirm')],
-    [Markup.button.callback('Corregir datos', 'fix_menu')],
-    [Markup.button.callback('Descartar', 'reject')]
+import { buildDraftAction } from './callback_data.js';
+export const mainDecisionKeyboard = (draftId) => Markup.inlineKeyboard([
+    [Markup.button.callback('Confirmar', buildDraftAction('confirm', draftId))],
+    [Markup.button.callback('Corregir datos', buildDraftAction('fix_menu', draftId))],
+    [Markup.button.callback('Descartar', buildDraftAction('reject', draftId))]
 ]);
 export const postConfirmKeyboard = (transactionUrl) => {
     const rows = [];
@@ -12,14 +13,14 @@ export const postConfirmKeyboard = (transactionUrl) => {
     rows.push([Markup.button.callback('Cancelar', 'post_cancel')]);
     return Markup.inlineKeyboard(rows);
 };
-export const fixMenuKeyboard = () => Markup.inlineKeyboard([
-    [Markup.button.callback('Cambiar monto', 'fix_amount'), Markup.button.callback('Cambiar fecha y hora', 'fix_datetime')],
-    [Markup.button.callback('Cambiar contraparte', 'fix_counterparty'), Markup.button.callback('Cambiar tipo', 'fix_type')],
-    [Markup.button.callback('Cambiar metodo', 'fix_source'), Markup.button.callback('Cambiar motivo', 'fix_motive')],
-    [Markup.button.callback('Reintentar con AI', 'fix_retry_ai')],
-    [Markup.button.callback('Volver', 'back_summary')]
+export const fixMenuKeyboard = (draftId) => Markup.inlineKeyboard([
+    [Markup.button.callback('Cambiar monto', buildDraftAction('fix_amount', draftId)), Markup.button.callback('Cambiar fecha y hora', buildDraftAction('fix_datetime', draftId))],
+    [Markup.button.callback('Cambiar contraparte', buildDraftAction('fix_counterparty', draftId)), Markup.button.callback('Cambiar tipo', buildDraftAction('fix_type', draftId))],
+    [Markup.button.callback('Cambiar metodo', buildDraftAction('fix_source', draftId)), Markup.button.callback('Cambiar motivo', buildDraftAction('fix_motive', draftId))],
+    [Markup.button.callback('Reintentar con AI', buildDraftAction('fix_retry_ai', draftId))],
+    [Markup.button.callback('Volver', buildDraftAction('back_summary', draftId))]
 ]);
-export const dedupeKeyboard = () => Markup.inlineKeyboard([
-    [Markup.button.callback('Crear de todos modos', 'dedupe_create_anyway')],
-    [Markup.button.callback('Cancelar carga', 'dedupe_cancel')]
+export const dedupeKeyboard = (draftId) => Markup.inlineKeyboard([
+    [Markup.button.callback('Crear de todos modos', buildDraftAction('dedupe_create_anyway', draftId))],
+    [Markup.button.callback('Cancelar carga', buildDraftAction('dedupe_cancel', draftId))]
 ]);

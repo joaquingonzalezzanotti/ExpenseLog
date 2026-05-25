@@ -103,6 +103,7 @@ type Storage interface {
 	TouchWalletIngestTokenLastUsed(tokenID string, usedAt time.Time) error
 	CreateWalletIngestEvent(event WalletIngestEvent) (WalletIngestEvent, error)
 	UpdateWalletIngestEventResult(eventID, status, confidence, createdTransactionID, duplicateOfEventID string) error
+	GetWalletIngestEventBySourceMerchantRaw(userID, source, merchantRaw string) (WalletIngestEvent, error)
 	FindPotentialDuplicateWalletIngestEvent(userID string, amount float64, merchantNormalized string, paidAt time.Time, window time.Duration) (WalletIngestEvent, error)
 
 	// Potential Future Feature: Multi-currency

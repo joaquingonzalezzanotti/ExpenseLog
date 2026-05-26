@@ -61,7 +61,7 @@ const shouldPreferAIResult = (nativeParsed, aiParsed) => {
     if (typeof aiConfidence === 'number' && typeof nativeConfidence !== 'number')
         return true;
     if (typeof aiConfidence === 'number' && typeof nativeConfidence === 'number') {
-        return aiConfidence >= nativeConfidence;
+        return aiConfidence > nativeConfidence;
     }
     return !nativeRequired;
 };

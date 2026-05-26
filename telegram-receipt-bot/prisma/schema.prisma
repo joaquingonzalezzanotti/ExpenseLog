@@ -36,6 +36,7 @@ model ReceiptDraft {
   @@index([telegramUserId, createdAt])
   @@index([reference, status])
   @@index([dedupeKey, status])
+  @@unique([telegramUserId, chatId, messageId])
   @@map("receipt_draft")
 }
 

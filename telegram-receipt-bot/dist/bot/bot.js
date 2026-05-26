@@ -1,4 +1,5 @@
 import { Telegraf } from 'telegraf';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../db/client.js';
 import { config, isAllowedTelegramUser } from '../config.js';
 import { tempPathFor, safeDelete } from '../processing/file.js';
@@ -12,6 +13,8 @@ import { ExpenseLogAdapter, ExpenseLogAPIError } from '../expenselog/client.js';
 import { applyRules } from '../rules/engine.js';
 import { draftResults, parseResults, receiptsReceived, stageLatency } from '../observability/metrics.js';
 import { AUTO_TEXT_RECEIPT_GRACE_MS, AUTO_TEXT_RECEIPT_SUPPRESSION_MS, getRecentReceiptActivity, markRecentReceiptActivity, shouldSuppressAutoTextFromRecentReceipt } from './text_routing.js';
+import { parseHumanAmount } from './amount.js';
+import { getOverallConfidence, hasRequiredAmount, mustHaveRequired, shouldAutoConfirmDraft } from './receipt_decision.js';
 import { writeFile } from 'node:fs/promises';
 const expenselogClient = new ExpenseLogAdapter();
 const pendingFix = new Map();
@@ -190,23 +193,6 @@ const requireLinkedPremium = async (ctx, forceRefresh = false) => {
     await ctx.reply('No pude validar la vinculacion con ExpenseLog. Proba de nuevo.');
     return false;
 };
-const hasRequiredAmount = (amount) => (typeof amount === 'number' && Number.isFinite(amount) && amount !== 0);
-const mustHaveRequired = (r) => Boolean(r.type &&
-    hasRequiredAmount(r.amount) &&
-    r.datetime_iso &&
-    r.counterparty);
-const getOverallConfidence = (r) => {
-    const value = Number(r?.confidence?.overall);
-    return Number.isFinite(value) ? value : undefined;
-};
-
-const AUTO_CONFIRM_CONFIDENCE_THRESHOLD = 0.7;
-const shouldAutoConfirmDraft = (parsed) => {
-    if (!mustHaveRequired(parsed))
-        return false;
-    const confidence = getOverallConfidence(parsed);
-    return typeof confidence === 'number' && confidence >= AUTO_CONFIRM_CONFIDENCE_THRESHOLD;
-};
 const shouldPreferAICandidate = (nativeParsed, aiParsed) => {
     const nativeRequired = mustHaveRequired(nativeParsed);
     const aiRequired = mustHaveRequired(aiParsed);
@@ -219,7 +205,7 @@ const shouldPreferAICandidate = (nativeParsed, aiParsed) => {
     if (typeof aiConfidence === 'number' && typeof nativeConfidence !== 'number')
         return true;
     if (typeof aiConfidence === 'number' && typeof nativeConfidence === 'number') {
-        return aiConfidence >= nativeConfidence;
+        return aiConfidence > nativeConfidence;
     }
     return !nativeRequired;
 };
@@ -264,6 +250,79 @@ const answerCallback = async (ctx) => {
     if (typeof ctx.answerCbQuery !== 'function')
         return;
     await ctx.answerCbQuery().catch(() => undefined);
+};
+const isReceiptDraftMessageUniqueError = (error) => {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') {
+        return false;
+    }
+    const target = Array.isArray(error.meta?.target) ? error.meta.target.map((value) => String(value)) : [];
+    const fieldSets = [
+        ['telegramUserId', 'chatId', 'messageId'],
+        ['telegram_user_id', 'chat_id', 'message_id']
+    ];
+    return fieldSets.some((fields) => fields.every((field) => target.includes(field)));
+};
+const tryCreateReceiptDraft = async (data) => {
+    try {
+        const draft = await prisma.receiptDraft.create({ data });
+        return { draft, created: true };
+    }
+    catch (error) {
+        if (!isReceiptDraftMessageUniqueError(error)) {
+            throw error;
+        }
+        const existingDraft = await prisma.receiptDraft.findFirst({
+            where: {
+                telegramUserId: data.telegramUserId,
+                chatId: data.chatId,
+                messageId: data.messageId
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+        if (existingDraft) {
+            logger.info('receipt_message_deduped_unique_constraint', {
+                telegramUserId: String(data.telegramUserId),
+                chatId: String(data.chatId),
+                messageId: data.messageId,
+                existingDraftId: existingDraft.id
+            });
+            return { draft: existingDraft, created: false };
+        }
+        throw error;
+    }
+};
+const claimDraftForConfirmation = async (draft) => {
+    if (draft.status === 'confirmed') {
+        return { ok: false, reason: 'confirmed' };
+    }
+    if (draft.status === 'confirming') {
+        return { ok: false, reason: 'confirming' };
+    }
+    if (draft.status === 'rejected') {
+        return { ok: false, reason: 'rejected' };
+    }
+    const updated = await prisma.receiptDraft.updateMany({
+        where: {
+            id: draft.id,
+            status: draft.status,
+            expenselogTransactionId: null
+        },
+        data: { status: 'confirming' }
+    });
+    if (updated.count === 1) {
+        return { ok: true };
+    }
+    const latestDraft = await prisma.receiptDraft.findUnique({ where: { id: draft.id } });
+    if (latestDraft?.status === 'confirmed') {
+        return { ok: false, reason: 'confirmed' };
+    }
+    if (latestDraft?.status === 'confirming') {
+        return { ok: false, reason: 'confirming' };
+    }
+    if (latestDraft?.status === 'rejected') {
+        return { ok: false, reason: 'rejected' };
+    }
+    return { ok: false, reason: 'busy' };
 };
 const findFallbackDuplicateByTimeWindow = async (telegramUserId, parsed) => {
     const candidates = await prisma.receiptDraft.findMany({
@@ -535,20 +594,22 @@ export const buildBot = () => {
                     }
                 })
                 : await findFallbackDuplicateByTimeWindow(telegramUserId, parsed);
-            const draft = await prisma.receiptDraft.create({
-                data: {
-                    telegramUserId,
-                    chatId: BigInt(ctx.chat.id),
-                    messageId: ctx.message.message_id,
-                    fileId: `text:${ctx.message.message_id}`,
-                    fileUniqueId: `text:${ctx.from.id}:${ctx.message.message_id}`,
-                    fileType: 'text',
-                    status: mustHaveRequired(parsed) ? 'awaiting_confirm' : 'awaiting_fix',
-                    parseResultJson: parsed,
-                    dedupeKey: dedupeKey(parsed),
-                    reference: parsed.reference
-                }
+            const draftCreate = await tryCreateReceiptDraft({
+                telegramUserId,
+                chatId: BigInt(ctx.chat.id),
+                messageId: ctx.message.message_id,
+                fileId: `text:${ctx.message.message_id}`,
+                fileUniqueId: `text:${ctx.from.id}:${ctx.message.message_id}`,
+                fileType: 'text',
+                status: mustHaveRequired(parsed) ? 'awaiting_confirm' : 'awaiting_fix',
+                parseResultJson: parsed,
+                dedupeKey: dedupeKey(parsed),
+                reference: parsed.reference
             });
+            if (!draftCreate.created) {
+                return;
+            }
+            const draft = draftCreate.draft;
             if (probableDuplicate) {
                 await ctx.reply('Detecte una posible carga duplicada. Quieres crearla igual?', dedupeKeyboard(draft.id));
             }
@@ -713,8 +774,14 @@ export const buildBot = () => {
             return;
         const parsed = toReceiptParseResult(draft.parseResultJson);
         const value = rawText;
-        if (field === 'amount')
-            parsed.amount = Number(value.replace(',', '.'));
+        if (field === 'amount') {
+            const parsedAmount = parseHumanAmount(value);
+            if (!hasRequiredAmount(parsedAmount)) {
+                await ctx.reply('No entendi el monto. Escribe algo como: 1600, 5.000 o 1600,50.');
+                return;
+            }
+            parsed.amount = parsedAmount;
+        }
         else if (field === 'datetime_iso')
             parsed.datetime_iso = value;
         else if (field === 'counterparty')
@@ -803,6 +870,9 @@ export const buildBot = () => {
             const stopDownload = stageLatency.startTimer({ stage: 'telegram_download' });
             try {
                 const res = await fetch(link.toString());
+                if (!res.ok) {
+                    throw new Error(`Telegram file download failed with status ${res.status}`);
+                }
                 const buff = Buffer.from(await res.arrayBuffer());
                 await writeFile(tempPath, buff);
             }
@@ -852,20 +922,22 @@ export const buildBot = () => {
                     }
                 })
                 : await findFallbackDuplicateByTimeWindow(telegramUserId, parsed);
-            const draft = await prisma.receiptDraft.create({
-                data: {
-                    telegramUserId,
-                    chatId,
-                    messageId,
-                    fileId,
-                    fileUniqueId,
-                    fileType,
-                    status: mustHaveRequired(parsed) ? 'awaiting_confirm' : 'awaiting_fix',
-                    parseResultJson: parsed,
-                    dedupeKey: dedupeKey(parsed),
-                    reference: parsed.reference
-                }
+            const draftCreate = await tryCreateReceiptDraft({
+                telegramUserId,
+                chatId,
+                messageId,
+                fileId,
+                fileUniqueId,
+                fileType,
+                status: mustHaveRequired(parsed) ? 'awaiting_confirm' : 'awaiting_fix',
+                parseResultJson: parsed,
+                dedupeKey: dedupeKey(parsed),
+                reference: parsed.reference
             });
+            if (!draftCreate.created) {
+                return;
+            }
+            const draft = draftCreate.draft;
             createdDraft = draft;
             markRecentReceiptActivity(recentReceiptActivity, {
                 telegramUserId,
@@ -1067,6 +1139,20 @@ export const buildBot = () => {
             await ctx.reply(`Faltan datos obligatorios: ${missing.join(', ')}.\nToca "Corregir datos" para completarlos.`);
             return undefined;
         }
+        const originalStatus = draft.status;
+        const claim = await claimDraftForConfirmation(draft);
+        if (!claim.ok) {
+            if (claim.reason === 'confirmed') {
+                await ctx.reply('Este borrador ya fue cargado.');
+                return undefined;
+            }
+            if (claim.reason === 'confirming' || claim.reason === 'busy') {
+                await ctx.reply('Este borrador ya se esta confirmando. Espera unos segundos.');
+                return undefined;
+            }
+            await ctx.reply('Este borrador ya no se puede confirmar.');
+            return undefined;
+        }
         const stopCreateTx = stageLatency.startTimer({ stage: 'expenselog_create' });
         let created;
         const normalizedSource = normalizePaymentMethod(parsed.source_app);
@@ -1110,18 +1196,22 @@ export const buildBot = () => {
                 if (error.code === 'not_linked') {
                     linkStatusCache.set(ctx.from.id, { expiresAt: Date.now() + LINK_STATUS_CACHE_TTL_MS, value: { ok: false, reason: 'not_linked' } });
                     await ctx.reply('Tu cuenta ya no esta vinculada. Genera un nuevo codigo en ExpenseLog y usa /vincular TU-CODIGO.');
+                    await prisma.receiptDraft.updateMany({ where: { id: draft.id, status: 'confirming' }, data: { status: originalStatus } });
                     return undefined;
                 }
                 if (error.code === 'premium_required') {
                     linkStatusCache.set(ctx.from.id, { expiresAt: Date.now() + LINK_STATUS_CACHE_TTL_MS, value: { ok: false, reason: 'premium_required' } });
                     await ctx.reply('Tu cuenta necesita Premium activo para confirmar comprobantes.');
+                    await prisma.receiptDraft.updateMany({ where: { id: draft.id, status: 'confirming' }, data: { status: originalStatus } });
                     return undefined;
                 }
                 await ctx.reply(error.message || 'No pude crear la transaccion en ExpenseLog.');
+                await prisma.receiptDraft.updateMany({ where: { id: draft.id, status: 'confirming' }, data: { status: originalStatus } });
                 return undefined;
             }
             logger.error('expenselog_create_failed', { error, source });
             await ctx.reply('No pude crear la transaccion en ExpenseLog.');
+            await prisma.receiptDraft.updateMany({ where: { id: draft.id, status: 'confirming' }, data: { status: originalStatus } });
             return undefined;
         }
         finally {

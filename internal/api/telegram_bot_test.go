@@ -1,6 +1,7 @@
 package api
 
 import (
+	"net/http"
 	"testing"
 	"time"
 )
@@ -81,5 +82,50 @@ func TestNormalizeBotExpenseSource(t *testing.T) {
 		if got != tt.want {
 			t.Fatalf("normalizeBotExpenseSource(%q) = %q, want %q", tt.provider, got, tt.want)
 		}
+	}
+}
+
+func TestBuildBotExpenseNameOmitsOpaqueReferenceAndGenericMotive(t *testing.T) {
+	got := buildBotExpenseName(
+		"Santiago Javier Mercau",
+		"VAR",
+		"c5fe2df2-55b7-4f96-9fa8-4a2fd30732db",
+	)
+	if got != "Santiago Javier Mercau" {
+		t.Fatalf("buildBotExpenseName should keep only counterparty, got %q", got)
+	}
+}
+
+func TestBuildBotExpenseNameKeepsUsefulDetails(t *testing.T) {
+	got := buildBotExpenseName("Farmacia Central", "Ibuprofeno", "A12345")
+	if got != "Farmacia Central - Ibuprofeno (A12345)" {
+		t.Fatalf("unexpected bot expense name: %q", got)
+	}
+}
+
+func TestBuildBotExpenseURLUsesConfiguredAppBaseURL(t *testing.T) {
+	t.Setenv("APP_BASE_URL", "https://www.expenselog.com.ar/")
+	req, err := http.NewRequest(http.MethodPost, "https://ignored.test/api/bot/expense", nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+
+	got := buildBotExpenseURL(req)
+	if got != "https://www.expenselog.com.ar/app/table" {
+		t.Fatalf("unexpected bot expense url: %q", got)
+	}
+}
+
+func TestBuildBotExpenseURLFallsBackToLocalRequestBase(t *testing.T) {
+	t.Setenv("APP_BASE_URL", "")
+	req, err := http.NewRequest(http.MethodPost, "http://localhost:8080/api/bot/expense", nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Host = "localhost:8080"
+
+	got := buildBotExpenseURL(req)
+	if got != "http://localhost:8080/app/table" {
+		t.Fatalf("unexpected bot expense url from local request: %q", got)
 	}
 }

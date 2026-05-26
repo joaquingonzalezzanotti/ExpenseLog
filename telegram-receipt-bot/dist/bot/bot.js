@@ -881,8 +881,7 @@ export const buildBot = () => {
             if (autoConfirmed) {
                 const created = await createTransactionFromDraft(ctx, draft, 'auto');
                 if (created) {
-                    await ctx.reply(`🤖 Detecte alta confianza (${Math.round((getOverallConfidence(parsed) ?? 0) * 100)}%). La transaccion se confirmo automaticamente.`, postConfirmKeyboard(created.url));
-                    await ctx.reply(`✅ ¡Listo! Tu transaccion ya quedo registrada.\nID: ${created.transaction_id}\n${created.url ? `Puedes verla o editarla aqui: ${created.url}` : ''}`.trim());
+                    await ctx.reply('✅ Listo. La transaccion ya quedo registrada.', postConfirmKeyboard(created.url));
                 }
             }
             logger.info('draft_created', { id: draft.id, autoConfirmed });
@@ -1154,7 +1153,7 @@ export const buildBot = () => {
         if (!created)
             return;
         await ctx.editMessageReplyMarkup(postConfirmKeyboard(created.url).reply_markup);
-        await ctx.reply(`✅ ¡Listo! Ya cargue tu transaccion.\nID: ${created.transaction_id}\n${created.url ? `Puedes verla o modificarla aqui: ${created.url}` : ''}`.trim());
+        await ctx.reply('✅ Listo. Ya cargue la transaccion.');
     };
     bot.action('post_cancel', async (ctx) => {
         if (!(await ensurePrivateAllowed(ctx)))

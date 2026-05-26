@@ -1,3 +1,4 @@
+import { config } from '../config.js';
 const normalizeForMethodMatch = (raw) => String(raw || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -37,6 +38,24 @@ const formatDateTimeLabel = (iso) => {
     const raw = String(iso || '').trim();
     if (!raw)
         return '-';
+    const localISO = raw.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/);
+    if (localISO) {
+        const [, yyyy, mm, dd, hh, min] = localISO;
+        return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+    }
+    const parsedMs = Date.parse(raw);
+    if (Number.isFinite(parsedMs)) {
+        const formatted = new Intl.DateTimeFormat('es-AR', {
+            timeZone: config.tzDefault,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        }).format(new Date(parsedMs));
+        return formatted.replace(',', '');
+    }
     const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
     if (match) {
         const [, yyyy, mm, dd, hh, min] = match;

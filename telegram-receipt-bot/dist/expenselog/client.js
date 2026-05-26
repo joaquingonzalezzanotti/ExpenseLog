@@ -1,4 +1,25 @@
 import { config } from '../config.js';
+const buildExpenseLogWebURL = (pathname = '/app/table', webBaseURL = config.expenselogWebBaseUrl) => {
+    const base = String(webBaseURL || '').replace(/\/+$/, '');
+    const path = String(pathname || '').trim();
+    if (/^https?:\/\//i.test(path)) {
+        return path;
+    }
+    if (!base) {
+        return path.startsWith('/') ? path : `/${path}`;
+    }
+    if (!path) {
+        return `${base}/app/table`;
+    }
+    return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+};
+export const normalizeTransactionURL = (rawURL, webBaseURL = config.expenselogWebBaseUrl) => {
+    const clean = String(rawURL || '').trim();
+    if (!clean) {
+        return buildExpenseLogWebURL('/app/table', webBaseURL);
+    }
+    return buildExpenseLogWebURL(clean, webBaseURL);
+};
 export class ExpenseLogAPIError extends Error {
     status;
     code;
@@ -50,9 +71,7 @@ export class ExpenseLogAdapter {
         if (!data.transaction_id) {
             throw new Error('ExpenseLog bot-expense API returned no transaction_id');
         }
-        if (!data.url) {
-            data.url = `${String(config.expenselogWebBaseUrl || '').replace(/\/+$/, '')}/app/table`;
-        }
+        data.url = normalizeTransactionURL(data.url);
         return data;
     }
     async readAPIError(response, fallback) {
@@ -120,9 +139,7 @@ export class ExpenseLogAdapter {
         if (!data.transaction_id) {
             throw new Error('ExpenseLog transactions API returned no transaction_id');
         }
-        if (!data.url) {
-            data.url = `${String(config.expenselogWebBaseUrl || '').replace(/\/+$/, '')}/app/table`;
-        }
+        data.url = normalizeTransactionURL(data.url);
         return data;
     }
     async createViaExpenseAPI(payload) {
@@ -141,7 +158,7 @@ export class ExpenseLogAdapter {
         }
         return {
             transaction_id: transactionID,
-            url: `${String(config.expenselogWebBaseUrl || '').replace(/\/+$/, '')}/app/table`
+            url: buildExpenseLogWebURL('/app/table')
         };
     }
 }

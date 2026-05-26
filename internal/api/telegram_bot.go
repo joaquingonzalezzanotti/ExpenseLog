@@ -248,8 +248,8 @@ func buildBotExpenseName(counterparty, motive, reference string) string {
 	if base == "" {
 		base = "Movimiento Telegram"
 	}
-	motive = strings.TrimSpace(motive)
-	reference = strings.TrimSpace(reference)
+	motive = normalizeBotExpenseMotive(motive)
+	reference = normalizeBotExpenseReference(reference)
 	switch {
 	case motive != "" && reference != "":
 		return fmt.Sprintf("%s - %s (%s)", base, motive, reference)
@@ -260,6 +260,39 @@ func buildBotExpenseName(counterparty, motive, reference string) string {
 	default:
 		return base
 	}
+}
+
+func normalizeBotExpenseMotive(raw string) string {
+	clean := storage.SanitizeString(raw)
+	if clean == "" {
+		return ""
+	}
+	if strings.EqualFold(clean, "var") {
+		return ""
+	}
+	return clean
+}
+
+func normalizeBotExpenseReference(raw string) string {
+	clean := storage.SanitizeString(raw)
+	if clean == "" {
+		return ""
+	}
+	if _, err := uuid.Parse(clean); err == nil {
+		return ""
+	}
+	if len(clean) > 24 {
+		return ""
+	}
+	return clean
+}
+
+func buildBotExpenseURL(r *http.Request) string {
+	base, err := externalBaseURL(r)
+	if err != nil {
+		return "/app/table"
+	}
+	return strings.TrimRight(base, "/") + "/app/table"
 }
 
 func normalizeBotExpenseSource(provider string) string {
@@ -623,6 +656,6 @@ func (h *Handler) CreateBotExpense(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, botExpenseResponse{
 		TransactionID: expense.ID,
-		URL:           "/app/table",
+		URL:           buildBotExpenseURL(r),
 	})
 }

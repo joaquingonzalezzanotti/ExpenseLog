@@ -1,4 +1,5 @@
 import { parseArDateTime } from './date.js';
+import { parseReceiptAmount } from './amount.js';
 const pick = (text, regex) => text.match(regex)?.[1]?.trim();
 const onlyLast4 = (v) => (v ? v.replace(/\D/g, '').slice(-4) : undefined);
 const normalizeName = (v) => v?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -8,7 +9,7 @@ export const parseModoReceipt = (text, aliases, telegramMeta) => {
     const source = pick(clean, /Transferencia de\s+(.+?)\s+Desde la cuenta/i);
     const dest = pick(clean, /Para\s+(.+?)\s+A su cuenta/i);
     const paidTo = pick(clean, /Pagaste a\s+(.+?)\s+Monto/i);
-    const amountRaw = pick(clean, /Monto\s*\$\s*([\d\.,]+)/i)?.replace(/\./g, '').replace(',', '.');
+    const amountSection = pick(clean, /Monto\s+(.+?)(?:\s+Fecha y hora|\s+Fecha y Hora|$)/i);
     const ref = pick(clean, /Ref\.?\s*([A-Z0-9-]{6,})/i);
     const motive = pick(clean, /Motivo\s+(.+?)(?:\s+Fecha y hora|\s+Fecha y Hora|$)/i);
     const paymentMethodRaw = pick(clean, /Medio de pago\s+(.+?)(?:\s+Comprobante|\s+ID de QR|$)/i);
@@ -64,8 +65,8 @@ export const parseModoReceipt = (text, aliases, telegramMeta) => {
     if (!paidTo && type === 'income' && source) {
         counterparty = source;
     }
-    const amount = amountRaw ? Number(amountRaw) : undefined;
-    const amountConfidence = amountRaw ? 0.95 : 0.2;
+    const amount = parseReceiptAmount(amountSection);
+    const amountConfidence = typeof amount === 'number' ? 0.95 : 0.2;
     const datetimeConfidence = dateIso ? 0.8 : 0.2;
     const counterpartyConfidence = counterparty ? 0.82 : 0.1;
     const overallRaw = (typeConfidence + amountConfidence + datetimeConfidence + counterpartyConfidence) / 4;

@@ -1,0 +1,35 @@
+# Hardened Telegram receipt bot image with OCR support
+FROM node:20-bookworm-slim
+
+LABEL org.opencontainers.image.source="https://github.com/joaquingonzalezzanotti/ExpenseLog"
+LABEL org.opencontainers.image.description="ExpenseLog Telegram Bot – hardened image"
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+      ca-certificates \
+      tesseract-ocr \
+      tesseract-ocr-spa \
+      poppler-utils \
+      wget \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd -g 10001 appgroup \
+    && useradd  -u 10001 -g appgroup -s /bin/false appuser \
+    && mkdir -p /app /tmp/ocr \
+    && chown -R appuser:appgroup /app /tmp/ocr
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY prisma ./prisma
+RUN npm ci --omit=dev && npx prisma generate
+
+COPY dist ./dist
+RUN chown -R appuser:appgroup /app
+
+USER appuser
+ENV NODE_ENV=production
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://localhost:3000/healthz || exit 1
+
+CMD ["node", "dist/index.js"]

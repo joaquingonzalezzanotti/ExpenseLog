@@ -1,0 +1,142 @@
+# ExpenseLog – Self-hosted personal stack
+# Usage:
+#   docker compose up -d                                  # app + postgres + tunnel
+#   docker compose --profile bot up -d                    # + telegram bot
+#   docker compose --profile parser up -d                 # + AI parser
+#   docker compose --profile bot --profile parser up -d   # everything
+#   docker compose --profile tools run --rm backup        # on-demand backup
+
+name: expenselog-personal
+
+services:
+  # ─── PostgreSQL ─────────────────────────────────────────
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    shm_size: 128m
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+
+  # ─── ExpenseLog Go App ──────────────────────────────────
+  expenselog:
+    build:
+      context: ..
+      dockerfile: Dockerfile.hardened
+    restart: unless-stopped
+    read_only: true
+    security_opt: [no-new-privileges:true]
+    tmpfs:
+      - /tmp:size=100M,noexec,nosuid
+    env_file: .env
+    environment:
+      PORT: "8080"
+      STORAGE_TYPE: postgres
+      TRUST_PROXY_HEADERS: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [backend]
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
+  # ─── Telegram Receipt Bot ───────────────────────────────
+  telegram-bot:
+    build:
+      context: ../telegram-receipt-bot
+      dockerfile: Dockerfile.hardened
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    tmpfs:
+      - /tmp:size=100M,noexec,nosuid
+    env_file: .env.bot
+    depends_on:
+      postgres:
+        condition: service_healthy
+      expenselog:
+        condition: service_healthy
+    networks: [backend]
+    profiles: [bot]
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
+  # ─── AI Parser (Gemini) ─────────────────────────────────
+  ai-parser:
+    build:
+      context: ../expenselog-ai-parser
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    read_only: true
+    security_opt: [no-new-privileges:true]
+    env_file: .env.parser
+    networks: [backend]
+    profiles: [parser]
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
+  # ─── Cloudflare Tunnel ──────────────────────────────────
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?required}
+    networks: [backend]
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+
+  # ─── Backup (on-demand) ─────────────────────────────────
+  backup:
+    image: postgres:17-alpine
+    restart: "no"
+    security_opt: [no-new-privileges:true]
+    volumes:
+      - backups:/backups
+      - ./backup.sh:/backup.sh:ro
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    entrypoint: ["/bin/sh", "/backup.sh"]
+    networks: [backend]
+    profiles: [tools]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  backups:
+
+networks:
+  backend:
+    driver: bridge
